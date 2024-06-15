@@ -1,0 +1,41 @@
+# Ambiente Python
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Modelos Ollama (pesados, baixados via install.sh)
+models/
+
+# Binário Ollama local
+bin/ollama
+
+# Bundle openclaude (19MB, referência local)
+reference/dist/
+
+# Secrets
+.env
+*.key
+*.pem
+
+# Logs e sessões
+logs/
+sessions/
+
+# Cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Sistema
+.DS_Store
+Thumbs.db
