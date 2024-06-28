@@ -100,7 +100,7 @@ log_ok "Diretórios criados: models/, logs/, sessions/, bin/"
 log_step "Baixando Ollama $OLLAMA_VERSION"
 
 OLLAMA_BIN="$SCRIPT_DIR/bin/ollama"
-OLLAMA_URL="https://github.com/ollama/ollama/releases/download/v${OLLAMA_VERSION}/ollama-linux-${OLLAMA_ARCH}"
+OLLAMA_URL="https://github.com/ollama/ollama/releases/download/v${OLLAMA_VERSION}/ollama-linux-${OLLAMA_ARCH}.tgz"
 
 if [ -f "$OLLAMA_BIN" ]; then
     EXISTING_VERSION=$("$OLLAMA_BIN" --version 2>&1 | grep -oP '\d+\.\d+\.\d+' || echo "desconhecida")
@@ -110,13 +110,13 @@ if [ -f "$OLLAMA_BIN" ]; then
         log_info "Mantendo binário existente"
     else
         log_info "Baixando de $OLLAMA_URL"
-        curl -fsSL -o "$OLLAMA_BIN" "$OLLAMA_URL"
+        curl -fsSL "$OLLAMA_URL" | tar -xz -C "$SCRIPT_DIR/bin/" --strip-components=1 bin/ollama
         chmod +x "$OLLAMA_BIN"
         log_ok "Ollama $OLLAMA_VERSION baixado"
     fi
 else
     log_info "Baixando de $OLLAMA_URL"
-    curl -fsSL -o "$OLLAMA_BIN" "$OLLAMA_URL"
+    curl -fsSL "$OLLAMA_URL" | tar -xz -C "$SCRIPT_DIR/bin/" --strip-components=1 bin/ollama
     chmod +x "$OLLAMA_BIN"
     log_ok "Ollama $OLLAMA_VERSION baixado para bin/ollama"
 fi
