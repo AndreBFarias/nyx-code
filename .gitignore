@@ -15,6 +15,11 @@ bin/ollama
 
 # Bundle openclaude (19MB, referência local)
 reference/dist/
+dist
+
+# Node.js (openclaude deps)
+node_modules/
+package-lock.json
 
 # Secrets
 .env

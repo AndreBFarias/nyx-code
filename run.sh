@@ -1,7 +1,7 @@
 #!/bin/bash
 # run.sh - Nyx-Code Launcher
 # Gerencia Ollama dedicado, venv, modelos e a aplicação
-# Estilo run_luna.sh: cuida de TUDO
+# Estilo run_luna.sh: cuida de TUDO - inicia, aquece, executa, limpa
 
 set -uo pipefail
 
@@ -36,8 +36,8 @@ fi
 
 # ─── TIMEOUTS ─────────────────────────────────────────────
 CURL_TIMEOUT="${NYX_CURL_TIMEOUT:-10}"
-CURL_CONNECT_TIMEOUT=3
 OLLAMA_START_TIMEOUT="${NYX_OLLAMA_START_TIMEOUT:-30}"
+WARMUP_TIMEOUT=90
 NYX_OLLAMA_PORT="${NYX_OLLAMA_PORT:-11435}"
 NYX_OLLAMA_HOST="${NYX_OLLAMA_HOST:-127.0.0.1}:${NYX_OLLAMA_PORT}"
 
@@ -79,21 +79,37 @@ export OLLAMA_HOST="$NYX_OLLAMA_HOST"
 export OLLAMA_MODELS="$SCRIPT_DIR/models"
 
 OLLAMA_BIN="$SCRIPT_DIR/bin/ollama"
-OLLAMA_PID_FILE="$SCRIPT_DIR/logs/.ollama.pid"
-NYX_STARTED_OLLAMA=0
+OLLAMA_PID=""
+
+# ─── LIMPAR VARIÁVEIS CONFLITANTES ───────────────────────
+# GEMINI_MODEL do shell profile interfere no openclaude
+unset GEMINI_MODEL 2>/dev/null || true
 
 # ─── VALIDAÇÕES ───────────────────────────────────────────
 validate() {
     local errors=0
 
-    if [ ! -f "$SCRIPT_DIR/venv/bin/python" ]; then
-        log_err "venv não encontrado. Execute ${MAGENTA}./install.sh${NC} primeiro."
-        errors=$((errors + 1))
-    fi
-
     if [ ! -x "$OLLAMA_BIN" ]; then
         log_err "Ollama não encontrado em bin/ollama. Execute ${MAGENTA}./install.sh${NC} primeiro."
         errors=$((errors + 1))
+    fi
+
+    if [ ! -f "$SCRIPT_DIR/dist/cli.mjs" ] && [ ! -L "$SCRIPT_DIR/dist" ]; then
+        log_err "dist/cli.mjs não encontrado. Verifique o symlink dist -> reference/dist"
+        errors=$((errors + 1))
+    fi
+
+    if ! command -v node &> /dev/null; then
+        log_err "Node.js não encontrado. Instale Node.js >= 18."
+        errors=$((errors + 1))
+    fi
+
+    if [ ! -d "$SCRIPT_DIR/node_modules" ]; then
+        log_warn "node_modules não encontrado. Instalando dependências npm..."
+        npm install --production --silent 2>/dev/null || {
+            log_err "Falha ao instalar dependências npm"
+            errors=$((errors + 1))
+        }
     fi
 
     if [ "$errors" -gt 0 ]; then
@@ -101,20 +117,35 @@ validate() {
     fi
 }
 
-# ─── GERENCIAMENTO OLLAMA ─────────────────────────────────
-start_ollama() {
-    if curl -sf "http://${NYX_OLLAMA_HOST}/api/version" > /dev/null 2>&1; then
-        log_ok "Ollama já rodando na porta $NYX_OLLAMA_PORT"
-        return 0
+# ─── PARAR OLLAMA EXISTENTE ──────────────────────────────
+kill_existing_ollama() {
+    # Parar qualquer Ollama existente nesta porta
+    local existing_pid
+    existing_pid=$(lsof -ti:"$NYX_OLLAMA_PORT" 2>/dev/null || true)
+    if [ -n "$existing_pid" ]; then
+        log_info "Parando Ollama existente na porta $NYX_OLLAMA_PORT (PID: $existing_pid)..."
+        kill "$existing_pid" 2>/dev/null || true
+        sleep 1
+        # Force kill se ainda estiver rodando
+        kill -9 "$existing_pid" 2>/dev/null || true
+        sleep 1
     fi
 
+    # Matar processos ollama serve órfãos do Nyx-Code
+    pkill -f "$OLLAMA_BIN serve" 2>/dev/null || true
+
+    # Limpar cache de modelos na VRAM
+    log_info "Limpando cache..."
+    sleep 1
+}
+
+# ─── INICIAR OLLAMA ──────────────────────────────────────
+start_ollama() {
     log_info "Iniciando Ollama na porta $NYX_OLLAMA_PORT..."
     mkdir -p "$SCRIPT_DIR/logs"
 
     "$OLLAMA_BIN" serve >> "$SCRIPT_DIR/logs/ollama.log" 2>&1 &
-    local pid=$!
-    echo "$pid" > "$OLLAMA_PID_FILE"
-    NYX_STARTED_OLLAMA=1
+    OLLAMA_PID=$!
 
     local elapsed=0
     while ! curl -sf "http://${NYX_OLLAMA_HOST}/api/version" > /dev/null 2>&1; do
@@ -127,22 +158,21 @@ start_ollama() {
         fi
     done
 
-    log_ok "Ollama pronto (PID: $pid, ${elapsed}s)"
+    log_ok "Ollama pronto (PID: $OLLAMA_PID, ${elapsed}s)"
 }
 
+# ─── PARAR OLLAMA ─────────────────────────────────────────
 stop_ollama() {
-    if [ "$NYX_STARTED_OLLAMA" -eq 1 ] && [ -f "$OLLAMA_PID_FILE" ]; then
-        local pid
-        pid=$(cat "$OLLAMA_PID_FILE" 2>/dev/null)
-        if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
-            log_info "Parando Ollama (PID: $pid)..."
-            kill "$pid" 2>/dev/null
-            wait "$pid" 2>/dev/null || true
-        fi
-        rm -f "$OLLAMA_PID_FILE"
+    if [ -n "$OLLAMA_PID" ] && kill -0 "$OLLAMA_PID" 2>/dev/null; then
+        log_info "Parando Ollama (PID: $OLLAMA_PID)..."
+        kill "$OLLAMA_PID" 2>/dev/null || true
+        wait "$OLLAMA_PID" 2>/dev/null || true
     fi
+    # Garantir que não ficou nenhum processo do nosso Ollama
+    pkill -f "$OLLAMA_BIN serve" 2>/dev/null || true
 }
 
+# ─── VERIFICAR E BAIXAR MODELO ───────────────────────────
 check_model() {
     if ! "$OLLAMA_BIN" list 2>/dev/null | grep -q "$MODEL"; then
         log_warn "Modelo $MODEL não encontrado localmente"
@@ -154,6 +184,25 @@ check_model() {
         log_ok "$MODEL baixado"
     else
         log_ok "Modelo: $MODEL"
+    fi
+}
+
+# ─── WARMUP DO MODELO ────────────────────────────────────
+warmup_model() {
+    log_info "Aquecendo modelo $MODEL..."
+    local response
+    response=$(curl -sf --max-time "$WARMUP_TIMEOUT" \
+        "http://${NYX_OLLAMA_HOST}/v1/chat/completions" \
+        -H "Content-Type: application/json" \
+        -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":3}" 2>&1)
+
+    if echo "$response" | grep -q '"choices"'; then
+        log_ok "Modelo aquecido e pronto"
+    else
+        log_warn "Warmup retornou resposta inesperada (modelo pode estar lento na primeira inferência)"
+        if [ "$DEBUG" -eq 1 ]; then
+            log_info "Resposta: $response"
+        fi
     fi
 }
 
@@ -221,23 +270,21 @@ trap cleanup EXIT SIGINT SIGTERM
 # ═══════════════════════════════════════════════════════════
 
 validate
+kill_existing_ollama
 start_ollama
 check_model
 configure_vram
+warmup_model
 show_banner
 
-# Construir argumentos do Python
-PYTHON_ARGS=("--model" "$MODEL" "--port" "$NYX_OLLAMA_PORT")
-if [ "$DEBUG" -eq 1 ]; then
-    PYTHON_ARGS+=("--debug")
-fi
-if [ "$HEADLESS" -eq 1 ]; then
-    PYTHON_ARGS+=("--headless")
-fi
-PYTHON_ARGS+=("${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}")
+# ─── CONFIGURAR OPENCLAUDE PARA OLLAMA ────────────────────
+export CLAUDE_CODE_USE_OPENAI=1
+export OPENAI_API_KEY=ollama
+export OPENAI_BASE_URL="http://${NYX_OLLAMA_HOST}/v1"
+export OPENAI_MODEL="$MODEL"
 
-# Iniciar Nyx-Code
-"$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/main.py" "${PYTHON_ARGS[@]}"
+# Iniciar OpenClaude (interface tipo Claude Code com Ollama)
+node "$SCRIPT_DIR/bin/openclaude" --model "$MODEL" --bare "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"
 EXIT_CODE=$?
 
 exit "$EXIT_CODE"
