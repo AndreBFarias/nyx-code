@@ -78,12 +78,22 @@ done
 export OLLAMA_HOST="$NYX_OLLAMA_HOST"
 export OLLAMA_MODELS="$SCRIPT_DIR/models"
 
-OLLAMA_BIN="$SCRIPT_DIR/bin/ollama"
+# Priorizar Ollama do sistema (tem runners CUDA/GPU)
+# Fallback para binário local se não houver instalação global
+if command -v ollama &> /dev/null; then
+    OLLAMA_BIN="$(command -v ollama)"
+else
+    OLLAMA_BIN="$SCRIPT_DIR/bin/ollama"
+fi
 OLLAMA_PID=""
 
 # ─── LIMPAR VARIÁVEIS CONFLITANTES ───────────────────────
-# GEMINI_MODEL do shell profile interfere no openclaude
+# Keys e modelos do shell global interferem no openclaude
+# (tentava conectar em api.anthropic.com antes de usar Ollama)
 unset GEMINI_MODEL 2>/dev/null || true
+unset ANTHROPIC_API_KEY 2>/dev/null || true
+unset GEMINI_API_KEY 2>/dev/null || true
+unset DEEPSEEK_API_KEY 2>/dev/null || true
 
 # ─── VALIDAÇÕES ───────────────────────────────────────────
 validate() {
