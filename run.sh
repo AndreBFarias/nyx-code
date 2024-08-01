@@ -42,7 +42,7 @@ NYX_OLLAMA_PORT="${NYX_OLLAMA_PORT:-11435}"
 NYX_OLLAMA_HOST="${NYX_OLLAMA_HOST:-127.0.0.1}:${NYX_OLLAMA_PORT}"
 
 # ─── PARSE FLAGS ──────────────────────────────────────────
-MODEL="${NYX_MODEL:-qwen2.5-coder:3b}"
+MODEL="${NYX_MODEL:-qwen3:4b}"
 DEBUG=0
 HEADLESS=0
 EXTRA_ARGS=()
@@ -51,6 +51,9 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --3b)
             MODEL="qwen2.5-coder:3b"
+            shift ;;
+        --4b)
+            MODEL="qwen3:4b"
             shift ;;
         --7b)
             MODEL="qwen2.5-coder:7b"
@@ -294,7 +297,15 @@ export OPENAI_BASE_URL="http://${NYX_OLLAMA_HOST}/v1"
 export OPENAI_MODEL="$MODEL"
 
 # Iniciar OpenClaude (interface tipo Claude Code com Ollama)
-node "$SCRIPT_DIR/bin/openclaude" --model "$MODEL" --bare "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"
+# --bare: pula hooks, LSP, plugins (reduz overhead para modelo local)
+# --allowedTools: limita a tools de código (evita MCP/playwright/etc)
+# --dangerously-skip-permissions: auto-aprova tools (modelo local confiável)
+node "$SCRIPT_DIR/bin/openclaude" \
+    --model "$MODEL" \
+    --bare \
+    --allowedTools "Bash" "Read" "Edit" "Write" "Glob" "Grep" \
+    --dangerously-skip-permissions \
+    "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"
 EXIT_CODE=$?
 
 exit "$EXIT_CODE"

@@ -173,7 +173,7 @@ while ! curl -sf "http://${OLLAMA_HOST}/api/version" > /dev/null 2>&1; do
 done
 log_ok "Ollama pronto (${ELAPSED}s)"
 
-MODELS=("qwen2.5-coder:3b" "qwen2.5-coder:7b")
+MODELS=("qwen3:4b" "qwen2.5-coder:3b" "qwen2.5-coder:7b")
 for MODEL in "${MODELS[@]}"; do
     if "$OLLAMA_BIN" list 2>/dev/null | grep -q "$MODEL"; then
         log_info "$MODEL já baixado"
