@@ -295,16 +295,35 @@ export CLAUDE_CODE_USE_OPENAI=1
 export OPENAI_API_KEY=ollama
 export OPENAI_BASE_URL="http://${NYX_OLLAMA_HOST}/v1"
 export OPENAI_MODEL="$MODEL"
+export OPENAI_TIMEOUT=300000
+unset ANTHROPIC_API_KEY
 
-# Iniciar OpenClaude (interface tipo Claude Code com Ollama)
-# --bare: pula hooks, LSP, plugins (reduz overhead para modelo local)
-# --allowedTools: limita a tools de código (evita MCP/playwright/etc)
-# --dangerously-skip-permissions: auto-aprova tools (modelo local confiável)
+# ─── PRE-CARREGAR MODELO COM NUM_GPU LIMITADO ────────────
+# Evita OOM: carrega o modelo com menos layers na GPU antes do openclaude
+log_info "Pré-carregando modelo com VRAM limitada..."
+curl -sf --max-time 120 "http://${NYX_OLLAMA_HOST}/api/chat" \
+    -H "Content-Type: application/json" \
+    -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"stream\":false,\"options\":{\"num_gpu\":20,\"num_ctx\":4096}}" \
+    > /dev/null 2>&1
+log_ok "Modelo pré-carregado"
+
+NYX_SYSTEM_PROMPT="Voce e Nyx, um agente de codigo local. Regras:
+- Responda SEMPRE em PT-BR
+- Quando pedirem para ler, criar, editar arquivos ou executar comandos, USE as tools disponiveis (Read, Write, Edit, Bash, Glob, Grep)
+- Voce TEM acesso total ao sistema de arquivos local
+- Seja direto e conciso
+- Diretorio de trabalho: $(pwd)"
+
+# Iniciar OpenClaude
+# --bare: sem plugins MCP (Playwright, Context7, etc.)
+# --thinking disabled: sem reasoning exposto (velocidade)
+# --dangerously-skip-permissions: auto-aprova tools
 node "$SCRIPT_DIR/bin/openclaude" \
     --model "$MODEL" \
     --bare \
-    --allowedTools "Bash" "Read" "Edit" "Write" "Glob" "Grep" \
+    --thinking disabled \
     --dangerously-skip-permissions \
+    --system-prompt "$NYX_SYSTEM_PROMPT" \
     "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"
 EXIT_CODE=$?
 
