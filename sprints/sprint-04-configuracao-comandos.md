@@ -1,173 +1,160 @@
-# Sprint 4: Configuração, Comandos e Integração de Features
+# Sprint 4: Fazer Tudo Funcionar
 
-**Objetivo:** Configurar o openclaude para funcionar corretamente com o modelo
-local, integrar slash commands, pré-configurar tudo em PT-BR, e garantir que
-todas as features acessíveis pela interface funcionem de verdade.
-
----
-
-## Problemas atuais
-
-### /config (settings que não funcionam ou precisam de ajuste)
-- `Language`: Default (English) -- precisa ser PT-BR
-- `Thinking mode`: false -- já desabilitado via flag mas precisa persistir
-- `Model`: qwen3:4b -- correto mas precisa persistir
-- `Default permission mode`: Accept edits -- correto
-- `Output style`: default -- avaliar se precisa ajustar
-- `Auto-compact`: true -- verificar se funciona com modelo local
-- `Show tips`: true -- verificar se tips fazem sentido localmente
-- `Terminal progress bar`: true -- verificar funcionamento
-- `Verbose output`: false -- manter
-
-### Slash commands que não funcionam
-- `/terminal-setup` -- não suporta gnome-terminal (limitação)
-- `/help` -- funciona mas mostra commands do Claude Code original
-- `/config` -- abre mas settings podem não persistir
-- `/compact` -- verificar se funciona com modelo local
-- `/model` -- verificar se troca modelo funcional
-- `/status` -- verificar se mostra info correta
-
-### Command suggesters (autocomplete de /)
-- Sugere commands que não existem (ex: `/bash` mostrado na sessão anterior)
-- Precisa filtrar para apenas commands funcionais
+**Objetivo:** Cada feature, comando e configuração do openclaude deve funcionar
+com o modelo local. Nada é escondido ou desabilitado — tudo é adaptado.
 
 ---
 
-## Plano de execução
+## Inventário completo de slash commands
 
-### 4.1 Criar settings.json do projeto
+Extraído do código fonte (`cli.mjs` linhas 460451-460538). Todos os commands
+públicos que o openclaude registra:
 
-Criar `~/Desenvolvimento/Nyx-Code/.claude/settings.json` (ou equivalente)
-com configurações pré-definidas para o Nyx-Code:
+### Grupo 1: Essenciais (devem funcionar perfeitamente)
 
-```json
-{
-  "model": "qwen3:4b",
-  "language": "pt-BR",
-  "theme": "dark",
-  "thinkingMode": false,
-  "autoCompact": true,
-  "showTips": false,
-  "verboseOutput": false,
-  "terminalProgressBar": true,
-  "showTurnDuration": true,
-  "defaultPermissionMode": "bypass",
-  "outputStyle": "default"
-}
-```
+| Comando | Descrição | Status | Ação |
+|---------|-----------|--------|------|
+| `/help` | Lista de comandos | Testar | Garantir que lista tudo |
+| `/config` | Configurações | Testar | Persistir model, language, thinking |
+| `/model` | Trocar modelo | Adaptar | Listar modelos do Ollama local |
+| `/clear` | Limpar sessão | Testar | Deve funcionar nativo |
+| `/compact` | Compactar contexto | Testar | Essencial para modelo com contexto limitado |
+| `/diff` | Git diff | Testar | Usa Bash internamente |
+| `/status` | Status do provider | Adaptar | Mostrar Ollama, modelo, VRAM |
+| `/exit` | Sair | Testar | Deve funcionar nativo |
 
-### 4.2 Criar CLAUDE.md do projeto Nyx-Code
+### Grupo 2: Código e Git (core da ferramenta)
 
-Arquivo `.claude/CLAUDE.md` ou `CLAUDE.md` na raiz que define o comportamento:
+| Comando | Descrição | Status | Ação |
+|---------|-----------|--------|------|
+| `/commit` | Git commit | Testar | Usa Bash(git) internamente |
+| `/commit-push-pr` | Commit + push + PR | Testar | Depende de gh CLI |
+| `/review` | Review de código | Testar | Usa Read + análise |
+| `/plan` | Planejar implementação | Testar | Prompt-based |
+| `/security-review` | Auditoria de segurança | Testar | Prompt-based |
+| `/release-notes` | Gerar release notes | Testar | Prompt-based |
+| `/rename` | Renomear símbolo | Testar | Usa Edit internamente |
 
-```markdown
-# Nyx-Code
+### Grupo 3: Navegação e Contexto
 
-## Identidade
-Você é Nyx, agente de código local.
+| Comando | Descrição | Status | Ação |
+|---------|-----------|--------|------|
+| `/add-dir` | Adicionar diretório ao contexto | Testar | |
+| `/context` | Ver contexto atual | Testar | |
+| `/files` | Listar arquivos no contexto | Testar | |
+| `/resume` | Retomar sessão anterior | Testar | |
+| `/session` | Info da sessão atual | Testar | |
+| `/memory` | Memória persistente | Testar | |
+| `/tasks` | Gerenciar tasks | Testar | |
+| `/copy` | Copiar resposta | Testar | |
 
-## Regras
-- Responda SEMPRE em PT-BR
-- Use as tools (Read, Write, Edit, Bash, Glob, Grep) quando pedirem
-- Seja direto e conciso
-- Nunca diga que não pode acessar o sistema de arquivos
-```
+### Grupo 4: Configuração e Sistema
 
-O openclaude carrega CLAUDE.md automaticamente como contexto (exceto com --bare).
+| Comando | Descrição | Status | Ação |
+|---------|-----------|--------|------|
+| `/theme` | Trocar tema | Testar | |
+| `/color` | Configurar cores | Testar | |
+| `/output-style` | Estilo de output | Testar | |
+| `/effort` | Nível de esforço | Testar | |
+| `/fast` | Modo rápido | Adaptar | Precisa de modelo fast no Ollama |
+| `/vim` | Modo vim | Testar | |
+| `/keybindings` | Atalhos de teclado | Testar | |
+| `/terminal-setup` | Setup de terminal | Adaptar | Suportar gnome-terminal |
+| `/permissions` | Gerenciar permissões | Testar | |
+| `/privacy-settings` | Privacidade | Testar | |
+| `/hooks` | Gerenciar hooks | Testar | |
+| `/stats` | Estatísticas | Testar | |
+| `/statusline` | Barra de status | Testar | |
 
-### 4.3 Configurar via flags no run.sh
+### Grupo 5: Provider e Autenticação
 
-Passar configurações via flags ao invés de depender de ~/.claude/:
-- `--system-prompt` com identidade e regras (já feito)
-- `--thinking disabled` (já feito)
-- `--dangerously-skip-permissions` (já feito)
-- Avaliar: `--disable-slash-commands` para remover commands inúteis
+| Comando | Descrição | Status | Ação |
+|---------|-----------|--------|------|
+| `/provider` | Configurar provider | Adaptar | Fixar como Ollama local |
+| `/login` | Autenticar | Adaptar | Desnecessário para local, mas não travar |
+| `/logout` | Desautenticar | Adaptar | Idem |
+| `/cost` | Custo de uso | Adaptar | Mostrar custo zero (local) |
+| `/usage` | Uso da API | Adaptar | Mostrar uso local |
 
-### 4.4 Mapear e filtrar slash commands
+### Grupo 6: Extensões e Plugins
 
-Listar todos os commands do openclaude e classificar:
+| Comando | Descrição | Status | Ação |
+|---------|-----------|--------|------|
+| `/mcp` | Gerenciar MCP servers | Testar | |
+| `/plugin` | Gerenciar plugins | Testar | |
+| `/reload-plugins` | Recarregar plugins | Testar | |
+| `/skills` | Listar skills | Testar | |
+| `/chrome` | Integração Chrome | Testar | Se MCP Chrome estiver ativo |
+| `/ide` | Integração IDE | Testar | |
 
-| Comando | Funciona | Ação |
-|---------|----------|------|
-| `/help` | Parcial | Ajustar para mostrar só commands funcionais |
-| `/config` | Parcial | Settings que fazem sentido localmente |
-| `/model` | Verificar | Trocar entre qwen3:4b, qwen2.5-coder:3b, 7b |
-| `/compact` | Verificar | Compactar contexto da sessão |
-| `/status` | Verificar | Status do provider/modelo |
-| `/clear` | Verificar | Limpar sessão |
-| `/diff` | Verificar | Mostrar git diff |
-| `/commit` | Verificar | Fazer git commit |
-| `/review` | Verificar | Review de código |
-| `/doctor` | Verificar | Diagnóstico do sistema |
-| `/terminal-setup` | Não | Não suporta gnome-terminal |
-| `/login` | Não | Irrelevante (modelo local) |
-| `/logout` | Não | Irrelevante |
+### Grupo 7: Avançado
 
-### 4.5 Testar cada command
-
-Para cada command funcional, testar no modo interativo:
-1. Digitar o comando
-2. Verificar se executa ou dá erro
-3. Documentar resultado
-4. Se não funciona: desabilitar ou adaptar
-
-### 4.6 Integrar estética da Luna
-
-Referência: `src/skills/code_agent/rich_output.py` e `run_luna.sh`.
-
-O que copiar/adaptar da Luna para o Nyx-Code:
-- **Paleta de cores**: Roxo/violeta como primária (já no banner)
-- **Banner**: Manter o banner Nyx atual mas alinhar estilo Luna
-- **Barra de status**: ctx%, iter, files, edits, tempo
-- **Formatação de diffs**: Bordas estilizadas
-- **Mensagens de erro**: Claras com sugestões
-- **PT-BR**: Tudo em português
-
-A estética visual do openclaude já é boa (TUI com bordas, cores).
-O ajuste principal é:
-- Trocar textos internos para PT-BR onde possível
-- Cores Nyx no banner/prompt do run.sh
-- CLAUDE.md em PT-BR para contexto
-
-### 4.7 Pré-configurar .env com defaults otimizados
-
-Atualizar `.env.example` e `.env` com valores otimizados para uso local:
-
-```env
-NYX_MODEL=qwen3:4b
-NYX_OLLAMA_PORT=11435
-NYX_VRAM_MAX=2.5
-NYX_NUM_GPU=20
-NYX_NUM_CTX=4096
-NYX_TEMPERATURE=0.3
-NYX_DEBUG=0
-NYX_LANGUAGE=pt-BR
-```
+| Comando | Descrição | Status | Ação |
+|---------|-----------|--------|------|
+| `/doctor` | Diagnóstico do sistema | Adaptar | Verificar Ollama, GPU, modelos |
+| `/init` | Inicializar projeto | Testar | |
+| `/export` | Exportar sessão | Testar | |
+| `/branch` | Gerenciar branches | Testar | |
+| `/rewind` | Desfazer mudanças | Testar | |
+| `/advisor` | Conselheiro de código | Testar | |
+| `/feedback` | Enviar feedback | Adaptar | Redirecionar para GitHub do Nyx |
+| `/pr-comments` | Comentários de PR | Testar | |
+| `/tag` | Tagging | Testar | |
+| `/upgrade` | Atualizar versão | Adaptar | Apontar para Nyx releases |
+| `/stickers` | Adesivos | Testar | |
+| `/thinkback` | Replay de raciocínio | Testar | |
+| `/sandbox-toggle` | Toggle sandbox | Testar | |
 
 ---
 
-## Adicionar ao install.sh
+## Processo de execução
 
-O `install.sh` deve criar automaticamente:
-- `.claude/settings.json` com configurações padrão
-- `CLAUDE.md` com identidade Nyx
-- `.env` com defaults otimizados (já faz isso)
+### Fase 1: Testar tudo no estado atual
+
+Executar cada comando listado acima na interface interativa.
+Para cada um, registrar:
+- Funciona? (sim/não/parcial)
+- Mensagem de erro (se houver)
+- Adaptação necessária
+
+### Fase 2: Configuração base
+
+1. Criar `CLAUDE.md` na raiz com identidade Nyx + regras PT-BR
+2. Criar `.claude/settings.json` com defaults otimizados
+3. Atualizar `run.sh` para não usar `--bare` (para carregar CLAUDE.md e commands)
+   mas resolver o problema de autenticação de outra forma
+4. Atualizar `install.sh` para criar configs automaticamente
+
+### Fase 3: Adaptar commands que precisam de ajuste
+
+Para cada command que não funciona:
+1. Identificar a causa raiz (auth? provider? modelo?)
+2. Se é configuração: ajustar settings
+3. Se é código: documentar para port Python (Sprint 6)
+4. Se é limitação do modelo: criar workaround via system prompt
+
+### Fase 4: PT-BR completo
+
+- `CLAUDE.md` em PT-BR
+- System prompt em PT-BR (já feito)
+- `/config` > Language: PT-BR
+- Tips e mensagens: verificar se respeitam o idioma
 
 ---
 
 ## Verificação
 
-- [ ] `/config` mostra settings corretos (model, language, theme)
-- [ ] `/help` mostra apenas commands funcionais
-- [ ] `/model` lista modelos disponíveis (qwen3:4b, qwen2.5-coder:3b, 7b)
-- [ ] `/compact` compacta contexto sem erro
-- [ ] `/status` mostra provider local + modelo correto
-- [ ] `/clear` limpa sessão
-- [ ] `/diff` mostra git diff
-- [ ] Autocomplete de `/` sugere apenas commands válidos
-- [ ] Textos do banner e prompt em PT-BR
-- [ ] CLAUDE.md carregado como contexto
-- [ ] `install.sh` cria configurações automaticamente
+- [ ] Cada comando do inventário testado e documentado
+- [ ] Commands essenciais (Grupo 1) funcionando 100%
+- [ ] Commands de código (Grupo 2) funcionando 100%
+- [ ] Commands de navegação (Grupo 3) funcionando 100%
+- [ ] Commands de config (Grupo 4) funcionando ou adaptados
+- [ ] Commands de auth (Grupo 5) adaptados para local
+- [ ] `/config` persiste configurações entre sessões
+- [ ] `/model` troca entre modelos locais
+- [ ] `/doctor` diagnostica Ollama + GPU + modelos
+- [ ] PT-BR em todas as interfaces configuráveis
+- [ ] `install.sh` cria todas as configurações automaticamente
 
 ---
 
@@ -175,6 +162,6 @@ O `install.sh` deve criar automaticamente:
 
 - `CLAUDE.md` -- identidade Nyx + regras PT-BR
 - `.claude/settings.json` -- settings pré-configurados
-- `run.sh` -- ajustar flags conforme necessário
-- `install.sh` -- criar CLAUDE.md e settings automaticamente
-- `.env.example` -- novos defaults
+- `run.sh` -- resolver autenticação sem --bare
+- `install.sh` -- criar CLAUDE.md e settings
+- `.env` / `.env.example` -- defaults atualizados
