@@ -91,12 +91,11 @@ fi
 OLLAMA_PID=""
 
 # ─── LIMPAR VARIÁVEIS CONFLITANTES ───────────────────────
-# Keys e modelos do shell global interferem no openclaude
-# (tentava conectar em api.anthropic.com antes de usar Ollama)
+# Modelos do shell global interferem na seleção do openclaude
 unset GEMINI_MODEL 2>/dev/null || true
-unset ANTHROPIC_API_KEY 2>/dev/null || true
 unset GEMINI_API_KEY 2>/dev/null || true
 unset DEEPSEEK_API_KEY 2>/dev/null || true
+# ANTHROPIC_API_KEY é mantida (necessária para auth do openclaude, vem do .env)
 
 # ─── VALIDAÇÕES ───────────────────────────────────────────
 validate() {
@@ -296,10 +295,9 @@ export OPENAI_API_KEY=ollama
 export OPENAI_BASE_URL="http://${NYX_OLLAMA_HOST}/v1"
 export OPENAI_MODEL="$MODEL"
 export OPENAI_TIMEOUT=300000
-unset ANTHROPIC_API_KEY
+# ANTHROPIC_API_KEY vem do .env (necessária para auth, não usada para API calls)
 
 # ─── PRE-CARREGAR MODELO COM NUM_GPU LIMITADO ────────────
-# Evita OOM: carrega o modelo com menos layers na GPU antes do openclaude
 log_info "Pré-carregando modelo com VRAM limitada..."
 curl -sf --max-time 120 "http://${NYX_OLLAMA_HOST}/api/chat" \
     -H "Content-Type: application/json" \
@@ -315,15 +313,14 @@ NYX_SYSTEM_PROMPT="Voce e Nyx, um agente de codigo local. Regras:
 - Diretorio de trabalho: $(pwd)"
 
 # Iniciar OpenClaude
-# --bare: sem plugins MCP (Playwright, Context7, etc.)
-# --thinking disabled: sem reasoning exposto (velocidade)
+# Sem --bare: slash commands e CLAUDE.md funcionam
+# --thinking disabled: sem reasoning exposto
 # --dangerously-skip-permissions: auto-aprova tools
 node "$SCRIPT_DIR/bin/openclaude" \
     --model "$MODEL" \
-    --bare \
     --thinking disabled \
     --dangerously-skip-permissions \
-    --system-prompt "$NYX_SYSTEM_PROMPT" \
+    --append-system-prompt "$NYX_SYSTEM_PROMPT" \
     "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"
 EXIT_CODE=$?
 
