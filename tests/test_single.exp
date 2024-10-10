@@ -1,0 +1,43 @@
+#!/usr/bin/expect -f
+set timeout 20
+set cmd [lindex $argv 0]
+
+set fd [open "/home/andrefarias/Desenvolvimento/Nyx-Code/.env" r]
+while {[gets $fd line] >= 0} {
+    if {[regexp {^([A-Z_]+)=(.*)$} $line -> key val]} {
+        set env($key) $val
+    }
+}
+close $fd
+
+set env(CLAUDE_CODE_USE_OPENAI) 1
+set env(OPENAI_API_KEY) ollama
+set env(OPENAI_BASE_URL) "http://127.0.0.1:11435/v1"
+set env(OPENAI_MODEL) "qwen3:4b"
+set env(OPENAI_TIMEOUT) 300000
+
+log_user 0
+spawn node /home/andrefarias/Desenvolvimento/Nyx-Code/bin/openclaude --thinking disabled --model qwen3:4b --dangerously-skip-permissions
+
+expect "Ready"
+sleep 2
+
+send "/$cmd\r"
+sleep 10
+
+# Capturar buffer
+expect {
+    -re "(.+)" {
+        set output $expect_out(buffer)
+        # Limpar ANSI
+        regsub -all {\x1b\[[0-9;?]*[a-zA-Z]} $output "" clean
+        regsub -all {\x1b[=>][^\n]*} $clean "" clean
+        puts $clean
+    }
+    timeout { puts "TIMEOUT" }
+}
+
+send "\033"
+sleep 1
+send "/exit\r"
+sleep 1
