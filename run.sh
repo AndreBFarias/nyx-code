@@ -131,6 +131,9 @@ validate() {
 
 # ─── PARAR OLLAMA EXISTENTE ──────────────────────────────
 kill_existing_ollama() {
+    # Parar proxy anterior
+    pkill -f "nyx/proxy.py" 2>/dev/null || true
+
     # Parar qualquer Ollama existente nesta porta
     local existing_pid
     existing_pid=$(lsof -ti:"$NYX_OLLAMA_PORT" 2>/dev/null || true)
@@ -138,7 +141,6 @@ kill_existing_ollama() {
         log_info "Parando Ollama existente na porta $NYX_OLLAMA_PORT (PID: $existing_pid)..."
         kill "$existing_pid" 2>/dev/null || true
         sleep 1
-        # Force kill se ainda estiver rodando
         kill -9 "$existing_pid" 2>/dev/null || true
         sleep 1
     fi
@@ -146,7 +148,6 @@ kill_existing_ollama() {
     # Matar processos ollama serve órfãos do Nyx-Code
     pkill -f "$OLLAMA_BIN serve" 2>/dev/null || true
 
-    # Limpar cache de modelos na VRAM
     log_info "Limpando cache..."
     sleep 1
 }
@@ -271,6 +272,11 @@ show_banner() {
 cleanup() {
     echo ""
     log_info "Encerrando Nyx-Code..."
+    # Parar proxy
+    if [ -n "${PROXY_PID:-}" ] && kill -0 "$PROXY_PID" 2>/dev/null; then
+        kill "$PROXY_PID" 2>/dev/null
+    fi
+    pkill -f "nyx/proxy.py" 2>/dev/null || true
     stop_ollama
     log_ok "Encerrado."
 }
@@ -289,21 +295,41 @@ configure_vram
 warmup_model
 show_banner
 
-# ─── CONFIGURAR OPENCLAUDE PARA OLLAMA ────────────────────
+# ─── CONFIGURAR PROXY + OPENCLAUDE ────────────────────────
+NYX_PROXY_PORT=11436
+NYX_NUM_GPU="${NYX_NUM_GPU:-12}"
+
 export CLAUDE_CODE_USE_OPENAI=1
 export OPENAI_API_KEY=ollama
-export OPENAI_BASE_URL="http://${NYX_OLLAMA_HOST}/v1"
+export OPENAI_BASE_URL="http://127.0.0.1:${NYX_PROXY_PORT}/v1"
 export OPENAI_MODEL="$MODEL"
 export OPENAI_TIMEOUT=300000
-# ANTHROPIC_API_KEY vem do .env (necessária para auth, não usada para API calls)
+# ANTHROPIC_API_KEY vem do .env (necessária para auth do openclaude)
 
 # ─── PRE-CARREGAR MODELO COM NUM_GPU LIMITADO ────────────
-log_info "Pré-carregando modelo com VRAM limitada..."
+log_info "Pré-carregando modelo (num_gpu=$NYX_NUM_GPU)..."
 curl -sf --max-time 120 "http://${NYX_OLLAMA_HOST}/api/chat" \
     -H "Content-Type: application/json" \
-    -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"stream\":false,\"options\":{\"num_gpu\":20,\"num_ctx\":4096}}" \
+    -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"stream\":false,\"think\":false,\"options\":{\"num_gpu\":$NYX_NUM_GPU,\"num_ctx\":4096}}" \
     > /dev/null 2>&1
 log_ok "Modelo pré-carregado"
+
+# ─── INICIAR PROXY (think=false para tool calling) ───────
+log_info "Iniciando proxy na porta $NYX_PROXY_PORT..."
+"$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/nyx/proxy.py" \
+    --port "$NYX_PROXY_PORT" \
+    --ollama-port "$NYX_OLLAMA_PORT" \
+    --num-gpu "$NYX_NUM_GPU" \
+    >> "$SCRIPT_DIR/logs/proxy.log" 2>&1 &
+PROXY_PID=$!
+sleep 2
+
+if curl -sf "http://127.0.0.1:${NYX_PROXY_PORT}/v1/models" > /dev/null 2>&1; then
+    log_ok "Proxy pronto (PID: $PROXY_PID)"
+else
+    log_err "Proxy não iniciou. Verifique logs/proxy.log"
+    exit 1
+fi
 
 NYX_SYSTEM_PROMPT="Voce e Nyx, um agente de codigo local. Regras:
 - Responda SEMPRE em PT-BR
@@ -312,10 +338,7 @@ NYX_SYSTEM_PROMPT="Voce e Nyx, um agente de codigo local. Regras:
 - Seja direto e conciso
 - Diretorio de trabalho: $(pwd)"
 
-# Iniciar OpenClaude
-# Sem --bare: slash commands e CLAUDE.md funcionam
-# --thinking disabled: sem reasoning exposto
-# --dangerously-skip-permissions: auto-aprova tools
+# Iniciar OpenClaude (via proxy que injeta think=false)
 node "$SCRIPT_DIR/bin/openclaude" \
     --model "$MODEL" \
     --thinking disabled \

@@ -1,0 +1,35 @@
+#!/usr/bin/expect -f
+# Teste E2E: run.sh com proxy - Write tool deve criar arquivo no disco
+
+set timeout 300
+
+log_file -noappend /tmp/nyx_proxy_e2e.log
+
+spawn /home/andrefarias/Desenvolvimento/Nyx-Code/run.sh
+
+expect {
+    "Ready" { send_user "\n>>> INTERFACE OK <<<\n" }
+    timeout { send_user "\n>>> TIMEOUT <<<\n"; exit 1 }
+}
+sleep 3
+
+# Teste: pedir para criar arquivo
+send_user "\n>>> PEDINDO PARA CRIAR ARQUIVO <<<\n"
+send "crie o arquivo /tmp/nyx_e2e_test.py contendo exatamente: print('nyx funciona')\r"
+
+expect {
+    -re "cri|escrev|wrote|created|Write|nyx_e2e" {
+        send_user "\n>>> MODELO RESPONDEU <<<\n"
+    }
+    -re "Error|error|fetch" {
+        send_user "\n>>> ERRO <<<\n"
+    }
+    timeout {
+        send_user "\n>>> TIMEOUT NO WRITE <<<\n"
+    }
+}
+sleep 5
+
+send "/exit\r"
+sleep 3
+send_user "\n>>> FIM <<<\n"
