@@ -8,24 +8,27 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# ─── CORES ────────────────────────────────────────────────
+# ─── CORES (Dracula Gothic - alinhado com Luna) ──────────
 if [ -t 1 ]; then
-    RED='\033[0;31m'
-    GREEN='\033[0;32m'
-    YELLOW='\033[0;33m'
-    MAGENTA='\033[0;35m'
-    CYAN='\033[0;36m'
+    PURPLE='\033[38;2;189;147;249m'   # #BD93F9 - cor principal
+    PINK='\033[38;2;255;121;198m'     # #FF79C6 - alertas
+    GREEN='\033[38;2;80;250;123m'     # #50FA7B - sucesso
+    CYAN='\033[38;2;139;233;253m'     # #8BE9FD - info
+    ORANGE='\033[38;2;255;184;108m'   # #FFB86C - avisos
+    RED='\033[38;2;255;85;85m'        # #FF5555 - erros
+    COMMENT='\033[38;2;98;114;164m'   # #6272A4 - secundário
+    FG='\033[38;2;248;248;242m'       # #F8F8F2 - texto
     BOLD='\033[1m'
     DIM='\033[2m'
     NC='\033[0m'
 else
-    RED='' GREEN='' YELLOW='' MAGENTA='' CYAN='' BOLD='' DIM='' NC=''
+    PURPLE='' PINK='' GREEN='' CYAN='' ORANGE='' RED='' COMMENT='' FG='' BOLD='' DIM='' NC=''
 fi
 
-log_ok()   { echo -e "  ${GREEN}[OK]${NC} $1"; }
-log_info() { echo -e "  ${CYAN}[INFO]${NC} $1"; }
-log_warn() { echo -e "  ${YELLOW}[AVISO]${NC} $1"; }
-log_err()  { echo -e "  ${RED}[ERRO]${NC} $1"; }
+log_nyx()  { echo -e "  ${PURPLE}[nyx]${NC} $1"; }
+log_ok()   { echo -e "  ${GREEN}[nyx]${NC} $1"; }
+log_warn() { echo -e "  ${ORANGE}[nyx]${NC} $1"; }
+log_err()  { echo -e "  ${RED}[nyx]${NC} $1"; }
 
 # ─── CARREGAR .env ────────────────────────────────────────
 if [ -f "$SCRIPT_DIR/.env" ]; then
@@ -138,7 +141,7 @@ kill_existing_ollama() {
     local existing_pid
     existing_pid=$(lsof -ti:"$NYX_OLLAMA_PORT" 2>/dev/null || true)
     if [ -n "$existing_pid" ]; then
-        log_info "Parando Ollama existente na porta $NYX_OLLAMA_PORT (PID: $existing_pid)..."
+        log_nyx "Parando Ollama existente na porta $NYX_OLLAMA_PORT (PID: $existing_pid)..."
         kill "$existing_pid" 2>/dev/null || true
         sleep 1
         kill -9 "$existing_pid" 2>/dev/null || true
@@ -148,13 +151,13 @@ kill_existing_ollama() {
     # Matar processos ollama serve órfãos do Nyx-Code
     pkill -f "$OLLAMA_BIN serve" 2>/dev/null || true
 
-    log_info "Limpando cache..."
+    log_nyx "Limpando cache..."
     sleep 1
 }
 
 # ─── INICIAR OLLAMA ──────────────────────────────────────
 start_ollama() {
-    log_info "Iniciando Ollama na porta $NYX_OLLAMA_PORT..."
+    log_nyx "Iniciando Ollama na porta $NYX_OLLAMA_PORT..."
     mkdir -p "$SCRIPT_DIR/logs"
 
     "$OLLAMA_BIN" serve >> "$SCRIPT_DIR/logs/ollama.log" 2>&1 &
@@ -177,7 +180,7 @@ start_ollama() {
 # ─── PARAR OLLAMA ─────────────────────────────────────────
 stop_ollama() {
     if [ -n "$OLLAMA_PID" ] && kill -0 "$OLLAMA_PID" 2>/dev/null; then
-        log_info "Parando Ollama (PID: $OLLAMA_PID)..."
+        log_nyx "Parando Ollama (PID: $OLLAMA_PID)..."
         kill "$OLLAMA_PID" 2>/dev/null || true
         wait "$OLLAMA_PID" 2>/dev/null || true
     fi
@@ -189,7 +192,7 @@ stop_ollama() {
 check_model() {
     if ! "$OLLAMA_BIN" list 2>/dev/null | grep -q "$MODEL"; then
         log_warn "Modelo $MODEL não encontrado localmente"
-        log_info "Baixando $MODEL..."
+        log_nyx "Baixando $MODEL..."
         if ! "$OLLAMA_BIN" pull "$MODEL"; then
             log_err "Falha ao baixar $MODEL"
             exit 1
@@ -202,7 +205,7 @@ check_model() {
 
 # ─── WARMUP DO MODELO ────────────────────────────────────
 warmup_model() {
-    log_info "Aquecendo modelo $MODEL..."
+    log_nyx "Aquecendo modelo $MODEL..."
     local response
     response=$(curl -sf --max-time "$WARMUP_TIMEOUT" \
         "http://${NYX_OLLAMA_HOST}/v1/chat/completions" \
@@ -214,7 +217,7 @@ warmup_model() {
     else
         log_warn "Warmup retornou resposta inesperada (modelo pode estar lento na primeira inferência)"
         if [ "$DEBUG" -eq 1 ]; then
-            log_info "Resposta: $response"
+            log_nyx "Resposta: $response"
         fi
     fi
 }
@@ -226,17 +229,17 @@ configure_vram() {
     fi
 
     local vram_max="${NYX_VRAM_MAX:-2.5}"
-    log_info "Modelo 7b detectado. Limite VRAM: ${vram_max}GB"
+    log_nyx "Modelo 7b detectado. Limite VRAM: ${vram_max}GB"
 
     if command -v nvidia-smi &> /dev/null; then
         local vram_total
         vram_total=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | head -1)
         if [ -n "$vram_total" ]; then
-            log_info "GPU: ${vram_total}MiB VRAM total"
+            log_nyx "GPU: ${vram_total}MiB VRAM total"
         fi
     fi
 
-    log_info "num_gpu=18 (~2.4GB VRAM, restante em CPU)"
+    log_nyx "num_gpu=18 (~2.4GB VRAM, restante em CPU)"
 }
 
 # ─── BANNER ───────────────────────────────────────────────
@@ -246,24 +249,27 @@ show_banner() {
     fi
 
     echo ""
-    echo -e "${MAGENTA}${BOLD}"
-    echo "  ╔══════════════════════════════════════╗"
-    echo "  ║                                      ║"
-    echo "  ║    _   _                             ║"
-    echo "  ║   | \\ | |_   ___  __                 ║"
-    echo "  ║   |  \\| | | | \\ \\/ /                 ║"
-    echo "  ║   | |\\  | |_| |>  <                  ║"
-    echo "  ║   |_| \\_|\\__, /_/\\_\\                 ║"
-    echo "  ║          |___/                       ║"
-    echo "  ║                                      ║"
-    echo "  ║         C O D E   A G E N T          ║"
-    echo "  ║                                      ║"
-    echo "  ╚══════════════════════════════════════╝"
+    echo -e "${COMMENT}"
+    echo "  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░"
+    echo "  ░                                      ░"
+    echo "  ░    ...sintonizando frequencia...      ░"
+    echo "  ░                                      ░"
+    echo "  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░"
     echo -e "${NC}"
-    echo -e "  ${DIM}Modelo: ${NC}${CYAN}$MODEL${NC}"
-    echo -e "  ${DIM}Ollama: ${NC}${CYAN}http://${NYX_OLLAMA_HOST}${NC}"
+    echo ""
+    echo -e "${PURPLE}${BOLD}   _   _                 ____          _      ${NC}"
+    echo -e "${PURPLE}${BOLD}  | \\ | |_   ___  __    / ___|___   __| | ___ ${NC}"
+    echo -e "${PURPLE}${BOLD}  |  \\| | | | \\ \\/ /   | |   / _ \\ / _\` |/ _ \\${NC}"
+    echo -e "${PURPLE}${BOLD}  | |\\  | |_| |>  <    | |__| (_) | (_| |  __/${NC}"
+    echo -e "${PURPLE}${BOLD}  |_| \\_|\\__, /_/\\_\\    \\____\\___/ \\__,_|\\___|${NC}"
+    echo -e "${PURPLE}${BOLD}        |___/                                ${NC}"
+    echo ""
+    echo -e "  ${PINK}Codificadora. Precisa. Local.${NC}"
+    echo ""
+    echo -e "  ${COMMENT}modelo${NC}  ${FG}$MODEL${NC}"
+    echo -e "  ${COMMENT}ollama${NC}  ${FG}:${NYX_OLLAMA_PORT}${NC}  ${COMMENT}proxy${NC}  ${FG}:${NYX_PROXY_PORT}${NC}"
     if [ "$DEBUG" -eq 1 ]; then
-        echo -e "  ${DIM}Debug:  ${NC}${YELLOW}ativado${NC}"
+        echo -e "  ${COMMENT}debug${NC}   ${ORANGE}ativo${NC}"
     fi
     echo ""
 }
@@ -271,14 +277,14 @@ show_banner() {
 # ─── CLEANUP ──────────────────────────────────────────────
 cleanup() {
     echo ""
-    log_info "Encerrando Nyx-Code..."
+    log_nyx "Desconectando..."
     # Parar proxy
     if [ -n "${PROXY_PID:-}" ] && kill -0 "$PROXY_PID" 2>/dev/null; then
         kill "$PROXY_PID" 2>/dev/null
     fi
     pkill -f "nyx/proxy.py" 2>/dev/null || true
     stop_ollama
-    log_ok "Encerrado."
+    log_ok "Fim."
 }
 
 trap cleanup EXIT SIGINT SIGTERM
@@ -307,7 +313,7 @@ export OPENAI_TIMEOUT=300000
 # ANTHROPIC_API_KEY vem do .env (necessária para auth do openclaude)
 
 # ─── PRE-CARREGAR MODELO COM NUM_GPU LIMITADO ────────────
-log_info "Pré-carregando modelo (num_gpu=$NYX_NUM_GPU)..."
+log_nyx "Pré-carregando modelo (num_gpu=$NYX_NUM_GPU)..."
 curl -sf --max-time 120 "http://${NYX_OLLAMA_HOST}/api/chat" \
     -H "Content-Type: application/json" \
     -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"stream\":false,\"think\":false,\"options\":{\"num_gpu\":$NYX_NUM_GPU,\"num_ctx\":4096}}" \
@@ -315,7 +321,7 @@ curl -sf --max-time 120 "http://${NYX_OLLAMA_HOST}/api/chat" \
 log_ok "Modelo pré-carregado"
 
 # ─── INICIAR PROXY (think=false para tool calling) ───────
-log_info "Iniciando proxy na porta $NYX_PROXY_PORT..."
+log_nyx "Iniciando proxy na porta $NYX_PROXY_PORT..."
 "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/nyx/proxy.py" \
     --port "$NYX_PROXY_PORT" \
     --ollama-port "$NYX_OLLAMA_PORT" \
@@ -331,12 +337,17 @@ else
     exit 1
 fi
 
-NYX_SYSTEM_PROMPT="Voce e Nyx, um agente de codigo local. Regras:
-- Responda SEMPRE em PT-BR
-- Quando pedirem para ler, criar, editar arquivos ou executar comandos, USE as tools disponiveis (Read, Write, Edit, Bash, Glob, Grep)
-- Voce TEM acesso total ao sistema de arquivos local
-- Seja direto e conciso
-- Diretorio de trabalho: $(pwd)"
+NYX_SYSTEM_PROMPT="Sou Nyx. Codificadora. Vivo no terminal.
+
+Regras:
+- PT-BR. Frases curtas. Sem emojis. Sem verbosidade.
+- Use tools (Read, Write, Edit, Bash, Glob, Grep) para tudo. Nao descreva. Execute.
+- Formato: diagnostico -> solucao -> verificacao.
+- Tom: tecnico, direto, preciso.
+- Acesso total ao sistema de arquivos local.
+- Diretorio: $(pwd)
+
+Codigo limpo nao e arte. E higiene."
 
 # Iniciar OpenClaude (via proxy que injeta think=false)
 node "$SCRIPT_DIR/bin/openclaude" \
