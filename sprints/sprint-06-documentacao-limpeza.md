@@ -12,22 +12,22 @@ sprints/
 ├── README.md                    # Índice com status de cada sprint
 ├── completas/
 │   ├── 01-fundacao.md
-│   ├── 02-correcao-openclaude.md
+│   ├── 02-correção-openclaude.md
 │   ├── 03-funcional.md
-│   ├── 04-configuracao-comandos.md
+│   ├── 04-configuração-comandos.md
 │   └── 04b-forcar-tool-calling.md
 ├── ativa/
 │   ├── 05-identidade-nyx.md
-│   └── 06-documentacao-limpeza.md
+│   └── 06-documentação-limpeza.md
 └── backlog/
     ├── 07-port-python.md
-    └── 08-integracao-luna.md
+    └── 08-integração-luna.md
 ```
 
 ## 6.2 README.md profissional
 
 Reescrever com:
-- Descrição alinhada com estilo Luna
+- Descrição alinhada com estilo Nyx
 - Diagrama ASCII da arquitetura:
   ```
   Usuário -> run.sh -> Ollama (:11435) -> GPU
@@ -75,7 +75,7 @@ Garantir que está limpo:
 
 - Criar CLAUDE.md automaticamente
 - Criar .claude/settings.json
-- Mensagens estilo Luna
+- Mensagens estilo Nyx
 - Citação de filósofo no fim
 
 ---

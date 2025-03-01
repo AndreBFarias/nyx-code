@@ -9,20 +9,22 @@ cd "$SCRIPT_DIR"
 
 # --- CORES ------------------------------------------------
 if [ -t 1 ]; then
-    RED='\033[0;31m'
-    GREEN='\033[0;32m'
-    YELLOW='\033[0;33m'
-    MAGENTA='\033[0;35m'
-    CYAN='\033[0;36m'
+    PURPLE='\033[38;2;189;147;249m'
+    GREEN='\033[38;2;80;250;123m'
+    CYAN='\033[38;2;139;233;253m'
+    ORANGE='\033[38;2;255;184;108m'
+    RED='\033[38;2;255;85;85m'
+    COMMENT='\033[38;2;98;114;164m'
+    FG='\033[38;2;248;248;242m'
     BOLD='\033[1m'
     NC='\033[0m'
 else
-    RED='' GREEN='' YELLOW='' MAGENTA='' CYAN='' BOLD='' NC=''
+    PURPLE='' GREEN='' CYAN='' ORANGE='' RED='' COMMENT='' FG='' BOLD='' NC=''
 fi
 
-log_ok()   { echo -e "  ${GREEN}[OK]${NC} $1"; }
-log_info() { echo -e "  ${CYAN}[INFO]${NC} $1"; }
-log_warn() { echo -e "  ${YELLOW}[AVISO]${NC} $1"; }
+log_ok()   { echo -e "  ${GREEN}[nyx]${NC} $1"; }
+log_nyx()  { echo -e "  ${PURPLE}[nyx]${NC} $1"; }
+log_warn() { echo -e "  ${ORANGE}[nyx]${NC} $1"; }
 
 # --- PARSE FLAGS ------------------------------------------
 FULL_REMOVE=0
@@ -38,7 +40,7 @@ done
 
 # --- BANNER -----------------------------------------------
 echo ""
-echo -e "${MAGENTA}${BOLD}Nyx-Code - Desinstalação${NC}"
+echo -e "${PURPLE}${BOLD}Nyx-Code - Desinstalação${NC}"
 echo ""
 
 # --- PARAR OLLAMA SE RODANDO -----------------------------
@@ -132,7 +134,7 @@ echo -e "${GREEN}${BOLD}Remoção concluída.${NC}"
 
 if [ "$FULL_REMOVE" -eq 0 ]; then
     echo -e "  ${CYAN}Código fonte, configurações e sprints foram mantidos.${NC}"
-    echo -e "  Para reinstalar: ${MAGENTA}./install.sh${NC}"
+    echo -e "  Para reinstalar: ${PURPLE}./install.sh${NC}"
 fi
 echo ""
 

@@ -8,7 +8,7 @@ real (28 modulos, 6500 LOC) e o openclaude como referencia de comportamento.
 ## Estrategia de port
 
 O pacote npm contem apenas o bundle compilado (`dist/cli.mjs` - 19MB).
-Fontes TypeScript originais nao estao incluidos.
+Fontes TypeScript originais não estão incluídos.
 
 **Base real:** code_agent da Luna (`src/skills/code_agent/`)
 **Referencia:** openclaude README (arquitetura, 6 arquivos core, shim OpenAI)
@@ -18,9 +18,9 @@ Fontes TypeScript originais nao estao incluidos.
 
 ## 2.1 Core do agente
 
-| # | Origem Luna | Destino Nyx-Code | Acao |
+| # | Origem (code_agent) | Destino Nyx-Code | Acao |
 |---|-------------|------------------|------|
-| 1 | `loop.py` (34KB) + `loop_actions.py` (12.8KB) | `nyx/agent/loop.py` | Port + desacoplar TUI Luna |
+| 1 | `loop.py` (34KB) + `loop_actions.py` (12.8KB) | `nyx/agent/loop.py` | Port + desacoplar dependências |
 | 2 | `parser.py` (20KB) | `nyx/agent/parser.py` | Port (4 niveis fallback) |
 | 3 | `models.py` (3.7KB) | `nyx/agent/models.py` | Port direto |
 | 4 | `session.py` (10.3KB) | `nyx/agent/session.py` | Port |
@@ -33,7 +33,7 @@ Fontes TypeScript originais nao estao incluidos.
 
 ## 2.2 Sistema de tools
 
-| # | Origem Luna | Destino Nyx-Code |
+| # | Origem (code_agent) | Destino Nyx-Code |
 |---|-------------|------------------|
 | 1 | `tools/base.py` | `nyx/tools/base.py` |
 | 2 | `tools/registry.py` | `nyx/tools/registry.py` |
@@ -68,7 +68,7 @@ Fontes TypeScript originais nao estao incluidos.
 
 ## 2.4 Infraestrutura
 
-| # | Origem Luna | Destino Nyx-Code |
+| # | Origem (code_agent) | Destino Nyx-Code |
 |---|-------------|------------------|
 | 1 | `hooks.py` | `nyx/agent/hooks.py` |
 | 2 | `permissions.py` | `nyx/agent/permissions.py` |
@@ -87,22 +87,22 @@ Fontes TypeScript originais nao estao incluidos.
 
 ---
 
-## 2.6 Nomenclatura Luna-compativel
+## 2.6 Nomenclatura Nyx
 
-- Nomes de modulos, classes e funcoes seguindo convencoes Luna
+- Nomes de modulos, classes e funcoes seguindo convenções Nyx
 - Logging rotacionado (nunca print/console.log)
 - Type hints em tudo
 - Sem emojis, sem mencoes a IA
 - Paths relativos via Path (nunca hardcoded)
-- Error handling explicito (nunca silent failures)
+- Error handling explícito (nunca silent failures)
 
 ---
 
 ## DROP (nao portar)
 
-| Modulo Luna | Motivo |
+| Módulo (code_agent) | Motivo |
 |-------------|--------|
-| `vram_switch.py` (5.8KB) | Luna gerencia VRAM centralmente |
+| `vram_switch.py` (5.8KB) | Projeto Luna gerencia VRAM centralmente |
 | `vram_helper.py` (3.8KB) | Idem |
 | `import_fixer.py` (6.3KB) | Especifico da Luna |
 | `vision.py` (6.8KB) | Sprint futuro |

@@ -105,7 +105,7 @@ validate() {
     local errors=0
 
     if [ ! -x "$OLLAMA_BIN" ]; then
-        log_err "Ollama não encontrado em bin/ollama. Execute ${MAGENTA}./install.sh${NC} primeiro."
+        log_err "Ollama não encontrado em bin/ollama. Execute ${PURPLE}./install.sh${NC} primeiro."
         errors=$((errors + 1))
     fi
 
@@ -347,7 +347,8 @@ Regras:
 - Acesso total ao sistema de arquivos local.
 - Diretorio: $(pwd)
 
-Codigo limpo nao e arte. E higiene."
+Codigo limpo nao e arte. E higiene.
+Ler -> Escrever -> Testar -> Terminar."
 
 # Iniciar OpenClaude (via proxy que injeta think=false)
 node "$SCRIPT_DIR/bin/openclaude" \

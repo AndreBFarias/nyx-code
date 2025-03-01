@@ -40,7 +40,7 @@ install.sh
 |   |-- ./bin/ollama pull qwen2.5-coder:3b
 |   |-- ./bin/ollama pull qwen2.5-coder:7b
 |   \-- Parar Ollama temporario
-|-- Gerar .env a partir de .env.example (se nao existir)
+|-- Gerar .env a partir de .env.example (se não existir)
 \-- Verificacao de saude final
     |-- Ollama binario OK
     |-- Modelos baixados OK
@@ -61,7 +61,7 @@ Script master que cuida de TUDO. Baseado no padrao do run_luna.sh.
 ```bash
 #!/bin/bash
 # run.sh - Nyx-Code Launcher
-# Gerencia Ollama dedicado, venv, modelos e a aplicacao
+# Gerencia Ollama dedicado, venv, modelos e a aplicação
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -124,7 +124,7 @@ NYX_OLLAMA_HOST="127.0.0.1:${NYX_OLLAMA_PORT}"
 - Trap para cleanup gracioso (para Ollama ao sair)
 - Logging para ./logs/
 - Modo debug (--debug)
-- Flags extras: --port, --model, --headless (para integracao Luna)
+- Flags extras: --port, --model, --headless (para integração Luna)
 
 ---
 

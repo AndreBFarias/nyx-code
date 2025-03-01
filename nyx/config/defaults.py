@@ -4,7 +4,7 @@ from __future__ import annotations
 
 OLLAMA_PORT: int = 11435
 OLLAMA_HOST: str = "127.0.0.1"
-DEFAULT_MODEL: str = "qwen2.5-coder:3b"
+DEFAULT_MODEL: str = "qwen3:4b"
 VRAM_MAX_GB: float = 2.5
 MAX_ITERATIONS: int = 50
 TEMPERATURE: float = 0.3

@@ -5,7 +5,7 @@ com comando `/nyx`, mensagens inline e troca de modelo automatica.
 
 ---
 
-## 4.1 Protocolo de comunicacao
+## 4.1 Protocolo de comunicação
 
 | # | Arquivo | Descricao |
 |---|---------|-----------|
@@ -94,11 +94,11 @@ prefixadas com `[nyx]`, similar ao `[kernel]` ou `[augur]`.
 Adicionar em `src/core/config/`:
 
 ```python
-# Nyx-Code (agente de codigo externo)
+# Nyx-Code (agente de código externo)
 NYX_CODE_PATH = ""           # Caminho para projeto Nyx-Code
 NYX_CODE_MODEL = "3b"        # Modelo padrao (3b/7b)
 NYX_CODE_PORT = 11435        # Porta do Ollama dedicado
-NYX_CODE_HEADLESS = True     # Modo headless para integracao
+NYX_CODE_HEADLESS = True     # Modo headless para integração
 NYX_CODE_VRAM_MAX = 2.5      # GB max de VRAM
 ```
 

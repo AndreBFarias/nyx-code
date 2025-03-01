@@ -28,4 +28,4 @@ deve ser em PT-BR com acentuação correta.
 
 ## Enforcement
 
-Revisão manual. Futuro: hook check_acentuacao adaptado da Luna.
+Revisão manual. Futuro: hook check_acentuação adaptado da Luna.

@@ -11,7 +11,7 @@ A Nyx da Luna é o kernel. O Nyx-Code é o produto. Precisa ter vida.
 ## Referência: STYLE_GUIDE.md da Luna
 
 ### Filosofia
-- "Luna está viva" — toda feature responde: "isso faz parecer mais viva?"
+- "Nyx está viva" — toda feature responde: "isso faz parecer mais viva?"
 - Cyberpunk de terminal — ASCII, glitches, intimidade com a máquina
 - O usuário não "abre o programa", ele "entra no templo"
 - Zero emojis, zero linguagem corporativa, zero genericidade
@@ -79,7 +79,7 @@ Cores ANSI mapeadas para Dracula:
 - Tagline: #ff79c6 (pink)
 - Info: #8be9fd (cyan)
 
-## 5.2 System prompt com personalidade Luna-Nyx
+## 5.2 System prompt com personalidade Nyx
 
 Combinar a personalidade técnica da Nyx com o tom da Luna:
 
@@ -98,7 +98,7 @@ Não descreva. Execute.
 Código limpo não é arte. É higiene.
 ```
 
-## 5.3 CLAUDE.md reescrito estilo Luna
+## 5.3 CLAUDE.md reescrito estilo Nyx
 
 Seguir o padrão do CLAUDE.md da Luna:
 
@@ -132,9 +132,9 @@ Tudo roda offline. Ollama + qwen3:4b. Nunca depender de API cloud.
 
 ## 5.4 Nomenclatura e mensagens
 
-Todas as mensagens do run.sh e proxy em PT-BR, estilo Luna:
+Todas as mensagens do run.sh e proxy em PT-BR, estilo Nyx:
 
-| Atual (genérico) | Novo (Luna-style) |
+| Atual (genérico) | Novo (Nyx-style) |
 |-------------------|-------------------|
 | `[INFO] Iniciando Ollama...` | `[nyx] Invocando Ollama...` |
 | `[OK] Ollama pronto` | `[nyx] Ollama conectado` |
@@ -152,14 +152,14 @@ sprints/
 ├── README.md               # Índice de sprints com status
 ├── completas/               # Sprints finalizadas
 │   ├── 01-fundacao.md
-│   ├── 02-correcao.md
+│   ├── 02-correção.md
 │   ├── 03-funcional.md
 │   └── 04-tool-calling.md
 ├── ativa/
 │   └── 05-identidade.md
 └── backlog/
     ├── 06-port-python.md
-    └── 07-integracao-luna.md
+    └── 07-integração-luna.md
 ```
 
 ### README.md do projeto
@@ -184,7 +184,7 @@ dev-journey/
 
 ## 5.6 install.sh atualizado
 
-- Mensagens no estilo Luna
+- Mensagens no estilo Nyx
 - Criar CLAUDE.md automaticamente
 - Criar .claude/settings.json
 - Cores Dracula no banner de instalação
@@ -193,11 +193,11 @@ dev-journey/
 
 ## Verificação
 
-- [ ] Banner de boot com cores Dracula e estilo Luna
-- [ ] Mensagens do run.sh em PT-BR, tom Luna-Nyx
+- [ ] Banner de boot com cores Dracula e estilo Nyx
+- [ ] Mensagens do run.sh em PT-BR, tom Nyx
 - [ ] System prompt gera respostas curtas, técnicas, sem emojis
 - [ ] CLAUDE.md segue convencões Luna (anti-burla, local-first, etc.)
-- [ ] README.md reescrito com arquitetura e referência Luna
+- [ ] README.md reescrito com arquitetura e referência ao projeto Luna
 - [ ] Sprints reorganizadas (completas/ativa/backlog)
 - [ ] dev-journey/ com STYLE_GUIDE e ADR mínimos
 - [ ] install.sh com estilo atualizado

@@ -7,8 +7,8 @@ Todos os testes executados via `expect` com run.sh real (Ollama + GPU + qwen3:4b
 | # | Pedido | Tool esperada | Resultado | Arquivo verificado |
 |---|--------|---------------|-----------|-------------------|
 | 1 | "leia main.py e diga quantas linhas" | Read | PASSOU | Modelo leu e respondeu |
-| 2 | "crie /tmp/nyx_hello.py com funcao" | Write | PARCIAL | Modelo respondeu mas arquivo nao criado |
-| 3 | "execute python3 /tmp/nyx_hello.py" | Bash | PARCIAL | Executou mas arquivo do teste 2 nao existia |
+| 2 | "crie /tmp/nyx_hello.py com função" | Write | PARCIAL | Modelo respondeu mas arquivo não criado |
+| 3 | "execute python3 /tmp/nyx_hello.py" | Bash | PARCIAL | Executou mas arquivo do teste 2 não existia |
 | 4 | "busque Ollama nos arquivos" | Grep | PASSOU | Encontrou matches |
 | 5 | "liste arquivos .sh" | Glob/Bash | PASSOU | Listou install.sh, run.sh, uninstall.sh |
 | 6 | /diff | TUI | PASSOU | Mostrou uncommitted files |
@@ -16,16 +16,16 @@ Todos os testes executados via `expect` com run.sh real (Ollama + GPU + qwen3:4b
 
 ### Problema identificado: Write/Edit inconsistente
 
-O qwen3:4b com tool calling nao executa Write/Edit de forma confiavel.
+O qwen3:4b com tool calling não executa Write/Edit de forma confiável.
 Comportamento observado:
 - Read, Bash, Grep, Glob: executam a tool corretamente
-- Write, Edit: as vezes o modelo DESCREVE o que faria em vez de chamar a tool
+- Write, Edit: às vezes o modelo DESCREVE o que faria em vez de chamar a tool
 
 Causa provavel: o modelo 4b tem capacidade limitada de multi-step tool calling.
 No primeiro turno chama a tool, mas no segundo (Write apos Read, ou Edit apos Read)
-as vezes responde textualmente em vez de chamar.
+às vezes responde textualmente em vez de chamar.
 
-Nao e bug do openclaude — e limitacao do modelo 4b local.
+Nao e bug do openclaude — e limitação do modelo 4b local.
 
 ## Slash Commands (26 testados)
 
@@ -47,7 +47,7 @@ Todos exit code 0, nenhum crash, nenhum "Unknown skill":
 | Read | OK | Alta (funciona sempre) |
 | Grep | OK | Alta |
 | Glob | OK | Alta |
-| Write | Parcial | Media (modelo as vezes nao chama) |
+| Write | Parcial | Media (modelo às vezes não chama) |
 | Edit | Parcial | Media (idem) |
 
 ## Performance
@@ -62,7 +62,7 @@ Todos exit code 0, nenhum crash, nenhum "Unknown skill":
 ## Conclusao
 
 A infraestrutura funciona: Ollama, GPU, warmup, tools, slash commands.
-A limitacao esta no modelo qwen3:4b (4 bilhoes de parametros) que nao tem
+A limitação esta no modelo qwen3:4b (4 bilhões de parâmetros) que não tem
 capacidade suficiente para tool calling complexo de forma consistente.
 
 Opcoes para melhorar:

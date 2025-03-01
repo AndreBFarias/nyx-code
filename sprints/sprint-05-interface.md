@@ -10,7 +10,7 @@
 |---|--------|---------|-----------|
 | 1 | App principal | `nyx/interface/app.py` | Entry point da interface, event loop |
 | 2 | Chat interativo | `nyx/interface/chat.py` | Input/output de conversas |
-| 3 | Output Rich | `nyx/interface/output.py` | Formatacao de codigo, diffs, erros |
+| 3 | Output Rich | `nyx/interface/output.py` | Formatacao de código, diffs, erros |
 | 4 | Streaming | `nyx/interface/streaming.py` | Streaming de respostas em tempo real |
 | 5 | Comandos | `nyx/interface/commands.py` | Sistema de slash commands |
 | 6 | Completer | `nyx/interface/completer.py` | Tab completion |
@@ -72,10 +72,10 @@ Bordas estilizadas com cores Nyx.
 
 ### Mensagens de erro
 
-Claras, com sugestoes de correcao:
+Claras, com sugestões de correção:
 
 ```
-[ERRO] Arquivo nao encontrado: src/main.py
+[ERRO] Arquivo não encontrado: src/main.py
   Caminhos similares: main.py, src/app/main.py
   Use list_files para ver a estrutura do projeto.
 ```
@@ -105,11 +105,11 @@ Claras, com sugestoes de correcao:
 
 - Historico de comandos com setas (prompt-toolkit)
 - Autocomplete de paths, comandos, flags
-- Mensagens de erro com contexto e sugestoes
+- Mensagens de erro com contexto e sugestões
 - Help contextual
-- Formatacao de codigo com syntax highlighting (Rich)
+- Formatacao de código com syntax highlighting (Rich)
 - Spinners e indicadores de progresso durante operacoes
-- Modo silencioso para integracao (sem output decorativo)
+- Modo silencioso para integração (sem output decorativo)
 
 ---
 
@@ -121,7 +121,7 @@ Claras, com sugestoes de correcao:
 - [ ] Todos os slash commands funcionando
 - [ ] Tab completion para paths e comandos
 - [ ] Historico de comandos com setas
-- [ ] Output de codigo com syntax highlighting
+- [ ] Output de código com syntax highlighting
 - [ ] Diffs formatados com estilo Nyx
-- [ ] Mensagens de erro com sugestoes
+- [ ] Mensagens de erro com sugestões
 - [ ] Animacoes de loading suaves

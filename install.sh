@@ -10,22 +10,25 @@ cd "$SCRIPT_DIR"
 
 # --- CORES ------------------------------------------------
 if [ -t 1 ]; then
-    RED='\033[0;31m'
-    GREEN='\033[0;32m'
-    YELLOW='\033[0;33m'
-    MAGENTA='\033[0;35m'
-    CYAN='\033[0;36m'
+    PURPLE='\033[38;2;189;147;249m'
+    PINK='\033[38;2;255;121;198m'
+    GREEN='\033[38;2;80;250;123m'
+    CYAN='\033[38;2;139;233;253m'
+    ORANGE='\033[38;2;255;184;108m'
+    RED='\033[38;2;255;85;85m'
+    COMMENT='\033[38;2;98;114;164m'
+    FG='\033[38;2;248;248;242m'
     BOLD='\033[1m'
     NC='\033[0m'
 else
-    RED='' GREEN='' YELLOW='' MAGENTA='' CYAN='' BOLD='' NC=''
+    PURPLE='' PINK='' GREEN='' CYAN='' ORANGE='' RED='' COMMENT='' FG='' BOLD='' NC=''
 fi
 
-log_ok()   { echo -e "${GREEN}[OK]${NC} $1"; }
-log_info() { echo -e "${CYAN}[INFO]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[AVISO]${NC} $1"; }
-log_err()  { echo -e "${RED}[ERRO]${NC} $1"; }
-log_step() { echo -e "\n${MAGENTA}${BOLD}==> $1${NC}"; }
+log_ok()   { echo -e "${GREEN}[nyx]${NC} $1"; }
+log_nyx()  { echo -e "${PURPLE}[nyx]${NC} $1"; }
+log_warn() { echo -e "${ORANGE}[nyx]${NC} $1"; }
+log_err()  { echo -e "${RED}[nyx]${NC} $1"; }
+log_step() { echo -e "\n${PURPLE}${BOLD}==> $1${NC}"; }
 
 # --- VERSÕES -----------------------------------------------
 OLLAMA_VERSION="0.13.5"
@@ -33,7 +36,7 @@ PYTHON_MIN="3.10"
 NYX_OLLAMA_PORT="${NYX_OLLAMA_PORT:-11435}"
 
 # --- BANNER ------------------------------------------------
-echo -e "${MAGENTA}${BOLD}"
+echo -e "${PURPLE}${BOLD}"
 echo "  _   _                ____          _      "
 echo " | \\ | |_   ___  __   / ___|___   __| | ___ "
 echo " |  \\| | | | \\ \\/ /  | |   / _ \\ / _\` |/ _ \\"
@@ -104,18 +107,18 @@ OLLAMA_URL="https://github.com/ollama/ollama/releases/download/v${OLLAMA_VERSION
 
 if [ -f "$OLLAMA_BIN" ]; then
     EXISTING_VERSION=$("$OLLAMA_BIN" --version 2>&1 | grep -oP '\d+\.\d+\.\d+' || echo "desconhecida")
-    log_info "Ollama já existe: versão $EXISTING_VERSION"
+    log_nyx "Ollama já existe: versão $EXISTING_VERSION"
     read -rp "  Baixar novamente? [s/N] " REDOWNLOAD
     if [[ ! "$REDOWNLOAD" =~ ^[sS]$ ]]; then
-        log_info "Mantendo binário existente"
+        log_nyx "Mantendo binário existente"
     else
-        log_info "Baixando de $OLLAMA_URL"
+        log_nyx "Baixando de $OLLAMA_URL"
         curl -fsSL "$OLLAMA_URL" | tar -xz -C "$SCRIPT_DIR/bin/" --strip-components=1 bin/ollama
         chmod +x "$OLLAMA_BIN"
         log_ok "Ollama $OLLAMA_VERSION baixado"
     fi
 else
-    log_info "Baixando de $OLLAMA_URL"
+    log_nyx "Baixando de $OLLAMA_URL"
     curl -fsSL "$OLLAMA_URL" | tar -xz -C "$SCRIPT_DIR/bin/" --strip-components=1 bin/ollama
     chmod +x "$OLLAMA_BIN"
     log_ok "Ollama $OLLAMA_VERSION baixado para bin/ollama"
@@ -125,7 +128,7 @@ fi
 log_step "Configurando ambiente virtual Python"
 
 if [ -d "$SCRIPT_DIR/venv" ]; then
-    log_info "venv já existe"
+    log_nyx "venv já existe"
     read -rp "  Recriar? [s/N] " RECREATE
     if [[ "$RECREATE" =~ ^[sS]$ ]]; then
         rm -rf "$SCRIPT_DIR/venv"
@@ -137,7 +140,7 @@ else
     log_ok "venv criado"
 fi
 
-log_info "Instalando dependências..."
+log_nyx "Instalando dependências..."
 "$SCRIPT_DIR/venv/bin/pip" install --quiet --upgrade pip
 "$SCRIPT_DIR/venv/bin/pip" install --quiet -r "$SCRIPT_DIR/requirements.txt"
 log_ok "Dependências instaladas"
@@ -148,7 +151,7 @@ log_step "Baixando modelos via Ollama"
 export OLLAMA_HOST="127.0.0.1:${NYX_OLLAMA_PORT}"
 export OLLAMA_MODELS="$SCRIPT_DIR/models"
 
-log_info "Iniciando Ollama temporário na porta $NYX_OLLAMA_PORT..."
+log_nyx "Iniciando Ollama temporário na porta $NYX_OLLAMA_PORT..."
 "$OLLAMA_BIN" serve > "$SCRIPT_DIR/logs/ollama_install.log" 2>&1 &
 OLLAMA_PID=$!
 
@@ -176,9 +179,9 @@ log_ok "Ollama pronto (${ELAPSED}s)"
 MODELS=("qwen3:4b" "qwen2.5-coder:3b" "qwen2.5-coder:7b")
 for MODEL in "${MODELS[@]}"; do
     if "$OLLAMA_BIN" list 2>/dev/null | grep -q "$MODEL"; then
-        log_info "$MODEL já baixado"
+        log_nyx "$MODEL já baixado"
     else
-        log_info "Baixando $MODEL (pode demorar)..."
+        log_nyx "Baixando $MODEL (pode demorar)..."
         if "$OLLAMA_BIN" pull "$MODEL"; then
             log_ok "$MODEL baixado"
         else
@@ -187,7 +190,7 @@ for MODEL in "${MODELS[@]}"; do
     fi
 done
 
-log_info "Parando Ollama temporário..."
+log_nyx "Parando Ollama temporário..."
 cleanup_ollama
 trap - EXIT
 
@@ -198,7 +201,7 @@ if [ ! -f "$SCRIPT_DIR/.env" ]; then
     cp "$SCRIPT_DIR/.env.example" "$SCRIPT_DIR/.env"
     log_ok ".env criado a partir de .env.example"
 else
-    log_info ".env já existe, mantendo"
+    log_nyx ".env já existe, mantendo"
 fi
 
 # --- 8. VERIFICAÇÃO DE SAÚDE ------------------------------
@@ -245,7 +248,7 @@ fi
 echo ""
 if [ "$CHECKS_OK" -eq "$CHECKS_TOTAL" ]; then
     echo -e "${GREEN}${BOLD}Instalação completa! ($CHECKS_OK/$CHECKS_TOTAL)${NC}"
-    echo -e "Execute ${MAGENTA}./run.sh${NC} para iniciar o Nyx-Code."
+    echo -e "Execute ${PURPLE}./run.sh${NC} para iniciar o Nyx-Code."
 else
     echo -e "${YELLOW}${BOLD}Instalação parcial ($CHECKS_OK/$CHECKS_TOTAL)${NC}"
     echo -e "Verifique os erros acima."
