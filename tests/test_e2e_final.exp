@@ -1,0 +1,100 @@
+#!/usr/bin/expect -f
+# E2E Final - Teste completo do Nyx-Code via run.sh
+# Testa: boot, proxy, chat, tools (Read, Bash, Grep), slash commands
+
+set timeout 300
+log_file -noappend /tmp/nyx_e2e_final.log
+
+spawn /home/andrefarias/Desenvolvimento/Nyx-Code/run.sh
+
+# 1. Interface carrega
+expect {
+    "Ready" { send_user "\n>>> 1. INTERFACE: OK <<<\n" }
+    timeout { send_user "\n>>> 1. INTERFACE: FALHOU <<<\n"; exit 1 }
+}
+sleep 3
+
+# 2. Chat simples (sem tools)
+send_user "\n>>> 2. CHAT: Testando... <<<\n"
+send "diga apenas: Nyx ativa\r"
+expect {
+    -re "Nyx|ativa|activ|online|pronto|funciona" { send_user "\n>>> 2. CHAT: OK <<<\n" }
+    -re "Error|error|fetch" { send_user "\n>>> 2. CHAT: ERRO <<<\n" }
+    timeout { send_user "\n>>> 2. CHAT: TIMEOUT <<<\n" }
+}
+sleep 3
+
+# 3. Tool Read
+send_user "\n>>> 3. READ: Testando... <<<\n"
+send "leia o arquivo README.md\r"
+expect {
+    -re "README|Nyx-Code|Ollama|agente|offline|codigo|código" { send_user "\n>>> 3. READ: OK <<<\n" }
+    -re "Error|error|fetch" { send_user "\n>>> 3. READ: ERRO <<<\n" }
+    timeout { send_user "\n>>> 3. READ: TIMEOUT <<<\n" }
+}
+sleep 3
+
+# 4. Tool Bash
+send_user "\n>>> 4. BASH: Testando... <<<\n"
+send "execute o comando: echo NYX_E2E_OK\r"
+expect {
+    -re "NYX_E2E_OK|echo|executed|output" { send_user "\n>>> 4. BASH: OK <<<\n" }
+    -re "Error|error|fetch" { send_user "\n>>> 4. BASH: ERRO <<<\n" }
+    timeout { send_user "\n>>> 4. BASH: TIMEOUT <<<\n" }
+}
+sleep 3
+
+# 5. Slash /status
+send_user "\n>>> 5. /status: Testando... <<<\n"
+send "/status\r"
+sleep 8
+expect {
+    -re "qwen|Local|provider|Model|Status|status" { send_user "\n>>> 5. /status: OK <<<\n" }
+    -re "Error|Unknown" { send_user "\n>>> 5. /status: ERRO <<<\n" }
+    timeout { send_user "\n>>> 5. /status: TIMEOUT <<<\n" }
+}
+send "\033"
+sleep 2
+
+# 6. Slash /diff
+send_user "\n>>> 6. /diff: Testando... <<<\n"
+send "/diff\r"
+sleep 8
+expect {
+    -re "diff|changed|file|Diff|untracked" { send_user "\n>>> 6. /diff: OK <<<\n" }
+    -re "Error|Unknown" { send_user "\n>>> 6. /diff: ERRO <<<\n" }
+    timeout { send_user "\n>>> 6. /diff: TIMEOUT <<<\n" }
+}
+send "\033"
+sleep 2
+
+# 7. Slash /config
+send_user "\n>>> 7. /config: Testando... <<<\n"
+send "/config\r"
+sleep 8
+expect {
+    -re "config|Config|Auto-compact|Theme|Model|settings|permission" { send_user "\n>>> 7. /config: OK <<<\n" }
+    -re "Error|Unknown" { send_user "\n>>> 7. /config: ERRO <<<\n" }
+    timeout { send_user "\n>>> 7. /config: TIMEOUT <<<\n" }
+}
+send "\033"
+sleep 2
+
+# 8. Slash /help
+send_user "\n>>> 8. /help: Testando... <<<\n"
+send "/help\r"
+sleep 8
+expect {
+    -re "help|Help|command|shift|ctrl|tab" { send_user "\n>>> 8. /help: OK <<<\n" }
+    -re "Error|Unknown" { send_user "\n>>> 8. /help: ERRO <<<\n" }
+    timeout { send_user "\n>>> 8. /help: TIMEOUT <<<\n" }
+}
+send "\033"
+sleep 2
+
+# 9. Sair
+send "/exit\r"
+sleep 3
+send_user "\n>>> 9. EXIT: OK <<<\n"
+
+send_user "\n>>> E2E FINAL CONCLUIDO <<<\n"

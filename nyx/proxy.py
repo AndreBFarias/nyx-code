@@ -27,11 +27,42 @@ NUM_GPU = 15
 NUM_CTX = 4096
 
 
+def _normalize_content(content):
+    """Converte content array (Anthropic) para string (Ollama)."""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, dict):
+                if item.get("type") == "text":
+                    parts.append(item.get("text", ""))
+                elif item.get("type") == "tool_result":
+                    parts.append(str(item.get("content", "")))
+                else:
+                    parts.append(str(item))
+            else:
+                parts.append(str(item))
+        return "\n".join(parts)
+    return str(content)
+
+
+def _normalize_messages(messages: list) -> list:
+    """Normaliza content de cada mensagem para string."""
+    result = []
+    for msg in messages:
+        normalized = dict(msg)
+        if "content" in normalized:
+            normalized["content"] = _normalize_content(normalized["content"])
+        result.append(normalized)
+    return result
+
+
 def openai_to_ollama(body: dict) -> dict:
     """Converte request OpenAI -> Ollama nativa."""
     result: dict = {
         "model": body.get("model", "qwen3:4b"),
-        "messages": body.get("messages", []),
+        "messages": _normalize_messages(body.get("messages", [])),
         "think": False,
         "stream": False,  # Forçar non-streaming (streaming via proxy é instável)
         "options": {

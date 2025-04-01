@@ -351,11 +351,14 @@ Codigo limpo nao e arte. E higiene.
 Ler -> Escrever -> Testar -> Terminar."
 
 # Iniciar OpenClaude (via proxy que injeta think=false)
+# --bare: sem MCP plugins (Playwright, Context7) que causam OOM na RTX 3050
+# Slash commands ficam indisponíveis em --bare (trade-off por estabilidade)
 node "$SCRIPT_DIR/bin/openclaude" \
     --model "$MODEL" \
+    --bare \
     --thinking disabled \
     --dangerously-skip-permissions \
-    --append-system-prompt "$NYX_SYSTEM_PROMPT" \
+    --system-prompt "$NYX_SYSTEM_PROMPT" \
     "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"
 EXIT_CODE=$?
 
