@@ -1,0 +1,425 @@
+"""AgentLoop -- Ciclo plan-execute-observe do Nyx.
+
+Fluxo integrado (P1-F):
+1. Recebe pedido do usuário
+2. ContextBudget verifica budget -> compacta se necessário
+3. Envia ao proxy (/v1/chat/completions com tools)
+4. Se tool_calls:
+   a. PermissionChecker -> confirma/nega
+   b. RepetitionDetector -> SKIP/FORCE_DONE se repetido
+   c. Executa tool, coleta resultado, volta ao 2
+5. Se texto puro:
+   a. ActionParser (7 níveis fallback)
+   b. Se extraiu ação: executa como tool call
+   c. Se não: mostra texto ao usuário
+6. Se done(): salva sessão, termina
+7. Se max_iterations: force_done
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+from collections.abc import Callable
+from typing import Any
+
+import httpx
+
+from nyx.agent.context import ContextBudget, render_context_bar
+from nyx.agent.models import (
+    ActionResult,
+    ActionType,
+    AgentAction,
+    SessionState,
+    SessionStatus,
+)
+from nyx.agent.parser import ActionParser
+from nyx.agent.permissions import PermissionChecker, PermissionLevel
+from nyx.agent.prompt import build_claude_md_context, build_system_prompt
+from nyx.agent.tools.plan_mode import is_tool_allowed_in_plan_mode
+from nyx.agent.repetition import SkipStrategy, get_skip_strategy
+from nyx.agent.session import CodeSession
+from nyx.agent.streaming import StreamingCollector
+from nyx.agent.tools.registry import ToolRegistry
+
+logger = logging.getLogger("nyx.agent")
+
+MAX_ITERATIONS_DEFAULT = 30
+LLM_TIMEOUT = 300
+
+PermissionCallback = Callable[[str, str, dict[str, str]], bool]
+
+ACTION_TO_TOOL: dict[ActionType, str] = {
+    ActionType.READ_FILE: "read_file",
+    ActionType.CREATE_FILE: "write_file",
+    ActionType.WRITE_FILE: "write_file",
+    ActionType.EDIT_FILE: "edit_file",
+    ActionType.RUN_COMMAND: "run_command",
+    ActionType.GLOB: "glob",
+    ActionType.SEARCH: "search",
+    ActionType.LIST_FILES: "list_files",
+    ActionType.TODO_WRITE: "todo_write",
+    ActionType.WEB_FETCH: "web_fetch",
+    ActionType.WEB_SEARCH: "web_search",
+    ActionType.DONE: "done",
+}
+
+PARAM_REMAP: dict[str, dict[str, str]] = {
+    "read_file": {"path": "file_path"},
+    "write_file": {"path": "file_path"},
+    "edit_file": {"path": "file_path"},
+    "run_command": {"cmd": "command"},
+    "search": {"pattern": "pattern"},
+    "glob": {"pattern": "pattern"},
+    "list_files": {"path": "path"},
+}
+
+
+def _remap_params(tool_name: str, params: dict[str, str]) -> dict[str, str]:
+    """Remapeia nomes de parâmetros do parser para os esperados pela tool."""
+    mapping = PARAM_REMAP.get(tool_name, {})
+    result: dict[str, str] = {}
+    for k, v in params.items():
+        new_key = mapping.get(k, k)
+        result[new_key] = v
+    return result
+
+
+class AgentLoop:
+    def __init__(
+        self,
+        project_root: str,
+        proxy_url: str = "http://127.0.0.1:11436",
+        model: str = "qwen3:4b",
+        max_iterations: int = MAX_ITERATIONS_DEFAULT,
+        on_token: Any = None,
+        on_tool: Any = None,
+        on_permission: PermissionCallback | None = None,
+        streaming: bool = True,
+    ) -> None:
+        self._project_root = project_root
+        self._proxy_url = proxy_url
+        self._model = model
+        self._max_iterations = max_iterations
+        self._tools = ToolRegistry(project_root)
+        self._session = CodeSession()
+        self._on_token = on_token
+        self._on_tool = on_tool
+        self._on_permission = on_permission
+        self._streaming = streaming
+
+        self._parser = ActionParser()
+        self._budget = ContextBudget()
+        self._permissions = PermissionChecker()
+        self._last_action: AgentAction | None = None
+        self._consecutive_skips: int = 0
+        self._has_results: bool = False
+
+        self._collector = StreamingCollector(on_token=on_token) if streaming and on_token else None
+
+        tool_names = [t["function"]["name"] for t in self._tools.tool_defs]
+        self._system_prompt = build_system_prompt(project_root, tool_names)
+        claude_ctx = build_claude_md_context(project_root)
+        if claude_ctx:
+            self._system_prompt += claude_ctx
+
+    async def run(self, user_input: str) -> SessionStatus:
+        """Executa o ciclo completo para um input do usuário."""
+        self._session.add_user(user_input)
+        self._session.iteration = 0
+        self._consecutive_skips = 0
+        self._has_results = False
+
+        for i in range(self._max_iterations):
+            self._session.iteration = i + 1
+            logger.info("[loop] iteração %d/%d", i + 1, self._max_iterations)
+
+            if self._budget.should_compact(self._session):
+                level = self._budget.get_compaction_level(self._session)
+                logger.info("[loop] compactação nível %d", level)
+                self._budget.compact_history(self._session)
+
+            response = await self._call_llm()
+            if "error" in response:
+                logger.error("[loop] erro LLM: %s", response["error"])
+                return SessionStatus(
+                    state=SessionState.ERROR,
+                    iterations=i + 1,
+                    summary=response["error"],
+                )
+
+            tool_calls = response.get("tool_calls", [])
+
+            if tool_calls:
+                status = self._execute_tool_calls(tool_calls, i + 1)
+                if status:
+                    return status
+                continue
+
+            content = response.get("content", "")
+            if content:
+                parse_result = self._parser.parse(content)
+                if parse_result.success and parse_result.action:
+                    action = parse_result.action
+                    logger.info(
+                        "[loop] parser fallback: %s (nível %s)",
+                        action.action_type.value,
+                        parse_result.level.value,
+                    )
+                    status = self._execute_parsed_action(action, i + 1)
+                    if status:
+                        return status
+                    continue
+
+                self._session.add_assistant(content)
+                return SessionStatus(
+                    state=SessionState.DONE,
+                    iterations=i + 1,
+                    summary=content,
+                )
+
+        return SessionStatus(
+            state=SessionState.MAX_ITERATIONS,
+            iterations=self._max_iterations,
+            summary=f"Atingiu limite de {self._max_iterations} iterações",
+        )
+
+    def _execute_tool_calls(self, tool_calls: list[dict], iteration: int) -> SessionStatus | None:
+        """Executa tool calls do LLM. Retorna SessionStatus se done/force_done."""
+        for tc in tool_calls:
+            name = tc["name"]
+            args = tc["arguments"]
+
+            if self._on_tool:
+                self._on_tool(name, args)
+
+            if self._tools.is_done(name):
+                summary = args.get("summary", "Tarefa concluída.")
+                self._session.add_tool_call(name, args, summary, is_key=True)
+                return SessionStatus(
+                    state=SessionState.DONE,
+                    iterations=iteration,
+                    summary=summary,
+                )
+
+            if not is_tool_allowed_in_plan_mode(name):
+                logger.warning("[loop] bloqueado por plan_mode: %s", name)
+                self._session.add_tool_call(name, args, f"Bloqueado: modo planejamento ativo. Use exit_plan_mode primeiro.")
+                continue
+
+            perm = self._permissions.check(name, args)
+            if perm == PermissionLevel.DENY:
+                logger.warning("[loop] permissão negada: %s", name)
+                self._session.add_tool_call(name, args, f"Permissão negada para {name}")
+                continue
+
+            if perm in (PermissionLevel.CONFIRM_ONCE, PermissionLevel.ALWAYS_CONFIRM):
+                if self._on_permission:
+                    approved = self._on_permission(perm, name, args)
+                    if not approved:
+                        self._session.add_tool_call(name, args, f"Usuário negou: {name}")
+                        continue
+                    if perm == PermissionLevel.CONFIRM_ONCE:
+                        self._permissions.mark_confirmed(name)
+
+            action = AgentAction(
+                action_type=ActionType(name) if name in [a.value for a in ActionType] else ActionType.DONE,
+                params=args,
+            )
+            skip = self._check_repetition(action)
+            if skip:
+                return skip
+
+            result = self._tools.execute(name, args)
+            self._session.add_tool_call(
+                name, args,
+                result.output if result.success else result.error,
+                is_key=name in ("write_file", "edit_file", "create_file", "run_command"),
+            )
+            self._session.track_files(result.files_read, result.files_modified)
+            self._last_action = action
+            self._consecutive_skips = 0
+            if result.success:
+                self._has_results = True
+
+        return None
+
+    def _execute_parsed_action(self, action: AgentAction, iteration: int) -> SessionStatus | None:
+        """Executa ação extraída pelo parser fallback."""
+        if action.action_type == ActionType.DONE:
+            summary = action.params.get("summary", "Tarefa concluída.")
+            self._session.add_tool_call("done", action.params, summary, is_key=True)
+            return SessionStatus(
+                state=SessionState.DONE,
+                iterations=iteration,
+                summary=summary,
+            )
+
+        tool_name = ACTION_TO_TOOL.get(action.action_type)
+        if not tool_name:
+            logger.warning("[loop] sem tool para %s", action.action_type.value)
+            return None
+
+        remapped = _remap_params(tool_name, action.params)
+
+        if self._on_tool:
+            self._on_tool(tool_name, remapped)
+
+        perm = self._permissions.check(tool_name, remapped)
+        if perm == PermissionLevel.DENY:
+            logger.warning("[loop] permissão negada (parser): %s", tool_name)
+            self._session.add_tool_call(tool_name, remapped, f"Permissão negada para {tool_name}")
+            return None
+
+        if perm in (PermissionLevel.CONFIRM_ONCE, PermissionLevel.ALWAYS_CONFIRM):
+            if self._on_permission:
+                approved = self._on_permission(perm, tool_name, remapped)
+                if not approved:
+                    self._session.add_tool_call(tool_name, remapped, f"Usuário negou: {tool_name}")
+                    return None
+                if perm == PermissionLevel.CONFIRM_ONCE:
+                    self._permissions.mark_confirmed(tool_name)
+
+        skip = self._check_repetition(action)
+        if skip:
+            return skip
+
+        result = self._tools.execute(tool_name, remapped)
+        self._session.add_tool_call(
+            tool_name, remapped,
+            result.output if result.success else result.error,
+            is_key=tool_name in ("write_file", "edit_file", "create_file", "run_command"),
+        )
+        self._session.track_files(result.files_read, result.files_modified)
+        self._last_action = action
+        self._consecutive_skips = 0
+        if result.success:
+            self._has_results = True
+
+        return None
+
+    def _check_repetition(self, action: AgentAction) -> SessionStatus | None:
+        """Verifica repetição e retorna FORCE_DONE se necessário."""
+        strategy = get_skip_strategy(
+            action=action,
+            last_action=self._last_action,
+            history=self._session.history,
+            files_modified=self._session._files_modified,
+            consecutive_skips=self._consecutive_skips,
+            has_results=self._has_results,
+        )
+
+        if strategy == SkipStrategy.FORCE_DONE:
+            logger.info("[loop] FORCE_DONE por repetição")
+            return SessionStatus(
+                state=SessionState.DONE,
+                iterations=self._session.iteration,
+                summary="Tarefa encerrada (loop de repetição detectado).",
+            )
+
+        if strategy == SkipStrategy.SKIP:
+            self._consecutive_skips += 1
+            logger.info("[loop] SKIP repetição (%d consecutivos)", self._consecutive_skips)
+            self._session.add_tool_call(
+                action.action_type.value, action.params,
+                f"Ação repetida ignorada ({self._consecutive_skips}x)",
+            )
+            return None
+
+        return None
+
+    async def _call_llm(self) -> dict[str, Any]:
+        """Envia request ao proxy com histórico e tools."""
+        messages = [{"role": "system", "content": self._system_prompt}]
+
+        if self._budget.should_compact(self._session):
+            compacted = self._budget.compact_history(self._session)
+            if compacted:
+                messages.append({"role": "user", "content": f"[contexto compactado]\n{compacted}"})
+            recent_msgs = self._session.to_messages()[-6:]
+            messages.extend(recent_msgs)
+        else:
+            messages.extend(self._session.to_messages())
+
+        payload: dict[str, Any] = {
+            "model": self._model,
+            "messages": messages,
+            "tools": self._tools.tool_defs,
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=LLM_TIMEOUT) as client:
+                r = await client.post(
+                    f"{self._proxy_url}/v1/chat/completions",
+                    json=payload,
+                )
+                data = r.json()
+
+            if "choices" not in data:
+                return {"error": f"Resposta sem choices: {str(data)[:200]}"}
+
+            msg = data["choices"][0]["message"]
+            tc = msg.get("tool_calls", [])
+            content = msg.get("content", "")
+
+            if self._collector and content:
+                self._collector.reset()
+                for char in content:
+                    self._collector.feed(char)
+
+            result: dict[str, Any] = {"content": content, "tool_calls": []}
+            for call in tc:
+                fn = call.get("function", {})
+                args = fn.get("arguments", {})
+                if isinstance(args, str):
+                    try:
+                        args = json.loads(args)
+                    except json.JSONDecodeError:
+                        args = {"raw": args}
+                result["tool_calls"].append({
+                    "name": fn.get("name", ""),
+                    "arguments": args,
+                })
+
+            return result
+
+        except httpx.TimeoutException:
+            return {"error": "Timeout ao chamar LLM (proxy não respondeu)"}
+        except Exception as e:
+            return {"error": str(e)}
+
+    @property
+    def tools_count(self) -> int:
+        return self._tools.tool_count
+
+    @property
+    def session(self) -> CodeSession:
+        return self._session
+
+    @property
+    def budget(self) -> ContextBudget:
+        return self._budget
+
+    @property
+    def parser_stats(self) -> dict[str, Any]:
+        return self._parser.stats
+
+    @property
+    def permissions(self) -> PermissionChecker:
+        return self._permissions
+
+    def reset(self) -> None:
+        self._session.reset()
+        self._parser.reset_stats()
+        self._permissions.reset_session()
+        self._last_action = None
+        self._consecutive_skips = 0
+        self._has_results = False
+
+    def get_context_info(self) -> dict:
+        """Retorna info do budget para exibição no CLI."""
+        history = self._session.get_compressed_history()
+        return self._budget.estimate(self._system_prompt, history)
+
+
+# "O loop é a essência da computação." -- Alan Turing

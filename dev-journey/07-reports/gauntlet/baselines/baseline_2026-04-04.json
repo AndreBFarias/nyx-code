@@ -1,0 +1,26 @@
+{
+  "date": "2026-04-04",
+  "commit": "1a22642",
+  "model": "qwen3:4b",
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "vram_total_mib": 4096,
+    "num_gpu": 12,
+    "num_ctx": 8192
+  },
+  "kpis": {
+    "warmup_s": 15.5,
+    "gauntlet_total_s": 486.5,
+    "boot_s": 0.03,
+    "ttfr_chat_s": 5.95,
+    "tokens_chat": 142,
+    "ttfr_tool_s": 6.75,
+    "tokens_tool": 279,
+    "vram_mib": 1677
+  },
+  "results": {
+    "total": 36,
+    "passed": 36,
+    "failed": 0
+  }
+}

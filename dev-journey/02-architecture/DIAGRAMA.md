@@ -9,12 +9,12 @@
 │  2. Inicia Ollama (:11435) com OLLAMA_MODELS=./models       │
 │  3. Warmup do modelo (num_gpu=12, think=false)               │
 │  4. Inicia Proxy (:11436)                                    │
-│  5. Inicia OpenClaude (TUI)                                  │
+│  5. Inicia Nyx TUI                                           │
 │  6. Cleanup ao sair (trap EXIT)                              │
 └──────────────────────┬──────────────────────────────────────┘
                        │
         ┌────────────────────────────────────┐
-        │         OpenClaude (TUI)             │
+        │         Nyx (TUI)                     │
         │  Node.js | Interface interativa      │
         │  Slash commands | Tool calling        │
         │  OPENAI_BASE_URL=:11436/v1           │

@@ -5,7 +5,7 @@ ACEITA (2026-04-04)
 
 ## Contexto
 
-O qwen3:4b tem modo "thinking" ativado por padrão. Quando o openclaude
+O qwen3:4b tem modo "thinking" ativado por padrão. Quando a TUI
 faz requests via endpoint /v1/chat/completions (OpenAI-compatible), o
 Ollama não propaga o campo think=false. O reasoning consome todos os
 tokens e tool_calls nunca é gerado.
@@ -16,10 +16,10 @@ Comprovado via testes:
 
 ## Decisão
 
-**Proxy Python (aiohttp) entre openclaude e Ollama que injeta think=false.**
+**Proxy Python (aiohttp) entre a TUI e Ollama que injeta think=false.**
 
 ```
-openclaude -> proxy (:11436) -> Ollama (:11435)
+Nyx TUI -> proxy (:11436) -> Ollama (:11435)
                     |
                     +-> Converte /v1/ para /api/chat
                     +-> Injeta think=false

@@ -1,98 +1,155 @@
 # Nyx-Code
 
-Agente de código local. 100% offline. Terminal.
+Agente de código local. 100% offline. Terminal. Port Python do Claude Code (fonte TS, 127K linhas).
 
-Roda qwen3:4b via Ollama com tool calling real (Read, Write, Edit, Bash, Glob, Grep).
-Projeto standalone que será integrado ao projeto Luna como agente coder da entidade Nyx.
+Roda qwen3:4b via Ollama com 34 tools funcionais, 74 commands, 21 services.
+Projeto standalone, otimizado para RTX 3050 4GB.
 
 ## Arquitetura
 
 ```
-                    ┌─────────────────────────────────┐
-                    │          Nyx-Code (TUI)          │
-                    │        openclaude v0.1.7          │
-                    └──────────┬──────────────────────┘
-                               │
-                    ┌────────────────────────────────┐
-                    │      Proxy  (:11436)             │
-                    │  nyx/proxy.py                     │
-                    │  - Converte /v1/ -> /api/chat     │
-                    │  - Injeta think=false              │
-                    │  - Controla num_gpu e num_ctx      │
-                    └──────────┬──────────────────────┘
-                               │
-                    ┌────────────────────────────────┐
-                    │      Ollama  (:11435)             │
-                    │  qwen3:4b (num_gpu=12)            │
-                    │  RTX 3050 ~1.2GB VRAM             │
-                    └─────────────────────────────────┘
+Usuário
+  |
+  v
+run.sh ─────> Ollama (:11435) ──> GPU (num_gpu=12, qwen3:4b)
+  |
+  +────────> Proxy (:11436)
+  |           - /v1/chat/completions -> /api/chat
+  |           - Injeta think=false (obrigatório para tool calling)
+  |           - Controla num_gpu e num_ctx
+  |
+  +────────> Nyx CLI (nyx/cli.py)
+              - REPL interativo com Rich output + prompt-toolkit
+              - 34 tools via ToolRegistry
+              - 74 slash commands
+              - AgentLoop: plan-execute-observe (até 30 iterações)
+              - ActionParser: 7 níveis de fallback
+              - ContextBudget: compactação progressiva
+              - Modo headless (--headless): JSON stdin/stdout
 ```
 
 ## Começando
 
-### Instalar
-
 ```bash
-./install.sh
+./install.sh          # Ollama, venv, modelos (~8GB)
+./run.sh              # Inicia com qwen3:4b
+./run.sh --7b         # qwen2.5-coder:7b
+./run.sh --debug      # Logs detalhados
+./run.sh --gauntlet   # Validação completa
 ```
 
-Baixa o binário do Ollama, cria venv Python, instala dependências,
-baixa qwen3:4b + qwen2.5-coder:3b + 7b para `./models/`.
-
-### Usar
+## Validação
 
 ```bash
-./run.sh          # Inicia com qwen3:4b (padrão)
-./run.sh --3b     # qwen2.5-coder:3b (sem tool calling)
-./run.sh --7b     # qwen2.5-coder:7b
-./run.sh --debug  # Logs detalhados
+./run.sh --gauntlet                      # Completo
+./run.sh --gauntlet --only rapido        # Infra+proxy+visual+config
+./run.sh --gauntlet --only coverage      # Cobertura de componentes
+python scripts/sync.py                   # Consistência N-para-N
 ```
 
-O `run.sh` cuida de tudo: mata Ollama anterior, inicia novo, aquece modelo,
-sobe proxy, abre interface. Ao sair (Ctrl+C), limpa tudo.
+## Tools (34 registradas -- todas funcionais)
 
-### Remover
+| Categoria | Tools |
+|-----------|-------|
+| Arquivo | read_file, write_file, edit_file, list_files, glob, search, notebook_edit |
+| Execução | run_command, repl |
+| Web | web_fetch, web_search |
+| Tarefas | task_create, task_update, task_list, task_get, task_output, task_stop, todo_write |
+| Planejamento | enter_plan_mode, exit_plan_mode, agent, done |
+| Git | enter_worktree, exit_worktree |
+| Edição avançada | analyze, patch, multi_edit |
+| Utilidade | sleep, config, brief, tool_search, skill, send_message, ask_user |
 
-```bash
-./uninstall.sh        # Remove modelos (~6GB), venv, binário Ollama
-./uninstall.sh --full # Remove tudo incluindo .env
-```
+## Commands (74 registrados)
+
+| Categoria | Commands |
+|-----------|----------|
+| Geral | /help, /quit, /clear, /status |
+| Código | /explain, /plan, /test, /summary |
+| Git | /commit, /diff, /review, /branch, /issue, /pr, /rewind |
+| Sistema | /doctor, /model, /config, /env, /permissions, /hooks, /theme |
+| Sessão | /compact, /context, /session, /resume, /export, /copy, /stats, /usage |
+| Execução | /tasks, /skills, /files |
+| Projeto | /add-dir, /init, /onboarding, /version, /rename |
+| UI | /color, /output-style, /keybindings, /stickers, /fast, /effort, /vim |
+| Debug | /trace, /autofix-pr, /bughunter, /ctx-viz, /debug-tool, /heapdump, /perf-issue, /kudos, /break-cache |
+| Memória | /memory, /plugin, /reload-plugins, /agents, /tag |
+| Avançado | /btw, /backfill, /thinkback, /thinkback-play, /pr-comments |
+| Root | /advisor, /brief-cmd, /commit-push-pr, /insights, /security-review |
+| Lifecycle | /upgrade, /sandbox, /terminal-setup |
+| Limites | /rate-limit, /reset-limits |
+
+## Services (21)
+
+**Funcionais:** tokens, compact, hooks, memory, summary, suggestions, preflight, validator
+
+**Stubs locais (lógica a enriquecer):** analytics, diagnostics, logging_service, notifier, prevent_sleep, plugins, magic_docs, tips, tool_use_summary, extract_memories, auto_dream, away_summary, summary_expanded, rate_limit, limits
+
+## ADRs (20)
+
+| # | Título |
+|---|--------|
+| 001 | Local First -- 100% offline |
+| 002 | Proxy think=false |
+| 003 | VRAM Management (RTX 3050 4GB) |
+| 004 | Zero Emojis |
+| 005 | Anonimato (sem menção a IA) |
+| 006 | PT-BR obrigatório |
+| 007 | Gauntlet (1 teste por feature) |
+| 008 | Performance KPIs |
+| 009 | Acesso Universal |
+| 010 | Zero Mocks |
+| 011 | Gauntlet Obrigatório |
+| 012 | Cobertura 100% fonte TS original |
+| 013 | Integração Obrigatória (nada solto) |
+| 014 | Testes via Gauntlet (sem pytest) |
+| 015 | Documentação para continuidade |
+| 016 | Luna no backlog |
+| 017 | Scaffold-first |
+| 018 | Stubs progressivos |
+| 019 | Gauntlet coverage |
+| 020 | Testes via run.sh |
+
+## Requisitos
+
+- Linux (x86_64)
+- Python 3.10+
+- GPU NVIDIA (RTX 3050 4GB recomendado)
+- ~8 GB de disco (modelos Ollama)
 
 ## Estrutura
 
 ```
 nyx/
-├── proxy.py         # Proxy OpenAI -> Ollama nativa (think=false)
-├── config/          # Configuração centralizada (settings, defaults)
-├── agent/           # [backlog] Loop do agente, parser, sessão
-├── tools/           # [backlog] Read, Write, Edit, Bash, Glob, Grep
-├── providers/       # [backlog] Ollama client
-├── context/         # [backlog] Gerenciamento de contexto e tokens
-├── interface/       # [backlog] Interface terminal customizada
-└── integration/     # [backlog] Protocolo de integração com Luna
+  cli.py             # REPL + modo headless + prompt-toolkit
+  proxy.py           # Proxy think=false
+  agent/
+    loop.py          # AgentLoop (plan-execute-observe)
+    parser.py        # ActionParser (7 níveis)
+    session.py       # CodeSession
+    commands.py      # 74 slash commands
+    completer.py     # Tab completion
+    output.py        # Rich output + spinner
+    tools/
+      registry.py    # 34 tools registradas
+      base.py        # RegisteredTool + ToolDef
+      [34 arquivos]
+    services/
+      [21 arquivos]
+  providers/
+    ollama.py        # OllamaProvider
+  context/
+    project.py       # Detecção de projeto
+scripts/
+  gauntlet/
+    nyx_gauntlet.py  # Validação automatizada
+  scaffold.py        # Gerador de componentes
+  sync.py            # Verificação de consistência
+dev-journey/
+  PORT_STATUS.md     # Mapeamento 1:1 fonte TS -> Nyx
+  03-decisions/      # 20 ADRs
+  06-sprints/        # Sprint files + SPRINT_ORDER_MASTER
 ```
 
-## Decisões (ADRs)
 
-| ADR | Título | Resumo |
-|-----|--------|--------|
-| 001 | Local First | 100% offline, zero dependência de cloud |
-| 002 | Proxy think=false | Resolve tool calling via conversão de API |
-| 003 | Gerenciamento VRAM | num_gpu=12 para RTX 3050 sem OOM |
-| 004 | Zero Emojis | Estética limpa, sem genéricos |
-| 005 | Anonimato | Sem menção a IA em commits/código |
-| 006 | PT-BR | Acentuação correta obrigatória |
-
-## Requisitos
-
-- Linux (x86_64 ou arm64)
-- Python 3.10+
-- Node.js 18+
-- GPU NVIDIA (opcional, melhora performance)
-- ~8 GB de disco (modelos)
-
-## Relação com Luna
-
-Nyx-Code será integrado ao projeto Luna (`~/Desenvolvimento/Luna`) como
-agente de código da entidade Nyx. A integração é via modo headless
-com protocolo JSON (Sprint 09 no backlog).
+<!-- "Perfeição não é quando não há mais nada para adicionar, mas quando não há mais nada para remover." -- Antoine de Saint-Exupéry -->

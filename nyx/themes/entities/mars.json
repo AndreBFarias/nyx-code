@@ -1,0 +1,20 @@
+{
+    "id": "mars",
+    "name": "Mars",
+    "description": "Vermelho agressivo sobre negro absoluto.",
+    "colors": {
+        "primary": "#FF5555",
+        "secondary": "#44475A",
+        "accent": "#FFB86C",
+        "background": "#0D0D0D",
+        "background_alt": "#1A1A1A",
+        "background_input": "#2D2D2D",
+        "background_code": "#0A0A0A",
+        "glow": "#FF5555",
+        "text_primary": "#F8F8F2",
+        "text_secondary": "#6272A4",
+        "text_user": "#FFB86C",
+        "text_success": "#50FA7B",
+        "text_error": "#FF5555"
+    }
+}

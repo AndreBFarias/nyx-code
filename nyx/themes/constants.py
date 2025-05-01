@@ -1,0 +1,29 @@
+"""Constantes do sistema de temas.
+
+Paleta Dracula como fallback universal (port da Luna).
+"""
+
+TEMA_PADRAO = "nyx"
+
+DRACULA_FALLBACK: dict[str, str] = {
+    "primary": "#BD93F9",
+    "secondary": "#FF79C6",
+    "accent": "#50FA7B",
+    "background": "#282A36",
+    "background_alt": "#1E1F29",
+    "background_input": "#44475A",
+    "background_code": "#0A0B10",
+    "glow": "#BD93F9",
+    "text_primary": "#F8F8F2",
+    "text_secondary": "#6272A4",
+    "text_user": "#8BE9FD",
+    "text_success": "#50FA7B",
+    "text_error": "#FF5555",
+}
+
+ANSI_RESET = "\033[0m"
+ANSI_BOLD = "\033[1m"
+ANSI_DIM = "\033[2m"
+
+
+# "Não há nada permanente exceto a mudança." -- Heráclito

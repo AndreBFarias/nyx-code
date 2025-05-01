@@ -8,24 +8,24 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# ─── CORES (Dracula Gothic - alinhado com Luna) ──────────
+# ─── CORES (Paleta Nyx - entidade do panteão Luna) ──────────
 if [ -t 1 ]; then
-    PURPLE='\033[38;2;189;147;249m'   # #BD93F9 - cor principal
-    PINK='\033[38;2;255;121;198m'     # #FF79C6 - alertas
-    GREEN='\033[38;2;80;250;123m'     # #50FA7B - sucesso
-    CYAN='\033[38;2;139;233;253m'     # #8BE9FD - info
-    ORANGE='\033[38;2;255;184;108m'   # #FFB86C - avisos
-    RED='\033[38;2;255;85;85m'        # #FF5555 - erros
-    COMMENT='\033[38;2;98;114;164m'   # #6272A4 - secundário
-    FG='\033[38;2;248;248;242m'       # #F8F8F2 - texto
+    PRIMARY='\033[38;2;0;212;170m'      # #00D4AA - cor principal Nyx (cyan/teal)
+    SECONDARY='\033[38;2;108;122;137m'  # #6C7A89 - secundária
+    ACCENT='\033[38;2;232;232;232m'     # #E8E8E8 - destaque/texto
+    GREEN='\033[38;2;0;212;170m'        # #00D4AA - sucesso (= primary)
+    ORANGE='\033[38;2;255;184;108m'     # #FFB86C - avisos
+    RED='\033[38;2;255;107;107m'        # #FF6B6B - erros (Nyx)
+    COMMENT='\033[38;2;108;122;137m'    # #6C7A89 - secundário
+    FG='\033[38;2;232;232;232m'         # #E8E8E8 - texto primário
     BOLD='\033[1m'
     DIM='\033[2m'
     NC='\033[0m'
 else
-    PURPLE='' PINK='' GREEN='' CYAN='' ORANGE='' RED='' COMMENT='' FG='' BOLD='' DIM='' NC=''
+    PRIMARY='' SECONDARY='' ACCENT='' GREEN='' ORANGE='' RED='' COMMENT='' FG='' BOLD='' DIM='' NC=''
 fi
 
-log_nyx()  { echo -e "  ${PURPLE}[nyx]${NC} $1"; }
+log_nyx()  { echo -e "  ${PRIMARY}[nyx]${NC} $1"; }
 log_ok()   { echo -e "  ${GREEN}[nyx]${NC} $1"; }
 log_warn() { echo -e "  ${ORANGE}[nyx]${NC} $1"; }
 log_err()  { echo -e "  ${RED}[nyx]${NC} $1"; }
@@ -48,6 +48,8 @@ NYX_OLLAMA_HOST="${NYX_OLLAMA_HOST:-127.0.0.1}:${NYX_OLLAMA_PORT}"
 MODEL="${NYX_MODEL:-qwen3:4b}"
 DEBUG=0
 HEADLESS=0
+GAUNTLET=0
+GAUNTLET_ONLY="completo"
 EXTRA_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -74,6 +76,13 @@ while [[ $# -gt 0 ]]; do
         --headless)
             HEADLESS=1
             shift ;;
+        --gauntlet)
+            GAUNTLET=1
+            HEADLESS=1
+            shift ;;
+        --only)
+            GAUNTLET_ONLY="$2"
+            shift 2 ;;
         *)
             EXTRA_ARGS+=("$1")
             shift ;;
@@ -94,37 +103,24 @@ fi
 OLLAMA_PID=""
 
 # ─── LIMPAR VARIÁVEIS CONFLITANTES ───────────────────────
-# Modelos do shell global interferem na seleção do openclaude
+# Modelos do shell global interferem na seleção do modelo
 unset GEMINI_MODEL 2>/dev/null || true
 unset GEMINI_API_KEY 2>/dev/null || true
 unset DEEPSEEK_API_KEY 2>/dev/null || true
-# ANTHROPIC_API_KEY é mantida (necessária para auth do openclaude, vem do .env)
+# ANTHROPIC_API_KEY é mantida (necessária para auth da TUI, vem do .env)
 
 # ─── VALIDAÇÕES ───────────────────────────────────────────
 validate() {
     local errors=0
 
     if [ ! -x "$OLLAMA_BIN" ]; then
-        log_err "Ollama não encontrado em bin/ollama. Execute ${PURPLE}./install.sh${NC} primeiro."
+        log_err "Ollama não encontrado em bin/ollama. Execute ${PRIMARY}./install.sh${NC} primeiro."
         errors=$((errors + 1))
     fi
 
-    if [ ! -f "$SCRIPT_DIR/dist/cli.mjs" ] && [ ! -L "$SCRIPT_DIR/dist" ]; then
-        log_err "dist/cli.mjs não encontrado. Verifique o symlink dist -> reference/dist"
+    if [ ! -d "$SCRIPT_DIR/venv" ]; then
+        log_err "venv não encontrado. Execute ${PRIMARY}./install.sh${NC} primeiro."
         errors=$((errors + 1))
-    fi
-
-    if ! command -v node &> /dev/null; then
-        log_err "Node.js não encontrado. Instale Node.js >= 18."
-        errors=$((errors + 1))
-    fi
-
-    if [ ! -d "$SCRIPT_DIR/node_modules" ]; then
-        log_warn "node_modules não encontrado. Instalando dependências npm..."
-        npm install --production --silent 2>/dev/null || {
-            log_err "Falha ao instalar dependências npm"
-            errors=$((errors + 1))
-        }
     fi
 
     if [ "$errors" -gt 0 ]; then
@@ -257,14 +253,14 @@ show_banner() {
     echo "  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░"
     echo -e "${NC}"
     echo ""
-    echo -e "${PURPLE}${BOLD}   _   _                 ____          _      ${NC}"
-    echo -e "${PURPLE}${BOLD}  | \\ | |_   ___  __    / ___|___   __| | ___ ${NC}"
-    echo -e "${PURPLE}${BOLD}  |  \\| | | | \\ \\/ /   | |   / _ \\ / _\` |/ _ \\${NC}"
-    echo -e "${PURPLE}${BOLD}  | |\\  | |_| |>  <    | |__| (_) | (_| |  __/${NC}"
-    echo -e "${PURPLE}${BOLD}  |_| \\_|\\__, /_/\\_\\    \\____\\___/ \\__,_|\\___|${NC}"
-    echo -e "${PURPLE}${BOLD}        |___/                                ${NC}"
+    echo -e "${PRIMARY}${BOLD}   _   _                 ____          _      ${NC}"
+    echo -e "${PRIMARY}${BOLD}  | \\ | |_   ___  __    / ___|___   __| | ___ ${NC}"
+    echo -e "${PRIMARY}${BOLD}  |  \\| | | | \\ \\/ /   | |   / _ \\ / _\` |/ _ \\${NC}"
+    echo -e "${PRIMARY}${BOLD}  | |\\  | |_| |>  <    | |__| (_) | (_| |  __/${NC}"
+    echo -e "${PRIMARY}${BOLD}  |_| \\_|\\__, /_/\\_\\    \\____\\___/ \\__,_|\\___|${NC}"
+    echo -e "${PRIMARY}${BOLD}        |___/                                ${NC}"
     echo ""
-    echo -e "  ${PINK}Codificadora. Precisa. Local.${NC}"
+    echo -e "  ${ACCENT}Codificadora. Precisa. Local.${NC}"
     echo ""
     echo -e "  ${COMMENT}modelo${NC}  ${FG}$MODEL${NC}"
     echo -e "  ${COMMENT}ollama${NC}  ${FG}:${NYX_OLLAMA_PORT}${NC}  ${COMMENT}proxy${NC}  ${FG}:${NYX_PROXY_PORT}${NC}"
@@ -298,10 +294,9 @@ kill_existing_ollama
 start_ollama
 check_model
 configure_vram
-warmup_model
 show_banner
 
-# ─── CONFIGURAR PROXY + OPENCLAUDE ────────────────────────
+# ─── CONFIGURAR PROXY + NYX TUI ───────────────────────────
 NYX_PROXY_PORT=11436
 NYX_NUM_GPU="${NYX_NUM_GPU:-12}"
 
@@ -310,15 +305,24 @@ export OPENAI_API_KEY=ollama
 export OPENAI_BASE_URL="http://127.0.0.1:${NYX_PROXY_PORT}/v1"
 export OPENAI_MODEL="$MODEL"
 export OPENAI_TIMEOUT=300000
-# ANTHROPIC_API_KEY vem do .env (necessária para auth do openclaude)
+# ANTHROPIC_API_KEY vem do .env (necessária para auth da TUI)
 
 # ─── PRE-CARREGAR MODELO COM NUM_GPU LIMITADO ────────────
 log_nyx "Pré-carregando modelo (num_gpu=$NYX_NUM_GPU)..."
-curl -sf --max-time 120 "http://${NYX_OLLAMA_HOST}/api/chat" \
+if curl -sf --max-time 120 "http://${NYX_OLLAMA_HOST}/api/chat" \
     -H "Content-Type: application/json" \
     -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"stream\":false,\"think\":false,\"options\":{\"num_gpu\":$NYX_NUM_GPU,\"num_ctx\":4096}}" \
-    > /dev/null 2>&1
-log_ok "Modelo pré-carregado"
+    > /dev/null 2>&1; then
+    log_ok "Modelo pré-carregado"
+else
+    log_warn "Pré-carga falhou (modelo será carregado na primeira requisição)"
+fi
+
+# Verificar se Ollama sobreviveu ao pre-load
+if ! kill -0 "$OLLAMA_PID" 2>/dev/null; then
+    log_warn "Ollama morreu durante pré-carga. Reiniciando..."
+    start_ollama
+fi
 
 # ─── INICIAR PROXY (think=false para tool calling) ───────
 log_nyx "Iniciando proxy na porta $NYX_PROXY_PORT..."
@@ -350,16 +354,26 @@ Regras:
 Codigo limpo nao e arte. E higiene.
 Ler -> Escrever -> Testar -> Terminar."
 
-# Iniciar OpenClaude (via proxy que injeta think=false)
-# --bare: sem MCP plugins (Playwright, Context7) que causam OOM na RTX 3050
-# Slash commands ficam indisponíveis em --bare (trade-off por estabilidade)
-node "$SCRIPT_DIR/bin/openclaude" \
-    --model "$MODEL" \
-    --bare \
-    --thinking disabled \
-    --dangerously-skip-permissions \
-    --system-prompt "$NYX_SYSTEM_PROMPT" \
-    "${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"}"
+# ─── GAUNTLET (se --gauntlet) ─────────────────────────────
+if [ "$GAUNTLET" -eq 1 ]; then
+    log_nyx "Executando Gauntlet (fase: $GAUNTLET_ONLY)..."
+    "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/scripts/gauntlet/nyx_gauntlet.py" \
+        --proxy-url "http://127.0.0.1:${NYX_PROXY_PORT}" \
+        --ollama-url "http://${NYX_OLLAMA_HOST}" \
+        --only "$GAUNTLET_ONLY" \
+        --model "$MODEL"
+    EXIT_CODE=$?
+
+    # Auto-atualizar docs após gauntlet
+    log_nyx "Atualizando docs..."
+    "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/scripts/update_docs.py" 2>/dev/null || true
+
+    exit "$EXIT_CODE"
+fi
+
+# ─── INICIAR NYX CLI (Python) ─────────────────────────────
+log_nyx "Iniciando Nyx CLI..."
+"$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/nyx/cli.py"
 EXIT_CODE=$?
 
 exit "$EXIT_CODE"

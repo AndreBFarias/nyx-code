@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-04-08T21:24:55.054658",
+  "model": "qwen3:4b",
+  "phases_done": [],
+  "results": [
+    {
+      "feature_id": "I-01",
+      "name": "Ollama respondendo",
+      "phase": "infra",
+      "passed": true,
+      "elapsed_s": 0.02,
+      "tokens": 0,
+      "details": "",
+      "error": ""
+    },
+    {
+      "feature_id": "I-03",
+      "name": "Versão Ollama",
+      "phase": "infra",
+      "passed": true,
+      "elapsed_s": 0.02,
+      "tokens": 0,
+      "details": "0.13.5",
+      "error": ""
+    }
+  ],
+  "kpis": {}
+}

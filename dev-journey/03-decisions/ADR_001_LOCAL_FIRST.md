@@ -24,7 +24,7 @@ roda localmente com tool calling via proxy.
 
 - Sem internet = funciona 100%
 - Sem API key de cloud = funciona 100%
-- ANTHROPIC_API_KEY no .env = apenas para auth do openclaude, não para API calls
+- ANTHROPIC_API_KEY no .env = apenas para auth da TUI, não para API calls
 - Toda request vai para Ollama via proxy
 
 ## Consequências

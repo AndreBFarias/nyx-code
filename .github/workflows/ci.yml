@@ -1,0 +1,135 @@
+# ==============================================
+# NYX-CODE - CI Principal (Fast Feedback)
+# ==============================================
+# Gate rápido (< 3 min): lint + smoke tests Python.
+# Gauntlet completo requer GPU local (não roda no CI).
+# ==============================================
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint e Validação
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Verificar sintaxe shell
+        run: |
+          bash -n run.sh
+          bash -n install.sh
+          bash -n uninstall.sh
+
+      - name: Verificar imports Python
+        run: |
+          python -c "from nyx.themes import ThemeManager; print('themes: OK')"
+          python -c "from nyx.config.settings import NyxSettings; print('config: OK')"
+
+      - name: Verificar anonimato (sem menção a IA)
+        run: |
+          HITS=$(grep -rn "Claude\|GPT\|Gemini\|Copilot\|Anthropic\|OpenAI" \
+            --include="*.py" --include="*.sh" --include="*.md" \
+            --exclude-dir=reference --exclude-dir=node_modules \
+            --exclude-dir=.git --exclude="*.log" \
+            . 2>/dev/null | grep -v "ANTHROPIC_API_KEY\|OPENAI_API_KEY\|OPENAI_BASE_URL\|OPENAI_MODEL\|OPENAI_TIMEOUT\|CLAUDE_CODE_USE_OPENAI\|CLAUDE\.md\|\.claude/" | head -5 || true)
+          if [ -n "$HITS" ]; then
+            echo "Referências a IA encontradas:"
+            echo "$HITS"
+            exit 1
+          fi
+          echo "Anonimato: OK"
+
+      - name: Zero referências OpenClaude
+        run: |
+          HITS=$(grep -rn "openclaude\|OpenClaude" \
+            --include="*.py" --include="*.sh" --include="*.md" --include="*.json" \
+            --exclude-dir=reference --exclude-dir=node_modules \
+            --exclude-dir=.git --exclude="package-lock.json" \
+            . 2>/dev/null | head -5 || true)
+          if [ -n "$HITS" ]; then
+            echo "Referências a OpenClaude encontradas:"
+            echo "$HITS"
+            exit 1
+          fi
+          echo "Sem OpenClaude: OK"
+
+  smoke-tests:
+    name: Smoke Tests Python
+    runs-on: ubuntu-latest
+    needs: lint
+    timeout-minutes: 3
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Testar módulo de temas
+        run: |
+          python -c "
+          from nyx.themes import ThemeManager
+          tm = ThemeManager()
+          assert len(tm.list_themes()) == 7, 'Esperava 7 temas'
+          assert tm.load_theme('nyx')['accent'] == '#00D4AA'
+          assert tm.load_theme('fantasma')['primary'] == '#BD93F9'  # fallback
+          print('Temas: 7 entidades, fallback Dracula: OK')
+          "
+
+      - name: Testar config
+        run: |
+          python -c "
+          from nyx.config.defaults import DEFAULT_MODEL, OLLAMA_PORT
+          assert DEFAULT_MODEL == 'qwen3:4b'
+          assert OLLAMA_PORT == 11435
+          print('Config defaults: OK')
+          "
+
+      - name: Testar utilitários de cor
+        run: |
+          python -c "
+          from nyx.themes.utils import hex_to_rgb, rgb_to_hex, lighten_color, darken_color
+          assert hex_to_rgb('#FF0000') == (255, 0, 0)
+          assert rgb_to_hex(0, 212, 170) == '#00d4aa'
+          print('Utils cor: OK')
+          "
+
+  ci-summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [lint, smoke-tests]
+    if: always()
+
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "# Nyx-Code CI" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Resultado |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|-----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Smoke Tests | ${{ needs.smoke-tests.result }} |" >> $GITHUB_STEP_SUMMARY

@@ -8,27 +8,27 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# --- CORES ------------------------------------------------
+# --- CORES (Paleta Nyx) ------------------------------------
 if [ -t 1 ]; then
-    PURPLE='\033[38;2;189;147;249m'
-    PINK='\033[38;2;255;121;198m'
-    GREEN='\033[38;2;80;250;123m'
-    CYAN='\033[38;2;139;233;253m'
-    ORANGE='\033[38;2;255;184;108m'
-    RED='\033[38;2;255;85;85m'
-    COMMENT='\033[38;2;98;114;164m'
-    FG='\033[38;2;248;248;242m'
+    PRIMARY='\033[38;2;0;212;170m'      # #00D4AA - cor principal Nyx
+    SECONDARY='\033[38;2;108;122;137m'  # #6C7A89 - secundária
+    ACCENT='\033[38;2;232;232;232m'     # #E8E8E8 - destaque
+    GREEN='\033[38;2;0;212;170m'        # #00D4AA - sucesso
+    ORANGE='\033[38;2;255;184;108m'     # #FFB86C - avisos
+    RED='\033[38;2;255;107;107m'        # #FF6B6B - erros
+    COMMENT='\033[38;2;108;122;137m'    # #6C7A89 - secundário
+    FG='\033[38;2;232;232;232m'         # #E8E8E8 - texto
     BOLD='\033[1m'
     NC='\033[0m'
 else
-    PURPLE='' PINK='' GREEN='' CYAN='' ORANGE='' RED='' COMMENT='' FG='' BOLD='' NC=''
+    PRIMARY='' SECONDARY='' ACCENT='' GREEN='' ORANGE='' RED='' COMMENT='' FG='' BOLD='' NC=''
 fi
 
 log_ok()   { echo -e "${GREEN}[nyx]${NC} $1"; }
-log_nyx()  { echo -e "${PURPLE}[nyx]${NC} $1"; }
+log_nyx()  { echo -e "${PRIMARY}[nyx]${NC} $1"; }
 log_warn() { echo -e "${ORANGE}[nyx]${NC} $1"; }
 log_err()  { echo -e "${RED}[nyx]${NC} $1"; }
-log_step() { echo -e "\n${PURPLE}${BOLD}==> $1${NC}"; }
+log_step() { echo -e "\n${PRIMARY}${BOLD}==> $1${NC}"; }
 
 # --- VERSÕES -----------------------------------------------
 OLLAMA_VERSION="0.13.5"
@@ -36,7 +36,7 @@ PYTHON_MIN="3.10"
 NYX_OLLAMA_PORT="${NYX_OLLAMA_PORT:-11435}"
 
 # --- BANNER ------------------------------------------------
-echo -e "${PURPLE}${BOLD}"
+echo -e "${PRIMARY}${BOLD}"
 echo "  _   _                ____          _      "
 echo " | \\ | |_   ___  __   / ___|___   __| | ___ "
 echo " |  \\| | | | \\ \\/ /  | |   / _ \\ / _\` |/ _ \\"
@@ -44,7 +44,7 @@ echo " | |\\  | |_| |>  <   | |__| (_) | (_| |  __/"
 echo " |_| \\_|\\__, /_/\\_\\   \\____\\___/ \\__,_|\\___|"
 echo "        |___/                                "
 echo -e "${NC}"
-echo -e "${CYAN}Instalador Nyx-Code${NC}"
+echo -e "${ACCENT}Instalador Nyx-Code${NC}"
 echo ""
 
 # --- 1. DETECTAR SO E ARQUITETURA -------------------------
@@ -248,9 +248,9 @@ fi
 echo ""
 if [ "$CHECKS_OK" -eq "$CHECKS_TOTAL" ]; then
     echo -e "${GREEN}${BOLD}Instalação completa! ($CHECKS_OK/$CHECKS_TOTAL)${NC}"
-    echo -e "Execute ${PURPLE}./run.sh${NC} para iniciar o Nyx-Code."
+    echo -e "Execute ${PRIMARY}./run.sh${NC} para iniciar o Nyx-Code."
 else
-    echo -e "${YELLOW}${BOLD}Instalação parcial ($CHECKS_OK/$CHECKS_TOTAL)${NC}"
+    echo -e "${ORANGE}${BOLD}Instalação parcial ($CHECKS_OK/$CHECKS_TOTAL)${NC}"
     echo -e "Verifique os erros acima."
 fi
 echo ""

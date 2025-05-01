@@ -1,0 +1,20 @@
+{
+    "id": "eris",
+    "name": "Eris",
+    "description": "Caos púrpura. Vermelho + rosa sobre fundo profundo.",
+    "colors": {
+        "primary": "#FF5555",
+        "secondary": "#FF79C6",
+        "accent": "#FFB86C",
+        "background": "#3D2B4D",
+        "background_alt": "#2D1B3D",
+        "background_input": "#3D2B4D",
+        "background_code": "#150D1D",
+        "glow": "#FF5555",
+        "text_primary": "#F8F8F2",
+        "text_secondary": "#6272A4",
+        "text_user": "#8BE9FD",
+        "text_success": "#50FA7B",
+        "text_error": "#FF5555"
+    }
+}

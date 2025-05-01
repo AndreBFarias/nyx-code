@@ -24,7 +24,7 @@ logger = logging.getLogger("nyx.proxy")
 
 OLLAMA_URL = "http://127.0.0.1:11435"
 NUM_GPU = 15
-NUM_CTX = 4096
+NUM_CTX = 8192
 
 
 def _normalize_content(content):
@@ -178,7 +178,7 @@ def main():
     parser.add_argument("--port", type=int, default=11436)
     parser.add_argument("--ollama-port", type=int, default=11435)
     parser.add_argument("--num-gpu", type=int, default=15)
-    parser.add_argument("--num-ctx", type=int, default=4096)
+    parser.add_argument("--num-ctx", type=int, default=8192)
     args = parser.parse_args()
 
     global OLLAMA_URL, NUM_GPU, NUM_CTX

@@ -1,0 +1,20 @@
+{
+    "id": "somn",
+    "name": "Somn",
+    "description": "Azul profundo noturno. Cyan + roxo sobre escuridão.",
+    "colors": {
+        "primary": "#8BE9FD",
+        "secondary": "#BD93F9",
+        "accent": "#F8F8F2",
+        "background": "#0A0A18",
+        "background_alt": "#12122A",
+        "background_input": "#1A1A3A",
+        "background_code": "#050510",
+        "glow": "#8BE9FD",
+        "text_primary": "#F8F8F2",
+        "text_secondary": "#6272A4",
+        "text_user": "#BD93F9",
+        "text_success": "#50FA7B",
+        "text_error": "#FF5555"
+    }
+}

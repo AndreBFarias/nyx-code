@@ -1,0 +1,20 @@
+{
+    "id": "nyx",
+    "name": "Nyx",
+    "description": "Codificadora silenciosa. Cinza cirúrgico + cyan técnico.",
+    "colors": {
+        "primary": "#E8E8E8",
+        "secondary": "#6C7A89",
+        "accent": "#00D4AA",
+        "background": "#2A2C39",
+        "background_alt": "#232530",
+        "background_input": "#3D3F4E",
+        "background_code": "#1A1B26",
+        "glow": "#00D4AA",
+        "text_primary": "#E8E8E8",
+        "text_secondary": "#6C7A89",
+        "text_user": "#00D4AA",
+        "text_success": "#00D4AA",
+        "text_error": "#FF6B6B"
+    }
+}

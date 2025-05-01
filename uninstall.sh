@@ -7,23 +7,23 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# --- CORES ------------------------------------------------
+# --- CORES (Paleta Nyx) ------------------------------------
 if [ -t 1 ]; then
-    PURPLE='\033[38;2;189;147;249m'
-    GREEN='\033[38;2;80;250;123m'
-    CYAN='\033[38;2;139;233;253m'
-    ORANGE='\033[38;2;255;184;108m'
-    RED='\033[38;2;255;85;85m'
-    COMMENT='\033[38;2;98;114;164m'
-    FG='\033[38;2;248;248;242m'
+    PRIMARY='\033[38;2;0;212;170m'      # #00D4AA - cor principal Nyx
+    ACCENT='\033[38;2;232;232;232m'     # #E8E8E8 - destaque
+    GREEN='\033[38;2;0;212;170m'        # #00D4AA - sucesso
+    ORANGE='\033[38;2;255;184;108m'     # #FFB86C - avisos
+    RED='\033[38;2;255;107;107m'        # #FF6B6B - erros
+    COMMENT='\033[38;2;108;122;137m'    # #6C7A89 - secundário
+    FG='\033[38;2;232;232;232m'         # #E8E8E8 - texto
     BOLD='\033[1m'
     NC='\033[0m'
 else
-    PURPLE='' GREEN='' CYAN='' ORANGE='' RED='' COMMENT='' FG='' BOLD='' NC=''
+    PRIMARY='' ACCENT='' GREEN='' ORANGE='' RED='' COMMENT='' FG='' BOLD='' NC=''
 fi
 
 log_ok()   { echo -e "  ${GREEN}[nyx]${NC} $1"; }
-log_nyx()  { echo -e "  ${PURPLE}[nyx]${NC} $1"; }
+log_nyx()  { echo -e "  ${PRIMARY}[nyx]${NC} $1"; }
 log_warn() { echo -e "  ${ORANGE}[nyx]${NC} $1"; }
 
 # --- PARSE FLAGS ------------------------------------------
@@ -40,7 +40,7 @@ done
 
 # --- BANNER -----------------------------------------------
 echo ""
-echo -e "${PURPLE}${BOLD}Nyx-Code - Desinstalação${NC}"
+echo -e "${PRIMARY}${BOLD}Nyx-Code - Desinstalação${NC}"
 echo ""
 
 # --- PARAR OLLAMA SE RODANDO -----------------------------
@@ -133,8 +133,8 @@ echo ""
 echo -e "${GREEN}${BOLD}Remoção concluída.${NC}"
 
 if [ "$FULL_REMOVE" -eq 0 ]; then
-    echo -e "  ${CYAN}Código fonte, configurações e sprints foram mantidos.${NC}"
-    echo -e "  Para reinstalar: ${PURPLE}./install.sh${NC}"
+    echo -e "  ${ACCENT}Código fonte, configurações e sprints foram mantidos.${NC}"
+    echo -e "  Para reinstalar: ${PRIMARY}./install.sh${NC}"
 fi
 echo ""
 

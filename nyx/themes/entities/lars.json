@@ -1,0 +1,20 @@
+{
+    "id": "lars",
+    "name": "Lars",
+    "description": "Verde matrix + cyan. Terminal clássico.",
+    "colors": {
+        "primary": "#50FA7B",
+        "secondary": "#6272A4",
+        "accent": "#8BE9FD",
+        "background": "#282A36",
+        "background_alt": "#1E1F29",
+        "background_input": "#44475A",
+        "background_code": "#0A0B10",
+        "glow": "#50FA7B",
+        "text_primary": "#F8F8F2",
+        "text_secondary": "#6272A4",
+        "text_user": "#8BE9FD",
+        "text_success": "#50FA7B",
+        "text_error": "#FF5555"
+    }
+}

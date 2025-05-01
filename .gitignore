@@ -3,7 +3,6 @@ venv/
 __pycache__/
 *.py[cod]
 *.egg-info/
-dist/
 build/
 *.egg
 
@@ -13,11 +12,11 @@ models/
 # Binário Ollama local
 bin/ollama
 
-# Bundle openclaude (19MB, referência local)
+# Bundle TUI (19MB, referência local)
 reference/dist/
 dist
 
-# Node.js (openclaude deps)
+# Node.js (deps da TUI)
 node_modules/
 package-lock.json
 
@@ -29,6 +28,10 @@ package-lock.json
 # Logs e sessões
 logs/
 sessions/
+
+# Gauntlet reports (regenerados)
+GAUNTLET_REPORT.md
+dev-journey/07-reports/gauntlet/*.md
 
 # Cache
 .pytest_cache/
@@ -44,3 +47,6 @@ sessions/
 # Sistema
 .DS_Store
 Thumbs.db
+
+# Temporários de teste
+/tmp/nyx_*

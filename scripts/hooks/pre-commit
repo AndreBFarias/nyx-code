@@ -1,0 +1,246 @@
+#!/bin/bash
+# Hook pre-commit -- Validacao automatica antes de cada commit
+# Checks: acentuacao PT-BR, anonimato, lint shell/python, sync
+# Instalado via: cp scripts/hooks/pre-commit .git/hooks/pre-commit
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"
+ERRORS=0
+WARNINGS=0
+
+# Cores (ANSI simples)
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
+
+_ok() { echo -e "  ${GREEN}[OK]${NC}   $1"; }
+_warn() { echo -e "  ${YELLOW}[WARN]${NC} $1"; WARNINGS=$((WARNINGS + 1)); }
+_fail() { echo -e "  ${RED}[FAIL]${NC} $1"; ERRORS=$((ERRORS + 1)); }
+
+# Arquivos staged (apenas adicionados/modificados)
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || true)
+if [ -z "$STAGED_FILES" ]; then
+    exit 0
+fi
+
+STAGED_PY=$(echo "$STAGED_FILES" | grep '\.py$' || true)
+STAGED_SH=$(echo "$STAGED_FILES" | grep '\.sh$' || true)
+STAGED_MD=$(echo "$STAGED_FILES" | grep '\.md$' || true)
+STAGED_DOCS=$(echo "$STAGED_FILES" | grep -E '\.(md|sh)$' || true)
+STAGED_ALL=$(echo "$STAGED_FILES" | grep -E '\.(py|sh|md)$' || true)
+
+echo ""
+echo "  Nyx-Code pre-commit"
+echo "  ==================="
+echo ""
+
+# ── 1. Acentuacao PT-BR ──────────────────────────────────────────
+
+ACCENT_ERRORS=0
+if [ -n "$STAGED_DOCS" ]; then
+    # Verificar acentuacao apenas em .md e .sh (nao .py -- identificadores de codigo)
+    ACCENT_PATTERNS=(
+        'funcao[^_a-z/]'
+        'validacao[^_a-z/]'
+        'descricao[^_a-z/]'
+        'comunicacao[^_a-z/]'
+        'configuracao[^_a-z/]'
+        'informacao[^_a-z/]'
+        'operacao[^_a-z/]'
+        'execucao[^_a-z/]'
+        'conexao[^_a-z/]'
+        'aplicacao[^_a-z/]'
+        'autenticacao[^_a-z/]'
+        'verificacao[^_a-z/]'
+        'instalacao[^_a-z/]'
+        'documentacao[^_a-z/]'
+        'integracao[^_a-z/]'
+        'implementacao[^_a-z/]'
+    )
+
+    for file in $STAGED_DOCS; do
+        case "$file" in
+            reference/*|dev-journey/09-legacy/*|node_modules/*|.git/*) continue ;;
+        esac
+
+        if [ -f "$PROJECT_ROOT/$file" ]; then
+            CONTENT=$(git show ":$file" 2>/dev/null || true)
+            if [ -z "$CONTENT" ]; then
+                continue
+            fi
+
+            for pattern in "${ACCENT_PATTERNS[@]}"; do
+                # Pular linhas com paths (/, ├──, └──) e blocos de codigo
+                HITS=$(echo "$CONTENT" | grep -niE "$pattern" 2>/dev/null \
+                    | grep -vE '[├└│/]|```' \
+                    | head -3 || true)
+                if [ -n "$HITS" ]; then
+                    WORD=$(echo "$pattern" | sed 's/\[.*//g')
+                    while IFS= read -r hit; do
+                        _fail "Acentuacao: $file: '$WORD' -> use acento correto"
+                        ACCENT_ERRORS=$((ACCENT_ERRORS + 1))
+                    done <<< "$HITS"
+                fi
+            done
+        fi
+    done
+
+    if [ "$ACCENT_ERRORS" -eq 0 ]; then
+        _ok "Acentuacao PT-BR"
+    fi
+fi
+
+# ── 2. Anonimato (sem mencao a IA) ───────────────────────────────
+
+ANON_ERRORS=0
+if [ -n "$STAGED_ALL" ]; then
+    AI_PATTERN='Claude|GPT|Gemini|Copilot|Anthropic|OpenAI'
+    ALLOWED_PATTERN='ANTHROPIC_API_KEY|OPENAI_API_KEY|OPENAI_BASE_URL|OPENAI_MODEL|OPENAI_TIMEOUT|CLAUDE_CODE_USE_OPENAI|Formato OpenAI|formato OpenAI|/v1/|sem Qwen|sem GPT|Qwen/GPT|Mencionou Qwen'
+
+    for file in $STAGED_ALL; do
+        case "$file" in
+            CLAUDE.md|.claude/*|reference/*|dev-journey/09-legacy/*|scripts/sync.py|scripts/hooks/*) continue ;;
+        esac
+
+        if [ -f "$PROJECT_ROOT/$file" ]; then
+            CONTENT=$(git show ":$file" 2>/dev/null || true)
+            HITS=$(echo "$CONTENT" | grep -nE "$AI_PATTERN" 2>/dev/null | grep -vE "$ALLOWED_PATTERN" | head -3 || true)
+            if [ -n "$HITS" ]; then
+                while IFS= read -r hit; do
+                    LINE_NUM=$(echo "$hit" | cut -d: -f1)
+                    _fail "Anonimato: $file:$LINE_NUM menciona IA"
+                    ANON_ERRORS=$((ANON_ERRORS + 1))
+                done <<< "$HITS"
+            fi
+        fi
+    done
+
+    if [ "$ANON_ERRORS" -eq 0 ]; then
+        _ok "Anonimato (zero mencoes a IA)"
+    fi
+fi
+
+# ── 3. Lint shell ─────────────────────────────────────────────────
+
+if [ -n "$STAGED_SH" ]; then
+    SHELL_ERRORS=0
+    for file in $STAGED_SH; do
+        if [ -f "$PROJECT_ROOT/$file" ]; then
+            if ! bash -n "$PROJECT_ROOT/$file" 2>/dev/null; then
+                _fail "Sintaxe shell: $file"
+                SHELL_ERRORS=$((SHELL_ERRORS + 1))
+            fi
+        fi
+    done
+    if [ "$SHELL_ERRORS" -eq 0 ]; then
+        _ok "Sintaxe shell"
+    fi
+fi
+
+# ── 4. Lint Python ────────────────────────────────────────────────
+
+if [ -n "$STAGED_PY" ]; then
+    PY_ERRORS=0
+    PYTHON="${PROJECT_ROOT}/venv/bin/python"
+    if [ ! -x "$PYTHON" ]; then
+        PYTHON="python3"
+    fi
+
+    for file in $STAGED_PY; do
+        if [ -f "$PROJECT_ROOT/$file" ]; then
+            if ! "$PYTHON" -c "import py_compile; py_compile.compile('$PROJECT_ROOT/$file', doraise=True)" 2>/dev/null; then
+                _fail "Sintaxe Python: $file"
+                PY_ERRORS=$((PY_ERRORS + 1))
+            fi
+        fi
+    done
+    if [ "$PY_ERRORS" -eq 0 ]; then
+        _ok "Sintaxe Python"
+    fi
+fi
+
+# ── 5. OpenClaude residual ────────────────────────────────────────
+
+OC_ERRORS=0
+if [ -n "$STAGED_ALL" ]; then
+    for file in $STAGED_ALL; do
+        case "$file" in
+            reference/*|dev-journey/09-legacy/*|scripts/sync.py) continue ;;
+        esac
+
+        if [ -f "$PROJECT_ROOT/$file" ]; then
+            CONTENT=$(git show ":$file" 2>/dev/null || true)
+            HITS=$(echo "$CONTENT" | grep -niE 'openclaude|OpenClaude' 2>/dev/null | head -3 || true)
+            if [ -n "$HITS" ]; then
+                while IFS= read -r hit; do
+                    _fail "OpenClaude residual: $file"
+                    OC_ERRORS=$((OC_ERRORS + 1))
+                done <<< "$HITS"
+            fi
+        fi
+    done
+    if [ "$OC_ERRORS" -eq 0 ]; then
+        _ok "Zero OpenClaude"
+    fi
+fi
+
+# ── 6. Emojis ─────────────────────────────────────────────────────
+
+EMOJI_ERRORS=0
+if [ -n "$STAGED_ALL" ]; then
+    for file in $STAGED_ALL; do
+        if [ -f "$PROJECT_ROOT/$file" ]; then
+            CONTENT=$(git show ":$file" 2>/dev/null || true)
+            if echo "$CONTENT" | grep -qP '[\x{1F600}-\x{1F64F}\x{1F300}-\x{1F5FF}\x{1F680}-\x{1F6FF}\x{2600}-\x{26FF}\x{2700}-\x{27BF}]' 2>/dev/null; then
+                _fail "Emojis detectados: $file"
+                EMOJI_ERRORS=$((EMOJI_ERRORS + 1))
+            fi
+        fi
+    done
+    if [ "$EMOJI_ERRORS" -eq 0 ]; then
+        _ok "Zero emojis"
+    fi
+fi
+
+# ── 7. Auto-atualizar docs ────────────────────────────────────────
+
+PYTHON="${PROJECT_ROOT}/venv/bin/python"
+if [ ! -x "$PYTHON" ]; then
+    PYTHON="python3"
+fi
+
+if "$PYTHON" "$PROJECT_ROOT/scripts/update_docs.py" --check >/dev/null 2>&1; then
+    _ok "Docs atualizados"
+else
+    "$PYTHON" "$PROJECT_ROOT/scripts/update_docs.py" 2>/dev/null
+    for doc in CLAUDE.md README.md dev-journey/PORT_STATUS.md; do
+        if [ -f "$PROJECT_ROOT/$doc" ]; then
+            git add "$PROJECT_ROOT/$doc" 2>/dev/null || true
+        fi
+    done
+    _ok "Docs auto-atualizados e re-staged"
+fi
+
+# ── Resultado ─────────────────────────────────────────────────────
+
+echo ""
+TOTAL=$((ERRORS + WARNINGS))
+if [ "$ERRORS" -gt 0 ]; then
+    echo -e "  ${RED}BLOQUEADO${NC}: $ERRORS erro(s) encontrado(s)"
+    echo "  Corrija os erros acima antes de commitar."
+    echo ""
+    exit 1
+elif [ "$WARNINGS" -gt 0 ]; then
+    echo -e "  ${YELLOW}OK (com avisos)${NC}: $WARNINGS aviso(s)"
+    echo ""
+    exit 0
+else
+    echo -e "  ${GREEN}OK${NC}: todas as verificacoes passaram"
+    echo ""
+    exit 0
+fi
+
+# "A disciplina e a ponte entre metas e realizacoes." -- Jim Rohn

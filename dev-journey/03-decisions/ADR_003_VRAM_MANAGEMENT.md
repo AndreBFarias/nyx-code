@@ -8,7 +8,7 @@ ACEITA (2026-04-04)
 RTX 3050 Laptop GPU: 4096 MiB VRAM total.
 O qwen3:4b com todas as 37 layers na GPU usa ~3.3GB, sobrando
 apenas ~700MB para KV cache e contexto. Com o system prompt
-complexo do openclaude (9 tools + contexto), OOM é frequente.
+complexo da TUI (9 tools + contexto), OOM é frequente.
 
 Testes de OOM:
 - num_gpu=37 (todas): 3.3GB -> OOM com tools

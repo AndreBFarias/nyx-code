@@ -1,0 +1,20 @@
+{
+    "id": "juno",
+    "name": "Juno",
+    "description": "Verde orgânico + laranja quente. Natureza digital.",
+    "colors": {
+        "primary": "#A4CB58",
+        "secondary": "#2A9D8F",
+        "accent": "#F4A261",
+        "background": "#1D1D2C",
+        "background_alt": "#252536",
+        "background_input": "#2D2D40",
+        "background_code": "#15151F",
+        "glow": "#A4CB58",
+        "text_primary": "#F8F8F2",
+        "text_secondary": "#A8A8B8",
+        "text_user": "#F4A261",
+        "text_success": "#2A9D8F",
+        "text_error": "#E63946"
+    }
+}

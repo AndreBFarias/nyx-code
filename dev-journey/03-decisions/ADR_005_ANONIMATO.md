@@ -18,7 +18,7 @@ mencionar nomes de IAs (Claude, GPT, Gemini, Copilot, Anthropic, OpenAI).
 - Strings técnicas: api_key, provider, model, config, client
 - Documentação de API de terceiros
 - Variáveis de ambiente: ANTHROPIC_API_KEY, OPENAI_API_KEY
-- Diretório reference/ (fonte original do openclaude)
+- Diretório reference/ (fonte original da TUI)
 
 ## Consequências
 
