@@ -86,6 +86,8 @@ async def run_repl(streaming: bool = True) -> int:
         output = None
         use_rich = False
 
+    project_root = str(PROJECT_ROOT)
+
     prompt_session = None
     try:
         from prompt_toolkit import PromptSession
@@ -103,8 +105,6 @@ async def run_repl(streaming: bool = True) -> int:
         logger.info("prompt-toolkit ativo (histórico: %s)", history_path)
     except ImportError:
         logger.info("prompt-toolkit indisponível, usando input() nativo")
-
-    project_root = str(PROJECT_ROOT)
     proxy_url = os.environ.get("OPENAI_BASE_URL", "http://127.0.0.1:11436/v1")
     proxy_url = proxy_url.replace("/v1", "").rstrip("/")
     if not proxy_url.startswith("http"):
@@ -265,6 +265,23 @@ async def run_repl(streaming: bool = True) -> int:
             if result == "__files__":
                 ctx = agent.session.get_files_context()
                 print(f"  {ctx}" if ctx else "  Nenhum arquivo no contexto.")
+                continue
+
+            if result == "__trace__":
+                entries = [e for e in agent.session.history if e.tool_name]
+                if not entries:
+                    print(f"  {DIM}Nenhuma tool call na sessão.{NC}")
+                else:
+                    print(f"  Últimas tool calls:")
+                    for e in entries[-10:]:
+                        args_short = str(e.tool_args)[:50]
+                        print(f"    {ACCENT}{e.tool_name}{NC}({args_short})")
+                continue
+
+            if isinstance(result, str) and result.startswith("__btw__"):
+                note = result[7:]
+                agent.session.add_user(f"[nota lateral] {note}")
+                print(f"  {DIM}Nota registrada: {note[:60]}{NC}")
                 continue
 
             if isinstance(result, str) and result.startswith("__export__"):

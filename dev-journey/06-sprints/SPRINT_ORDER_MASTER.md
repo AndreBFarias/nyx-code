@@ -25,14 +25,17 @@ Port status: `dev-journey/PORT_STATUS.md`.
 
 ---
 
-## Inventário: OpenClaude TS vs Nyx Python
+## Inventário: Nyx Python (pós-limpeza PROD 2026-04-09)
 
-| Componente | OpenClaude | Nyx (atual) | Meta (100%) | Cobertura |
-|-----------|-----------|------------|-------------|-----------|
-| Tools | 40 | 34 | 46+ | 85% |
-| Commands | 98 | 33 | 98+ | 34% |
-| Services | 35 | 8 | 35+ | 23% |
-| Testes | -- | 135 | 251+ | -- |
+| Componente | Nyx (atual) | Nota |
+|-----------|------------|------|
+| Tools | 34 | Todas funcionais |
+| Commands | 47 | Todos funcionais (27 stubs cloud removidos) |
+| Services | 10 | Todos funcionais (11 stubs cloud removidos) |
+| Testes | 135 | Gauntlet atualizado para testar funcionalidade real |
+
+**Nota:** Port 1:1 do OpenClaude abandonado. Foco em funcionalidade local-first.
+Features cloud/enterprise (voice, mobile, chrome, plugins, rate-limit, etc) não se aplicam.
 
 ---
 

@@ -17,6 +17,7 @@ Comandos:
 from __future__ import annotations
 
 import logging
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -594,413 +595,211 @@ def cmd_files(_args: str, _root: str) -> str:
 
 
 
-@nyx_command(name="add-dir", description="Adiciona diretório ao contexto do agent",
-             category="projeto")
-def cmd_add_dir(args: str, project_root: str) -> str:
-    args = args.strip()
+# ── PROD-03: Commands triviais ─────────────────────────────────
+
+
+@nyx_command(name="version", description="Mostra versão do Nyx",
+             category="projeto", aliases=['v'])
+def cmd_version(_args: str, _root: str) -> str:
+    import os
+    model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", "qwen3:4b"))
+    proxy = os.environ.get("OPENAI_BASE_URL", "http://127.0.0.1:11436/v1")
     return (
-        "Adiciona diretório ao contexto do agent. "
-        "Use /help para mais informações."
+        f"  Nyx v1.2.0\n"
+        f"  Modelo: {model}\n"
+        f"  Proxy: {proxy}\n"
+        f"  Python: {sys.version.split()[0]}\n"
+        f"  Local First. Zero Emojis."
     )
 
 
 @nyx_command(name="init", description="Inicializa projeto Nyx",
              category="projeto")
-def cmd_init(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Inicializa projeto Nyx. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="onboarding", description="Tour guiado para novos usuários",
-             category="projeto")
-def cmd_onboarding(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Tour guiado para novos usuários. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="version", description="Mostra versão do Nyx",
-             category="projeto", aliases=['v'])
-def cmd_version(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Mostra versão do Nyx. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="rename", description="Renomeia sessão ou projeto",
-             category="projeto")
-def cmd_rename(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Renomeia sessão ou projeto. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="color", description="Configura cores do terminal",
-             category="ui")
-def cmd_color(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Configura cores do terminal. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="output-style", description="Estilo de output",
-             category="ui")
-def cmd_output_style(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Estilo de output. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="keybindings", description="Configura atalhos de teclado",
-             category="ui", aliases=['kb'])
-def cmd_keybindings(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Configura atalhos de teclado. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="stickers", description="Marcadores visuais para sessões",
-             category="ui")
-def cmd_stickers(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Marcadores visuais para sessões. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="fast", description="Toggle modo rápido",
-             category="ui")
-def cmd_fast(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Toggle modo rápido. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="effort", description="Define nível de esforço do agent",
-             category="ui")
-def cmd_effort(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Define nível de esforço do agent. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="vim", description="Toggle modo vim",
-             category="ui")
-def cmd_vim(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Toggle modo vim. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="trace", description="Trace de execução do agent loop",
-             category="debug")
-def cmd_trace(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Trace de execução do agent loop. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="autofix-pr", description="Auto-fix de PRs via agent",
-             category="debug")
-def cmd_autofix_pr(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Auto-fix de PRs via agent. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="bughunter", description="Busca automática de bugs",
-             category="debug")
-def cmd_bughunter(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Busca automática de bugs. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="ctx-viz", description="Visualização do contexto",
-             category="debug")
-def cmd_ctx_viz(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Visualização do contexto. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="debug-tool", description="Debug de chamadas de tool",
-             category="debug")
-def cmd_debug_tool(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Debug de chamadas de tool. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="heapdump", description="Dump do estado da memória",
-             category="debug")
-def cmd_heapdump(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Dump do estado da memória. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="perf-issue", description="Diagnóstico de performance",
-             category="debug")
-def cmd_perf_issue(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Diagnóstico de performance. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="kudos", description="Feedback positivo registrado localmente",
-             category="debug")
-def cmd_kudos(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Feedback positivo registrado localmente. "
-        "Use /help para mais informações."
-    )
+def cmd_init(_args: str, project_root: str) -> str:
+    nyx_dir = Path.home() / ".nyx"
+    dirs = [nyx_dir, nyx_dir / "memory", nyx_dir / "sessions",
+            nyx_dir / "logs", nyx_dir / "analytics"]
+    created = []
+    for d in dirs:
+        if not d.exists():
+            d.mkdir(parents=True, exist_ok=True)
+            created.append(str(d.relative_to(Path.home())))
+    if created:
+        return "  Diretórios criados:\n" + "\n".join(f"    ~/{c}" for c in created)
+    return "  Nyx já inicializado. Diretórios existem."
 
 
 @nyx_command(name="break-cache", description="Limpa caches internos",
              category="debug")
-def cmd_break_cache(args: str, project_root: str) -> str:
-    args = args.strip()
+def cmd_break_cache(_args: str, _root: str) -> str:
+    sessions_dir = Path.home() / ".nyx" / "sessions"
+    removed = 0
+    if sessions_dir.exists():
+        for f in sessions_dir.glob("session_*.json"):
+            f.unlink()
+            removed += 1
+    return f"  Cache limpo. {removed} sessão(ões) removida(s)."
+
+
+@nyx_command(name="trace", description="Trace de execução do agent loop",
+             category="debug")
+def cmd_trace(_args: str, _root: str) -> str:
+    return "__trace__"
+
+
+@nyx_command(name="ctx-viz", description="Visualização do contexto",
+             category="debug")
+def cmd_ctx_viz(_args: str, _root: str) -> str:
+    return "__context__"
+
+
+@nyx_command(name="brief-cmd", description="Resumo rápido da sessão",
+             category="root")
+def cmd_brief_cmd(_args: str, _root: str) -> str:
     return (
-        "Limpa caches internos. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="upgrade", description="Atualiza versão do Nyx",
-             category="lifecycle")
-def cmd_upgrade(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Atualiza versão do Nyx. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="sandbox", description="Modo sandbox isolado",
-             category="lifecycle")
-def cmd_sandbox(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Modo sandbox isolado. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="terminal-setup", description="Setup do terminal",
-             category="lifecycle")
-def cmd_terminal_setup(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Setup do terminal. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="rate-limit", description="Mostra rate limits",
-             category="limites")
-def cmd_rate_limit(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Mostra rate limits. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="reset-limits", description="Reseta limites locais",
-             category="limites")
-def cmd_reset_limits(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Reseta limites locais. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="memory", description="Gerencia memória do agent",
-             category="memória", aliases=['mem'])
-def cmd_memory(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Gerencia memória do agent. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="plugin", description="Gerencia plugins",
-             category="memória")
-def cmd_plugin(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Gerencia plugins. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="reload-plugins", description="Recarrega plugins",
-             category="memória")
-def cmd_reload_plugins(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Recarrega plugins. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="agents", description="Lista agents disponíveis",
-             category="memória")
-def cmd_agents(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Lista agents disponíveis. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="tag", description="Tags para organização",
-             category="memória")
-def cmd_tag(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Tags para organização. "
-        "Use /help para mais informações."
+        "Gere um resumo em no máximo 3 linhas do trabalho realizado.\n"
+        "Foque em: o que foi feito, resultado, e próximo passo.\n"
+        "Use done(summary='resumo breve')"
     )
 
 
 @nyx_command(name="btw", description="Nota lateral para o agent",
              category="avançado")
-def cmd_btw(args: str, project_root: str) -> str:
-    args = args.strip()
+def cmd_btw(args: str, _root: str) -> str:
+    note = args.strip()
+    if not note:
+        return "  Uso: /btw <nota> -- injeta contexto sem gerar resposta"
+    return f"__btw__{note}"
+
+
+# ── PROD-04: Commands com lógica ──────────────────────────────
+
+
+@nyx_command(name="add-dir", description="Adiciona diretório ao contexto do agent",
+             category="projeto")
+def cmd_add_dir(args: str, project_root: str) -> str:
+    target = args.strip()
+    if not target:
+        return "  Uso: /add-dir <caminho>"
+    full = Path(project_root) / target
+    if not full.is_dir():
+        return f"  Diretório '{target}' não encontrado."
     return (
-        "Nota lateral para o agent. "
-        "Use /help para mais informações."
+        f"Adicione o diretório '{target}' ao seu contexto de trabalho.\n"
+        f"Use list_files(path='{target}') para ver o conteúdo.\n"
+        "Considere este diretório parte do projeto para análises futuras."
     )
 
 
-@nyx_command(name="backfill", description="Preenche contexto retroativo",
-             category="avançado")
-def cmd_backfill(args: str, project_root: str) -> str:
-    args = args.strip()
+@nyx_command(name="memory", description="Gerencia memória do agent",
+             category="memória", aliases=['mem'])
+def cmd_memory(args: str, _root: str) -> str:
+    from nyx.agent.services.memory import SessionMemory
+    mem = SessionMemory()
+    action = args.strip().lower()
+
+    if not action or action == "list":
+        memories = mem.get_recent(n=20)
+        if not memories:
+            return "  Nenhuma memória salva."
+        lines = ["  Memórias recentes:"]
+        for m in memories:
+            tags = f" [{', '.join(m.tags)}]" if m.tags else ""
+            lines.append(f"    - {m.key}: {m.content[:60]}{tags}")
+        return "\n".join(lines)
+
+    if action.startswith("search "):
+        query = action[7:].strip()
+        results = mem.search(query)
+        if not results:
+            return f"  Nenhuma memória para '{query}'."
+        lines = [f"  Resultados para '{query}':"]
+        for m in results:
+            lines.append(f"    - {m.key}: {m.content[:60]}")
+        return "\n".join(lines)
+
     return (
-        "Preenche contexto retroativo. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="thinkback", description="Revisão de raciocínio",
-             category="avançado")
-def cmd_thinkback(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Revisão de raciocínio. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="thinkback-play", description="Replay de raciocínio",
-             category="avançado")
-def cmd_thinkback_play(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Replay de raciocínio. "
-        "Use /help para mais informações."
+        "  Uso: /memory [ação]\n"
+        "    list              -- lista memórias recentes\n"
+        "    search <termo>    -- busca nas memórias"
     )
 
 
 @nyx_command(name="pr-comments", description="Mostra comentários de PR",
              category="avançado")
 def cmd_pr_comments(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Mostra comentários de PR. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="advisor", description="Conselheiro de código",
-             category="root")
-def cmd_advisor(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Conselheiro de código. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="brief-cmd", description="Resumo rápido",
-             category="root")
-def cmd_brief_cmd(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Resumo rápido. "
-        "Use /help para mais informações."
-    )
+    import subprocess
+    pr_number = args.strip()
+    if not pr_number or not pr_number.isdigit():
+        return "  Uso: /pr-comments <número>"
+    try:
+        r = subprocess.run(
+            ["gh", "pr", "view", pr_number, "--comments", "--json",
+             "comments", "--jq", '.comments[] | "\\(.author.login): \\(.body[:100])"'],
+            capture_output=True, text=True, timeout=15, cwd=project_root,
+        )
+        if r.stdout.strip():
+            return f"  Comentários da PR #{pr_number}:\n{r.stdout}"
+        return f"  PR #{pr_number}: nenhum comentário."
+    except FileNotFoundError:
+        return "  gh CLI não instalado."
 
 
 @nyx_command(name="commit-push-pr", description="Commit, push e PR",
              category="root")
 def cmd_commit_push_pr(args: str, project_root: str) -> str:
-    args = args.strip()
     return (
-        "Commit, push e PR. "
-        "Use /help para mais informações."
-    )
-
-
-@nyx_command(name="insights", description="Insights do projeto",
-             category="root")
-def cmd_insights(args: str, project_root: str) -> str:
-    args = args.strip()
-    return (
-        "Insights do projeto. "
-        "Use /help para mais informações."
+        "Execute o fluxo completo: commit, push e PR. Passos:\n"
+        "1. Use run_command('git status --short') para ver mudanças\n"
+        "2. Use run_command('git diff HEAD') para ver detalhes\n"
+        "3. Use run_command('git log --oneline -5') para estilo de commits\n"
+        "4. Analise e crie mensagem de commit PT-BR, sem emojis, sem IA\n"
+        "5. Use run_command('git add <arquivos>')\n"
+        "6. Use run_command('git commit -m \"tipo: descrição\"')\n"
+        "7. Use run_command('git push -u origin <branch>')\n"
+        "8. Use run_command('gh pr create --title \"...\" --body \"...\"')\n"
+        "9. Use done(summary='PR criada: <url>')\n"
+        + (f"\nContexto: {args}" if args.strip() else "")
     )
 
 
 @nyx_command(name="security-review", description="Review de segurança",
              category="root")
 def cmd_security_review(args: str, project_root: str) -> str:
-    args = args.strip()
+    target = args.strip() or "."
     return (
-        "Review de segurança. "
-        "Use /help para mais informações."
+        f"Faça uma revisão de segurança em '{target}'. Passos:\n"
+        f"1. Use list_files(path='{target}') para ver estrutura\n"
+        "2. Use search(pattern='password|secret|token|api_key') para buscar segredos\n"
+        "3. Use search(pattern='eval|exec|subprocess|os\\.system') para injeção\n"
+        "4. Verifique: .env no .gitignore, permissões de arquivo, inputs não sanitizados\n"
+        "5. Use done(summary='revisão: N problemas encontrados')"
+    )
+
+
+@nyx_command(name="advisor", description="Conselheiro de código",
+             category="root")
+def cmd_advisor(args: str, project_root: str) -> str:
+    target = args.strip() or "."
+    return (
+        f"Analise '{target}' e sugira melhorias. Passos:\n"
+        f"1. Use list_files(path='{target}') para ver estrutura\n"
+        "2. Use read_file nos arquivos principais\n"
+        "3. Avalie: complexidade, duplicação, nomes, organização, testes\n"
+        "4. Use done(summary='sugestões: <lista priorizada>')"
+    )
+
+
+@nyx_command(name="insights", description="Insights do projeto",
+             category="root")
+def cmd_insights(args: str, project_root: str) -> str:
+    return (
+        "Gere insights sobre o projeto. Passos:\n"
+        "1. Use run_command('git log --oneline -20') para atividade recente\n"
+        "2. Use run_command('git shortlog -sn --since=\"1 month ago\"') para contribuidores\n"
+        "3. Use list_files para ver estrutura geral\n"
+        "4. Use search para encontrar padrões (TODOs, FIXMEs, imports)\n"
+        "5. Use done(summary='insights: <análise>')"
     )
 
 def handle_command(cmd_input: str, project_root: str = ".") -> str | None:

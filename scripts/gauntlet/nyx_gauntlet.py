@@ -97,21 +97,16 @@ PHASE_GROUPS: dict[str, list[str]] = {
     "p7_visual": ["p7_visual"],
     "p7": ["p7_tui", "p7_completion", "p7_visual"],
     "p10_projeto": ["p10_projeto"],
-    "p10_ui": ["p10_ui"],
     "p10_debug": ["p10_debug"],
-    "p10_lote1": ["p10_projeto", "p10_ui", "p10_debug"],
-    "p10_lifecycle": ["p10_lifecycle"],
-    "p10_limites": ["p10_limites"],
+    "p10_lote1": ["p10_projeto", "p10_debug"],
     "p10_memoria": ["p10_memoria"],
     "p10_avancado": ["p10_avancado"],
     "p10_root": ["p10_root"],
-    "p10_lote2": ["p10_lifecycle", "p10_limites", "p10_memoria", "p10_avancado", "p10_root"],
-    "p10": ["p10_projeto", "p10_ui", "p10_debug",
-            "p10_lifecycle", "p10_limites", "p10_memoria", "p10_avancado", "p10_root"],
+    "p10_lote2": ["p10_memoria", "p10_avancado", "p10_root"],
+    "p10": ["p10_projeto", "p10_debug",
+            "p10_memoria", "p10_avancado", "p10_root"],
     "p11_infra": ["p11_infra"],
-    "p11_plugins": ["p11_plugins"],
-    "p11_conteudo": ["p11_conteudo"],
-    "p11": ["p11_infra", "p11_plugins", "p11_conteudo"],
+    "p11": ["p11_infra"],
     "rapido": ["infra", "proxy", "visual", "config"],
     "port": ["parser", "robustez", "interface", "controle", "persistencia"],
     "integracao": ["e2e"],
@@ -127,9 +122,9 @@ PHASE_GROUPS: dict[str, list[str]] = {
         "p6_memoria", "p6_qualidade", "p8_edicao", "p8_provider",
         "infra_scaffold", "coverage", "infra_sync",
         "p7_tui", "p7_completion", "p7_visual",
-        "p10_projeto", "p10_ui", "p10_debug",
-        "p10_lifecycle", "p10_limites", "p10_memoria", "p10_avancado", "p10_root",
-        "p11_infra", "p11_plugins", "p11_conteudo",
+        "p10_projeto", "p10_debug",
+        "p10_memoria", "p10_avancado", "p10_root",
+        "p11_infra",
     ],
 }
 
@@ -177,16 +172,11 @@ PHASE_TIMEOUTS: dict[str, int] = {
     "p7_completion": 30,
     "p7_visual": 30,
     "p10_projeto": 30,
-    "p10_ui": 30,
     "p10_debug": 30,
-    "p10_lifecycle": 30,
-    "p10_limites": 30,
     "p10_memoria": 30,
     "p10_avancado": 30,
     "p10_root": 30,
     "p11_infra": 30,
-    "p11_plugins": 30,
-    "p11_conteudo": 30,
 }
 
 NEEDS_OLLAMA = {"infra", "proxy", "tools", "qualidade", "performance", "resiliencia"}
@@ -2042,31 +2032,31 @@ class NyxGauntlet:
 
     async def _test_commands(self, phase: str, test_prefix: str,
                               cmd_names: list[str]) -> None:
-        """Helper: testa que cada command responde via handle_command."""
+        """Helper: testa que cada command responde com conteúdo real (sem stubs)."""
         from nyx.agent.commands import handle_command
         for i, name in enumerate(cmd_names, 1):
             t = time.monotonic()
             try:
                 result = handle_command(f"/{name}", str(PROJECT_ROOT))
-                ok = result is not None and isinstance(result, str) and len(result) > 0
-                self._add(f"{test_prefix}-{i:02d}", f"/{name} responde", phase,
-                           ok, time.monotonic() - t, details=str(result)[:60])
+                is_valid = (
+                    result is not None
+                    and isinstance(result, str)
+                    and len(result) > 0
+                    and "Use /help para mais informações" not in result
+                )
+                self._add(f"{test_prefix}-{i:02d}", f"/{name} funcional", phase,
+                           is_valid, time.monotonic() - t, details=str(result)[:60])
             except Exception as e:
-                self._add(f"{test_prefix}-{i:02d}", f"/{name} responde", phase,
+                self._add(f"{test_prefix}-{i:02d}", f"/{name} funcional", phase,
                            False, time.monotonic() - t, error=str(e))
 
     async def _phase_p10_projeto(self) -> None:
         await self._test_commands("p10_projeto", "P10B",
-            ["add-dir", "init", "onboarding", "version", "rename"])
-
-    async def _phase_p10_ui(self) -> None:
-        await self._test_commands("p10_ui", "P10C",
-            ["color", "output-style", "keybindings", "stickers", "fast", "effort", "vim"])
+            ["add-dir", "init", "version"])
 
     async def _phase_p10_debug(self) -> None:
         await self._test_commands("p10_debug", "P10D",
-            ["trace", "autofix-pr", "bughunter", "ctx-viz", "debug-tool",
-             "heapdump", "perf-issue", "kudos", "break-cache"])
+            ["trace", "ctx-viz", "break-cache"])
 
     # ═══════════════════════════════════════════════════════════════════
     # FASE: P11 Services (7 fases)
@@ -2074,7 +2064,7 @@ class NyxGauntlet:
 
     async def _test_services(self, phase: str, test_prefix: str,
                               services: list[tuple[str, str]]) -> None:
-        """Helper: testa que cada service importa e instancia."""
+        """Helper: testa que cada service importa, instancia e retorna status real."""
         import importlib
         for i, (module_name, class_name) in enumerate(services, 1):
             t = time.monotonic()
@@ -2082,47 +2072,31 @@ class NyxGauntlet:
                 mod = importlib.import_module(f"nyx.agent.services.{module_name}")
                 cls = getattr(mod, class_name)
                 instance = cls()
-                ok = hasattr(instance, "status")
-                self._add(f"{test_prefix}-{i:02d}", f"{class_name} importa+instancia", phase,
-                           ok, time.monotonic() - t)
+                st = instance.status()
+                ok = (
+                    isinstance(st, dict)
+                    and st.get("ativo") is True
+                    and len(st) > 2  # Mais que só service+ativo
+                )
+                self._add(f"{test_prefix}-{i:02d}", f"{class_name} funcional", phase,
+                           ok, time.monotonic() - t, details=str(st)[:80])
             except Exception as e:
-                self._add(f"{test_prefix}-{i:02d}", f"{class_name} importa+instancia", phase,
+                self._add(f"{test_prefix}-{i:02d}", f"{class_name} funcional", phase,
                            False, time.monotonic() - t, error=str(e))
 
     async def _phase_p11_infra(self) -> None:
         await self._test_services("p11_infra", "P11A", [
             ("analytics", "Analytics"), ("diagnostics", "DiagnosticTracking"),
-            ("logging_service", "InternalLogging"), ("notifier", "Notifier"),
-            ("prevent_sleep", "PreventSleep"),
+            ("logging_service", "InternalLogging"), ("tool_use_summary", "ToolUseSummary"),
         ])
-
-    async def _phase_p11_plugins(self) -> None:
-        await self._test_services("p11_plugins", "P11C", [
-            ("plugins", "PluginsService"), ("magic_docs", "MagicDocs"),
-            ("tips", "TipsService"), ("tool_use_summary", "ToolUseSummary"),
-        ])
-
-    async def _phase_p11_conteudo(self) -> None:
-        await self._test_services("p11_conteudo", "P11E", [
-            ("extract_memories", "ExtractMemories"), ("auto_dream", "AutoDream"),
-            ("away_summary", "AwaySummary"), ("summary_expanded", "SummaryExpanded"),
-        ])
-
-    async def _phase_p10_lifecycle(self) -> None:
-        await self._test_commands("p10_lifecycle", "P10F",
-            ["upgrade", "sandbox", "terminal-setup"])
-
-    async def _phase_p10_limites(self) -> None:
-        await self._test_commands("p10_limites", "P10G",
-            ["rate-limit", "reset-limits"])
 
     async def _phase_p10_memoria(self) -> None:
         await self._test_commands("p10_memoria", "P10H",
-            ["memory", "plugin", "reload-plugins", "agents", "tag"])
+            ["memory"])
 
     async def _phase_p10_avancado(self) -> None:
         await self._test_commands("p10_avancado", "P10I",
-            ["btw", "backfill", "thinkback", "thinkback-play", "pr-comments"])
+            ["btw", "pr-comments"])
 
     async def _phase_p10_root(self) -> None:
         await self._test_commands("p10_root", "P10J",
