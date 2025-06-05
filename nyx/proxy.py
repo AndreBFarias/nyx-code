@@ -1,7 +1,8 @@
-"""Proxy OpenAI -> Ollama nativa com think=false.
+"""Proxy OpenAI -> Ollama nativa com think adaptativo.
 
-Resolve: endpoint /v1/ não propaga think=false para qwen3,
-fazendo reasoning consumir todos os tokens sem gerar tool_calls.
+think=true quando há tools (qwen3 precisa raciocinar para gerar tool_calls).
+think=false quando é chat puro (economiza tokens).
+Filtra blocos <think> da resposta para não poluir o output.
 
 Usa aiohttp (já no sistema) em vez de FastAPI para ser leve.
 """
@@ -10,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sys
 import time
 import uuid
@@ -59,18 +61,23 @@ def _normalize_messages(messages: list) -> list:
 
 
 def openai_to_ollama(body: dict) -> dict:
-    """Converte request OpenAI -> Ollama nativa."""
+    """Converte request OpenAI -> Ollama nativa.
+
+    think=true quando há tools (qwen3 precisa pensar para gerar tool_calls).
+    think=false quando é chat puro (economiza tokens).
+    """
+    has_tools = bool(body.get("tools"))
     result: dict = {
         "model": body.get("model", "qwen3:4b"),
         "messages": _normalize_messages(body.get("messages", [])),
-        "think": False,
-        "stream": False,  # Forçar non-streaming (streaming via proxy é instável)
+        "think": has_tools,
+        "stream": False,
         "options": {
             "num_gpu": NUM_GPU,
             "num_ctx": NUM_CTX,
         },
     }
-    if body.get("tools"):
+    if has_tools:
         result["tools"] = body["tools"]
     if body.get("temperature") is not None:
         result["options"]["temperature"] = body["temperature"]
@@ -80,14 +87,23 @@ def openai_to_ollama(body: dict) -> dict:
     return result
 
 
+THINK_PATTERN = re.compile(r"<think>.*?</think>\s*", re.DOTALL)
+
+
+def _strip_think(text: str) -> str:
+    """Remove blocos <think>...</think> da resposta."""
+    return THINK_PATTERN.sub("", text).strip()
+
+
 def ollama_to_openai(data: dict, model: str) -> dict:
     """Converte resposta Ollama nativa -> formato OpenAI."""
     msg = data.get("message", {})
+    content = _strip_think(msg.get("content", ""))
     choice: dict = {
         "index": 0,
         "message": {
             "role": msg.get("role", "assistant"),
-            "content": msg.get("content", ""),
+            "content": content,
         },
         "finish_reason": "stop",
     }
