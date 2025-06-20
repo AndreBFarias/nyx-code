@@ -298,6 +298,23 @@ class AgentLoop:
 
         return None
 
+    def _build_force_done_summary(self) -> str:
+        """Gera resumo real do que foi feito ao forçar done."""
+        parts: list[str] = []
+        for entry in reversed(self._session.history):
+            if entry.tool_name and entry.tool_result and "OK:" in entry.tool_result:
+                parts.append(entry.tool_result.split(". Se a tarefa")[0])
+                break
+            if entry.tool_name and entry.tool_result and entry.is_key_decision:
+                parts.append(entry.tool_result[:200])
+                break
+        modified = sorted(self._session._files_modified)
+        if modified:
+            parts.append(f"Arquivos: {', '.join(modified[:5])}")
+        if not parts:
+            parts.append("Tarefa processada")
+        return ". ".join(parts)
+
     def _check_repetition(self, action: AgentAction) -> SessionStatus | None:
         """Verifica repetição e retorna FORCE_DONE se necessário."""
         strategy = get_skip_strategy(
@@ -310,11 +327,12 @@ class AgentLoop:
         )
 
         if strategy == SkipStrategy.FORCE_DONE:
-            logger.info("[loop] FORCE_DONE por repetição")
+            summary = self._build_force_done_summary()
+            logger.info("[loop] FORCE_DONE por repetição: %s", summary[:80])
             return SessionStatus(
                 state=SessionState.DONE,
                 iterations=self._session.iteration,
-                summary="Tarefa encerrada (loop de repetição detectado).",
+                summary=summary,
             )
 
         if strategy == SkipStrategy.SKIP:
@@ -341,10 +359,11 @@ class AgentLoop:
         else:
             messages.extend(self._session.to_messages())
 
+        selected_tools = self._select_tools_for_context(messages)
         payload: dict[str, Any] = {
             "model": self._model,
             "messages": messages,
-            "tools": self._tools.tool_defs,
+            "tools": selected_tools,
         }
 
         try:
@@ -387,6 +406,81 @@ class AgentLoop:
             return {"error": "Timeout ao chamar LLM (proxy não respondeu)"}
         except Exception as e:
             return {"error": str(e)}
+
+    # Tools core: sempre enviadas (essenciais para qualquer tarefa)
+    _CORE_TOOLS = {
+        "read_file", "write_file", "edit_file", "run_command",
+        "search", "glob", "list_files", "done",
+    }
+
+    # Keywords que ativam tools condicionais
+    _TOOL_KEYWORDS: dict[str, set[str]] = {
+        "notebook_edit": {"notebook", "ipynb", "jupyter"},
+        "web_fetch": {"url", "http", "fetch", "download", "site", "web"},
+        "web_search": {"pesquis", "web", "google", "search"},
+        "todo_write": {"todo", "tarefa", "task", "lista"},
+        "agent": {"agent", "subagent", "delegar"},
+        "enter_plan_mode": {"plano", "plan", "planej"},
+        "exit_plan_mode": {"plano", "plan"},
+        "ask_user": {"perguntar", "confirmar", "ask"},
+        "analyze": {"analis", "analyz", "complex"},
+        "patch": {"patch", "diff", "aplicar"},
+        "multi_edit": {"multi", "vários arquivos", "batch"},
+        "enter_worktree": {"worktree", "isolar"},
+        "exit_worktree": {"worktree"},
+        "repl": {"repl", "executar python", "python -c"},
+        "tool_search": {"tool_search", "buscar tool"},
+        "skill": {"skill", "habilidade"},
+        "send_message": {"mensagem", "message"},
+        "brief": {"resumo", "brief"},
+        "config": {"config", "configurar"},
+        "sleep": {"esperar", "aguardar", "sleep"},
+        "task_create": {"tarefa", "task"},
+        "task_update": {"tarefa", "task"},
+        "task_list": {"tarefa", "task"},
+        "task_get": {"tarefa", "task"},
+        "task_output": {"tarefa", "task"},
+        "task_stop": {"tarefa", "task"},
+    }
+
+    def _select_tools_for_context(self, messages: list[dict]) -> list[dict]:
+        """Seleciona tools relevantes baseado no contexto da conversa."""
+        # Extrair texto recente (ignorar system prompt que contém nomes de tools)
+        text_parts: list[str] = []
+        for msg in messages[-4:]:
+            if msg.get("role") == "system":
+                continue
+            content = msg.get("content", "")
+            if content:
+                text_parts.append(content.lower())
+        context_text = " ".join(text_parts)
+
+        # Sempre incluir tools core
+        selected_names = set(self._CORE_TOOLS)
+
+        # Adicionar tools condicionais por keyword
+        for tool_name, keywords in self._TOOL_KEYWORDS.items():
+            if any(kw in context_text for kw in keywords):
+                selected_names.add(tool_name)
+
+        # Incluir texto do user input do session (caso messages não tenha user)
+        for entry in self._session.history[-3:]:
+            if entry.role == "user":
+                for tool_name, keywords in self._TOOL_KEYWORDS.items():
+                    if any(kw in entry.content.lower() for kw in keywords):
+                        selected_names.add(tool_name)
+
+        # Se já houve tool calls na sessão, incluir tools usadas
+        for entry in self._session.history:
+            if entry.tool_name:
+                selected_names.add(entry.tool_name)
+
+        # Filtrar tool_defs para apenas as selecionadas
+        all_defs = self._tools.tool_defs
+        selected = [td for td in all_defs if td["function"]["name"] in selected_names]
+
+        logger.info("[loop] tools selecionadas: %d/%d", len(selected), len(all_defs))
+        return selected
 
     @property
     def tools_count(self) -> int:

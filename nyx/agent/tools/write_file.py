@@ -31,7 +31,7 @@ class WriteFileTool(RegisteredTool):
             path.write_text(content, encoding="utf-8")
             return ActionResult(
                 success=True,
-                output=f"Arquivo criado: {path} ({len(content)} bytes)",
+                output=f"OK: Arquivo criado: {path} ({len(content)} bytes). Se a tarefa está completa, chame done().",
                 files_modified=[str(path)],
             )
         except Exception as e:

@@ -31,7 +31,7 @@ class GlobTool(RegisteredTool):
             result = "\n".join(matches[:200])
             if len(matches) > 200:
                 result += f"\n... e mais {len(matches) - 200} arquivos"
-            return ActionResult(success=True, output=result)
+            return ActionResult(success=True, output=result + "\n[Analise e execute a próxima ação.]")
         except Exception as e:
             return ActionResult(success=False, error=str(e))
 

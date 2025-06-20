@@ -65,7 +65,7 @@ class SearchTool(RegisteredTool):
         result = "\n".join(matches)
         if len(matches) >= 100:
             result += "\n... (limitado a 100 resultados)"
-        return ActionResult(success=True, output=result)
+        return ActionResult(success=True, output=result + "\n[Analise e execute a próxima ação.]")
 
 
 # "Quem procura, encontra." -- Mateus 7:7

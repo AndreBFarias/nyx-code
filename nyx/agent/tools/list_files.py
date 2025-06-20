@@ -38,7 +38,7 @@ class ListFilesTool(RegisteredTool):
             result = "\n".join(lines)
             if len(entries) > 200:
                 result += f"\n... e mais {len(entries) - 200} itens"
-            return ActionResult(success=True, output=result)
+            return ActionResult(success=True, output=result + "\n[Analise e execute a próxima ação.]")
         except Exception as e:
             return ActionResult(success=False, error=str(e))
 

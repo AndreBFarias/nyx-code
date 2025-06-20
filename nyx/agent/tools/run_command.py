@@ -38,10 +38,12 @@ class RunCommandTool(RegisteredTool):
             if result.stderr:
                 output += f"\n[stderr]\n{result.stderr}"
 
+            ok = result.returncode == 0
+            hint = " Se a tarefa está completa, chame done()." if ok else ""
             return ActionResult(
-                success=result.returncode == 0,
-                output=output[:8000] if output else "(sem saída)",
-                error=f"Exit code: {result.returncode}" if result.returncode != 0 else "",
+                success=ok,
+                output=(output[:8000] if output else "(sem saída)") + hint,
+                error=f"Exit code: {result.returncode}" if not ok else "",
             )
         except subprocess.TimeoutExpired:
             return ActionResult(success=False, error="Timeout: comando excedeu 120s")

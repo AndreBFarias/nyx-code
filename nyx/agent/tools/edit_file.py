@@ -44,7 +44,7 @@ class EditFileTool(RegisteredTool):
             path.write_text(new_content, encoding="utf-8")
             return ActionResult(
                 success=True,
-                output=f"Editado: {path} (1 substituição)",
+                output=f"OK: Editado: {path} (1 substituição). Se a tarefa está completa, chame done().",
                 files_modified=[str(path)],
             )
         except Exception as e:

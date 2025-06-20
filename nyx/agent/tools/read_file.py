@@ -35,7 +35,7 @@ class ReadFileTool(RegisteredTool):
             numbered = "\n".join(f"{i+1:4d}\t{line}" for i, line in enumerate(lines))
             return ActionResult(
                 success=True,
-                output=numbered,
+                output=f"{numbered}\n[{len(lines)} linhas lidas. Analise e execute a próxima ação.]",
                 files_read=[str(path)],
             )
         except Exception as e:

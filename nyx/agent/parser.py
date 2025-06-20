@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 
@@ -198,6 +199,7 @@ class ActionParser:
 
         for method, level in [
             (self._parse_exact, ParseLevel.EXACT),
+            (self._parse_json_tool_call, ParseLevel.FUNCTION_CALL),
             (self._parse_function_call, ParseLevel.FUNCTION_CALL),
             (self._parse_relaxed, ParseLevel.RELAXED),
             (self._parse_bare_tool, ParseLevel.BARE_TOOL),
@@ -219,6 +221,42 @@ class ActionParser:
             success=False,
             error="Nenhuma ação encontrada na resposta do modelo",
             raw_text=llm_response,
+        )
+
+    def _parse_json_tool_call(self, text: str) -> ParseResult:
+        """Modelo emitiu tool_call como JSON no content."""
+        _fail = ParseResult(action=None, level=ParseLevel.FUNCTION_CALL, success=False)
+        stripped = text.strip()
+
+        # Extrair JSON do texto (pode estar envolto em markdown ou texto)
+        json_match = re.search(r'\{[^{}]*"name"\s*:\s*"[^"]+"\s*,\s*"arguments"\s*:\s*\{[^}]*\}[^}]*\}', stripped)
+        if not json_match:
+            return _fail
+
+        try:
+            data = json.loads(json_match.group(0))
+        except json.JSONDecodeError:
+            return _fail
+
+        name = data.get("name", "")
+        args = data.get("arguments", {})
+        if not name or not isinstance(args, dict):
+            return _fail
+
+        action_type = _ACTION_ALIASES.get(name)
+        if not action_type:
+            return _fail
+
+        params = {}
+        for k, v in args.items():
+            params[k] = str(v) if not isinstance(v, str) else v
+
+        logger.info("JSON tool_call parse: %s(%s)", name, str(params)[:60])
+        return ParseResult(
+            action=AgentAction(action_type=action_type, params=params, raw_block=json_match.group(0)),
+            level=ParseLevel.FUNCTION_CALL,
+            success=True,
+            raw_text=text,
         )
 
     def _parse_exact(self, text: str) -> ParseResult:
