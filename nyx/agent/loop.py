@@ -45,7 +45,7 @@ from nyx.agent.tools.registry import ToolRegistry
 logger = logging.getLogger("nyx.agent")
 
 MAX_ITERATIONS_DEFAULT = 30
-LLM_TIMEOUT = 300
+LLM_TIMEOUT = 600
 
 PermissionCallback = Callable[[str, str, dict[str, str]], bool]
 

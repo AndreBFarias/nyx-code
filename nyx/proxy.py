@@ -149,7 +149,7 @@ async def handle_chat(request: web.Request) -> web.StreamResponse:
     n_tools = len(body.get("tools", []))
     logger.info(f"-> model={model} tools={n_tools}")
 
-    timeout = ClientTimeout(total=300)
+    timeout = ClientTimeout(total=600)
     async with ClientSession(timeout=timeout) as session:
         async with session.post(f"{OLLAMA_URL}/api/chat", json=ollama_body) as ollama_resp:
             if ollama_resp.status != 200:
