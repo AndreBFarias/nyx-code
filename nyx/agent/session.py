@@ -47,14 +47,22 @@ class CodeSession:
     def add_assistant(self, content: str) -> None:
         self.history.append(HistoryEntry(role="assistant", content=content))
 
+    # Limite de chars por tool result no histórico.
+    # Modelos pequenos + GPU limitada: contexto menor = menos OOM.
+    # 1500 chars ~ 375 tokens -- suficiente para resumo de arquivo.
+    TOOL_RESULT_LIMIT = 1500
+
     def add_tool_call(self, tool_name: str, args: dict[str, Any], result: str,
                       is_key: bool = False) -> None:
+        truncated = result[:self.TOOL_RESULT_LIMIT]
+        if len(result) > self.TOOL_RESULT_LIMIT:
+            truncated += f"\n[... truncado, {len(result)} chars total]"
         self.history.append(HistoryEntry(
             role="tool",
-            content=result[:4000],
+            content=truncated,
             tool_name=tool_name,
             tool_args=args,
-            tool_result=result[:4000],
+            tool_result=truncated,
             is_key_decision=is_key,
         ))
 

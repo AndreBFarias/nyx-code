@@ -26,7 +26,7 @@ logger = logging.getLogger("nyx.proxy")
 
 OLLAMA_URL = "http://127.0.0.1:11435"
 NUM_GPU = 15
-NUM_CTX = 8192
+NUM_CTX = 4096
 
 
 def _normalize_content(content):
@@ -79,6 +79,8 @@ def openai_to_ollama(body: dict) -> dict:
     }
     if has_tools:
         result["tools"] = body["tools"]
+    if not has_tools:
+        result["options"]["num_predict"] = 1024
     if body.get("temperature") is not None:
         result["options"]["temperature"] = body["temperature"]
     max_tok = body.get("max_tokens") or body.get("max_completion_tokens")

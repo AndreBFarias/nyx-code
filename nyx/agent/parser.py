@@ -224,24 +224,70 @@ class ActionParser:
         )
 
     def _parse_json_tool_call(self, text: str) -> ParseResult:
-        """Modelo emitiu tool_call como JSON no content."""
+        """Modelo emitiu tool_call como JSON no content.
+
+        Aceita variações:
+        - {"name":"read_file","arguments":{"path":"..."}}
+        - {"tool":"read_file","args":{"path":"..."}}
+        - {"function":"read_file","parameters":{"path":"..."}}
+        """
         _fail = ParseResult(action=None, level=ParseLevel.FUNCTION_CALL, success=False)
         stripped = text.strip()
 
-        # Extrair JSON do texto (pode estar envolto em markdown ou texto)
-        json_match = re.search(r'\{[^{}]*"name"\s*:\s*"[^"]+"\s*,\s*"arguments"\s*:\s*\{[^}]*\}[^}]*\}', stripped)
-        if not json_match:
+        # Encontrar JSON no texto -- extrair substring e tentar parsear
+        data = None
+        start = stripped.find("{")
+        if start == -1:
+            return _fail
+        # Tentar parsear do início do JSON até vários pontos de fechamento
+        candidate = stripped[start:]
+        depth = 0
+        for i, ch in enumerate(candidate):
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    try:
+                        data = json.loads(candidate[:i + 1])
+                        break
+                    except json.JSONDecodeError:
+                        continue
+        if data is None or not isinstance(data, dict):
             return _fail
 
-        try:
-            data = json.loads(json_match.group(0))
-        except json.JSONDecodeError:
-            return _fail
+        name = data.get("name") or data.get("tool") or data.get("function") or ""
+        args = data.get("arguments") or data.get("args") or data.get("parameters") or {}
 
-        name = data.get("name", "")
-        args = data.get("arguments", {})
-        if not name or not isinstance(args, dict):
-            return _fail
+        # Modelo pode ter omitido o nome e mandado só os args -- inferir pela estrutura
+        if not name:
+            if "file_path" in data and "old_string" in data and "new_string" in data:
+                name = "edit_file"
+                args = data
+            elif "file_path" in data and "content" in data:
+                name = "write_file"
+                args = data
+            elif "file_path" in data or "path" in data:
+                name = "read_file"
+                args = data
+            elif "command" in data or "cmd" in data:
+                name = "run_command"
+                args = data
+            elif "pattern" in data:
+                name = "search"
+                args = data
+            elif "summary" in data:
+                name = "done"
+                args = data
+            else:
+                return _fail
+        if isinstance(args, str):
+            try:
+                args = json.loads(args)
+            except json.JSONDecodeError:
+                args = {"raw": args}
+        if not isinstance(args, dict):
+            args = {}
 
         action_type = _ACTION_ALIASES.get(name)
         if not action_type:
@@ -253,7 +299,7 @@ class ActionParser:
 
         logger.info("JSON tool_call parse: %s(%s)", name, str(params)[:60])
         return ParseResult(
-            action=AgentAction(action_type=action_type, params=params, raw_block=json_match.group(0)),
+            action=AgentAction(action_type=action_type, params=params, raw_block=json.dumps(data)),
             level=ParseLevel.FUNCTION_CALL,
             success=True,
             raw_text=text,

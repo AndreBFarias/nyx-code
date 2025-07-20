@@ -347,17 +347,28 @@ class AgentLoop:
         return None
 
     async def _call_llm(self) -> dict[str, Any]:
-        """Envia request ao proxy com histórico e tools."""
-        messages = [{"role": "system", "content": self._system_prompt}]
+        """Envia request ao proxy com histórico e tools.
 
-        if self._budget.should_compact(self._session):
+        Estratégia de contexto para GPU limitada:
+        - Iteração 1: histórico completo (só tem user msg)
+        - Iteração 2+: apenas últimas 4 mensagens (user + tool_call + result + resposta)
+        - Compactação se budget > 40%
+        """
+        messages = [{"role": "system", "content": self._system_prompt}]
+        history_msgs = self._session.to_messages()
+
+        if len(history_msgs) > 4:
+            # Após primeira iteração: manter apenas mensagens recentes
+            messages.extend(history_msgs[-4:])
+            logger.info("[loop] contexto reduzido: %d/%d msgs", 4, len(history_msgs))
+        elif self._budget.should_compact(self._session):
             compacted = self._budget.compact_history(self._session)
             if compacted:
                 messages.append({"role": "user", "content": f"[contexto compactado]\n{compacted}"})
-            recent_msgs = self._session.to_messages()[-6:]
+            recent_msgs = history_msgs[-4:]
             messages.extend(recent_msgs)
         else:
-            messages.extend(self._session.to_messages())
+            messages.extend(history_msgs)
 
         selected_tools = self._select_tools_for_context(messages)
         payload: dict[str, Any] = {
