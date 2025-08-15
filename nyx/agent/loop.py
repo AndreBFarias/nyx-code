@@ -141,12 +141,48 @@ class AgentLoop:
 
             response = await self._call_llm()
             if "error" in response:
-                logger.error("[loop] erro LLM: %s", response["error"])
-                return SessionStatus(
-                    state=SessionState.ERROR,
-                    iterations=i + 1,
-                    summary=response["error"],
-                )
+                error_msg = response["error"]
+                # Auto-recovery: se conexão falhou, tenta reiniciar modelo e retentar
+                if i > 0 and ("connection" in error_msg.lower() or "disconnect" in error_msg.lower()
+                              or "Extra data" in error_msg):
+                    logger.warning("[loop] LLM caiu, tentando recovery...")
+                    recovered = await self._try_recovery()
+                    if recovered:
+                        response = await self._call_llm()
+                        if "error" not in response:
+                            logger.info("[loop] recovery OK, continuando")
+                        else:
+                            logger.error("[loop] recovery falhou: %s", response.get("error"))
+                            if self._has_results:
+                                return SessionStatus(
+                                    state=SessionState.DONE,
+                                    iterations=i + 1,
+                                    summary=self._build_force_done_summary(),
+                                )
+                            return SessionStatus(
+                                state=SessionState.ERROR,
+                                iterations=i + 1,
+                                summary=error_msg,
+                            )
+                    else:
+                        if self._has_results:
+                            return SessionStatus(
+                                state=SessionState.DONE,
+                                iterations=i + 1,
+                                summary=self._build_force_done_summary(),
+                            )
+                        return SessionStatus(
+                            state=SessionState.ERROR,
+                            iterations=i + 1,
+                            summary=error_msg,
+                        )
+                else:
+                    logger.error("[loop] erro LLM: %s", error_msg)
+                    return SessionStatus(
+                        state=SessionState.ERROR,
+                        iterations=i + 1,
+                        summary=error_msg,
+                    )
 
             tool_calls = response.get("tool_calls", [])
 
@@ -417,6 +453,33 @@ class AgentLoop:
             return {"error": "Timeout ao chamar LLM (proxy não respondeu)"}
         except Exception as e:
             return {"error": str(e)}
+
+    async def _try_recovery(self) -> bool:
+        """Tenta reiniciar o modelo Ollama após crash."""
+        import asyncio
+        ollama_base = self._proxy_url.replace("/v1", "").rstrip("/")
+        # Extrair URL do Ollama a partir da proxy (porta -1)
+        # Fallback: tentar aquecer via proxy
+        logger.info("[recovery] Aguardando Ollama reiniciar...")
+        for attempt in range(3):
+            await asyncio.sleep(5)
+            try:
+                async with httpx.AsyncClient(timeout=30) as client:
+                    r = await client.get(f"{ollama_base}/v1/models")
+                    if r.status_code == 200:
+                        logger.info("[recovery] Proxy respondendo, tentando aquecer modelo...")
+                        # Aquecer modelo com request simples
+                        warmup = await client.post(
+                            f"{ollama_base}/v1/chat/completions",
+                            json={"model": self._model, "messages": [{"role": "user", "content": "hi"}], "max_tokens": 5},
+                            timeout=120,
+                        )
+                        if warmup.status_code == 200:
+                            logger.info("[recovery] Modelo aquecido, retomando")
+                            return True
+            except Exception as e:
+                logger.warning("[recovery] Tentativa %d falhou: %s", attempt + 1, str(e)[:60])
+        return False
 
     # Tools core: sempre enviadas (essenciais para qualquer tarefa)
     _CORE_TOOLS = {

@@ -93,6 +93,9 @@ done
 # ─── VARIÁVEIS OLLAMA ────────────────────────────────────
 export OLLAMA_HOST="$NYX_OLLAMA_HOST"
 export OLLAMA_MODELS="$SCRIPT_DIR/models"
+export OLLAMA_NUM_PARALLEL=1
+export OLLAMA_MAX_LOADED_MODELS=1
+export OLLAMA_FLASH_ATTENTION=1
 
 # Priorizar Ollama do sistema (tem runners CUDA/GPU)
 # Fallback para binário local se não houver instalação global
