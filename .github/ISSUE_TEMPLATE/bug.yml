@@ -1,0 +1,69 @@
+name: Bug Report
+description: Reportar um bug no Nyx-Code
+title: "[BUG] "
+labels: ["bug"]
+
+body:
+  - type: textarea
+    id: descricao
+    attributes:
+      label: Descrição do Bug
+      description: Descreva o bug de forma clara e objetiva.
+      placeholder: O que aconteceu?
+    validations:
+      required: true
+
+  - type: textarea
+    id: passos
+    attributes:
+      label: Passos para Reproduzir
+      description: Liste os passos para reproduzir o comportamento.
+      value: |
+        1. Configurar .env com '...'
+        2. Executar '...'
+        3. Observar o erro
+    validations:
+      required: true
+
+  - type: textarea
+    id: esperado
+    attributes:
+      label: Comportamento Esperado
+      description: Descreva o que deveria acontecer.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: componente
+    attributes:
+      label: Componente Afetado
+      options:
+        - Agente (loop/parser)
+        - Proxy Ollama
+        - CLI/REPL
+        - Tools
+        - Temas
+        - Outro
+    validations:
+      required: true
+
+  - type: textarea
+    id: ambiente
+    attributes:
+      label: Ambiente
+      value: |
+        - SO: [ex: Pop!_OS 22.04]
+        - Python: [ex: 3.12]
+        - Nyx-Code: [ex: 1.1.1]
+        - GPU: [ex: RTX 3050 4GB]
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs Relevantes
+      description: Cole logs ou saída do terminal que ajudem a diagnosticar.
+      render: shell
+    validations:
+      required: false

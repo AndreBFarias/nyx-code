@@ -1,0 +1,35 @@
+name: Feature Request
+description: Sugerir uma nova funcionalidade para o Nyx-Code
+title: "[FEAT] "
+labels: ["enhancement"]
+
+body:
+  - type: textarea
+    id: funcionalidade
+    attributes:
+      label: Funcionalidade Proposta
+      description: Descreva a funcionalidade que você gostaria de ver.
+    validations:
+      required: true
+
+  - type: textarea
+    id: problema
+    attributes:
+      label: Problema que Resolve
+      description: Qual problema ou limitação atual essa funcionalidade resolveria?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solucao
+    attributes:
+      label: Solução Proposta
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas Consideradas
+    validations:
+      required: false
