@@ -1,8 +1,10 @@
+![CI](https://github.com/AndreBFarias/nyx-code/actions/workflows/ci.yml/badge.svg)
+
 # Nyx-Code
 
 Agente de código local. 100% offline. Terminal. Port Python do Claude Code (fonte TS, 127K linhas).
 
-Roda qwen3:4b via Ollama com 34 tools funcionais, 74 commands, 21 services.
+Roda qwen3:4b via Ollama com 34 tools funcionais, 47 commands, 10 services.
 Projeto standalone, otimizado para RTX 3050 4GB.
 
 ## Arquitetura
@@ -21,7 +23,7 @@ run.sh ─────> Ollama (:11435) ──> GPU (num_gpu=12, qwen3:4b)
   +────────> Nyx CLI (nyx/cli.py)
               - REPL interativo com Rich output + prompt-toolkit
               - 34 tools via ToolRegistry
-              - 74 slash commands
+              - 47 slash commands
               - AgentLoop: plan-execute-observe (até 30 iterações)
               - ActionParser: 7 níveis de fallback
               - ContextBudget: compactação progressiva
@@ -60,7 +62,7 @@ python scripts/sync.py                   # Consistência N-para-N
 | Edição avançada | analyze, patch, multi_edit |
 | Utilidade | sleep, config, brief, tool_search, skill, send_message, ask_user |
 
-## Commands (74 registrados)
+## Commands (47 registrados)
 
 | Categoria | Commands |
 |-----------|----------|
@@ -70,20 +72,15 @@ python scripts/sync.py                   # Consistência N-para-N
 | Sistema | /doctor, /model, /config, /env, /permissions, /hooks, /theme |
 | Sessão | /compact, /context, /session, /resume, /export, /copy, /stats, /usage |
 | Execução | /tasks, /skills, /files |
-| Projeto | /add-dir, /init, /onboarding, /version, /rename |
-| UI | /color, /output-style, /keybindings, /stickers, /fast, /effort, /vim |
-| Debug | /trace, /autofix-pr, /bughunter, /ctx-viz, /debug-tool, /heapdump, /perf-issue, /kudos, /break-cache |
-| Memória | /memory, /plugin, /reload-plugins, /agents, /tag |
-| Avançado | /btw, /backfill, /thinkback, /thinkback-play, /pr-comments |
+| Projeto | /add-dir, /init, /version |
+| Debug | /trace, /ctx-viz, /break-cache |
+| Memória | /memory |
+| Avançado | /btw, /pr-comments |
 | Root | /advisor, /brief-cmd, /commit-push-pr, /insights, /security-review |
-| Lifecycle | /upgrade, /sandbox, /terminal-setup |
-| Limites | /rate-limit, /reset-limits |
 
-## Services (21)
+## Services (10)
 
-**Funcionais:** tokens, compact, hooks, memory, summary, suggestions, preflight, validator
-
-**Stubs locais (lógica a enriquecer):** analytics, diagnostics, logging_service, notifier, prevent_sleep, plugins, magic_docs, tips, tool_use_summary, extract_memories, auto_dream, away_summary, summary_expanded, rate_limit, limits
+tokens, compact, hooks, memory, summary, suggestions, analytics, diagnostics, logging_service, tool_use_summary
 
 ## ADRs (20)
 
@@ -127,7 +124,7 @@ nyx/
     loop.py          # AgentLoop (plan-execute-observe)
     parser.py        # ActionParser (7 níveis)
     session.py       # CodeSession
-    commands.py      # 74 slash commands
+    commands.py      # 47 slash commands
     completer.py     # Tab completion
     output.py        # Rich output + spinner
     tools/
@@ -135,7 +132,7 @@ nyx/
       base.py        # RegisteredTool + ToolDef
       [34 arquivos]
     services/
-      [21 arquivos]
+      [10 arquivos]
   providers/
     ollama.py        # OllamaProvider
   context/
