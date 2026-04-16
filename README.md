@@ -2,7 +2,7 @@
 
 # Nyx-Code
 
-Agente de código local. 100% offline. Terminal. Port Python do Claude Code (fonte TS, 127K linhas).
+Agente de código local. 100% offline. 
 
 Roda qwen3:4b via Ollama com 34 tools funcionais, 47 commands, 10 services.
 Projeto standalone, otimizado para RTX 3050 4GB.
