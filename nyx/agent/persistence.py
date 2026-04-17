@@ -44,7 +44,9 @@ def save_session(session: CodeSession, project_name: str = "") -> Path | None:
                 for e in session.history[-20:]
             ],
         }
-        path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        tmp_path = path.with_suffix(".tmp")
+        tmp_path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        tmp_path.rename(path)
         logger.info("Sessão salva: %s", path)
         return path
     except Exception as e:

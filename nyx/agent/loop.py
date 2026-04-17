@@ -35,16 +35,21 @@ from nyx.agent.models import (
 )
 from nyx.agent.parser import ActionParser
 from nyx.agent.permissions import PermissionChecker, PermissionLevel
+from nyx.agent.preflight import check as preflight_check
 from nyx.agent.prompt import build_claude_md_context, build_system_prompt
 from nyx.agent.tools.plan_mode import is_tool_allowed_in_plan_mode
 from nyx.agent.repetition import SkipStrategy, get_skip_strategy
+from nyx.agent.services.diagnostics import DiagnosticTracking
+from nyx.agent.services.tool_use_summary import ToolUseSummary
 from nyx.agent.session import CodeSession
 from nyx.agent.streaming import StreamingCollector
 from nyx.agent.tools.registry import ToolRegistry
+from nyx.agent.validator import validate as post_validate
+
+from nyx.config.defaults import MAX_ITERATIONS as MAX_ITERATIONS_DEFAULT
 
 logger = logging.getLogger("nyx.agent")
 
-MAX_ITERATIONS_DEFAULT = 30
 LLM_TIMEOUT = 600
 
 PermissionCallback = Callable[[str, str, dict[str, str]], bool]
@@ -116,6 +121,9 @@ class AgentLoop:
         self._has_results: bool = False
 
         self._collector = StreamingCollector(on_token=on_token) if streaming and on_token else None
+        self._http_client: httpx.AsyncClient | None = None
+        self._diagnostics = DiagnosticTracking()
+        self._tool_summary = ToolUseSummary()
 
         tool_names = [t["function"]["name"] for t in self._tools.tool_defs]
         self._system_prompt = build_system_prompt(project_root, tool_names)
@@ -142,9 +150,10 @@ class AgentLoop:
             response = await self._call_llm()
             if "error" in response:
                 error_msg = response["error"]
-                # Auto-recovery: se conexão falhou, tenta reiniciar modelo e retentar
-                if i > 0 and ("connection" in error_msg.lower() or "disconnect" in error_msg.lower()
-                              or "Extra data" in error_msg):
+                self._diagnostics.record_error("llm", error_msg[:200])
+                # Auto-recovery: se conexão falhou ou Ollama crashou, tenta retentar
+                if ("connection" in error_msg.lower() or "disconnect" in error_msg.lower()
+                        or "Extra data" in error_msg or "500" in error_msg):
                     logger.warning("[loop] LLM caiu, tentando recovery...")
                     recovered = await self._try_recovery()
                     if recovered:
@@ -266,7 +275,25 @@ class AgentLoop:
             if skip:
                 return skip
 
+            pf = preflight_check(name, args, self._project_root)
+            if not pf.ok:
+                reason = "; ".join(pf.errors)
+                logger.warning("[loop] preflight bloqueou %s: %s", name, reason)
+                self._session.add_tool_call(name, args, f"Bloqueado por validação: {reason}")
+                continue
+            for warn in pf.warnings:
+                logger.info("[loop] preflight aviso para %s: %s", name, warn)
+
             result = self._tools.execute(name, args)
+            self._tool_summary.track(name, args)
+
+            vr = post_validate(name, args, result)
+            for warn in vr.warnings:
+                logger.info("[loop] validator aviso para %s: %s", name, warn)
+
+            if not result.success:
+                self._diagnostics.record_warning("tool", f"{name}: {result.error[:120]}")
+
             self._session.add_tool_call(
                 name, args,
                 result.output if result.success else result.error,
@@ -320,7 +347,21 @@ class AgentLoop:
         if skip:
             return skip
 
+        pf = preflight_check(tool_name, remapped, self._project_root)
+        if not pf.ok:
+            reason = "; ".join(pf.errors)
+            logger.warning("[loop] preflight bloqueou %s (parser): %s", tool_name, reason)
+            self._session.add_tool_call(tool_name, remapped, f"Bloqueado por validação: {reason}")
+            return None
+        for warn in pf.warnings:
+            logger.info("[loop] preflight aviso para %s: %s", tool_name, warn)
+
         result = self._tools.execute(tool_name, remapped)
+
+        vr = post_validate(tool_name, remapped, result)
+        for warn in vr.warnings:
+            logger.info("[loop] validator aviso para %s: %s", tool_name, warn)
+
         self._session.add_tool_call(
             tool_name, remapped,
             result.output if result.success else result.error,
@@ -414,12 +455,14 @@ class AgentLoop:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=LLM_TIMEOUT) as client:
-                r = await client.post(
-                    f"{self._proxy_url}/v1/chat/completions",
-                    json=payload,
-                )
-                data = r.json()
+            if self._http_client is None:
+                self._http_client = httpx.AsyncClient(timeout=LLM_TIMEOUT)
+
+            r = await self._http_client.post(
+                f"{self._proxy_url}/v1/chat/completions",
+                json=payload,
+            )
+            data = r.json()
 
             if "choices" not in data:
                 return {"error": f"Resposta sem choices: {str(data)[:200]}"}
@@ -576,6 +619,14 @@ class AgentLoop:
     def permissions(self) -> PermissionChecker:
         return self._permissions
 
+    @property
+    def diagnostics(self) -> DiagnosticTracking:
+        return self._diagnostics
+
+    @property
+    def tool_summary(self) -> ToolUseSummary:
+        return self._tool_summary
+
     def reset(self) -> None:
         self._session.reset()
         self._parser.reset_stats()
@@ -583,6 +634,12 @@ class AgentLoop:
         self._last_action = None
         self._consecutive_skips = 0
         self._has_results = False
+
+    async def close(self) -> None:
+        """Libera recursos (httpx client)."""
+        if self._http_client is not None:
+            await self._http_client.aclose()
+            self._http_client = None
 
     def get_context_info(self) -> dict:
         """Retorna info do budget para exibição no CLI."""

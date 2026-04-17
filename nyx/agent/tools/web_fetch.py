@@ -21,7 +21,7 @@ MAX_OUTPUT_CHARS = 20_000
 
 
 class WebFetchTool(RegisteredTool):
-    action_type = ActionType.READ_FILE
+    action_type = ActionType.WEB_FETCH
 
     tool_def = ToolDef(
         name="web_fetch",

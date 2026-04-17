@@ -31,8 +31,8 @@ def _list_skills() -> list[tuple[str, str]]:
                 if line.strip().startswith('"""') or line.strip().startswith("'''"):
                     desc = line.strip().strip("\"'").strip()
                     break
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Falha ao ler skill %s: %s", name, e)
         skills.append((name, desc or name))
     return skills
 

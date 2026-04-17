@@ -83,7 +83,8 @@ class NyxCompleter(Completer):
                     start_position=-len(word),
                     display_meta="dir" if path.is_dir() else path.suffix,
                 )
-        except Exception:
+        except Exception as e:
+            logger.debug("Erro no completer de paths: %s", e)
             return
 
     def update_commands(self, commands: list[dict]) -> None:

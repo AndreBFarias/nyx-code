@@ -136,12 +136,47 @@ P8-A (Analyze, Patch, MultiEdit), P8-B (Provider, ProjectContext). **+3 tools, +
 
 ---
 
+### Bloco AUDIT: Auditoria Completa (pós-port)
+
+| # | Nome | Testes | Status | Deps |
+|---|------|--------|--------|------|
+| **AUDIT-01** | Segurança: path traversal, preflight, validator | +6 testes | CONCLUIDA | -- |
+| **AUDIT-03** | Sincronização N-para-N: versão, constantes, dependências | +4 testes | CONCLUIDA | -- |
+| **AUDIT-02** | Integração de serviços mortos | +6 testes | CONCLUIDA | AUDIT-01 |
+| **AUDIT-04** | Except handling e qualidade de código | +3 testes | CONCLUIDA | AUDIT-01 |
+| **AUDIT-05** | Performance: conexões, search, proxy | +3 testes | CONCLUIDA | AUDIT-04 |
+| **AUDIT-06** | Robustez e UX: shutdown, health check, atomicidade | +4 testes | CONCLUIDA | AUDIT-05 |
+
+**Origem:** Auditoria completa do código-fonte (2026-04-15). Todos os arquivos de `nyx/` lidos e analisados.
+
+---
+
+### Bloco PORT: Portabilidade (preparação para hardware novo)
+
+| # | Nome | Testes | Status | Deps |
+|---|------|--------|--------|------|
+| **PORT-01** | Auto-tune de GPU layers | +3 testes | CONCLUIDA | -- |
+| **PORT-02** | Teste de máquina limpa via Docker | +2 testes | CONCLUIDA | PORT-01 |
+| **PORT-03** | Robustez de boot (R-02/R-03/R-04) | +3 testes | CONCLUIDA | PORT-01, PORT-02 |
+
+**Origem:** projeto otimizado apenas para a máquina atual (RTX 3050 4GB, num_gpu=12 hardcoded). Portabilidade nunca foi validada em hardware diferente ou máquina limpa.
+
+### Bloco LUNA: Integração com Luna (DELEGADA AO REPO LUNA)
+
+| # | Nome | Status | Delegada para |
+|---|------|--------|---------------|
+| **I-02** | Substituir nyx antiga na Luna | DELEGADA | `Luna/.../producao/infra/SPRINT_INFRA50..52_*.md` |
+| **I-03** | Mensagens inline [nyx] na TUI | DELEGADA | `Luna/.../producao/infra/SPRINT_INFRA53_NYX_INLINE_TUI.md` |
+
+**Origem:** a Luna já tinha um code agent interno (nyx antiga). Objetivo: substituir pelo Nyx-Code standalone via subprocess headless (protocolo I-01 pronto).
+
+**Desfecho (2026-04-16):** como as mudanças são no repo da Luna, foram criadas 4 sprints novas no próprio repo Luna (INFRA-50 a 53) com código pronto pra copiar. Este Nyx-Code oferece apenas o protocolo headless (ja concluido em I-01), sem mudanças adicionais necessárias.
+
+---
+
 ## Backlog
 
-| # | Nome | Tipo | Motivo |
-|---|------|------|--------|
-| **I-02** | Comando /nyx na Luna | Integração | ADR-016: prioridade é port 100% |
-| **I-03** | Mensagens inline TUI Luna | Integração | ADR-016: depende de I-02 |
+Vazio. I-02 e I-03 movidas para produção (Onda 19).
 
 ---
 
@@ -160,13 +195,21 @@ Onda 14 (Commands lote 2):   P10-F, P10-G (paralelo) -> P10-H, P10-I (paralelo) 
 Onda 15 (Services lote 1):   P11-A, P11-B (paralelo) -> P11-C, P11-D (paralelo)
 Onda 16 (Services lote 2):   P11-E, P11-F (paralelo) -> P11-G
 
-Backlog: I-02 -> I-03 (integração Luna, quando port 100% concluído)
+Onda 17 (AUDITORIA -- PÓS-PORT):
+  AUDIT-01 (segurança), AUDIT-03 (sincronização) -> AUDIT-02 (integração), AUDIT-04 (qualidade)
+  AUDIT-04 -> AUDIT-05 (performance) -> AUDIT-06 (robustez)
+
+Onda 18 (PORTABILIDADE -- antes de rodar em máquina nova):
+  PORT-01 (auto-tune GPU) -> PORT-02 (Docker clean boot) -> PORT-03 (robustez boot)
+
+Onda 19 (INTEGRAÇÃO LUNA -- substituir code agent antigo):
+  I-02 (substituir nyx antiga) -> I-03 (mensagens inline [nyx])
 ```
 
 **REGRA: Onda 10 (INFRA) é pré-requisito para TODAS as ondas seguintes.**
 Após INFRA, toda sprint usa scaffold.py. Gauntlet valida completude automaticamente.
 
-**Cada sprint inclui testes no Gauntlet. Sprint só é CONCLUIDA quando Gauntlet valida.**
+**Cada sprint inclui testes no Gauntlet. Sprint só é CONCLUÍDA quando Gauntlet valida.**
 
 ## Projeção de testes
 
@@ -180,7 +223,10 @@ Após INFRA, toda sprint usa scaffold.py. Gauntlet valida completude automaticam
 | 14 (P10 lote 2) | Commands lifecycle+limites+mem+avanç+root | +29 | 231 |
 | 15 (P11 lote 1) | Services infra+auth+plugins+sync | +16 | 247 |
 | 16 (P11 lote 2) | Services conteúdo+protocolo+voz | +12 | 259 |
-| **FINAL** | **100% cobertura** | | **259 testes** |
+| 17 (AUDIT) | Segurança+sync+integração+qualidade+perf+robustez | +26 | 285 |
+| 18 (PORT) | Auto-tune+Docker+robustez boot | +8 | 293 |
+| 19 (LUNA) | Substituição nyx antiga + mensagens inline | +5 | 298 |
+| **FINAL** | **100% + portabilidade + Luna integrada** | | **298 testes** |
 
 ---
 

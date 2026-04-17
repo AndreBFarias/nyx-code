@@ -17,7 +17,7 @@ MAX_OUTPUT = 10_000
 
 
 class REPLTool(RegisteredTool):
-    action_type = ActionType.RUN_COMMAND
+    action_type = ActionType.REPL
 
     tool_def = ToolDef(
         name="repl",

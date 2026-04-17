@@ -62,7 +62,8 @@ def detect_hardware_profile() -> tuple[HardwareProfile, str, int]:
         if vram_mib >= 4000:
             return HardwareProfile.STANDARD, gpu_name, vram_mib
         return HardwareProfile.COMPACT, gpu_name, vram_mib
-    except Exception:
+    except Exception as e:
+        logger.debug("GPU não detectada: %s", e)
         return HardwareProfile.COMPACT, "CPU-only", 0
 
 

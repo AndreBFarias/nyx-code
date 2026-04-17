@@ -36,7 +36,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("nyx.cli")
 
-NYX_VERSION = "1.2.0"
+from nyx.__version__ import __version__ as NYX_VERSION
 
 # ── Cores Nyx (fallback ANSI) ─────────────────────────────────────
 
@@ -63,9 +63,10 @@ def _build_banner(model: str, tools_count: int, project: str) -> str:
 def _ask_permission(level: str, tool_name: str, args: dict) -> bool:
     """Pede confirmação ao usuário para execução de tool."""
     args_preview = str(args)[:80]
+    level_label = {"confirm_once": "uma vez", "always_confirm": "sempre"}.get(level, level)
     try:
         resp = input(
-            f"  {ACCENT}[permissão]{NC} Executar {BOLD}{tool_name}{NC}({args_preview})? [S/n] "
+            f"  {ACCENT}[permissão: {level_label}]{NC} Executar {BOLD}{tool_name}{NC}({args_preview})? [S/n] "
         ).strip().lower()
         return resp in ("", "s", "sim", "y", "yes")
     except (EOFError, KeyboardInterrupt):
@@ -76,7 +77,13 @@ async def run_repl(streaming: bool = True) -> int:
     from nyx.agent.commands import handle_command
     from nyx.agent.context import render_context_bar
     from nyx.agent.loop import AgentLoop
-    from nyx.agent.persistence import save_session
+    from nyx.agent.persistence import cleanup_old_sessions, save_session
+    from nyx.agent.services.analytics import Analytics
+    from nyx.agent.services.logging_service import InternalLogging
+
+    cleanup_old_sessions()
+    InternalLogging()
+    analytics = Analytics()
 
     try:
         from nyx.agent.output import RichOutput
@@ -314,7 +321,7 @@ async def run_repl(streaming: bool = True) -> int:
                                 input=last_content.encode(), timeout=5)
                         print(f"  {ACCENT}[ok]{NC} Copiado para clipboard ({len(last_content)} chars)")
                     except FileNotFoundError:
-                        tmp = Path("/tmp/nyx_clipboard.txt")
+                        tmp = Path.home() / ".nyx" / "clipboard.txt"
                         tmp.write_text(last_content, encoding="utf-8")
                         print(f"  {DIM}xclip indisponível. Salvo em {tmp}{NC}")
                 else:
@@ -364,11 +371,14 @@ async def run_repl(streaming: bool = True) -> int:
     else:
         print(f"\n  {ACCENT}[sessão]{NC} {session_summary}\n")
 
+    analytics.end_session()
+
     project_name = PROJECT_ROOT.name
     saved = save_session(agent.session, project_name)
     if saved:
         print(f"  {DIM}Sessão salva: {saved.name}{NC}")
 
+    await agent.close()
     return 0
 
 
@@ -384,6 +394,7 @@ async def run_headless() -> int:
     import json as _json
 
     from nyx.agent.loop import AgentLoop
+    from nyx.agent.persistence import save_session
 
     project_root = str(PROJECT_ROOT)
     proxy_url = os.environ.get("OPENAI_BASE_URL", "http://127.0.0.1:11436/v1")
@@ -404,6 +415,24 @@ async def run_headless() -> int:
         on_tool=on_tool,
         streaming=False,
     )
+
+    shutdown_requested = False
+
+    def _headless_shutdown(signum: int, frame: object) -> None:
+        nonlocal shutdown_requested
+        if shutdown_requested:
+            return
+        shutdown_requested = True
+        saved = save_session(agent.session, PROJECT_ROOT.name)
+        msg = _json.dumps({
+            "type": "shutdown",
+            "session_saved": saved.name if saved else None,
+        }, ensure_ascii=False)
+        sys.stdout.write(msg + "\n")
+        sys.stdout.flush()
+
+    signal.signal(signal.SIGINT, _headless_shutdown)
+    signal.signal(signal.SIGTERM, _headless_shutdown)
 
     for line in sys.stdin:
         line = line.strip()
@@ -496,6 +525,7 @@ async def run_headless() -> int:
         sys.stdout.write(err + "\n")
         sys.stdout.flush()
 
+    await agent.close()
     return 0
 
 

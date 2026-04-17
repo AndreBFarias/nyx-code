@@ -71,7 +71,8 @@ class OllamaProvider:
             async with httpx.AsyncClient(timeout=5) as client:
                 r = await client.get(f"{self._url}/v1/models")
                 return r.status_code == 200
-        except Exception:
+        except Exception as e:
+            logger.debug("Health check falhou: %s", e)
             return False
 
     async def models(self) -> list[str]:
@@ -81,7 +82,8 @@ class OllamaProvider:
                 r = await client.get(f"{self._url}/v1/models")
                 data = r.json()
                 return [m.get("id", "") for m in data.get("data", [])]
-        except Exception:
+        except Exception as e:
+            logger.debug("Falha ao listar modelos: %s", e)
             return []
 
 

@@ -40,7 +40,8 @@ def _load_tasks() -> list[Task]:
     try:
         data = json.loads(TASKS_FILE.read_text(encoding="utf-8"))
         return [Task(**t) for t in data if isinstance(t, dict)]
-    except Exception:
+    except Exception as e:
+        logger.debug("Falha ao carregar tasks: %s", e)
         return []
 
 

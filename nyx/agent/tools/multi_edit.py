@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
-from nyx.agent.tools.base import RegisteredTool, ToolDef
+from nyx.agent.tools.base import RegisteredTool, ToolDef, validate_path
 
 logger = logging.getLogger("nyx.tools.multi_edit")
 
@@ -48,7 +48,8 @@ class MultiEditTool(RegisteredTool):
             import json
             try:
                 edits = json.loads(edits)
-            except Exception:
+            except Exception as e:
+                logger.warning("Formato de edições inválido: %s", e)
                 return ActionResult(success=False, error="Formato de edições inválido")
 
         backups: list[tuple[Path, str]] = []
@@ -63,7 +64,7 @@ class MultiEditTool(RegisteredTool):
                 if not fp or not old:
                     raise ValueError(f"Edição #{i+1}: file_path ou old_string vazio")
 
-                path = Path(fp) if fp.startswith("/") else Path(project_root) / fp
+                path = validate_path(fp, project_root)
                 if not path.exists():
                     raise FileNotFoundError(f"Arquivo não encontrado: {fp}")
 
@@ -88,8 +89,8 @@ class MultiEditTool(RegisteredTool):
             for path, original in backups:
                 try:
                     path.write_text(original, encoding="utf-8")
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("Falha ao reverter %s: %s", path, e)
             logger.warning("MultiEdit revertido: %s", e)
             return ActionResult(success=False, error=f"Revertido: {e}")
 

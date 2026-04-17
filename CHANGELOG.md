@@ -5,6 +5,22 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.2.0] - 2026-04-16
+
+### Adicionado
+- **Onda 18 -- Portabilidade** (3 sprints concluídas)
+  - PORT-01: auto-tune de GPU em `scripts/detect_gpu.py` (detecta VRAM e calcula num_gpu ideal por modelo); flag `NYX_AUTO_TUNE` em `.env.example`; integrado em `install.sh` e `run.sh`
+  - PORT-02: harness Docker `docker/Dockerfile.clean-boot` + `docker/test-clean-boot.sh` para validar boot em máquina limpa; `install.sh --no-prompt` para execução não-interativa; seção "Portabilidade" no README
+  - PORT-03: robustez de boot -- mensagens claras em `run.sh` para modelo inexistente (R-02) e porta ocupada (R-03); graceful degradation de OOM no `nyx/proxy.py` (R-04) com retry CPU automático
+- 8 testes novos no Gauntlet (fases `gpu_tune`, `portabilidade`, `robustez_boot`)
+- R-02/R-03/R-04 removidos de `UNMAPPED_FEATURES`
+
+### Corrigido
+- `nyx/proxy.py` auto-suficiente como script direto (issue #5): `sys.path.insert` permite `python nyx/proxy.py` e `python -m nyx.proxy`
+
+### Integração
+- **Onda 19 (Luna)** delegada ao repo externo. Sprints I-02 e I-03 marcadas DELEGADA; 4 sprints novas criadas em `Luna/dev-journey/06-sprints/producao/infra/` (INFRA-50 a 53) com código pronto pra copiar: bootstrap, NyxAdapter (IPC subprocess headless), refactor do code_agent, bloco inline na TUI
+
 ## [1.1.1] - 2025-10-01
 
 ### Adicionado

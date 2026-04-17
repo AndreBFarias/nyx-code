@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
-from nyx.agent.tools.base import RegisteredTool, ToolDef
+from nyx.agent.tools.base import RegisteredTool, ToolDef, validate_path
+
+logger = logging.getLogger("nyx.tools.list_files")
 
 
 class ListFilesTool(RegisteredTool):
@@ -22,11 +25,16 @@ class ListFilesTool(RegisteredTool):
 
     def execute(self, params: dict[str, Any], project_root: str) -> ActionResult:
         target_path = params.get("path", ".")
-        root = Path(project_root)
-        target = root / target_path if not Path(target_path).is_absolute() else Path(target_path)
+
+        try:
+            target = validate_path(target_path, project_root)
+        except ValueError as e:
+            return ActionResult(success=False, error=str(e))
 
         if not target.exists():
             return ActionResult(success=False, error=f"Diretório não encontrado: {target}")
+
+        root = Path(project_root).resolve()
 
         try:
             entries = sorted(target.iterdir(), key=lambda p: (not p.is_dir(), p.name))
@@ -40,6 +48,7 @@ class ListFilesTool(RegisteredTool):
                 result += f"\n... e mais {len(entries) - 200} itens"
             return ActionResult(success=True, output=result + "\n[Analise e execute a próxima ação.]")
         except Exception as e:
+            logger.error("Erro ao listar %s: %s", target, e)
             return ActionResult(success=False, error=str(e))
 
 

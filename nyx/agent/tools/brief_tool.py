@@ -30,7 +30,8 @@ class BriefTool(RegisteredTool):
         try:
             reg = ToolRegistry(project_root)
             tool_names = sorted(t["function"]["name"] for t in reg.tool_defs)
-        except Exception:
+        except Exception as e:
+            logger.debug("Falha ao carregar registry para brief: %s", e)
             tool_names = []
 
         lines = [

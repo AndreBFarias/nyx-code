@@ -46,8 +46,26 @@ run.sh ─────> Ollama (:11435) ──> GPU (num_gpu=12, qwen3:4b)
 ./run.sh --gauntlet                      # Completo
 ./run.sh --gauntlet --only rapido        # Infra+proxy+visual+config
 ./run.sh --gauntlet --only coverage      # Cobertura de componentes
+./run.sh --gauntlet --only gpu_tune      # Auto-tune de GPU (PORT-01)
+./run.sh --gauntlet --only portabilidade # Harness Docker existe (PORT-02)
 python scripts/sync.py                   # Consistência N-para-N
 ```
+
+## Portabilidade
+
+Para validar que o projeto funciona em máquina limpa:
+
+```bash
+./docker/test-clean-boot.sh
+```
+
+Builda uma imagem Ubuntu 22.04 mínima, roda `./install.sh --no-prompt` e
+executa `./run.sh --gauntlet --only coverage` dentro dela. Requer Docker +
+NVIDIA Container Toolkit no host (se quiser validar caminho GPU). Sem GPU no
+container, o auto-tune detecta e usa CPU (num_gpu=0).
+
+`install.sh --no-prompt` é não-interativo: preserva binários existentes
+sem perguntar, ideal para CI/container.
 
 ## Tools (34 registradas -- todas funcionais)
 

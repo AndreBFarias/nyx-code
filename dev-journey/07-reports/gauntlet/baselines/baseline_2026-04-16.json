@@ -1,0 +1,19 @@
+{
+  "date": "2026-04-16",
+  "commit": "dbebea3",
+  "model": "qwen3:4b",
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "vram_total_mib": 4096,
+    "num_gpu": 12,
+    "num_ctx": 8192
+  },
+  "kpis": {
+    "gauntlet_total_s": 0.1
+  },
+  "results": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0
+  }
+}

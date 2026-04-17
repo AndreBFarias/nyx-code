@@ -35,6 +35,31 @@ OLLAMA_VERSION="0.13.5"
 PYTHON_MIN="3.10"
 NYX_OLLAMA_PORT="${NYX_OLLAMA_PORT:-11435}"
 
+# --- PARSE FLAGS -------------------------------------------
+NO_PROMPT=0
+for arg in "$@"; do
+    case "$arg" in
+        --no-prompt) NO_PROMPT=1 ;;
+        --help|-h)
+            echo "Uso: $0 [--no-prompt]"
+            echo "  --no-prompt  modo não-interativo (CI/container); preserva binários existentes"
+            exit 0
+            ;;
+    esac
+done
+
+# Helper: pergunta interativa ou default no modo --no-prompt
+ask_or_default() {
+    local prompt="$1"
+    local default_answer="$2"
+    local out_var="$3"
+    if [ "$NO_PROMPT" = "1" ]; then
+        eval "$out_var='$default_answer'"
+    else
+        read -rp "$prompt" "$out_var"
+    fi
+}
+
 # --- BANNER ------------------------------------------------
 echo -e "${PRIMARY}${BOLD}"
 echo "  _   _                ____          _      "
@@ -108,7 +133,7 @@ OLLAMA_URL="https://github.com/ollama/ollama/releases/download/v${OLLAMA_VERSION
 if [ -f "$OLLAMA_BIN" ]; then
     EXISTING_VERSION=$("$OLLAMA_BIN" --version 2>&1 | grep -oP '\d+\.\d+\.\d+' || echo "desconhecida")
     log_nyx "Ollama já existe: versão $EXISTING_VERSION"
-    read -rp "  Baixar novamente? [s/N] " REDOWNLOAD
+    ask_or_default "  Baixar novamente? [s/N] " "n" REDOWNLOAD
     if [[ ! "$REDOWNLOAD" =~ ^[sS]$ ]]; then
         log_nyx "Mantendo binário existente"
     else
@@ -129,7 +154,7 @@ log_step "Configurando ambiente virtual Python"
 
 if [ -d "$SCRIPT_DIR/venv" ]; then
     log_nyx "venv já existe"
-    read -rp "  Recriar? [s/N] " RECREATE
+    ask_or_default "  Recriar? [s/N] " "n" RECREATE
     if [[ "$RECREATE" =~ ^[sS]$ ]]; then
         rm -rf "$SCRIPT_DIR/venv"
         python3 -m venv "$SCRIPT_DIR/venv"
@@ -202,6 +227,18 @@ if [ ! -f "$SCRIPT_DIR/.env" ]; then
     log_ok ".env criado a partir de .env.example"
 else
     log_nyx ".env já existe, mantendo"
+fi
+
+# --- 7b. AUTO-TUNE DE GPU ---------------------------------
+log_step "Auto-tune de GPU"
+
+DEFAULT_TUNE_MODEL="${NYX_MODEL:-qwen3:4b}"
+if "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/scripts/detect_gpu.py" \
+    --write-env --env-path "$SCRIPT_DIR/.env" --model "$DEFAULT_TUNE_MODEL" 2>/dev/null; then
+    TUNED_VALUE=$(grep -E '^NYX_NUM_GPU=' "$SCRIPT_DIR/.env" | tail -1 | cut -d'=' -f2)
+    log_ok "NYX_NUM_GPU=${TUNED_VALUE:-?} (modelo: $DEFAULT_TUNE_MODEL). Desative com NYX_AUTO_TUNE=0 no .env"
+else
+    log_warn "Auto-tune falhou. Edite NYX_NUM_GPU no .env manualmente"
 fi
 
 # --- 8. VERIFICAÇÃO DE SAÚDE ------------------------------

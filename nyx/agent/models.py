@@ -18,6 +18,7 @@ class ActionType(Enum):
     LIST_FILES = "list_files"
     ANALYZE = "analyze"
     PATCH = "patch"
+    REPL = "repl"
     TODO_WRITE = "todo_write"
     WEB_FETCH = "web_fetch"
     WEB_SEARCH = "web_search"

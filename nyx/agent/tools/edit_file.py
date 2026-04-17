@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+import logging
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
-from nyx.agent.tools.base import RegisteredTool, ToolDef
+from nyx.agent.tools.base import RegisteredTool, ToolDef, validate_path
+
+logger = logging.getLogger("nyx.tools.edit_file")
 
 
 class EditFileTool(RegisteredTool):
@@ -26,7 +28,11 @@ class EditFileTool(RegisteredTool):
         file_path = params.get("file_path", "")
         old_string = params.get("old_string", "")
         new_string = params.get("new_string", "")
-        path = Path(project_root) / file_path if not Path(file_path).is_absolute() else Path(file_path)
+
+        try:
+            path = validate_path(file_path, project_root)
+        except ValueError as e:
+            return ActionResult(success=False, error=str(e))
 
         if not path.exists():
             return ActionResult(success=False, error=f"Arquivo não encontrado: {path}")
@@ -48,6 +54,7 @@ class EditFileTool(RegisteredTool):
                 files_modified=[str(path)],
             )
         except Exception as e:
+            logger.error("Erro ao editar %s: %s", path, e)
             return ActionResult(success=False, error=str(e))
 
 

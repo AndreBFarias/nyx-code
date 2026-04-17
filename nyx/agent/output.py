@@ -199,7 +199,8 @@ class NyxSpinner:
                 spinner = Spinner("dots", text=f"  [dim]{self._message}[/dim]")
                 self._live = Live(spinner, console=self._console, refresh_per_second=10)
                 self._live.start()
-            except Exception:
+            except Exception as e:
+                logger.debug("Rich spinner falhou: %s", e)
                 import sys
                 sys.stdout.write(f"  {self._message}")
                 sys.stdout.flush()
@@ -213,8 +214,8 @@ class NyxSpinner:
         if hasattr(self, "_live"):
             try:
                 self._live.stop()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Erro ao parar spinner: %s", e)
         elif not RICH_AVAILABLE:
             import sys
             sys.stdout.write("\r" + " " * 40 + "\r")

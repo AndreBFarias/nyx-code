@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
-from nyx.agent.tools.base import RegisteredTool, ToolDef
+from nyx.agent.tools.base import RegisteredTool, ToolDef, validate_path
 
 logger = logging.getLogger("nyx.tools.patch")
 
@@ -37,7 +37,11 @@ class PatchTool(RegisteredTool):
         if not patch_content:
             return ActionResult(success=False, error="patch vazio")
 
-        path = Path(file_path) if file_path.startswith("/") else Path(project_root) / file_path
+        try:
+            path = validate_path(file_path, project_root)
+        except ValueError as e:
+            return ActionResult(success=False, error=str(e))
+
         if not path.exists():
             return ActionResult(success=False, error=f"Arquivo não encontrado: {file_path}")
 

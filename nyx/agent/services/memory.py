@@ -44,7 +44,8 @@ class SessionMemory:
                 data = json.loads(f.read_text(encoding="utf-8"))
                 for item in data:
                     self._cache.append(Memory(**item))
-            except Exception:
+            except Exception as e:
+                logger.warning("Falha ao carregar memória %s: %s", f.name, e)
                 continue
 
     def save(self, key: str, content: str, tags: list[str] | None = None,

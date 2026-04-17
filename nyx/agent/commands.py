@@ -226,7 +226,8 @@ def cmd_doctor(_args: str, project_root: str) -> str:
         ver = r.json().get("version", "?")
         checks.append(f"[OK] Ollama: v{ver} (porta 11435)")
         ollama_ok = True
-    except Exception:
+    except Exception as e:
+        logger.debug("Ollama health check falhou: %s", e)
         checks.append("[ERRO] Ollama: não responde na porta 11435")
 
     try:
@@ -234,7 +235,8 @@ def cmd_doctor(_args: str, project_root: str) -> str:
         r = httpx.get("http://127.0.0.1:11436/v1/models", timeout=5)
         models = r.json().get("data", [])
         checks.append(f"[OK] Proxy: {len(models)} modelo(s) (porta 11436)")
-    except Exception:
+    except Exception as e:
+        logger.debug("Proxy health check falhou: %s", e)
         checks.append("[ERRO] Proxy: não responde na porta 11436")
 
     try:
@@ -247,7 +249,8 @@ def cmd_doctor(_args: str, project_root: str) -> str:
         used = parts[1].strip()
         total = parts[2].strip()
         checks.append(f"[OK] GPU: {gpu} ({used}/{total} MiB)")
-    except Exception:
+    except Exception as e:
+        logger.debug("nvidia-smi indisponível: %s", e)
         checks.append("[AVISO] GPU: nvidia-smi indisponível")
 
     root = _Path(project_root)
@@ -602,10 +605,11 @@ def cmd_files(_args: str, _root: str) -> str:
              category="projeto", aliases=['v'])
 def cmd_version(_args: str, _root: str) -> str:
     import os
+    from nyx.__version__ import __version__
     model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", "qwen3:4b"))
     proxy = os.environ.get("OPENAI_BASE_URL", "http://127.0.0.1:11436/v1")
     return (
-        f"  Nyx v1.2.0\n"
+        f"  Nyx v{__version__}\n"
         f"  Modelo: {model}\n"
         f"  Proxy: {proxy}\n"
         f"  Python: {sys.version.split()[0]}\n"

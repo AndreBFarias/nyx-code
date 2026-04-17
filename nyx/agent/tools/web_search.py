@@ -123,7 +123,8 @@ class WebSearchEngine:
                         raw = list(ddgs.text(query, region=region, safesearch="off", max_results=max_results))
                     if raw:
                         break
-                except Exception:
+                except Exception as e:
+                    logger.debug("Falha na busca DuckDuckGo região %s: %s", region, e)
                     continue
             else:
                 return []

@@ -1,0 +1,34 @@
+# Dockerfile.clean-boot -- harness de teste de portabilidade
+# NAO e imagem de producao. Simula maquina Linux limpa para validar
+# que ./install.sh + ./run.sh funcionam em ambiente minimo.
+#
+# Uso (via docker/test-clean-boot.sh):
+#   docker build -t nyx-clean-boot:test -f docker/Dockerfile.clean-boot .
+#   docker run --rm --gpus all nyx-clean-boot:test -c "./install.sh --no-prompt"
+
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.10 python3.10-venv python3-pip \
+    curl ca-certificates tar lsof netcat-openbsd \
+    build-essential \
+    locales \
+    && locale-gen pt_BR.UTF-8 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN ln -sf /usr/bin/python3.10 /usr/bin/python3
+
+WORKDIR /nyx
+COPY . /nyx
+
+# Quando rodar sem --gpus all, Ollama cai em modo CPU automaticamente (num_gpu=0).
+# Com --gpus all e NVIDIA Container Toolkit, detect_gpu.py calibra num_gpu real.
+
+ENTRYPOINT ["/bin/bash"]
+
+
+# "Simplicidade e a sofisticacao maxima." -- Leonardo da Vinci

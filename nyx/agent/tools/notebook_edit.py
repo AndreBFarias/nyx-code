@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
-from nyx.agent.tools.base import RegisteredTool, ToolDef
+from nyx.agent.tools.base import RegisteredTool, ToolDef, validate_path
 
 logger = logging.getLogger("nyx.tools.notebook")
 
@@ -53,7 +53,11 @@ class NotebookEditTool(RegisteredTool):
         if not nb_path:
             return ActionResult(success=False, error="Caminho do notebook vazio")
 
-        full_path = Path(project_root) / nb_path if not Path(nb_path).is_absolute() else Path(nb_path)
+        try:
+            full_path = validate_path(nb_path, project_root)
+        except ValueError as e:
+            return ActionResult(success=False, error=str(e))
+
         if not full_path.exists():
             return ActionResult(success=False, error=f"Notebook não encontrado: {nb_path}")
         if full_path.suffix != ".ipynb":

@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+import logging
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
-from nyx.agent.tools.base import RegisteredTool, ToolDef
+from nyx.agent.tools.base import RegisteredTool, ToolDef, validate_path
+
+logger = logging.getLogger("nyx.tools.write_file")
 
 
 class WriteFileTool(RegisteredTool):
@@ -24,7 +26,11 @@ class WriteFileTool(RegisteredTool):
     def execute(self, params: dict[str, Any], project_root: str) -> ActionResult:
         file_path = params.get("file_path", "")
         content = params.get("content", "")
-        path = Path(project_root) / file_path if not Path(file_path).is_absolute() else Path(file_path)
+
+        try:
+            path = validate_path(file_path, project_root)
+        except ValueError as e:
+            return ActionResult(success=False, error=str(e))
 
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -35,6 +41,7 @@ class WriteFileTool(RegisteredTool):
                 files_modified=[str(path)],
             )
         except Exception as e:
+            logger.error("Erro ao escrever %s: %s", path, e)
             return ActionResult(success=False, error=str(e))
 
 

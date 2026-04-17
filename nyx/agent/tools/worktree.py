@@ -108,8 +108,8 @@ class ExitWorktreeTool(RegisteredTool):
                 timeout=10,
             )
             diff_output = diff.stdout.strip()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Falha ao obter diff do worktree: %s", e)
 
         try:
             subprocess.run(
@@ -131,8 +131,8 @@ class ExitWorktreeTool(RegisteredTool):
                     text=True,
                     timeout=10,
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Falha ao deletar branch do worktree: %s", e)
 
         _active_worktree.clear()
 

@@ -137,15 +137,25 @@ kill_existing_ollama() {
     # Parar proxy anterior
     pkill -f "nyx/proxy.py" 2>/dev/null || true
 
-    # Parar qualquer Ollama existente nesta porta
     local existing_pid
     existing_pid=$(lsof -ti:"$NYX_OLLAMA_PORT" 2>/dev/null || true)
     if [ -n "$existing_pid" ]; then
-        log_nyx "Parando Ollama existente na porta $NYX_OLLAMA_PORT (PID: $existing_pid)..."
-        kill "$existing_pid" 2>/dev/null || true
-        sleep 1
-        kill -9 "$existing_pid" 2>/dev/null || true
-        sleep 1
+        local owner
+        owner=$(ps -p "$existing_pid" -o comm= 2>/dev/null || echo "desconhecido")
+        if echo "$owner" | grep -qi ollama; then
+            log_nyx "Parando Ollama existente na porta $NYX_OLLAMA_PORT (PID: $existing_pid)..."
+            kill "$existing_pid" 2>/dev/null || true
+            sleep 1
+            kill -9 "$existing_pid" 2>/dev/null || true
+            sleep 1
+        else
+            log_err "Porta $NYX_OLLAMA_PORT ocupada por processo não-Ollama (PID $existing_pid, $owner)."
+            log_err "Opções:"
+            log_err "  1. Matar manualmente: kill $existing_pid"
+            log_err "  2. Usar outra porta: NYX_OLLAMA_PORT=11437 ./run.sh"
+            log_err "  3. Definir em .env: NYX_OLLAMA_PORT=XXXXX"
+            exit 1
+        fi
     fi
 
     # Matar processos ollama serve órfãos do Nyx-Code
@@ -192,9 +202,15 @@ stop_ollama() {
 check_model() {
     if ! "$OLLAMA_BIN" list 2>/dev/null | grep -q "$MODEL"; then
         log_warn "Modelo $MODEL não encontrado localmente"
-        log_nyx "Baixando $MODEL..."
-        if ! "$OLLAMA_BIN" pull "$MODEL"; then
-            log_err "Falha ao baixar $MODEL"
+        log_nyx "Tentando baixar $MODEL..."
+        if ! "$OLLAMA_BIN" pull "$MODEL" 2>&1 | tee -a "$SCRIPT_DIR/logs/ollama.log"; then
+            log_err "Falha ao baixar modelo: $MODEL"
+            log_err "Causas possíveis:"
+            log_err "  1. Nome de modelo incorreto (verifique NYX_MODEL no .env)"
+            log_err "  2. Sem conexão com registry Ollama"
+            log_err "  3. Modelo não existe no registry público"
+            log_err "Modelos disponíveis localmente:"
+            "$OLLAMA_BIN" list 2>/dev/null | sed 's/^/    /' || true
             exit 1
         fi
         log_ok "$MODEL baixado"
@@ -222,6 +238,26 @@ warmup_model() {
     fi
 }
 
+# ─── AUTO-TUNE DE GPU ────────────────────────────────────
+auto_tune_gpu() {
+    if [ "${NYX_AUTO_TUNE:-1}" != "1" ]; then
+        log_nyx "Auto-tune desativado (NYX_AUTO_TUNE=${NYX_AUTO_TUNE:-1}). Usando NYX_NUM_GPU=${NYX_NUM_GPU:-12}"
+        return 0
+    fi
+    if [ ! -x "$SCRIPT_DIR/venv/bin/python" ]; then
+        return 0
+    fi
+    local tuned
+    tuned=$("$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/scripts/detect_gpu.py" --for-model "$MODEL" 2>/dev/null)
+    if [[ "$tuned" =~ ^[0-9]+$ ]]; then
+        NYX_NUM_GPU="$tuned"
+        export NYX_NUM_GPU
+        log_ok "Auto-tune: num_gpu=$NYX_NUM_GPU para $MODEL"
+    else
+        log_warn "Auto-tune retornou valor inválido ('$tuned'). Mantendo NYX_NUM_GPU=${NYX_NUM_GPU:-12}"
+    fi
+}
+
 # ─── CONFIGURAÇÃO VRAM (7b) ──────────────────────────────
 configure_vram() {
     if [[ "$MODEL" != *"7b"* ]]; then
@@ -239,7 +275,7 @@ configure_vram() {
         fi
     fi
 
-    log_nyx "num_gpu=18 (~2.4GB VRAM, restante em CPU)"
+    log_nyx "num_gpu=${NYX_NUM_GPU:-18} (calibrado pelo auto-tune ou .env)"
 }
 
 # ─── BANNER ───────────────────────────────────────────────
@@ -297,6 +333,7 @@ validate
 kill_existing_ollama
 start_ollama
 check_model
+auto_tune_gpu
 configure_vram
 show_banner
 

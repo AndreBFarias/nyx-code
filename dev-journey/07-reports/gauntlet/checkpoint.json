@@ -1,26 +1,66 @@
 {
-  "timestamp": "2026-04-08T21:24:55.054658",
+  "timestamp": "2026-04-16T23:10:13.766092",
   "model": "qwen3:4b",
   "phases_done": [],
   "results": [
     {
-      "feature_id": "I-01",
-      "name": "Ollama respondendo",
-      "phase": "infra",
+      "feature_id": "COV-01",
+      "name": "Todo .py em tools/ importado no registry",
+      "phase": "coverage",
       "passed": true,
-      "elapsed_s": 0.02,
+      "elapsed_s": 0.0,
       "tokens": 0,
-      "details": "",
+      "details": "27 arquivos, 0 sem import",
       "error": ""
     },
     {
-      "feature_id": "I-03",
-      "name": "Versão Ollama",
-      "phase": "infra",
+      "feature_id": "COV-02",
+      "name": "Registry tool_count >= 34 (atual: 34)",
+      "phase": "coverage",
       "passed": true,
-      "elapsed_s": 0.02,
+      "elapsed_s": 0.01,
       "tokens": 0,
-      "details": "0.13.5",
+      "details": "tools=34",
+      "error": ""
+    },
+    {
+      "feature_id": "COV-03",
+      "name": "Todo service importa sem erro",
+      "phase": "coverage",
+      "passed": true,
+      "elapsed_s": 0.01,
+      "tokens": 0,
+      "details": "10 services, 0 falhas",
+      "error": ""
+    },
+    {
+      "feature_id": "COV-04",
+      "name": "Nenhum test_*.py solto no projeto",
+      "phase": "coverage",
+      "passed": true,
+      "elapsed_s": 0.03,
+      "tokens": 0,
+      "details": "0 test_*.py encontrados",
+      "error": ""
+    },
+    {
+      "feature_id": "COV-05",
+      "name": "Commands registrados >= 33 (atual: 47)",
+      "phase": "coverage",
+      "passed": true,
+      "elapsed_s": 0.0,
+      "tokens": 0,
+      "details": "commands=47",
+      "error": ""
+    },
+    {
+      "feature_id": "COV-06",
+      "name": "scaffold.py existe e --help funciona",
+      "phase": "coverage",
+      "passed": true,
+      "elapsed_s": 0.04,
+      "tokens": 0,
+      "details": "exists=True help=True",
       "error": ""
     }
   ],

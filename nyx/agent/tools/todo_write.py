@@ -95,7 +95,8 @@ def _load_todos() -> list[dict[str, str]]:
     try:
         data = json.loads(TODOS_FILE.read_text(encoding="utf-8"))
         return data if isinstance(data, list) else []
-    except Exception:
+    except Exception as e:
+        logger.debug("Falha ao carregar todos: %s", e)
         return []
 
 

@@ -16,6 +16,10 @@ bin/ollama
 reference/dist/
 dist
 
+# Source TypeScript original (35MB, referência local; ver dev-journey/PORT_STATUS.md)
+openclaud/
+reference/
+
 # Node.js (deps da TUI)
 node_modules/
 package-lock.json

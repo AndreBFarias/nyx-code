@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+import logging
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
-from nyx.agent.tools.base import RegisteredTool, ToolDef
+from nyx.agent.tools.base import MAX_FILE_SIZE, RegisteredTool, ToolDef, validate_path
+
+logger = logging.getLogger("nyx.tools.read_file")
 
 
 class ReadFileTool(RegisteredTool):
@@ -22,12 +24,24 @@ class ReadFileTool(RegisteredTool):
 
     def execute(self, params: dict[str, Any], project_root: str) -> ActionResult:
         file_path = params.get("file_path", "")
-        path = Path(project_root) / file_path if not Path(file_path).is_absolute() else Path(file_path)
+
+        try:
+            path = validate_path(file_path, project_root)
+        except ValueError as e:
+            return ActionResult(success=False, error=str(e))
 
         if not path.exists():
             return ActionResult(success=False, error=f"Arquivo não encontrado: {path}")
         if not path.is_file():
             return ActionResult(success=False, error=f"Não é um arquivo: {path}")
+
+        file_size = path.stat().st_size
+        if file_size > MAX_FILE_SIZE:
+            size_mb = file_size / 1_048_576
+            return ActionResult(
+                success=False,
+                error=f"Arquivo muito grande: {size_mb:.1f}MB (limite: {MAX_FILE_SIZE // 1_048_576}MB)",
+            )
 
         try:
             content = path.read_text(encoding="utf-8", errors="replace")
@@ -39,6 +53,7 @@ class ReadFileTool(RegisteredTool):
                 files_read=[str(path)],
             )
         except Exception as e:
+            logger.error("Erro ao ler %s: %s", path, e)
             return ActionResult(success=False, error=str(e))
 
 

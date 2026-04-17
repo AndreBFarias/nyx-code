@@ -92,6 +92,9 @@ PHASE_GROUPS: dict[str, list[str]] = {
     "infra_scaffold": ["infra_scaffold"],
     "coverage": ["coverage"],
     "infra_sync": ["infra_sync"],
+    "gpu_tune": ["gpu_tune"],
+    "portabilidade": ["portabilidade"],
+    "robustez_boot": ["robustez_boot"],
     "p7_tui": ["p7_tui"],
     "p7_completion": ["p7_completion"],
     "p7_visual": ["p7_visual"],
@@ -121,6 +124,7 @@ PHASE_GROUPS: dict[str, list[str]] = {
         "p5_git", "p5_config", "p5_session", "p5_execution",
         "p6_memoria", "p6_qualidade", "p8_edicao", "p8_provider",
         "infra_scaffold", "coverage", "infra_sync",
+        "gpu_tune", "portabilidade", "robustez_boot",
         "p7_tui", "p7_completion", "p7_visual",
         "p10_projeto", "p10_debug",
         "p10_memoria", "p10_avancado", "p10_root",
@@ -168,6 +172,9 @@ PHASE_TIMEOUTS: dict[str, int] = {
     "infra_scaffold": 30,
     "coverage": 30,
     "infra_sync": 30,
+    "gpu_tune": 30,
+    "portabilidade": 30,
+    "robustez_boot": 30,
     "p7_tui": 30,
     "p7_completion": 30,
     "p7_visual": 30,
@@ -212,9 +219,6 @@ UNMAPPED_FEATURES = [
     "K-06: Tokens por resposta chat (coberto por K-03)",
     "K-07: Tokens por resposta tool (coberto por K-04)",
     "K-09: VRAM pico (requer monitoramento contínuo)",
-    "R-02: Modelo não existe (requer modelo ausente)",
-    "R-03: Porta já ocupada (requer conflito de porta)",
-    "R-04: VRAM insuficiente (requer OOM real)",
 ]
 
 EMOJI_PATTERN = re.compile(
@@ -2341,6 +2345,194 @@ class NyxGauntlet:
         except Exception as e:
             self._add("COV-06", "scaffold.py existe e --help funciona", "coverage",
                        False, time.monotonic() - t, error=str(e))
+
+    # ═══════════════════════════════════════════════════════════════════
+    # FASE: GPU_TUNE (3 testes -- portabilidade PORT-01)
+    # ═══════════════════════════════════════════════════════════════════
+
+    async def _phase_gpu_tune(self) -> None:
+        import json as _json
+        import os as _os
+        import subprocess as _sub
+        import tempfile as _tmp
+
+        script = PROJECT_ROOT / "scripts" / "detect_gpu.py"
+        python = PROJECT_ROOT / "venv" / "bin" / "python"
+
+        # GPU-01: --dry-run retorna JSON válido com chaves esperadas
+        t = time.monotonic()
+        try:
+            r = _sub.run(
+                [str(python), str(script), "--dry-run"],
+                capture_output=True, text=True, timeout=15,
+            )
+            payload = _json.loads(r.stdout)
+            required = {"has_gpu", "vram_total_mb", "vram_free_mb",
+                         "num_gpu_per_model", "reserved_mb"}
+            ok = r.returncode == 0 and required.issubset(payload.keys())
+            details = (
+                f"gpu={payload.get('gpu_name')} vram_free={payload.get('vram_free_mb')}MB "
+                f"num_gpu={payload.get('num_gpu_per_model')}"
+            )
+            self._add("GPU-01", "detect_gpu.py --dry-run retorna JSON válido",
+                       "gpu_tune", ok, time.monotonic() - t, details=details)
+        except Exception as e:
+            self._add("GPU-01", "detect_gpu.py --dry-run retorna JSON válido",
+                       "gpu_tune", False, time.monotonic() - t, error=str(e))
+
+        # GPU-02: fallback CPU quando nvidia-smi ausente (PATH vazio)
+        t = time.monotonic()
+        try:
+            env = {"PATH": "", "HOME": _os.environ.get("HOME", "/tmp")}
+            r = _sub.run(
+                [str(python), str(script), "--for-model", "qwen3:4b"],
+                capture_output=True, text=True, timeout=10, env=env,
+            )
+            val = r.stdout.strip()
+            ok = r.returncode == 0 and val == "0"
+            self._add("GPU-02", "Fallback CPU (num_gpu=0) sem nvidia-smi",
+                       "gpu_tune", ok, time.monotonic() - t,
+                       details=f"stdout={val!r}")
+        except Exception as e:
+            self._add("GPU-02", "Fallback CPU (num_gpu=0) sem nvidia-smi",
+                       "gpu_tune", False, time.monotonic() - t, error=str(e))
+
+        # GPU-03: NYX_AUTO_TUNE=0 preserva .env (não sobrescreve)
+        t = time.monotonic()
+        try:
+            with _tmp.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as fh:
+                fh.write("NYX_AUTO_TUNE=0\nNYX_NUM_GPU=7\n")
+                tmp_path = fh.name
+            r = _sub.run(
+                [str(python), str(script), "--write-env",
+                 "--env-path", tmp_path, "--model", "qwen3:4b"],
+                capture_output=True, text=True, timeout=10,
+            )
+            after = Path(tmp_path).read_text(encoding="utf-8")
+            Path(tmp_path).unlink(missing_ok=True)
+            preserved = "NYX_NUM_GPU=7" in after and "NYX_AUTO_TUNE=0" in after
+            ok = r.returncode == 0 and preserved
+            self._add("GPU-03", "NYX_AUTO_TUNE=0 preserva .env existente",
+                       "gpu_tune", ok, time.monotonic() - t,
+                       details=f"preserved={preserved}")
+        except Exception as e:
+            self._add("GPU-03", "NYX_AUTO_TUNE=0 preserva .env existente",
+                       "gpu_tune", False, time.monotonic() - t, error=str(e))
+
+    # ═══════════════════════════════════════════════════════════════════
+    # FASE: PORTABILIDADE (2 testes -- PORT-02 Docker clean-boot)
+    # ═══════════════════════════════════════════════════════════════════
+
+    async def _phase_portabilidade(self) -> None:
+        import subprocess as _sub
+
+        # PORT-DOCKER-01: Dockerfile.clean-boot existe e tem diretivas esperadas
+        t = time.monotonic()
+        try:
+            dockerfile = PROJECT_ROOT / "docker" / "Dockerfile.clean-boot"
+            script = PROJECT_ROOT / "docker" / "test-clean-boot.sh"
+            content = dockerfile.read_text(encoding="utf-8") if dockerfile.exists() else ""
+            required = ["FROM ubuntu", "python3.10", "WORKDIR", "COPY", "ENTRYPOINT"]
+            missing = [d for d in required if d not in content]
+            script_ok = script.exists() and script.stat().st_mode & 0o111
+            ok = dockerfile.exists() and not missing and bool(script_ok)
+            self._add(
+                "PORT-DOCKER-01",
+                "Dockerfile.clean-boot + test-clean-boot.sh presentes",
+                "portabilidade", ok, time.monotonic() - t,
+                details=f"dockerfile={dockerfile.exists()} missing={missing} script_exec={bool(script_ok)}",
+            )
+        except Exception as e:
+            self._add("PORT-DOCKER-01",
+                       "Dockerfile.clean-boot + test-clean-boot.sh presentes",
+                       "portabilidade", False, time.monotonic() - t, error=str(e))
+
+        # PORT-DOCKER-02: install.sh --help reconhece --no-prompt
+        t = time.monotonic()
+        try:
+            install_sh = PROJECT_ROOT / "install.sh"
+            r = _sub.run(
+                ["bash", str(install_sh), "--help"],
+                capture_output=True, text=True, timeout=10,
+            )
+            ok = r.returncode == 0 and "--no-prompt" in r.stdout
+            self._add("PORT-DOCKER-02", "install.sh --help anuncia --no-prompt",
+                       "portabilidade", ok, time.monotonic() - t,
+                       details=f"exit={r.returncode} stdout_head={r.stdout[:60]!r}")
+        except Exception as e:
+            self._add("PORT-DOCKER-02", "install.sh --help anuncia --no-prompt",
+                       "portabilidade", False, time.monotonic() - t, error=str(e))
+
+    # ═══════════════════════════════════════════════════════════════════
+    # FASE: ROBUSTEZ_BOOT (3 testes -- PORT-03 R-02/R-03/R-04)
+    # ═══════════════════════════════════════════════════════════════════
+
+    async def _phase_robustez_boot(self) -> None:
+        run_sh = PROJECT_ROOT / "run.sh"
+        proxy_py = PROJECT_ROOT / "nyx" / "proxy.py"
+
+        # RB-01: run.sh tem mensagens claras para modelo inexistente (R-02)
+        t = time.monotonic()
+        try:
+            src = run_sh.read_text(encoding="utf-8")
+            sinais = [
+                "verifique NYX_MODEL",
+                "conexão",
+                "registry",
+                "Modelos disponíveis localmente",
+            ]
+            faltantes = [s for s in sinais if s not in src]
+            ok = not faltantes
+            self._add("RB-01", "Mensagens claras para modelo inexistente (R-02)",
+                       "robustez_boot", ok, time.monotonic() - t,
+                       details=f"faltantes={faltantes}")
+        except Exception as e:
+            self._add("RB-01", "Mensagens claras para modelo inexistente (R-02)",
+                       "robustez_boot", False, time.monotonic() - t, error=str(e))
+
+        # RB-02: run.sh tem mensagens claras para porta ocupada por não-Ollama (R-03)
+        t = time.monotonic()
+        try:
+            src = run_sh.read_text(encoding="utf-8")
+            sinais = [
+                "não-Ollama",
+                "NYX_OLLAMA_PORT=11437",
+                "kill ",
+                "Matar manualmente",
+            ]
+            faltantes = [s for s in sinais if s not in src]
+            ok = not faltantes
+            self._add("RB-02", "Mensagens claras para porta ocupada (R-03)",
+                       "robustez_boot", ok, time.monotonic() - t,
+                       details=f"faltantes={faltantes}")
+        except Exception as e:
+            self._add("RB-02", "Mensagens claras para porta ocupada (R-03)",
+                       "robustez_boot", False, time.monotonic() - t, error=str(e))
+
+        # RB-03: proxy.py detecta OOM e tem lógica de graceful degradation (R-04)
+        t = time.monotonic()
+        try:
+            import importlib as _imp
+            mod = _imp.import_module("nyx.proxy")
+            is_oom = getattr(mod, "_is_oom_error", None)
+            has_flag = hasattr(mod, "_OOM_DEGRADED")
+            padroes = [
+                "CUDA out of memory",
+                "cudaMalloc failed",
+                "requires more memory",
+                "out of memory: not enough free VRAM",
+            ]
+            detecta = is_oom is not None and all(is_oom(p) for p in padroes)
+            nao_falso_positivo = is_oom is not None and not is_oom("resposta normal sem erro")
+            src = proxy_py.read_text(encoding="utf-8")
+            tem_retry = "OOM recovery OK" in src and "num_gpu\"] = 0" in src
+            ok = bool(has_flag and detecta and nao_falso_positivo and tem_retry)
+            self._add("RB-03", "Proxy detecta OOM e degrada num_gpu=0 (R-04)",
+                       "robustez_boot", ok, time.monotonic() - t,
+                       details=f"has_flag={has_flag} detecta={detecta} sem_fp={nao_falso_positivo} retry={tem_retry}")
+        except Exception as e:
+            self._add("RB-03", "Proxy detecta OOM e degrada num_gpu=0 (R-04)",
+                       "robustez_boot", False, time.monotonic() - t, error=str(e))
 
     # ── Helpers ──────────────────────────────────────────────────────
 

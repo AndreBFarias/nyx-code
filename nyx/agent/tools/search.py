@@ -2,14 +2,20 @@
 
 from __future__ import annotations
 
+import logging
 import re
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
-from nyx.agent.tools.base import RegisteredTool, ToolDef
+from nyx.agent.tools.base import RegisteredTool, ToolDef, validate_path
+
+logger = logging.getLogger("nyx.tools.search")
 
 EXCLUDE_DIRS = {"__pycache__", ".git", "node_modules", "venv", ".venv", "dist"}
+_SEARCH_TIMEOUT = 30
 
 
 class SearchTool(RegisteredTool):
@@ -28,13 +34,62 @@ class SearchTool(RegisteredTool):
         pattern = params.get("pattern", "")
         search_path = params.get("path", ".")
         root = Path(project_root)
-        target = root / search_path if not Path(search_path).is_absolute() else Path(search_path)
+
+        try:
+            target = validate_path(search_path, project_root)
+        except ValueError as e:
+            return ActionResult(success=False, error=str(e))
 
         try:
             regex = re.compile(pattern, re.IGNORECASE)
         except re.error as e:
             return ActionResult(success=False, error=f"Regex inválido: {e}")
 
+        fast = self._search_fast(pattern, target, root)
+        if fast is not None:
+            return fast
+
+        return self._search_walk(regex, target, root)
+
+    def _search_fast(self, pattern: str, target: Path, root: Path) -> ActionResult | None:
+        """Busca rápida via rg ou grep. Retorna None se indisponível."""
+        for cmd in ("rg", "grep"):
+            binary = shutil.which(cmd)
+            if not binary:
+                continue
+
+            args: list[str] = []
+            if cmd == "rg":
+                args = [binary, "-in", "--max-count=100", "--no-heading", pattern, str(target)]
+            else:
+                args = [binary, "-rin", "--max-count=100", pattern, str(target)]
+
+            try:
+                proc = subprocess.run(
+                    args, capture_output=True, text=True,
+                    timeout=_SEARCH_TIMEOUT, cwd=str(root),
+                )
+                if proc.returncode not in (0, 1):
+                    continue
+
+                output = proc.stdout.strip()
+                if not output:
+                    return ActionResult(success=True, output=f"Nenhum resultado para: {pattern}")
+
+                lines = output.splitlines()[:100]
+                result = "\n".join(lines)
+                if len(lines) >= 100:
+                    result += "\n... (limitado a 100 resultados)"
+                logger.info("Busca rápida via %s: %d resultados", cmd, len(lines))
+                return ActionResult(success=True, output=result + "\n[Analise e execute a próxima ação.]")
+            except Exception as e:
+                logger.debug("Busca rápida via %s falhou: %s", cmd, e)
+                continue
+
+        return None
+
+    def _search_walk(self, regex: re.Pattern, target: Path, root: Path) -> ActionResult:
+        """Busca lenta via walk Python (fallback)."""
         matches: list[str] = []
         try:
             files = [target] if target.is_file() else sorted(target.rglob("*"))
@@ -52,15 +107,15 @@ class SearchTool(RegisteredTool):
                             matches.append(f"{rel}:{i}: {line.strip()[:120]}")
                             if len(matches) >= 100:
                                 break
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Falha ao ler %s: %s", f, e)
                 if len(matches) >= 100:
                     break
         except Exception as e:
             return ActionResult(success=False, error=str(e))
 
         if not matches:
-            return ActionResult(success=True, output=f"Nenhum resultado para: {pattern}")
+            return ActionResult(success=True, output=f"Nenhum resultado para: {regex.pattern}")
 
         result = "\n".join(matches)
         if len(matches) >= 100:
