@@ -31,10 +31,11 @@ class InternalLogging:
         )
         self._handler.setFormatter(formatter)
 
-        root = logging.getLogger("nyx")
-        if not any(isinstance(h, RotatingFileHandler) for h in root.handlers):
-            root.addHandler(self._handler)
-            root.setLevel(logging.INFO)
+        nyx_logger = logging.getLogger("nyx")
+        if not any(isinstance(h, RotatingFileHandler) for h in nyx_logger.handlers):
+            nyx_logger.addHandler(self._handler)
+            nyx_logger.setLevel(logging.INFO)
+        nyx_logger.propagate = False
 
         logger.info("Logging rotacionado ativo: %s", LOG_FILE)
 

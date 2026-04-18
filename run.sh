@@ -10,17 +10,17 @@ cd "$SCRIPT_DIR"
 
 # ─── CORES (Paleta Nyx - entidade do panteão Luna) ──────────
 if [ -t 1 ]; then
-    PRIMARY='\033[38;2;0;212;170m'      # #00D4AA - cor principal Nyx (cyan/teal)
-    SECONDARY='\033[38;2;108;122;137m'  # #6C7A89 - secundária
-    ACCENT='\033[38;2;232;232;232m'     # #E8E8E8 - destaque/texto
-    GREEN='\033[38;2;0;212;170m'        # #00D4AA - sucesso (= primary)
-    ORANGE='\033[38;2;255;184;108m'     # #FFB86C - avisos
-    RED='\033[38;2;255;107;107m'        # #FF6B6B - erros (Nyx)
-    COMMENT='\033[38;2;108;122;137m'    # #6C7A89 - secundário
-    FG='\033[38;2;232;232;232m'         # #E8E8E8 - texto primário
-    BOLD='\033[1m'
-    DIM='\033[2m'
-    NC='\033[0m'
+    PRIMARY=$'\033[38;2;0;212;170m'      # #00D4AA - cor principal Nyx (cyan/teal)
+    SECONDARY=$'\033[38;2;108;122;137m'  # #6C7A89 - secundária
+    ACCENT=$'\033[38;2;232;232;232m'     # #E8E8E8 - destaque/texto
+    GREEN=$'\033[38;2;0;212;170m'        # #00D4AA - sucesso (= primary)
+    ORANGE=$'\033[38;2;255;184;108m'     # #FFB86C - avisos
+    RED=$'\033[38;2;255;107;107m'        # #FF6B6B - erros (Nyx)
+    COMMENT=$'\033[38;2;108;122;137m'    # #6C7A89 - secundário
+    FG=$'\033[38;2;232;232;232m'         # #E8E8E8 - texto primário
+    BOLD=$'\033[1m'
+    DIM=$'\033[2m'
+    NC=$'\033[0m'
 else
     PRIMARY='' SECONDARY='' ACCENT='' GREEN='' ORANGE='' RED='' COMMENT='' FG='' BOLD='' DIM='' NC=''
 fi

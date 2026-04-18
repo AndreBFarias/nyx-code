@@ -29,11 +29,9 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-logging.basicConfig(
-    level=logging.WARNING,
-    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-    datefmt="%H:%M:%S",
-)
+from nyx.agent.services.logging_service import InternalLogging
+
+InternalLogging()
 logger = logging.getLogger("nyx.cli")
 
 from nyx.__version__ import __version__ as NYX_VERSION
@@ -48,16 +46,21 @@ NC = "\033[0m"
 
 
 def _build_banner(model: str, tools_count: int, project: str) -> str:
-    return f"""
-  {ACCENT}{BOLD}+==========================================+{NC}
-  {ACCENT}{BOLD}|{NC}  {BOLD}NYX{NC} -- Code Agent Local v{NYX_VERSION}        {ACCENT}{BOLD}|{NC}
-  {ACCENT}{BOLD}|{NC}  Modelo: {model:<31s}{ACCENT}{BOLD}|{NC}
-  {ACCENT}{BOLD}|{NC}  Projeto: {project:<30s}{ACCENT}{BOLD}|{NC}
-  {ACCENT}{BOLD}|{NC}  Tools: {tools_count:<2d} | 100%% offline             {ACCENT}{BOLD}|{NC}
-  {ACCENT}{BOLD}+==========================================+{NC}
-
-  {DIM}/help para comandos. Ctrl+D para sair.{NC}
-"""
+    title = f"Nyx -- Code Agent Local v{NYX_VERSION}"
+    tools_info = f"{tools_count}        100% offline"
+    lines = [
+        "",
+        f"  {ACCENT}{BOLD}╭──────────────────────────────────────────╮{NC}",
+        f"  {ACCENT}{BOLD}│{NC}  {BOLD}{title:<40s}{NC}{ACCENT}{BOLD}│{NC}",
+        f"  {ACCENT}{BOLD}│{NC}  modelo   {model:<31s}{ACCENT}{BOLD}│{NC}",
+        f"  {ACCENT}{BOLD}│{NC}  projeto  {project:<31s}{ACCENT}{BOLD}│{NC}",
+        f"  {ACCENT}{BOLD}│{NC}  tools    {tools_info:<31s}{ACCENT}{BOLD}│{NC}",
+        f"  {ACCENT}{BOLD}╰──────────────────────────────────────────╯{NC}",
+        "",
+        f"  {DIM}/help para comandos. Ctrl+D para sair.{NC}",
+        "",
+    ]
+    return "\n".join(lines)
 
 
 def _ask_permission(level: str, tool_name: str, args: dict) -> bool:
@@ -79,10 +82,8 @@ async def run_repl(streaming: bool = True) -> int:
     from nyx.agent.loop import AgentLoop
     from nyx.agent.persistence import cleanup_old_sessions, save_session
     from nyx.agent.services.analytics import Analytics
-    from nyx.agent.services.logging_service import InternalLogging
 
     cleanup_old_sessions()
-    InternalLogging()
     analytics = Analytics()
 
     try:
@@ -100,14 +101,31 @@ async def run_repl(streaming: bool = True) -> int:
         from prompt_toolkit import PromptSession
         from prompt_toolkit.history import FileHistory
         from prompt_toolkit.formatted_text import ANSI
+        from prompt_toolkit.key_binding import KeyBindings
+        from prompt_toolkit.shortcuts import CompleteStyle
         from nyx.agent.completer import create_completer
 
         history_path = Path.home() / ".nyx" / "history"
         history_path.parent.mkdir(parents=True, exist_ok=True)
         completer = create_completer(project_root)
+
+        kb = KeyBindings()
+
+        @kb.add("enter")
+        def _submit(event: object) -> None:
+            event.current_buffer.validate_and_handle()  # type: ignore[attr-defined]
+
+        @kb.add("c-j")
+        def _newline(event: object) -> None:
+            event.current_buffer.insert_text("\n")  # type: ignore[attr-defined]
+
         prompt_session = PromptSession(
             history=FileHistory(str(history_path)),
             completer=completer,
+            multiline=True,
+            key_bindings=kb,
+            complete_while_typing=True,
+            complete_style=CompleteStyle.MULTI_COLUMN,
         )
         logger.info("prompt-toolkit ativo (histórico: %s)", history_path)
     except ImportError:
@@ -118,15 +136,34 @@ async def run_repl(streaming: bool = True) -> int:
         proxy_url = "http://127.0.0.1:11436"
     model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", "qwen3:4b"))
 
+    from nyx.agent.output import (
+        render_tool_call,
+        render_tool_result,
+        render_user_input,
+        render_assistant_start,
+        render_assistant_end,
+        nyx_spinner,
+    )
+
+    spinner_state: dict[str, object | None] = {"active": None}
+
+    def _stop_spinner() -> None:
+        sp = spinner_state.get("active")
+        if sp is not None:
+            sp.stop()  # type: ignore[union-attr]
+            spinner_state["active"] = None
+
     def on_token(token: str) -> None:
+        _stop_spinner()
         sys.stdout.write(token)
         sys.stdout.flush()
 
     def on_tool(name: str, args: dict) -> None:
-        if use_rich and output:
-            output("tool", f"{name}({str(args)[:60]})")
-        else:
-            print(f"  {ACCENT}[tool]{NC} {name}({str(args)[:60]})")
+        _stop_spinner()
+        render_tool_call(name, args, project_root=project_root)
+
+    def on_tool_result(name: str, result: str) -> None:
+        render_tool_result(result)
 
     agent = AgentLoop(
         project_root=project_root,
@@ -134,6 +171,7 @@ async def run_repl(streaming: bool = True) -> int:
         model=model,
         on_token=on_token if streaming else None,
         on_tool=on_tool,
+        on_tool_result=on_tool_result,
         on_permission=_ask_permission,
         streaming=streaming,
     )
@@ -143,17 +181,21 @@ async def run_repl(streaming: bool = True) -> int:
     session_start = time.time()
     total_iterations = 0
 
+    from nyx.agent.output import render_footer
+
     while True:
         try:
             ctx_info = agent.get_context_info()
-            if ctx_info.get("pct", 0) > 0.4:
-                bar = render_context_bar(ctx_info)
-                prompt_str = f"{DIM}{bar}{NC} {ACCENT}{BOLD}nyx>{NC} "
-            else:
-                prompt_str = f"{ACCENT}{BOLD}nyx>{NC} "
-
+            render_footer(
+                pct=int(ctx_info.get("pct", 0) * 100),
+                model=model,
+                iteration=agent.session.iteration,
+                reads=agent.session.files_read_count,
+                mods=agent.session.files_modified_count,
+            )
+            prompt_str = f"{ACCENT}{BOLD}nyx>{NC} "
             if prompt_session:
-                user_input = prompt_session.prompt(ANSI(prompt_str)).strip()
+                user_input = (await prompt_session.prompt_async(ANSI(prompt_str))).strip()
             else:
                 user_input = input(prompt_str).strip()
         except EOFError:
@@ -164,6 +206,9 @@ async def run_repl(streaming: bool = True) -> int:
 
         if not user_input:
             continue
+
+        if not user_input.startswith("/"):
+            render_user_input(user_input)
 
         if user_input.startswith("/"):
             result = handle_command(user_input, project_root)
@@ -342,7 +387,14 @@ async def run_repl(streaming: bool = True) -> int:
                 continue
 
         try:
-            status = await agent.run(user_input)
+            spinner = nyx_spinner("pensando...")
+            spinner.__enter__()
+            spinner_state["active"] = spinner
+            render_assistant_start()
+            try:
+                status = await agent.run(user_input)
+            finally:
+                _stop_spinner()
             total_iterations += status.iterations
 
             if status.summary:
@@ -355,7 +407,10 @@ async def run_repl(streaming: bool = True) -> int:
             if status.state != status.state.DONE:
                 print(f"  {DIM}[{state_label}]{NC}")
 
+            render_assistant_end()
+
         except KeyboardInterrupt:
+            _stop_spinner()
             print(f"\n  {ACCENT}[cancelado]{NC}")
 
     elapsed = time.time() - session_start

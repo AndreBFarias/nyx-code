@@ -99,6 +99,7 @@ class AgentLoop:
         max_iterations: int = MAX_ITERATIONS_DEFAULT,
         on_token: Any = None,
         on_tool: Any = None,
+        on_tool_result: Any = None,
         on_permission: PermissionCallback | None = None,
         streaming: bool = True,
     ) -> None:
@@ -110,6 +111,7 @@ class AgentLoop:
         self._session = CodeSession()
         self._on_token = on_token
         self._on_tool = on_tool
+        self._on_tool_result = on_tool_result
         self._on_permission = on_permission
         self._streaming = streaming
 
@@ -293,6 +295,9 @@ class AgentLoop:
 
             if not result.success:
                 self._diagnostics.record_warning("tool", f"{name}: {result.error[:120]}")
+
+            if self._on_tool_result:
+                self._on_tool_result(name, result.output if result.success else result.error)
 
             self._session.add_tool_call(
                 name, args,
