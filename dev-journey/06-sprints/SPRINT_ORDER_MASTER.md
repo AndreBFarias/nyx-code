@@ -230,8 +230,24 @@ CTX-04 permanece opcional. TUI-01..03 + CTX-01..03 implementadas em 2026-04-17, 
 - D5 SPRINT_TEMPLATE_V2 blindado contra IA descontextualizada
 
 **Template V2:** `dev-journey/08-templates/SPRINT_TEMPLATE_V2.md`
+**Catálogo de gambiarras por sprint:** `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md`
+**Script de invariantes globais:** `scripts/sprint_invariants.sh` (obrigatório ANTES e DEPOIS de cada sprint)
 **Relatório da auditoria:** `dev-journey/07-reports/AUDIT_EXT_2026_04_18.md`
 **Plano consolidado:** `~/.claude/plans/image-1-venv-andrefarias-nitro-5-purring-thacker.md`
+
+**Protocolo anti-gambiarra obrigatório:**
+```bash
+# PASSO 1 - antes
+bash scripts/sprint_invariants.sh > /tmp/inv_before.txt 2>&1
+FAIL_BEFORE=$(grep -c "^\[FAIL\]" /tmp/inv_before.txt)
+# PASSO 2 - implementar
+# PASSO 3 - depois
+bash scripts/sprint_invariants.sh > /tmp/inv_after.txt 2>&1
+FAIL_AFTER=$(grep -c "^\[FAIL\]" /tmp/inv_after.txt)
+# PASSO 4 - FAIL_AFTER <= FAIL_BEFORE; colar diff no relatório
+diff /tmp/inv_before.txt /tmp/inv_after.txt
+```
+Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refazer.**
 
 | # | Sprint | Bloco | Prioridade | Status | Depende de |
 |---|--------|-------|------------|--------|------------|
