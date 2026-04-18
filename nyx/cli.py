@@ -221,7 +221,7 @@ async def run_repl(streaming: bool = True) -> int:
     )
 
     spinner_state: dict[str, object | None] = {"active": None}
-    turn_state: dict[str, bool] = {"streamed": False}
+    turn_state: dict[str, str] = {"streamed_text": ""}
     app_state: dict[str, bool] = {"bypass": False}
     image_counter: dict[str, int] = {"n": 0}
     image_map: dict[int, str] = {}
@@ -234,12 +234,13 @@ async def run_repl(streaming: bool = True) -> int:
 
     def on_token(token: str) -> None:
         _stop_spinner()
-        turn_state["streamed"] = True
+        turn_state["streamed_text"] += token
         sys.stdout.write(token)
         sys.stdout.flush()
 
     def on_tool(name: str, args: dict) -> None:
         _stop_spinner()
+        turn_state["streamed_text"] = ""
         render_tool_call(name, args, project_root=project_root)
 
     def on_tool_result(name: str, result: str) -> None:
@@ -468,7 +469,7 @@ async def run_repl(streaming: bool = True) -> int:
                 continue
 
         try:
-            turn_state["streamed"] = False
+            turn_state["streamed_text"] = ""
             spinner = nyx_spinner("pensando...")
             spinner.__enter__()
             spinner_state["active"] = spinner
@@ -479,14 +480,17 @@ async def run_repl(streaming: bool = True) -> int:
                 _stop_spinner()
             total_iterations += status.iterations
 
-            from nyx.agent.models import SessionState
-            already_streamed = turn_state["streamed"] and status.state == SessionState.DONE
-            if status.summary and not already_streamed:
+            streamed = turn_state["streamed_text"].strip()
+            summary = (status.summary or "").strip()
+            already_shown = bool(streamed) and bool(summary) and (
+                streamed == summary or streamed.endswith(summary)
+            )
+            if summary and not already_shown:
                 if use_rich and output:
                     output("nyx", status.summary)
                 else:
                     print(f"\n{PRIMARY}{status.summary}{NC}\n")
-            elif already_streamed:
+            elif streamed:
                 print()
 
             state_label = status.state.value

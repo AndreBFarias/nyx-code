@@ -713,9 +713,9 @@ def cmd_add_dir(args: str, project_root: str) -> str:
     )
 
 
-@nyx_command(name="memory", description="Gerencia memória do agent",
-             category="memória", aliases=['mem'])
-def cmd_memory(args: str, _root: str) -> str:
+@nyx_command(name="recall", description="Busca em memória de sessões anteriores (SessionMemory JSON)",
+             category="memória", aliases=['rec'])
+def cmd_recall(args: str, _root: str) -> str:
     from nyx.agent.services.memory import SessionMemory
     mem = SessionMemory()
     action = args.strip().lower()
@@ -741,7 +741,7 @@ def cmd_memory(args: str, _root: str) -> str:
         return "\n".join(lines)
 
     return (
-        "  Uso: /memory [ação]\n"
+        "  Uso: /recall [ação]\n"
         "    list              -- lista memórias recentes\n"
         "    search <termo>    -- busca nas memórias"
     )
@@ -810,6 +810,26 @@ def cmd_advisor(args: str, project_root: str) -> str:
         "3. Avalie: complexidade, duplicação, nomes, organização, testes\n"
         "4. Use done(summary='sugestões: <lista priorizada>')"
     )
+
+
+@nyx_command(name="tools", description="Lista ferramentas (tools) disponíveis no agent",
+             category="contexto")
+def cmd_tools(args: str, project_root: str) -> str:
+    from nyx.agent.tools.registry import ToolRegistry
+    reg = ToolRegistry(project_root)
+    arg = args.strip().lower()
+    lines = [f"  Tools registradas ({reg.tool_count}):", ""]
+    for tool_def in sorted(reg.tool_defs, key=lambda t: t["function"]["name"]):
+        fn = tool_def["function"]
+        name = fn["name"]
+        desc = fn.get("description", "")
+        if arg and arg not in name.lower():
+            continue
+        lines.append(f"    {name:<18s} -- {desc[:70]}")
+    if arg:
+        lines.append("")
+        lines.append(f"  (filtro: '{arg}')")
+    return "\n".join(lines)
 
 
 @nyx_command(name="memory", description="Lista memórias persistentes do projeto",
