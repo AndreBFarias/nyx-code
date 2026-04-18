@@ -63,9 +63,10 @@ def validate_path(file_path: str, project_root: str) -> Path:
             continue
 
     logger.warning("Path bloqueado por traversal: %s -> %s", file_path, resolved)
+    project_name = Path(project_root).name or "projeto"
     raise ValueError(
-        f"Acesso negado: '{file_path}' resolve para '{resolved}', "
-        f"fora das raízes permitidas ({', '.join(str(r) for r in allowed)})"
+        f"Fora do projeto {project_name}: '{file_path}'. "
+        f"Para acessar outro projeto, inicie o Nyx lá."
     )
 
 

@@ -287,8 +287,26 @@ def render_tool_call(
     print(f"  {ACCENT_FG}⏺{NC_FG} {formatted}")
 
 
-def render_tool_result(result: str, max_chars: int = 80) -> None:
-    """Imprime resumo colapsado do resultado de uma tool: '    └─ 1ª linha'."""
+_ERROR_PREFIXES = (
+    "Fora do projeto",
+    "Acesso negado",
+    "Erro:",
+    "ERRO:",
+    "Falha",
+    "Bloqueado",
+    "Permissão negada",
+    "Timeout",
+    "Argumentos inválidos",
+    "Path vazio",
+    "Tool desconhecida",
+)
+
+
+def render_tool_result(result: str, max_chars: int = 110) -> None:
+    """Imprime resumo colapsado do resultado de uma tool: '    └─ 1ª linha'.
+
+    Erros (prefixos conhecidos) saem em âmbar; sucesso sai em dim.
+    """
     if not result:
         return
     first_line = next(
@@ -299,9 +317,12 @@ def render_tool_result(result: str, max_chars: int = 80) -> None:
         return
     if len(first_line) > max_chars:
         first_line = first_line[: max_chars - 1] + "…"
-    DIM_FG = "\033[2m"
     NC_FG = "\033[0m"
-    print(f"    {DIM_FG}└─ {first_line}{NC_FG}")
+    AMBER_FG = "\033[38;2;255;176;0m"
+    DIM_FG = "\033[2m"
+    is_error = any(first_line.startswith(p) for p in _ERROR_PREFIXES)
+    color = AMBER_FG if is_error else DIM_FG
+    print(f"    {color}└─ {first_line}{NC_FG}")
 
 
 def render_user_input(text: str, console_width: int | None = None) -> None:
