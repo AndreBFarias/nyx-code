@@ -154,6 +154,25 @@ async def run_repl(streaming: bool = True) -> int:
             app_state["bypass"] = not app_state["bypass"]
             event.app.invalidate()  # type: ignore[attr-defined]
 
+        @kb.add("c-v")
+        def _paste(event: object) -> None:
+            from nyx.agent.clipboard import capture_image, capture_text
+            from prompt_toolkit.application import run_in_terminal
+            buf = event.current_buffer  # type: ignore[attr-defined]
+            img_path = capture_image()
+            if img_path is not None:
+                image_counter["n"] += 1
+                n = image_counter["n"]
+                image_map[n] = str(img_path)
+                buf.insert_text(f"[Image #{n}]")
+                run_in_terminal(
+                    lambda: print(f"  {DIM}⇲ Image #{n} salva em {img_path}{NC}")
+                )
+                return
+            text = capture_text()
+            if text:
+                buf.insert_text(text)
+
         def _bottom_toolbar() -> list:
             from prompt_toolkit.formatted_text import FormattedText
             if app_state["bypass"]:
@@ -198,6 +217,8 @@ async def run_repl(streaming: bool = True) -> int:
     spinner_state: dict[str, object | None] = {"active": None}
     turn_state: dict[str, bool] = {"streamed": False}
     app_state: dict[str, bool] = {"bypass": False}
+    image_counter: dict[str, int] = {"n": 0}
+    image_map: dict[int, str] = {}
 
     def _stop_spinner() -> None:
         sp = spinner_state.get("active")
