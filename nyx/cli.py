@@ -79,17 +79,24 @@ def _build_banner(model: str, tools_count: int, project: str) -> str:
     return "\n".join(lines)
 
 
-def _ask_permission(level: str, tool_name: str, args: dict) -> bool:
-    """Pede confirmação ao usuário para execução de tool."""
-    args_preview = str(args)[:80]
-    level_label = {"confirm_once": "uma vez", "always_confirm": "sempre"}.get(level, level)
-    try:
-        resp = input(
-            f"  {ACCENT}[permissão: {level_label}]{NC} Executar {BOLD}{tool_name}{NC}({args_preview})? [S/n] "
-        ).strip().lower()
-        return resp in ("", "s", "sim", "y", "yes")
-    except (EOFError, KeyboardInterrupt):
-        return False
+def _make_ask_permission(state: dict) -> "callable":
+    """Factory que devolve a callback on_permission respeitando bypass_mode."""
+    def _ask(level: str, tool_name: str, args: dict) -> bool:
+        if state.get("bypass"):
+            logger.info("[bypass] auto-aprovado: %s", tool_name)
+            print(f"  {DIM}⚡ bypass · {tool_name} auto-aprovado{NC}")
+            return True
+        args_preview = str(args)[:80]
+        level_label = {"confirm_once": "uma vez", "always_confirm": "sempre"}.get(level, level)
+        try:
+            resp = input(
+                f"  {ACCENT}[permissão: {level_label}]{NC} Executar "
+                f"{BOLD}{tool_name}{NC}({args_preview})? [S/n] "
+            ).strip().lower()
+            return resp in ("", "s", "sim", "y", "yes")
+        except (EOFError, KeyboardInterrupt):
+            return False
+    return _ask
 
 
 async def run_repl(streaming: bool = True) -> int:
@@ -142,6 +149,21 @@ async def run_repl(streaming: bool = True) -> int:
             if buf.document.text_before_cursor.lstrip() == "/":
                 buf.start_completion(select_first=False)
 
+        @kb.add("s-tab")
+        def _toggle_bypass(event: object) -> None:
+            app_state["bypass"] = not app_state["bypass"]
+            event.app.invalidate()  # type: ignore[attr-defined]
+
+        def _bottom_toolbar() -> list:
+            from prompt_toolkit.formatted_text import FormattedText
+            if app_state["bypass"]:
+                return FormattedText([
+                    ("bg:#7a4d00 fg:#ffffff bold", " ⚡ bypass permissions ON "),
+                    ("", "  "),
+                    ("fg:#808080", "shift+tab para desligar"),
+                ])
+            return FormattedText([("fg:#606060", "shift+tab liga bypass de permissões")])
+
         import shutil as _sh
         _term_cols = _sh.get_terminal_size(fallback=(80, 24)).columns
         _style = CompleteStyle.MULTI_COLUMN if _term_cols >= 100 else CompleteStyle.COLUMN
@@ -153,6 +175,7 @@ async def run_repl(streaming: bool = True) -> int:
             key_bindings=kb,
             complete_while_typing=True,
             complete_style=_style,
+            bottom_toolbar=_bottom_toolbar,
         )
         logger.info("prompt-toolkit ativo (histórico: %s)", history_path)
     except ImportError:
@@ -174,6 +197,7 @@ async def run_repl(streaming: bool = True) -> int:
 
     spinner_state: dict[str, object | None] = {"active": None}
     turn_state: dict[str, bool] = {"streamed": False}
+    app_state: dict[str, bool] = {"bypass": False}
 
     def _stop_spinner() -> None:
         sp = spinner_state.get("active")
@@ -201,7 +225,7 @@ async def run_repl(streaming: bool = True) -> int:
         on_token=on_token if streaming else None,
         on_tool=on_tool,
         on_tool_result=on_tool_result,
-        on_permission=_ask_permission,
+        on_permission=_make_ask_permission(app_state),
         streaming=streaming,
     )
 
