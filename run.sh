@@ -279,35 +279,15 @@ configure_vram() {
 }
 
 # ─── BANNER ───────────────────────────────────────────────
+# Banner único é renderizado pelo cli.py (_build_banner). Aqui só
+# exportamos a info útil (debug=ativo) se aplicável.
 show_banner() {
     if [ "$HEADLESS" -eq 1 ]; then
         return 0
     fi
-
-    echo ""
-    echo -e "${COMMENT}"
-    echo "  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░"
-    echo "  ░                                      ░"
-    echo "  ░    ...sintonizando frequencia...      ░"
-    echo "  ░                                      ░"
-    echo "  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░"
-    echo -e "${NC}"
-    echo ""
-    echo -e "${PRIMARY}${BOLD}   _   _                 ____          _      ${NC}"
-    echo -e "${PRIMARY}${BOLD}  | \\ | |_   ___  __    / ___|___   __| | ___ ${NC}"
-    echo -e "${PRIMARY}${BOLD}  |  \\| | | | \\ \\/ /   | |   / _ \\ / _\` |/ _ \\${NC}"
-    echo -e "${PRIMARY}${BOLD}  | |\\  | |_| |>  <    | |__| (_) | (_| |  __/${NC}"
-    echo -e "${PRIMARY}${BOLD}  |_| \\_|\\__, /_/\\_\\    \\____\\___/ \\__,_|\\___|${NC}"
-    echo -e "${PRIMARY}${BOLD}        |___/                                ${NC}"
-    echo ""
-    echo -e "  ${ACCENT}Codificadora. Precisa. Local.${NC}"
-    echo ""
-    echo -e "  ${COMMENT}modelo${NC}  ${FG}$MODEL${NC}"
-    echo -e "  ${COMMENT}ollama${NC}  ${FG}:${NYX_OLLAMA_PORT}${NC}  ${COMMENT}proxy${NC}  ${FG}:${NYX_PROXY_PORT}${NC}"
     if [ "$DEBUG" -eq 1 ]; then
         echo -e "  ${COMMENT}debug${NC}   ${ORANGE}ativo${NC}"
     fi
-    echo ""
 }
 
 # ─── CLEANUP ──────────────────────────────────────────────

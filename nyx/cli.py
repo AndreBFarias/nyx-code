@@ -46,16 +46,32 @@ NC = "\033[0m"
 
 
 def _build_banner(model: str, tools_count: int, project: str) -> str:
+    import os
+    import shutil
+
+    cols = shutil.get_terminal_size(fallback=(80, 24)).columns
+    ollama_port = os.environ.get("NYX_OLLAMA_PORT", "11435")
+    proxy_port = os.environ.get("NYX_PROXY_PORT", "11436")
+
+    if cols < 60:
+        return (
+            f"\n  {ACCENT}{BOLD}── Nyx v{NYX_VERSION} · {model} · "
+            f"{tools_count} tools · 100% offline ──{NC}\n\n"
+            f"  {DIM}/help · Ctrl+D{NC}\n"
+        )
+
     title = f"Nyx -- Code Agent Local v{NYX_VERSION}"
-    tools_info = f"{tools_count}        100% offline"
+    tools_info = f"{tools_count} · 100% offline"
+    proxy_info = f":{ollama_port} (ollama)  ·  :{proxy_port} (proxy)"
     lines = [
         "",
-        f"  {ACCENT}{BOLD}╭──────────────────────────────────────────╮{NC}",
-        f"  {ACCENT}{BOLD}│{NC}  {BOLD}{title:<40s}{NC}{ACCENT}{BOLD}│{NC}",
-        f"  {ACCENT}{BOLD}│{NC}  modelo   {model:<31s}{ACCENT}{BOLD}│{NC}",
-        f"  {ACCENT}{BOLD}│{NC}  projeto  {project:<31s}{ACCENT}{BOLD}│{NC}",
-        f"  {ACCENT}{BOLD}│{NC}  tools    {tools_info:<31s}{ACCENT}{BOLD}│{NC}",
-        f"  {ACCENT}{BOLD}╰──────────────────────────────────────────╯{NC}",
+        f"  {ACCENT}{BOLD}╭──────────────────────────────────────────────╮{NC}",
+        f"  {ACCENT}{BOLD}│{NC}  {BOLD}{title:<44s}{NC}{ACCENT}{BOLD}│{NC}",
+        f"  {ACCENT}{BOLD}│{NC}  modelo   {model:<35s}{ACCENT}{BOLD}│{NC}",
+        f"  {ACCENT}{BOLD}│{NC}  projeto  {project:<35s}{ACCENT}{BOLD}│{NC}",
+        f"  {ACCENT}{BOLD}│{NC}  tools    {tools_info:<35s}{ACCENT}{BOLD}│{NC}",
+        f"  {ACCENT}{BOLD}│{NC}  rede     {proxy_info:<35s}{ACCENT}{BOLD}│{NC}",
+        f"  {ACCENT}{BOLD}╰──────────────────────────────────────────────╯{NC}",
         "",
         f"  {DIM}/help para comandos. Ctrl+D para sair.{NC}",
         "",
