@@ -178,13 +178,15 @@ P8-A (Analyze, Patch, MultiEdit), P8-B (Provider, ProjectContext). **+3 tools, +
 
 | # | Nome | Testes | Status | Deps |
 |---|------|--------|--------|------|
-| **TUI-01** | Higiene: silenciar logs, corrigir banner, formatar tool calls | +2 testes | CONCLUIDA | -- |
-| **TUI-02** | Boxes ╭─╮ no user input, tool calls com ⏺ └─ colapsável | +2 testes | CONCLUIDA | TUI-01 |
-| **TUI-03** | Footer 1 linha + popup navegável de slash command | +2 testes | CONCLUIDA | TUI-02 |
-| **CTX-01** | SessionSummarizer: resumo vivo injetado em compactação | +3 testes | CONCLUIDA | TUI-03 |
-| **CTX-02** | Memória persistente cross-session em ~/.nyx/memory/ | +3 testes | CONCLUIDA | CTX-01 |
-| **CTX-03** | RepoMap via AST (tree-sitter opcional, ADR-021) | +4 testes | CONCLUIDA | CTX-02 |
+| **TUI-01** | Higiene: silenciar logs, corrigir banner, formatar tool calls | +2 testes | EM VALIDAÇÃO | -- |
+| **TUI-02** | Boxes ╭─╮ no user input, tool calls com ⏺ └─ colapsável | +2 testes | EM VALIDAÇÃO | TUI-01 |
+| **TUI-03** | Footer 1 linha + popup navegável de slash command | +2 testes | EM VALIDAÇÃO | TUI-02 |
+| **CTX-01** | SessionSummarizer: resumo vivo injetado em compactação | +3 testes | EM VALIDAÇÃO | TUI-03 |
+| **CTX-02** | Memória persistente cross-session em ~/.nyx/memory/ | +3 testes | EM VALIDAÇÃO | CTX-01 |
+| **CTX-03** | RepoMap via AST (tree-sitter opcional, ADR-021) | +4 testes | EM VALIDAÇÃO | CTX-02 |
 | **CTX-04** | Plano ativo opt-in via /plan (opcional) | +2 testes | OPCIONAL | CTX-03 |
+
+**EM VALIDAÇÃO = implementado + Gauntlet passou, aguardando validação visual interativa pelo usuário (vide RELATORIO_ONDA_20.md).**
 
 **Origem:** UX/UI atual não alcança o Claude Code CLI (referência); sessões longas degradam por falta de sumarização; sem memória cross-session nem repo-map. Brainstorming com usuário em 2026-04-17 fechou escopo.
 
@@ -196,7 +198,7 @@ P8-A (Analyze, Patch, MultiEdit), P8-B (Provider, ProjectContext). **+3 tools, +
 
 ## Backlog
 
-CTX-04 permanece opcional. Todo o resto da Onda 20 concluído em 2026-04-17.
+CTX-04 permanece opcional. TUI-01..03 + CTX-01..03 implementadas em 2026-04-17, aguardando validação visual do usuário antes de marcar CONCLUIDA.
 
 ---
 
@@ -225,10 +227,10 @@ Onda 18 (PORTABILIDADE -- antes de rodar em máquina nova):
 Onda 19 (INTEGRAÇÃO LUNA -- substituir code agent antigo):
   I-02 (substituir nyx antiga) -> I-03 (mensagens inline [nyx])
 
-Onda 20 (TUI+CTX -- redesign UX/UI + sistema de contexto) -- CONCLUIDA:
+Onda 20 (TUI+CTX -- redesign UX/UI + sistema de contexto) -- EM VALIDAÇÃO:
   TUI-01 (higiene) -> TUI-02b (boxes+multiline) -> TUI-03 (footer+popup)
   PROMPT-01 (anti-agressivo) [fora do bloco mas no mesmo commit]
-  [CHECKPOINT visual com usuário]
+  [CHECKPOINT visual com usuário -- PENDENTE]
   CTX-01 (summarizer) -> CTX-02 (memory) -> CTX-03 (repomap)
   CTX-04 (plano ativo) -- deferido
 ```
