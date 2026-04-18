@@ -188,6 +188,22 @@ P8-A (Analyze, Patch, MultiEdit), P8-B (Provider, ProjectContext). **+3 tools, +
 
 **EM VALIDAÇÃO = implementado + Gauntlet passou, aguardando validação visual interativa pelo usuário (vide RELATORIO_ONDA_20.md).**
 
+---
+
+### Bloco TUI-FIX: Onda 21 -- correções de UX após validação visual
+
+| # | Nome | Testes | Status | Deps |
+|---|------|--------|--------|------|
+| **TUI-FIX-01** | Banner único e limpo (sem duplicação, sem ASCII corrompido) | +1 teste | EM VALIDAÇÃO | -- |
+| **TUI-FIX-02** | Fim da resposta duplicada (streaming + render final) | +1 teste | EM VALIDAÇÃO | -- |
+| **TUI-FIX-03** | Popup de slash commands abrindo automaticamente | +1 teste | EM VALIDAÇÃO | -- |
+| **TUI-FIX-04** | Shift+Tab toggle bypass + bottom toolbar | +2 testes | EM VALIDAÇÃO | -- |
+| **TUI-FIX-05** | Ctrl+V + xclip para colar imagens ([Image #N]) | +2 testes | EM VALIDAÇÃO | -- |
+| **TUI-FIX-06** | Mensagens de sandbox claras em PT-BR (erro colorido) | +1 teste | EM VALIDAÇÃO | -- |
+| **TUI-FIX-07** | Usabilidade geral: footer em toolbar, paste colapsado, /help categorizado, indicador de memória, /memory, /paste, /tools, /recall | +2 testes | EM VALIDAÇÃO | FIX-02, FIX-06 |
+
+**Origem:** Validação visual da Onda 20 revelou 6 bugs (banner duplicado, ASCII corrompido, resposta duplicada, popup slash quebrado, ausência de bypass toggle, Ctrl+Shift+V inviável em xterm) + 1 sprint de usabilidade geral. Escopo fechado via screenshots do usuário em 2026-04-17.
+
 **Origem:** UX/UI atual não alcança o Claude Code CLI (referência); sessões longas degradam por falta de sumarização; sem memória cross-session nem repo-map. Brainstorming com usuário em 2026-04-17 fechou escopo.
 
 **Checkpoint entre TUI-03 e CTX-01:** usuário roda `./run.sh` e valida visual antes de atacar contexto.
@@ -233,6 +249,11 @@ Onda 20 (TUI+CTX -- redesign UX/UI + sistema de contexto) -- EM VALIDAÇÃO:
   [CHECKPOINT visual com usuário -- PENDENTE]
   CTX-01 (summarizer) -> CTX-02 (memory) -> CTX-03 (repomap)
   CTX-04 (plano ativo) -- deferido
+
+Onda 21 (TUI-FIX -- correções pós-validação visual):
+  TUI-FIX-01 (banner) -> TUI-FIX-02 (streaming) -> TUI-FIX-03 (slash popup)
+  TUI-FIX-04 (bypass toggle) -> TUI-FIX-05 (image paste) -> TUI-FIX-06 (sandbox msg)
+  TUI-FIX-07 (usabilidade geral -- depende de FIX-02 e FIX-06)
 ```
 
 **REGRA: Onda 10 (INFRA) é pré-requisito para TODAS as ondas seguintes.**
