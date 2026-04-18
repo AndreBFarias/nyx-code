@@ -135,13 +135,24 @@ async def run_repl(streaming: bool = True) -> int:
         def _newline(event: object) -> None:
             event.current_buffer.insert_text("\n")  # type: ignore[attr-defined]
 
+        @kb.add("/")
+        def _slash(event: object) -> None:
+            buf = event.current_buffer  # type: ignore[attr-defined]
+            buf.insert_text("/")
+            if buf.document.text_before_cursor.lstrip() == "/":
+                buf.start_completion(select_first=False)
+
+        import shutil as _sh
+        _term_cols = _sh.get_terminal_size(fallback=(80, 24)).columns
+        _style = CompleteStyle.MULTI_COLUMN if _term_cols >= 100 else CompleteStyle.COLUMN
+
         prompt_session = PromptSession(
             history=FileHistory(str(history_path)),
             completer=completer,
             multiline=True,
             key_bindings=kb,
             complete_while_typing=True,
-            complete_style=CompleteStyle.MULTI_COLUMN,
+            complete_style=_style,
         )
         logger.info("prompt-toolkit ativo (histórico: %s)", history_path)
     except ImportError:
