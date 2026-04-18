@@ -22,6 +22,19 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from nyx.config.defaults import (
+    OLLAMA_PORT as _OLLAMA_PORT,
+)
+from nyx.config.defaults import (
+    OLLAMA_URL as _OLLAMA_URL,
+)
+from nyx.config.defaults import (
+    PROXY_PORT as _PROXY_PORT,
+)
+from nyx.config.defaults import (
+    PROXY_V1_URL as _PROXY_V1_URL,
+)
+
 logger = logging.getLogger("nyx.commands")
 
 
@@ -240,27 +253,25 @@ def cmd_doctor(_args: str, project_root: str) -> str:
 
     checks: list[str] = []
 
-    ollama_ok = False
     try:
         import httpx
 
-        r = httpx.get("http://127.0.0.1:11435/api/version", timeout=5)
+        r = httpx.get(f"{_OLLAMA_URL}/api/version", timeout=5)
         ver = r.json().get("version", "?")
-        checks.append(f"[OK] Ollama: v{ver} (porta 11435)")
-        ollama_ok = True
+        checks.append(f"[OK] Ollama: v{ver} (porta {_OLLAMA_PORT})")
     except Exception as e:
         logger.debug("Ollama health check falhou: %s", e)
-        checks.append("[ERRO] Ollama: não responde na porta 11435")
+        checks.append(f"[ERRO] Ollama: não responde na porta {_OLLAMA_PORT}")
 
     try:
         import httpx
 
-        r = httpx.get("http://127.0.0.1:11436/v1/models", timeout=5)
+        r = httpx.get(f"{_PROXY_V1_URL}/models", timeout=5)
         models = r.json().get("data", [])
-        checks.append(f"[OK] Proxy: {len(models)} modelo(s) (porta 11436)")
+        checks.append(f"[OK] Proxy: {len(models)} modelo(s) (porta {_PROXY_PORT})")
     except Exception as e:
         logger.debug("Proxy health check falhou: %s", e)
-        checks.append("[ERRO] Proxy: não responde na porta 11436")
+        checks.append(f"[ERRO] Proxy: não responde na porta {_PROXY_PORT}")
 
     try:
         out = subprocess.check_output(
@@ -439,9 +450,9 @@ def cmd_config(args: str, project_root: str) -> str:
 
     args = args.strip()
     if not args:
-        proxy = os.environ.get("OPENAI_BASE_URL", "http://127.0.0.1:11436/v1")
+        proxy = os.environ.get("OPENAI_BASE_URL", _PROXY_V1_URL)
         model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", "qwen3:4b"))
-        ollama = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11435")
+        ollama = os.environ.get("OLLAMA_HOST", _OLLAMA_URL)
         return (
             "  Configuração atual:\n"
             f"    modelo: {model}\n"
@@ -632,7 +643,7 @@ def cmd_version(_args: str, _root: str) -> str:
     from nyx.__version__ import __version__
 
     model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", "qwen3:4b"))
-    proxy = os.environ.get("OPENAI_BASE_URL", "http://127.0.0.1:11436/v1")
+    proxy = os.environ.get("OPENAI_BASE_URL", _PROXY_V1_URL)
     return (
         f"  Nyx v{__version__}\n"
         f"  Modelo: {model}\n"

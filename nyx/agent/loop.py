@@ -49,6 +49,7 @@ from nyx.agent.tools.plan_mode import is_tool_allowed_in_plan_mode
 from nyx.agent.tools.registry import ToolRegistry
 from nyx.agent.validator import validate as post_validate
 from nyx.config.defaults import MAX_ITERATIONS as MAX_ITERATIONS_DEFAULT
+from nyx.config.defaults import PROXY_URL as _DEFAULT_PROXY_URL
 
 logger = logging.getLogger("nyx.agent")
 
@@ -96,7 +97,7 @@ class AgentLoop:
     def __init__(
         self,
         project_root: str,
-        proxy_url: str = "http://127.0.0.1:11436",
+        proxy_url: str = _DEFAULT_PROXY_URL,
         model: str = "qwen3:4b",
         max_iterations: int = MAX_ITERATIONS_DEFAULT,
         on_token: Any = None,

@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 OLLAMA_PORT: int = 11435
+PROXY_PORT: int = 11436
 OLLAMA_HOST: str = "127.0.0.1"
+OLLAMA_URL: str = f"http://{OLLAMA_HOST}:{OLLAMA_PORT}"
+PROXY_URL: str = f"http://{OLLAMA_HOST}:{PROXY_PORT}"
+PROXY_V1_URL: str = f"{PROXY_URL}/v1"
 DEFAULT_MODEL: str = "qwen3:4b"
 VRAM_MAX_GB: float = 2.5
 MAX_ITERATIONS: int = 50

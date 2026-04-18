@@ -7,6 +7,8 @@ from typing import Any
 
 import httpx
 
+from nyx.config.defaults import PROXY_URL as _DEFAULT_PROXY_URL
+
 logger = logging.getLogger("nyx.providers.ollama")
 
 DEFAULT_TIMEOUT = 300
@@ -15,7 +17,7 @@ RETRY_BACKOFF = 1.5
 
 
 class OllamaProvider:
-    def __init__(self, proxy_url: str = "http://127.0.0.1:11436", timeout: int = DEFAULT_TIMEOUT) -> None:
+    def __init__(self, proxy_url: str = _DEFAULT_PROXY_URL, timeout: int = DEFAULT_TIMEOUT) -> None:
         self._url = proxy_url.rstrip("/")
         self._timeout = timeout
 

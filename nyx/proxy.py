@@ -23,7 +23,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from aiohttp import ClientSession, ClientTimeout, web
+from aiohttp import ClientSession, ClientTimeout, web  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,10 +32,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger("nyx.proxy")
 
-from nyx.config.defaults import NUM_CTX as _DEFAULT_NUM_CTX
-from nyx.config.defaults import NUM_GPU_3B as _DEFAULT_NUM_GPU
+from nyx.config.defaults import NUM_CTX as _DEFAULT_NUM_CTX  # noqa: E402
+from nyx.config.defaults import NUM_GPU_3B as _DEFAULT_NUM_GPU  # noqa: E402
+from nyx.config.defaults import OLLAMA_PORT as _DEFAULT_OLLAMA_PORT  # noqa: E402
+from nyx.config.defaults import OLLAMA_URL as _DEFAULT_OLLAMA_URL  # noqa: E402
+from nyx.config.defaults import PROXY_PORT as _DEFAULT_PROXY_PORT  # noqa: E402
 
-OLLAMA_URL = "http://127.0.0.1:11435"
+OLLAMA_URL = _DEFAULT_OLLAMA_URL
 NUM_GPU = _DEFAULT_NUM_GPU
 NUM_CTX = _DEFAULT_NUM_CTX
 
@@ -280,8 +283,8 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--port", type=int, default=11436)
-    parser.add_argument("--ollama-port", type=int, default=11435)
+    parser.add_argument("--port", type=int, default=_DEFAULT_PROXY_PORT)
+    parser.add_argument("--ollama-port", type=int, default=_DEFAULT_OLLAMA_PORT)
     parser.add_argument("--num-gpu", type=int, default=15)
     parser.add_argument("--num-ctx", type=int, default=8192)
     args = parser.parse_args()

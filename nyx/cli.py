@@ -29,12 +29,12 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from nyx.agent.services.logging_service import InternalLogging
+from nyx.agent.services.logging_service import InternalLogging  # noqa: E402
 
 InternalLogging()
 logger = logging.getLogger("nyx.cli")
 
-from nyx.__version__ import __version__ as NYX_VERSION
+from nyx.__version__ import __version__ as NYX_VERSION  # noqa: E402
 
 # ── Cores Nyx (fallback ANSI) ─────────────────────────────────────
 
@@ -49,9 +49,12 @@ def _build_banner(model: str, tools_count: int, project: str) -> str:
     import os
     import shutil
 
+    from nyx.config.defaults import OLLAMA_PORT as _OLLAMA_PORT
+    from nyx.config.defaults import PROXY_PORT as _PROXY_PORT
+
     cols = shutil.get_terminal_size(fallback=(80, 24)).columns
-    ollama_port = os.environ.get("NYX_OLLAMA_PORT", "11435")
-    proxy_port = os.environ.get("NYX_PROXY_PORT", "11436")
+    ollama_port = os.environ.get("NYX_OLLAMA_PORT", str(_OLLAMA_PORT))
+    proxy_port = os.environ.get("NYX_PROXY_PORT", str(_PROXY_PORT))
 
     if cols < 60:
         return (
@@ -214,10 +217,13 @@ async def run_repl(streaming: bool = True) -> int:
         logger.info("prompt-toolkit ativo (histórico: %s)", history_path)
     except ImportError:
         logger.info("prompt-toolkit indisponível, usando input() nativo")
-    proxy_url = os.environ.get("OPENAI_BASE_URL", "http://127.0.0.1:11436/v1")
+    from nyx.config.defaults import PROXY_URL as _PROXY_URL
+    from nyx.config.defaults import PROXY_V1_URL as _PROXY_V1_URL
+
+    proxy_url = os.environ.get("OPENAI_BASE_URL", _PROXY_V1_URL)
     proxy_url = proxy_url.replace("/v1", "").rstrip("/")
     if not proxy_url.startswith("http"):
-        proxy_url = "http://127.0.0.1:11436"
+        proxy_url = _PROXY_URL
     model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", "qwen3:4b"))
 
     from nyx.agent.output import (
@@ -508,8 +514,8 @@ async def run_repl(streaming: bool = True) -> int:
 
             try:
                 asyncio.create_task(agent.maybe_summarize())
-            except RuntimeError:
-                pass
+            except RuntimeError as exc:
+                logger.warning("sumarização adiada (loop indisponível): %s", exc)
 
         except KeyboardInterrupt:
             _stop_spinner()
@@ -552,12 +558,14 @@ async def run_headless() -> int:
 
     from nyx.agent.loop import AgentLoop
     from nyx.agent.persistence import save_session
+    from nyx.config.defaults import PROXY_URL as _PROXY_URL
+    from nyx.config.defaults import PROXY_V1_URL as _PROXY_V1_URL
 
     project_root = str(PROJECT_ROOT)
-    proxy_url = os.environ.get("OPENAI_BASE_URL", "http://127.0.0.1:11436/v1")
+    proxy_url = os.environ.get("OPENAI_BASE_URL", _PROXY_V1_URL)
     proxy_url = proxy_url.replace("/v1", "").rstrip("/")
     if not proxy_url.startswith("http"):
-        proxy_url = "http://127.0.0.1:11436"
+        proxy_url = _PROXY_URL
     model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", "qwen3:4b"))
 
     def on_tool(name: str, args: dict) -> None:
