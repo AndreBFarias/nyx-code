@@ -54,3 +54,5 @@ Thumbs.db
 
 # Temporários de teste
 /tmp/nyx_*
+
+.claude/

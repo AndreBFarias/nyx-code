@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 import logging
 import time
-from dataclasses import asdict
 from pathlib import Path
 
 from .session import CodeSession, HistoryEntry
@@ -76,12 +75,14 @@ def load_latest_session(project_name: str = "") -> CodeSession | None:
         session.last_summarized_at = data.get("last_summarized_at", 0)
 
         for entry_data in data.get("history", []):
-            session.history.append(HistoryEntry(
-                role=entry_data.get("role", "user"),
-                content=entry_data.get("content", ""),
-                tool_name=entry_data.get("tool_name", ""),
-                tool_args=entry_data.get("tool_args", {}),
-            ))
+            session.history.append(
+                HistoryEntry(
+                    role=entry_data.get("role", "user"),
+                    content=entry_data.get("content", ""),
+                    tool_name=entry_data.get("tool_name", ""),
+                    tool_args=entry_data.get("tool_args", {}),
+                )
+            )
 
         logger.info("Sessão restaurada: %s (%d entradas)", files[0].name, len(session.history))
         return session

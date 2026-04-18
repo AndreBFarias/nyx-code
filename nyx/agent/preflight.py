@@ -39,12 +39,19 @@ def check(tool_name: str, args: dict[str, Any], project_root: str) -> PreflightR
     if tool_name == "run_command":
         command = args.get("command", "")
         dangerous = [
-            "rm -rf /", "rm -rf /*",
-            "sudo ", "mkfs", "dd if=/dev/",
-            "> /dev/sda", "> /dev/null >",
-            "chmod 777 /", "chown root",
-            "curl | sh", "curl | bash",
-            "wget -O- | sh", "wget -O- | bash",
+            "rm -rf /",
+            "rm -rf /*",
+            "sudo ",
+            "mkfs",
+            "dd if=/dev/",
+            "> /dev/sda",
+            "> /dev/null >",
+            "chmod 777 /",
+            "chown root",
+            "curl | sh",
+            "curl | bash",
+            "wget -O- | sh",
+            "wget -O- | bash",
             ":(){ :|:& };:",
         ]
         for d in dangerous:

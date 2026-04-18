@@ -83,10 +83,7 @@ class NyxMemory:
         if not content or not content.strip():
             raise ValueError("Conteúdo vazio")
         if len(content.encode("utf-8")) > MAX_FILE_BYTES:
-            raise ValueError(
-                f"Conteúdo excede {MAX_FILE_BYTES} bytes "
-                f"(enviado: {len(content.encode('utf-8'))})"
-            )
+            raise ValueError(f"Conteúdo excede {MAX_FILE_BYTES} bytes (enviado: {len(content.encode('utf-8'))})")
 
         self._dir.mkdir(parents=True, exist_ok=True)
         filename = _sanitize_filename(file)
@@ -107,11 +104,13 @@ class NyxMemory:
         for line in idx.read_text(encoding="utf-8", errors="replace").splitlines():
             m = re.match(r"- \[(?P<file>[^\]]+)\]\((?P<href>[^)]+)\)(?: -- (?P<reason>.*))?$", line)
             if m:
-                entries.append({
-                    "file": m.group("file"),
-                    "href": m.group("href"),
-                    "reason": m.group("reason") or "",
-                })
+                entries.append(
+                    {
+                        "file": m.group("file"),
+                        "href": m.group("href"),
+                        "reason": m.group("reason") or "",
+                    }
+                )
         return entries
 
     def _rebuild_index(self) -> None:

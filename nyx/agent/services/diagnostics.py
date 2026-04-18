@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 logger = logging.getLogger("nyx.services.diagnostics")
 
@@ -26,16 +26,26 @@ class DiagnosticTracking:
         self._warning_count: int = 0
 
     def record_error(self, source: str, message: str) -> None:
-        self._entries.append(DiagnosticEntry(
-            level="error", source=source, message=message, timestamp=time.time(),
-        ))
+        self._entries.append(
+            DiagnosticEntry(
+                level="error",
+                source=source,
+                message=message,
+                timestamp=time.time(),
+            )
+        )
         self._error_count += 1
         logger.error("[diag] %s: %s", source, message)
 
     def record_warning(self, source: str, message: str) -> None:
-        self._entries.append(DiagnosticEntry(
-            level="warning", source=source, message=message, timestamp=time.time(),
-        ))
+        self._entries.append(
+            DiagnosticEntry(
+                level="warning",
+                source=source,
+                message=message,
+                timestamp=time.time(),
+            )
+        )
         self._warning_count += 1
         logger.warning("[diag] %s: %s", source, message)
 

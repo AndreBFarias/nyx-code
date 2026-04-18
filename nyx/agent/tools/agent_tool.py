@@ -55,7 +55,10 @@ class AgentTool(RegisteredTool):
             return ActionResult(success=False, error=f"Sub-agente falhou: {e}")
 
     async def _run_sub_agent(
-        self, prompt: str, project_root: str, max_iterations: int,
+        self,
+        prompt: str,
+        project_root: str,
+        max_iterations: int,
     ) -> ActionResult:
         from nyx.agent.loop import AgentLoop
 
@@ -81,7 +84,10 @@ class AgentTool(RegisteredTool):
 
             logger.info(
                 "Sub-agente: %s em %d iter (%d lidos, %d modificados)",
-                status.state.value, status.iterations, files_read, files_modified,
+                status.state.value,
+                status.iterations,
+                files_read,
+                files_modified,
             )
 
             return ActionResult(

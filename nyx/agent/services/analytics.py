@@ -56,7 +56,8 @@ class Analytics:
     def status(self) -> dict:
         top_tools = sorted(
             self._data.get("tool_calls", {}).items(),
-            key=lambda x: x[1], reverse=True,
+            key=lambda x: x[1],
+            reverse=True,
         )[:5]
         return {
             "service": "analytics",

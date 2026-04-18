@@ -16,10 +16,7 @@ class BriefTool(RegisteredTool):
 
     tool_def = ToolDef(
         name="brief",
-        description=(
-            "Gera um resumo do contexto atual: modelo, tools, "
-            "arquivos no contexto, iterações e budget."
-        ),
+        description=("Gera um resumo do contexto atual: modelo, tools, arquivos no contexto, iterações e budget."),
         parameters={},
         required=[],
     )

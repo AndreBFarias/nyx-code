@@ -64,10 +64,7 @@ def validate_path(file_path: str, project_root: str) -> Path:
 
     logger.warning("Path bloqueado por traversal: %s -> %s", file_path, resolved)
     project_name = Path(project_root).name or "projeto"
-    raise ValueError(
-        f"Fora do projeto {project_name}: '{file_path}'. "
-        f"Para acessar outro projeto, inicie o Nyx lá."
-    )
+    raise ValueError(f"Fora do projeto {project_name}: '{file_path}'. Para acessar outro projeto, inicie o Nyx lá.")
 
 
 @dataclass
@@ -99,8 +96,7 @@ class RegisteredTool(ABC):
     tool_def: ToolDef
 
     @abstractmethod
-    def execute(self, params: dict[str, Any], project_root: str) -> ActionResult:
-        ...
+    def execute(self, params: dict[str, Any], project_root: str) -> ActionResult: ...
 
 
 # "A abstração é a arma mais poderosa do programador." -- Edsger Dijkstra

@@ -22,10 +22,7 @@ class EnterWorktreeTool(RegisteredTool):
 
     tool_def = ToolDef(
         name="enter_worktree",
-        description=(
-            "Cria um git worktree isolado para trabalhar em "
-            "mudanças sem afetar a árvore principal."
-        ),
+        description=("Cria um git worktree isolado para trabalhar em mudanças sem afetar a árvore principal."),
         parameters={
             "branch_name": {
                 "type": "string",
@@ -82,10 +79,7 @@ class ExitWorktreeTool(RegisteredTool):
 
     tool_def = ToolDef(
         name="exit_worktree",
-        description=(
-            "Remove o git worktree ativo e limpa a branch temporária. "
-            "Se houver mudanças, retorna o diff."
-        ),
+        description=("Remove o git worktree ativo e limpa a branch temporária. Se houver mudanças, retorna o diff."),
         parameters={},
         required=[],
     )

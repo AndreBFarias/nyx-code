@@ -17,10 +17,7 @@ class MultiEditTool(RegisteredTool):
 
     tool_def = ToolDef(
         name="multi_edit",
-        description=(
-            "Aplica múltiplas edições atomicamente. "
-            "Se uma falhar, reverte todas as anteriores."
-        ),
+        description=("Aplica múltiplas edições atomicamente. Se uma falhar, reverte todas as anteriores."),
         parameters={
             "edits": {
                 "type": "array",
@@ -46,6 +43,7 @@ class MultiEditTool(RegisteredTool):
 
         if isinstance(edits, str):
             import json
+
             try:
                 edits = json.loads(edits)
             except Exception as e:
@@ -62,7 +60,7 @@ class MultiEditTool(RegisteredTool):
                 new = str(edit.get("new_string", ""))
 
                 if not fp or not old:
-                    raise ValueError(f"Edição #{i+1}: file_path ou old_string vazio")
+                    raise ValueError(f"Edição #{i + 1}: file_path ou old_string vazio")
 
                 path = validate_path(fp, project_root)
                 if not path.exists():
@@ -72,7 +70,7 @@ class MultiEditTool(RegisteredTool):
                 backups.append((path, content))
 
                 if old not in content:
-                    raise ValueError(f"Edição #{i+1}: old_string não encontrada em {fp}")
+                    raise ValueError(f"Edição #{i + 1}: old_string não encontrada em {fp}")
 
                 new_content = content.replace(old, new, 1)
                 path.write_text(new_content, encoding="utf-8")

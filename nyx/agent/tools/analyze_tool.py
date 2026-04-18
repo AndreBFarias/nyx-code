@@ -19,8 +19,7 @@ class AnalyzeTool(RegisteredTool):
     tool_def = ToolDef(
         name="analyze",
         description=(
-            "Analisa estrutura de um arquivo: imports, classes, funções, "
-            "linhas, complexidade. Suporta Python via AST."
+            "Analisa estrutura de um arquivo: imports, classes, funções, linhas, complexidade. Suporta Python via AST."
         ),
         parameters={
             "file_path": {"type": "string", "description": "Caminho do arquivo"},
@@ -35,8 +34,7 @@ class AnalyzeTool(RegisteredTool):
 
         path = Path(file_path) if file_path.startswith("/") else Path(project_root) / file_path
         if not path.exists():
-            return ActionResult(success=False, error=f"Arquivo não encontrado: {file_path}",
-                                files_read=[str(path)])
+            return ActionResult(success=False, error=f"Arquivo não encontrado: {file_path}", files_read=[str(path)])
 
         try:
             content = path.read_text(encoding="utf-8")
@@ -103,6 +101,7 @@ class AnalyzeTool(RegisteredTool):
 
     def _analyze_generic(self, content: str, path: Path, total: int, blank: int) -> ActionResult:
         import re
+
         func_pattern = re.compile(r"(?:def |function |fn |func )\s*(\w+)")
         class_pattern = re.compile(r"(?:class |struct |interface )\s*(\w+)")
 

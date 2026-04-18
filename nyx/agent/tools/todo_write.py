@@ -104,7 +104,8 @@ def _save_todos(todos: list[dict[str, str]]) -> None:
     try:
         TODOS_FILE.parent.mkdir(parents=True, exist_ok=True)
         TODOS_FILE.write_text(
-            json.dumps(todos, indent=2, ensure_ascii=False), encoding="utf-8",
+            json.dumps(todos, indent=2, ensure_ascii=False),
+            encoding="utf-8",
         )
     except Exception as e:
         logger.warning("Falha ao salvar todos: %s", e)

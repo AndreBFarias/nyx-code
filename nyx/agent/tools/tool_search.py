@@ -16,10 +16,7 @@ class ToolSearchTool(RegisteredTool):
 
     tool_def = ToolDef(
         name="tool_search",
-        description=(
-            "Busca tools disponíveis por nome ou descrição. "
-            "Retorna lista de matches com nome e descrição."
-        ),
+        description=("Busca tools disponíveis por nome ou descrição. Retorna lista de matches com nome e descrição."),
         parameters={
             "query": {"type": "string", "description": "Termo de busca"},
             "max_results": {
@@ -38,6 +35,7 @@ class ToolSearchTool(RegisteredTool):
         max_results = int(params.get("max_results", 10))
 
         from nyx.agent.tools.registry import ToolRegistry
+
         reg = ToolRegistry(project_root)
 
         matches: list[tuple[str, str]] = []

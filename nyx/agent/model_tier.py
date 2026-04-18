@@ -49,9 +49,9 @@ def detect_hardware_profile() -> tuple[HardwareProfile, str, int]:
     """Detecta GPU e retorna (perfil, nome_gpu, vram_mib)."""
     try:
         out = subprocess.check_output(
-            ["nvidia-smi", "--query-gpu=name,memory.total",
-             "--format=csv,noheader,nounits"],
-            text=True, timeout=5,
+            ["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader,nounits"],
+            text=True,
+            timeout=5,
         ).strip()
         parts = out.split(",")
         gpu_name = parts[0].strip()
@@ -117,8 +117,14 @@ def get_model_tier(model: str = "qwen3:4b") -> ModelTier:
             vram_total_mib=vram_mib,
         )
 
-    logger.info("[TIER] %s -> %s (num_gpu=%d, num_ctx=%d, vram=%dMiB)",
-                profile.value, model, tier.num_gpu, tier.num_ctx, vram_mib)
+    logger.info(
+        "[TIER] %s -> %s (num_gpu=%d, num_ctx=%d, vram=%dMiB)",
+        profile.value,
+        model,
+        tier.num_gpu,
+        tier.num_ctx,
+        vram_mib,
+    )
     return tier
 
 

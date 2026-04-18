@@ -23,7 +23,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from aiohttp import web, ClientSession, ClientTimeout
+from aiohttp import ClientSession, ClientTimeout, web
 
 logging.basicConfig(
     level=logging.INFO,
@@ -148,12 +148,14 @@ def ollama_to_openai(data: dict, model: str) -> dict:
             args = func.get("arguments", {})
             if isinstance(args, dict):
                 args = json.dumps(args)
-            oai_tc.append({
-                "id": tc.get("id", f"call_{uuid.uuid4().hex[:8]}"),
-                "index": i,
-                "type": "function",
-                "function": {"name": func.get("name", ""), "arguments": args},
-            })
+            oai_tc.append(
+                {
+                    "id": tc.get("id", f"call_{uuid.uuid4().hex[:8]}"),
+                    "index": i,
+                    "type": "function",
+                    "function": {"name": func.get("name", ""), "arguments": args},
+                }
+            )
         choice["message"]["tool_calls"] = oai_tc
         choice["message"]["content"] = ""  # Limpar reasoning quando há tool_calls
         choice["finish_reason"] = "tool_calls"
@@ -197,9 +199,7 @@ async def handle_chat(request: web.Request) -> web.StreamResponse:
             if _is_oom_error(text) and not _OOM_DEGRADED:
                 _OOM_DEGRADED = True
                 NUM_GPU = 0
-                logger.warning(
-                    "OOM detectado. Degradando num_gpu=0 (CPU) para esta sessão"
-                )
+                logger.warning("OOM detectado. Degradando num_gpu=0 (CPU) para esta sessão")
                 ollama_body["options"]["num_gpu"] = 0
                 async with session.post(f"{OLLAMA_URL}/api/chat", json=ollama_body) as retry_resp:
                     if retry_resp.status != 200:
@@ -240,7 +240,10 @@ async def handle_models(request: web.Request) -> web.Response:
     except Exception as e:
         logger.debug("Falha ao listar modelos: %s", e)
         return web.json_response({"object": "list", "data": []})
-    models = [{"id": m["name"], "object": "model", "created": int(time.time()), "owned_by": "ollama"} for m in tags.get("models", [])]
+    models = [
+        {"id": m["name"], "object": "model", "created": int(time.time()), "owned_by": "ollama"}
+        for m in tags.get("models", [])
+    ]
     return web.json_response({"object": "list", "data": models})
 
 
@@ -275,6 +278,7 @@ async def _on_cleanup(app: web.Application) -> None:
 
 def main():
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=11436)
     parser.add_argument("--ollama-port", type=int, default=11435)

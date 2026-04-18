@@ -39,13 +39,14 @@ _COMMANDS: dict[str, CommandDef] = {}
 
 def nyx_command(name: str, description: str, aliases: list[str] | None = None, category: str = "geral"):
     """Decorador para registrar um comando."""
+
     def decorator(func: Any) -> Any:
-        cmd = CommandDef(name=name, description=description, handler=func,
-                         aliases=aliases or [], category=category)
+        cmd = CommandDef(name=name, description=description, handler=func, aliases=aliases or [], category=category)
         _COMMANDS[name] = cmd
         for alias in cmd.aliases:
             _COMMANDS[alias] = cmd
         return func
+
     return decorator
 
 
@@ -64,8 +65,16 @@ def list_commands() -> list[CommandDef]:
 
 
 ESSENTIAL_COMMANDS = (
-    "help", "status", "tools", "plan", "explain",
-    "commit", "memory", "paste", "clear", "quit",
+    "help",
+    "status",
+    "tools",
+    "plan",
+    "explain",
+    "commit",
+    "memory",
+    "paste",
+    "clear",
+    "quit",
 )
 
 
@@ -123,8 +132,7 @@ def cmd_status(_args: str, _root: str) -> str:
     return "__status__"
 
 
-@nyx_command(name="explain", description="Analisa e explica um arquivo", aliases=["exp"],
-             category="código")
+@nyx_command(name="explain", description="Analisa e explica um arquivo", aliases=["exp"], category="código")
 def cmd_explain(file_path: str, project_root: str) -> str:
     full = Path(project_root) / file_path.strip()
     if not full.exists():
@@ -140,8 +148,7 @@ def cmd_explain(file_path: str, project_root: str) -> str:
     )
 
 
-@nyx_command(name="plan", description="Cria plano de implementação",
-             category="código")
+@nyx_command(name="plan", description="Cria plano de implementação", category="código")
 def cmd_plan(description: str, _root: str) -> str:
     return (
         f"Crie um plano de implementação para: {description}\n"
@@ -157,8 +164,7 @@ def cmd_plan(description: str, _root: str) -> str:
     )
 
 
-@nyx_command(name="test", description="Gera testes para um arquivo", aliases=["tst"],
-             category="código")
+@nyx_command(name="test", description="Gera testes para um arquivo", aliases=["tst"], category="código")
 def cmd_test(file_path: str, project_root: str) -> str:
     full = Path(project_root) / file_path.strip()
     if not full.exists():
@@ -176,8 +182,7 @@ def cmd_test(file_path: str, project_root: str) -> str:
     )
 
 
-@nyx_command(name="compact", description="Resume o que foi feito na sessão",
-             category="sessão")
+@nyx_command(name="compact", description="Resume o que foi feito na sessão", category="sessão")
 def cmd_compact(history_summary: str, _root: str) -> str:
     return (
         "Resuma o trabalho realizado até agora.\n"
@@ -203,15 +208,14 @@ def cmd_commit(message: str, project_root: str) -> str:
         "Regras:\n"
         "- Mensagem em PT-BR, sem emojis, sem menção a IA\n"
         "- Nunca --force, --amend ou --no-verify sem autorização\n"
-        "- Nunca commitar .env, credentials ou secrets\n"
-        + (f"- Contexto adicional: {message}" if message else "")
+        "- Nunca commitar .env, credentials ou secrets\n" + (f"- Contexto adicional: {message}" if message else "")
     )
 
 
-@nyx_command(name="diff", description="Mostra mudanças não commitadas", aliases=["d"],
-             category="git")
+@nyx_command(name="diff", description="Mostra mudanças não commitadas", aliases=["d"], category="git")
 def cmd_diff(_args: str, project_root: str) -> str:
     from nyx.agent.git_ops import git_diff_full, git_status
+
     ok_status, status = git_status(project_root)
     ok_diff, diff = git_diff_full(project_root)
 
@@ -229,8 +233,7 @@ def cmd_diff(_args: str, project_root: str) -> str:
     return "\n".join(parts)
 
 
-@nyx_command(name="doctor", description="Diagnóstico do sistema", aliases=["dr"],
-             category="sistema")
+@nyx_command(name="doctor", description="Diagnóstico do sistema", aliases=["dr"], category="sistema")
 def cmd_doctor(_args: str, project_root: str) -> str:
     import subprocess
     from pathlib import Path as _Path
@@ -240,6 +243,7 @@ def cmd_doctor(_args: str, project_root: str) -> str:
     ollama_ok = False
     try:
         import httpx
+
         r = httpx.get("http://127.0.0.1:11435/api/version", timeout=5)
         ver = r.json().get("version", "?")
         checks.append(f"[OK] Ollama: v{ver} (porta 11435)")
@@ -250,6 +254,7 @@ def cmd_doctor(_args: str, project_root: str) -> str:
 
     try:
         import httpx
+
         r = httpx.get("http://127.0.0.1:11436/v1/models", timeout=5)
         models = r.json().get("data", [])
         checks.append(f"[OK] Proxy: {len(models)} modelo(s) (porta 11436)")
@@ -259,8 +264,9 @@ def cmd_doctor(_args: str, project_root: str) -> str:
 
     try:
         out = subprocess.check_output(
-            ["nvidia-smi", "--query-gpu=name,memory.used,memory.total",
-             "--format=csv,noheader,nounits"], text=True, timeout=5,
+            ["nvidia-smi", "--query-gpu=name,memory.used,memory.total", "--format=csv,noheader,nounits"],
+            text=True,
+            timeout=5,
         ).strip()
         parts = out.split(",")
         gpu = parts[0].strip()
@@ -278,13 +284,12 @@ def cmd_doctor(_args: str, project_root: str) -> str:
     checks.append(f"[OK] Venv: {venv}" if venv.exists() else "[AVISO] Venv: não encontrado")
 
     env = root / ".env"
-    checks.append(f"[OK] .env: presente" if env.exists() else "[AVISO] .env: não encontrado")
+    checks.append("[OK] .env: presente" if env.exists() else "[AVISO] .env: não encontrado")
 
     return "Diagnóstico Nyx:\n" + "\n".join(f"  {c}" for c in checks)
 
 
-@nyx_command(name="review", description="Review de pull request", aliases=["rv"],
-             category="git")
+@nyx_command(name="review", description="Review de pull request", aliases=["rv"], category="git")
 def cmd_review(pr_number: str, project_root: str) -> str:
     if not pr_number.strip():
         return (
@@ -307,24 +312,22 @@ def cmd_review(pr_number: str, project_root: str) -> str:
     )
 
 
-@nyx_command(name="model", description="Mostra ou troca o modelo", aliases=["m"],
-             category="sistema")
+@nyx_command(name="model", description="Mostra ou troca o modelo", aliases=["m"], category="sistema")
 def cmd_model(model_name: str, _root: str) -> str:
     if not model_name.strip():
         import os
+
         current = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", "qwen3:4b"))
         return f"  Modelo atual: {current}\n  Use /model <nome> para trocar."
     return f"__model__{model_name.strip()}"
 
 
-@nyx_command(name="context", description="Mostra uso do contexto", aliases=["ctx"],
-             category="sessão")
+@nyx_command(name="context", description="Mostra uso do contexto", aliases=["ctx"], category="sessão")
 def cmd_context(_args: str, _root: str) -> str:
     return "__context__"
 
 
-@nyx_command(name="session", description="Gerencia sessões salvas", aliases=["sess"],
-             category="sessão")
+@nyx_command(name="session", description="Gerencia sessões salvas", aliases=["sess"], category="sessão")
 def cmd_session(action: str, _root: str) -> str:
     from nyx.agent.persistence import SESSIONS_DIR, load_latest_session
 
@@ -344,7 +347,7 @@ def cmd_session(action: str, _root: str) -> str:
     if action == "load" or action == "restore":
         session = load_latest_session()
         if session:
-            return f"__session_load__"
+            return "__session_load__"
         return "  Nenhuma sessão para restaurar."
 
     if action == "save":
@@ -361,10 +364,10 @@ def cmd_session(action: str, _root: str) -> str:
 # ── P5-A: Git & GitHub ──────────────────────────────────────────
 
 
-@nyx_command(name="branch", description="Operações de branch", aliases=["br"],
-             category="git")
+@nyx_command(name="branch", description="Operações de branch", aliases=["br"], category="git")
 def cmd_branch(args: str, project_root: str) -> str:
     from nyx.agent.git_ops import run_git
+
     args = args.strip()
     if not args:
         ok, out = run_git(["branch", "--list"], project_root)
@@ -377,49 +380,49 @@ def cmd_branch(args: str, project_root: str) -> str:
     return out if ok else f"Erro ao criar branch: {out}"
 
 
-@nyx_command(name="issue", description="Cria/lista issues via gh CLI",
-             category="git")
+@nyx_command(name="issue", description="Cria/lista issues via gh CLI", category="git")
 def cmd_issue(args: str, project_root: str) -> str:
     import subprocess
+
     args = args.strip()
     try:
         if not args:
-            r = subprocess.run(["gh", "issue", "list", "--limit", "10"],
-                               capture_output=True, text=True, timeout=15, cwd=project_root)
+            r = subprocess.run(
+                ["gh", "issue", "list", "--limit", "10"], capture_output=True, text=True, timeout=15, cwd=project_root
+            )
             return r.stdout if r.stdout else "Nenhuma issue aberta."
         if args.isdigit():
-            r = subprocess.run(["gh", "issue", "view", args],
-                               capture_output=True, text=True, timeout=15, cwd=project_root)
+            r = subprocess.run(
+                ["gh", "issue", "view", args], capture_output=True, text=True, timeout=15, cwd=project_root
+            )
             return r.stdout if r.stdout else f"Issue #{args} não encontrada."
-        return (
-            f"Crie uma issue sobre: {args}\n"
-            "Use run_command('gh issue create --title \"...\" --body \"...\"')"
-        )
+        return f'Crie uma issue sobre: {args}\nUse run_command(\'gh issue create --title "..." --body "..."\')'
     except FileNotFoundError:
         return "gh CLI não instalado. Instale: https://cli.github.com"
 
 
-@nyx_command(name="pr", description="Lista/mostra PRs via gh CLI",
-             category="git")
+@nyx_command(name="pr", description="Lista/mostra PRs via gh CLI", category="git")
 def cmd_pr(args: str, project_root: str) -> str:
     import subprocess
+
     args = args.strip()
     try:
         if not args:
-            r = subprocess.run(["gh", "pr", "list", "--limit", "10"],
-                               capture_output=True, text=True, timeout=15, cwd=project_root)
+            r = subprocess.run(
+                ["gh", "pr", "list", "--limit", "10"], capture_output=True, text=True, timeout=15, cwd=project_root
+            )
             return r.stdout if r.stdout else "Nenhuma PR aberta."
         if args.isdigit():
-            r = subprocess.run(["gh", "pr", "view", args, "--comments"],
-                               capture_output=True, text=True, timeout=15, cwd=project_root)
+            r = subprocess.run(
+                ["gh", "pr", "view", args, "--comments"], capture_output=True, text=True, timeout=15, cwd=project_root
+            )
             return r.stdout if r.stdout else f"PR #{args} não encontrada."
-        return f"Uso: /pr [número]"
+        return "Uso: /pr [número]"
     except FileNotFoundError:
         return "gh CLI não instalado. Instale: https://cli.github.com"
 
 
-@nyx_command(name="rewind", description="Desfaz últimas N ações do agent",
-             category="sessão")
+@nyx_command(name="rewind", description="Desfaz últimas N ações do agent", category="sessão")
 def cmd_rewind(args: str, _root: str) -> str:
     n = 1
     if args.strip().isdigit():
@@ -430,10 +433,10 @@ def cmd_rewind(args: str, _root: str) -> str:
 # ── P5-B: Configuração ────────────────────────────────────────
 
 
-@nyx_command(name="config", description="Mostra ou edita configuração",
-             category="sistema")
+@nyx_command(name="config", description="Mostra ou edita configuração", category="sistema")
 def cmd_config(args: str, project_root: str) -> str:
     import os
+
     args = args.strip()
     if not args:
         proxy = os.environ.get("OPENAI_BASE_URL", "http://127.0.0.1:11436/v1")
@@ -453,10 +456,10 @@ def cmd_config(args: str, project_root: str) -> str:
     return f"  Configuração via env: export {parts[0].upper()}={parts[1]}"
 
 
-@nyx_command(name="env", description="Mostra variáveis de ambiente relevantes",
-             category="sistema")
+@nyx_command(name="env", description="Mostra variáveis de ambiente relevantes", category="sistema")
 def cmd_env(_args: str, _root: str) -> str:
     import os
+
     prefixes = ("OPENAI_", "NYX_", "OLLAMA_", "ANTHROPIC_API")
     lines = ["  Variáveis de ambiente:"]
     for key, val in sorted(os.environ.items()):
@@ -468,15 +471,27 @@ def cmd_env(_args: str, _root: str) -> str:
     return "\n".join(lines)
 
 
-@nyx_command(name="permissions", description="Mostra permissões por tool", aliases=["perms"],
-             category="sistema")
+@nyx_command(name="permissions", description="Mostra permissões por tool", aliases=["perms"], category="sistema")
 def cmd_permissions(_args: str, _root: str) -> str:
     from nyx.agent.permissions import PermissionChecker
+
     pc = PermissionChecker()
     tools_by_level: dict[str, list[str]] = {}
-    for tool in ["read_file", "write_file", "edit_file", "run_command",
-                 "glob", "search", "list_files", "done", "agent",
-                 "todo_write", "web_fetch", "web_search", "notebook_edit"]:
+    for tool in [
+        "read_file",
+        "write_file",
+        "edit_file",
+        "run_command",
+        "glob",
+        "search",
+        "list_files",
+        "done",
+        "agent",
+        "todo_write",
+        "web_fetch",
+        "web_search",
+        "notebook_edit",
+    ]:
         level = str(pc.check(tool))
         tools_by_level.setdefault(level, []).append(tool)
 
@@ -488,8 +503,7 @@ def cmd_permissions(_args: str, _root: str) -> str:
     return "\n".join(lines)
 
 
-@nyx_command(name="hooks", description="Lista hooks registrados",
-             category="sistema")
+@nyx_command(name="hooks", description="Lista hooks registrados", category="sistema")
 def cmd_hooks(_args: str, _root: str) -> str:
     return (
         "  Hooks são registrados via ToolRegistry.\n"
@@ -499,11 +513,11 @@ def cmd_hooks(_args: str, _root: str) -> str:
     )
 
 
-@nyx_command(name="theme", description="Lista ou troca tema de cores",
-             category="sistema")
+@nyx_command(name="theme", description="Lista ou troca tema de cores", category="sistema")
 def cmd_theme(args: str, _root: str) -> str:
     try:
         from nyx.themes import ThemeManager
+
         tm = ThemeManager()
         args = args.strip()
         if not args or args == "list":
@@ -523,26 +537,22 @@ def cmd_theme(args: str, _root: str) -> str:
 # ── P5-C: Sessão & Métricas ──────────────────────────────────
 
 
-@nyx_command(name="resume", description="Restaura sessão anterior",
-             category="sessão")
+@nyx_command(name="resume", description="Restaura sessão anterior", category="sessão")
 def cmd_resume(_args: str, _root: str) -> str:
     return "__session_load__"
 
 
-@nyx_command(name="export", description="Exporta sessão para arquivo",
-             category="sessão")
+@nyx_command(name="export", description="Exporta sessão para arquivo", category="sessão")
 def cmd_export(args: str, _root: str) -> str:
     return "__export__" + (args.strip() or "md")
 
 
-@nyx_command(name="copy", description="Copia último output para clipboard",
-             category="sessão")
+@nyx_command(name="copy", description="Copia último output para clipboard", category="sessão")
 def cmd_copy(_args: str, _root: str) -> str:
     return "__copy__"
 
 
-@nyx_command(name="summary", description="Gera resumo da sessão",
-             category="sessão")
+@nyx_command(name="summary", description="Gera resumo da sessão", category="sessão")
 def cmd_summary(_args: str, _root: str) -> str:
     return (
         "Gere um resumo do trabalho realizado nesta sessão.\n"
@@ -555,14 +565,12 @@ def cmd_summary(_args: str, _root: str) -> str:
     )
 
 
-@nyx_command(name="stats", description="Estatísticas detalhadas da sessão",
-             category="sessão")
+@nyx_command(name="stats", description="Estatísticas detalhadas da sessão", category="sessão")
 def cmd_stats(_args: str, _root: str) -> str:
     return "__stats__"
 
 
-@nyx_command(name="usage", description="Uso de tokens e contexto",
-             category="sessão")
+@nyx_command(name="usage", description="Uso de tokens e contexto", category="sessão")
 def cmd_usage(_args: str, _root: str) -> str:
     return "__usage__"
 
@@ -570,10 +578,10 @@ def cmd_usage(_args: str, _root: str) -> str:
 # ── P5-D: Execução ──────────────────────────────────────────
 
 
-@nyx_command(name="tasks", description="Gerencia tarefas",
-             category="execução")
+@nyx_command(name="tasks", description="Gerencia tarefas", category="execução")
 def cmd_tasks(args: str, project_root: str) -> str:
     from nyx.agent.tools.task_manager import TaskCreateTool, TaskListTool, TaskUpdateTool
+
     args = args.strip()
 
     if not args or args == "list":
@@ -596,10 +604,10 @@ def cmd_tasks(args: str, project_root: str) -> str:
     return "  Uso: /tasks [list|create <título>|done <id>]"
 
 
-@nyx_command(name="skills", description="Lista skills disponíveis",
-             category="execução")
+@nyx_command(name="skills", description="Lista skills disponíveis", category="execução")
 def cmd_skills(_args: str, _root: str) -> str:
     from nyx.agent.tools.skill_tool import _list_skills
+
     skills = _list_skills()
     if not skills:
         return "  Nenhum skill em ~/.nyx/skills/. Crie arquivos .py com função execute()."
@@ -609,21 +617,20 @@ def cmd_skills(_args: str, _root: str) -> str:
     return "\n".join(lines)
 
 
-@nyx_command(name="files", description="Mostra arquivos no contexto",
-             category="execução")
+@nyx_command(name="files", description="Mostra arquivos no contexto", category="execução")
 def cmd_files(_args: str, _root: str) -> str:
     return "__files__"
-
 
 
 # ── PROD-03: Commands triviais ─────────────────────────────────
 
 
-@nyx_command(name="version", description="Mostra versão do Nyx",
-             category="projeto", aliases=['v'])
+@nyx_command(name="version", description="Mostra versão do Nyx", category="projeto", aliases=["v"])
 def cmd_version(_args: str, _root: str) -> str:
     import os
+
     from nyx.__version__ import __version__
+
     model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", "qwen3:4b"))
     proxy = os.environ.get("OPENAI_BASE_URL", "http://127.0.0.1:11436/v1")
     return (
@@ -635,12 +642,10 @@ def cmd_version(_args: str, _root: str) -> str:
     )
 
 
-@nyx_command(name="init", description="Inicializa projeto Nyx",
-             category="projeto")
+@nyx_command(name="init", description="Inicializa projeto Nyx", category="projeto")
 def cmd_init(_args: str, project_root: str) -> str:
     nyx_dir = Path.home() / ".nyx"
-    dirs = [nyx_dir, nyx_dir / "memory", nyx_dir / "sessions",
-            nyx_dir / "logs", nyx_dir / "analytics"]
+    dirs = [nyx_dir, nyx_dir / "memory", nyx_dir / "sessions", nyx_dir / "logs", nyx_dir / "analytics"]
     created = []
     for d in dirs:
         if not d.exists():
@@ -651,8 +656,7 @@ def cmd_init(_args: str, project_root: str) -> str:
     return "  Nyx já inicializado. Diretórios existem."
 
 
-@nyx_command(name="break-cache", description="Limpa caches internos",
-             category="debug")
+@nyx_command(name="break-cache", description="Limpa caches internos", category="debug")
 def cmd_break_cache(_args: str, _root: str) -> str:
     sessions_dir = Path.home() / ".nyx" / "sessions"
     removed = 0
@@ -663,20 +667,17 @@ def cmd_break_cache(_args: str, _root: str) -> str:
     return f"  Cache limpo. {removed} sessão(ões) removida(s)."
 
 
-@nyx_command(name="trace", description="Trace de execução do agent loop",
-             category="debug")
+@nyx_command(name="trace", description="Trace de execução do agent loop", category="debug")
 def cmd_trace(_args: str, _root: str) -> str:
     return "__trace__"
 
 
-@nyx_command(name="ctx-viz", description="Visualização do contexto",
-             category="debug")
+@nyx_command(name="ctx-viz", description="Visualização do contexto", category="debug")
 def cmd_ctx_viz(_args: str, _root: str) -> str:
     return "__context__"
 
 
-@nyx_command(name="brief-cmd", description="Resumo rápido da sessão",
-             category="root")
+@nyx_command(name="brief-cmd", description="Resumo rápido da sessão", category="root")
 def cmd_brief_cmd(_args: str, _root: str) -> str:
     return (
         "Gere um resumo em no máximo 3 linhas do trabalho realizado.\n"
@@ -685,8 +686,7 @@ def cmd_brief_cmd(_args: str, _root: str) -> str:
     )
 
 
-@nyx_command(name="btw", description="Nota lateral para o agent",
-             category="avançado")
+@nyx_command(name="btw", description="Nota lateral para o agent", category="avançado")
 def cmd_btw(args: str, _root: str) -> str:
     note = args.strip()
     if not note:
@@ -697,8 +697,7 @@ def cmd_btw(args: str, _root: str) -> str:
 # ── PROD-04: Commands com lógica ──────────────────────────────
 
 
-@nyx_command(name="add-dir", description="Adiciona diretório ao contexto do agent",
-             category="projeto")
+@nyx_command(name="add-dir", description="Adiciona diretório ao contexto do agent", category="projeto")
 def cmd_add_dir(args: str, project_root: str) -> str:
     target = args.strip()
     if not target:
@@ -713,10 +712,15 @@ def cmd_add_dir(args: str, project_root: str) -> str:
     )
 
 
-@nyx_command(name="recall", description="Busca em memória de sessões anteriores (SessionMemory JSON)",
-             category="memória", aliases=['rec'])
+@nyx_command(
+    name="recall",
+    description="Busca em memória de sessões anteriores (SessionMemory JSON)",
+    category="memória",
+    aliases=["rec"],
+)
 def cmd_recall(args: str, _root: str) -> str:
     from nyx.agent.services.memory import SessionMemory
+
     mem = SessionMemory()
     action = args.strip().lower()
 
@@ -747,18 +751,30 @@ def cmd_recall(args: str, _root: str) -> str:
     )
 
 
-@nyx_command(name="pr-comments", description="Mostra comentários de PR",
-             category="avançado")
+@nyx_command(name="pr-comments", description="Mostra comentários de PR", category="avançado")
 def cmd_pr_comments(args: str, project_root: str) -> str:
     import subprocess
+
     pr_number = args.strip()
     if not pr_number or not pr_number.isdigit():
         return "  Uso: /pr-comments <número>"
     try:
         r = subprocess.run(
-            ["gh", "pr", "view", pr_number, "--comments", "--json",
-             "comments", "--jq", '.comments[] | "\\(.author.login): \\(.body[:100])"'],
-            capture_output=True, text=True, timeout=15, cwd=project_root,
+            [
+                "gh",
+                "pr",
+                "view",
+                pr_number,
+                "--comments",
+                "--json",
+                "comments",
+                "--jq",
+                '.comments[] | "\\(.author.login): \\(.body[:100])"',
+            ],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            cwd=project_root,
         )
         if r.stdout.strip():
             return f"  Comentários da PR #{pr_number}:\n{r.stdout}"
@@ -767,8 +783,7 @@ def cmd_pr_comments(args: str, project_root: str) -> str:
         return "  gh CLI não instalado."
 
 
-@nyx_command(name="commit-push-pr", description="Commit, push e PR",
-             category="root")
+@nyx_command(name="commit-push-pr", description="Commit, push e PR", category="root")
 def cmd_commit_push_pr(args: str, project_root: str) -> str:
     return (
         "Execute o fluxo completo: commit, push e PR. Passos:\n"
@@ -779,14 +794,12 @@ def cmd_commit_push_pr(args: str, project_root: str) -> str:
         "5. Use run_command('git add <arquivos>')\n"
         "6. Use run_command('git commit -m \"tipo: descrição\"')\n"
         "7. Use run_command('git push -u origin <branch>')\n"
-        "8. Use run_command('gh pr create --title \"...\" --body \"...\"')\n"
-        "9. Use done(summary='PR criada: <url>')\n"
-        + (f"\nContexto: {args}" if args.strip() else "")
+        '8. Use run_command(\'gh pr create --title "..." --body "..."\')\n'
+        "9. Use done(summary='PR criada: <url>')\n" + (f"\nContexto: {args}" if args.strip() else "")
     )
 
 
-@nyx_command(name="security-review", description="Review de segurança",
-             category="root")
+@nyx_command(name="security-review", description="Review de segurança", category="root")
 def cmd_security_review(args: str, project_root: str) -> str:
     target = args.strip() or "."
     return (
@@ -799,8 +812,7 @@ def cmd_security_review(args: str, project_root: str) -> str:
     )
 
 
-@nyx_command(name="advisor", description="Conselheiro de código",
-             category="root")
+@nyx_command(name="advisor", description="Conselheiro de código", category="root")
 def cmd_advisor(args: str, project_root: str) -> str:
     target = args.strip() or "."
     return (
@@ -812,10 +824,10 @@ def cmd_advisor(args: str, project_root: str) -> str:
     )
 
 
-@nyx_command(name="tools", description="Lista ferramentas (tools) disponíveis no agent",
-             category="contexto")
+@nyx_command(name="tools", description="Lista ferramentas (tools) disponíveis no agent", category="contexto")
 def cmd_tools(args: str, project_root: str) -> str:
     from nyx.agent.tools.registry import ToolRegistry
+
     reg = ToolRegistry(project_root)
     arg = args.strip().lower()
     lines = [f"  Tools registradas ({reg.tool_count}):", ""]
@@ -832,10 +844,10 @@ def cmd_tools(args: str, project_root: str) -> str:
     return "\n".join(lines)
 
 
-@nyx_command(name="memory", description="Lista memórias persistentes do projeto",
-             category="contexto")
+@nyx_command(name="memory", description="Lista memórias persistentes do projeto", category="contexto")
 def cmd_memory(args: str, project_root: str) -> str:
     from nyx.agent.memory import NyxMemory
+
     mem = NyxMemory(project_root)
     arg = args.strip()
     if arg.startswith("show "):
@@ -859,10 +871,10 @@ def cmd_memory(args: str, project_root: str) -> str:
     return "\n".join(lines)
 
 
-@nyx_command(name="paste", description="Lista imagens coladas na sessão (Ctrl+V)",
-             category="contexto")
+@nyx_command(name="paste", description="Lista imagens coladas na sessão (Ctrl+V)", category="contexto")
 def cmd_paste(_args: str, _project_root: str) -> str:
     from pathlib import Path as _P
+
     pastes = _P.home() / ".nyx" / "pastes"
     if not pastes.exists():
         return "Nenhuma imagem colada ainda. Use Ctrl+V com imagem no clipboard."
@@ -876,8 +888,7 @@ def cmd_paste(_args: str, _project_root: str) -> str:
     return "\n".join(lines)
 
 
-@nyx_command(name="insights", description="Insights do projeto",
-             category="root")
+@nyx_command(name="insights", description="Insights do projeto", category="root")
 def cmd_insights(args: str, project_root: str) -> str:
     return (
         "Gere insights sobre o projeto. Passos:\n"
@@ -887,6 +898,7 @@ def cmd_insights(args: str, project_root: str) -> str:
         "4. Use search para encontrar padrões (TODOs, FIXMEs, imports)\n"
         "5. Use done(summary='insights: <análise>')"
     )
+
 
 def handle_command(cmd_input: str, project_root: str = ".") -> str | None:
     """Processa um slash command. Retorna None se não é comando."""

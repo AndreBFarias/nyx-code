@@ -22,8 +22,7 @@ class SendMessageTool(RegisteredTool):
     tool_def = ToolDef(
         name="send_message",
         description=(
-            "Envia mensagem para um sub-agent Nyx via protocolo headless. "
-            "O sub-agent processa e retorna a resposta."
+            "Envia mensagem para um sub-agent Nyx via protocolo headless. O sub-agent processa e retorna a resposta."
         ),
         parameters={
             "to": {"type": "string", "description": "Identificador do agent destino"},

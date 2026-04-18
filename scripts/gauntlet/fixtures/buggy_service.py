@@ -8,10 +8,9 @@ em múltiplos níveis de senioridade. Deve seguir os ADRs da Luna:
 - Convenções: type hints, logging rotacionado, Path relativo
 """
 
-import os
 import json
+import os
 import time
-import torch  # BUG SENIOR: import pesado no topo (viola ADR-008)
 
 # BUG JUNIOR: print em vez de logging
 print("Serviço de sessão inicializado")
@@ -34,12 +33,7 @@ class SessionManager:
         # BUG JUNIOR: sem type hints na assinatura
         # BUG JUNIOR: sem docstring
         session_id = str(time.time())
-        self.sessions[session_id] = {
-            "request": user_request,
-            "created": time.time(),
-            "status": "active",
-            "history": []
-        }
+        self.sessions[session_id] = {"request": user_request, "created": time.time(), "status": "active", "history": []}
         print(f"Sessão criada: {session_id}")  # BUG JUNIOR: print
         return session_id
 
@@ -95,20 +89,12 @@ class SessionManager:
             if self.sessions[sid]["status"] == "active":
                 active = active + 1  # BUG JUNIOR: active += 1 seria melhor
 
-        return {
-            "total": total,
-            "active": active,
-            "inactive": total - active
-        }
+        return {"total": total, "active": active, "inactive": total - active}
 
     def add_to_history(self, session_id, action, result):
         # BUG PLENO: sem validação de session_id
         # BUG SENIOR: sem limite de tamanho do histórico (memory leak)
-        self.sessions[session_id]["history"].append({
-            "action": action,
-            "result": result,
-            "timestamp": time.time()
-        })
+        self.sessions[session_id]["history"].append({"action": action, "result": result, "timestamp": time.time()})
 
     def export_all(self):
         """Exporta todas as sessoes."""
@@ -122,6 +108,7 @@ def connect_to_api(url, timeout=30):
     # BUG SENIOR: viola ADR-003 (offline-first)
     # Não tem fallback local, depende diretamente da API
     import requests  # BUG PLENO: import dentro de função sem ser lazy pattern
+
     try:
         response = requests.get(url, timeout=timeout)
         return response.json()
@@ -135,6 +122,7 @@ def validate_model_name(name):
     """Valida nome do modelo."""
     # BUG SENIOR: regex vulnerável a ReDoS
     import re
+
     pattern = r"^(a+)+$"  # BUG: exponential backtracking
     return bool(re.match(pattern, name))
 

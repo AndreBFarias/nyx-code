@@ -34,8 +34,7 @@ except ImportError:
 class NyxCompleter(Completer):
     """Completer context-aware: commands, tools e paths."""
 
-    def __init__(self, project_root: str, commands: list[dict] | None = None,
-                 tools: list[str] | None = None) -> None:
+    def __init__(self, project_root: str, commands: list[dict] | None = None, tools: list[str] | None = None) -> None:
         self._root = Path(project_root)
         self._commands = commands or []
         self._tools = tools or []
@@ -100,6 +99,7 @@ def create_completer(project_root: str) -> NyxCompleter | None:
         return None
 
     from nyx.agent.commands import list_commands
+
     cmds = [{"name": c.name, "description": c.description} for c in list_commands()]
 
     return NyxCompleter(project_root, commands=cmds)

@@ -60,10 +60,12 @@ class WebSearchEngine:
     def _check_ddg(self) -> bool:
         try:
             from ddgs import DDGS
+
             return True
         except ImportError:
             try:
                 from duckduckgo_search import DDGS
+
                 return True
             except ImportError:
                 logger.warning("ddgs não instalado. Execute: pip install ddgs")
@@ -135,13 +137,15 @@ class WebSearchEngine:
                 snippet = r.get("body", r.get("snippet", ""))
                 if _NON_LATIN.search(title or "") and len(_NON_LATIN.findall(title)) > len(title) * 0.15:
                     continue
-                results.append(SearchResult(
-                    title=title,
-                    url=r.get("href", r.get("link", "")),
-                    snippet=(snippet or "")[:300],
-                    source="duckduckgo",
-                    timestamp=time.time(),
-                ))
+                results.append(
+                    SearchResult(
+                        title=title,
+                        url=r.get("href", r.get("link", "")),
+                        snippet=(snippet or "")[:300],
+                        source="duckduckgo",
+                        timestamp=time.time(),
+                    )
+                )
 
             logger.info("DuckDuckGo: %d resultados para '%s'", len(results), query[:30])
             return results
@@ -180,13 +184,15 @@ class WebSearchEngine:
             for item in search_results:
                 title = item.get("title", "")
                 snippet = re.sub(r"<[^>]+>", "", item.get("snippet", ""))
-                results.append(SearchResult(
-                    title=f"Wikipedia: {title}",
-                    url=f"https://pt.wikipedia.org/wiki/{title.replace(' ', '_')}",
-                    snippet=snippet[:300],
-                    source="wikipedia",
-                    timestamp=time.time(),
-                ))
+                results.append(
+                    SearchResult(
+                        title=f"Wikipedia: {title}",
+                        url=f"https://pt.wikipedia.org/wiki/{title.replace(' ', '_')}",
+                        snippet=snippet[:300],
+                        source="wikipedia",
+                        timestamp=time.time(),
+                    )
+                )
 
             if results:
                 logger.info("Wikipedia: %d resultados", len(results))

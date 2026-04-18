@@ -19,10 +19,7 @@ class SleepTool(RegisteredTool):
 
     tool_def = ToolDef(
         name="sleep",
-        description=(
-            "Espera um número de segundos antes de continuar. "
-            f"Máximo {MAX_SLEEP_SECONDS}s."
-        ),
+        description=(f"Espera um número de segundos antes de continuar. Máximo {MAX_SLEEP_SECONDS}s."),
         parameters={
             "seconds": {"type": "integer", "description": "Segundos para esperar (1-30)"},
         },

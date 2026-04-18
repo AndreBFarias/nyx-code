@@ -37,7 +37,8 @@ class GlobTool(RegisteredTool):
 
         try:
             matches = sorted(
-                str(p.relative_to(project)) for p in root.glob(pattern)
+                str(p.relative_to(project))
+                for p in root.glob(pattern)
                 if p.is_file() and p.resolve().is_relative_to(project)
             )
             if not matches:

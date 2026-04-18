@@ -78,8 +78,7 @@ def _snake_to_class(name: str) -> str:
 # ── Templates ────────────────────────────────────────────────────
 
 
-def _tool_template(file_name: str, class_name: str, description: str,
-                   params: dict[str, str]) -> str:
+def _tool_template(file_name: str, class_name: str, description: str, params: dict[str, str]) -> str:
     """Gera conteúdo de um arquivo de tool."""
     type_map = {"string": "string", "integer": "integer", "boolean": "boolean", "number": "number"}
 
@@ -87,8 +86,7 @@ def _tool_template(file_name: str, class_name: str, description: str,
     required_list = []
     for pname, ptype in params.items():
         json_type = type_map.get(ptype, "string")
-        params_dict_lines.append(
-            f'            "{pname}": {{"type": "{json_type}", "description": "{pname}"}},')
+        params_dict_lines.append(f'            "{pname}": {{"type": "{json_type}", "description": "{pname}"}},')
         required_list.append(f'"{pname}"')
 
     required_block = ", ".join(required_list)
@@ -185,10 +183,9 @@ def _service_template(file_name: str, class_name: str, description: str) -> str:
     return "\n".join(lines)
 
 
-def _command_block(name: str, description: str, category: str,
-                   aliases: list[str]) -> str:
+def _command_block(name: str, description: str, category: str, aliases: list[str]) -> str:
     """Gera bloco de comando para inserir em commands.py."""
-    aliases_str = f', aliases={aliases}' if aliases else ""
+    aliases_str = f", aliases={aliases}" if aliases else ""
     func_name = f"cmd_{name.replace('-', '_')}"
     quote = _pick_quote(name)
 
@@ -224,7 +221,7 @@ def _register_tool_in_registry(file_name: str, class_name: str) -> bool:
         return False
 
     end_of_line = content.index("\n", last_import + 1)
-    content = content[:end_of_line + 1] + import_line + "\n" + content[end_of_line + 1:]
+    content = content[: end_of_line + 1] + import_line + "\n" + content[end_of_line + 1 :]
 
     marker = "DoneTool,"
     if marker not in content:
@@ -244,7 +241,9 @@ def _unregister_tool_from_registry(file_name: str, class_name: str) -> bool:
 
     content = re.sub(
         rf"^from \.{re.escape(file_name)} import {re.escape(class_name)}\n",
-        "", content, flags=re.MULTILINE,
+        "",
+        content,
+        flags=re.MULTILINE,
     )
 
     content = content.replace(f"{class_name}, ", "")
@@ -254,8 +253,7 @@ def _unregister_tool_from_registry(file_name: str, class_name: str) -> bool:
     return True
 
 
-def _register_command_in_commands(name: str, description: str,
-                                   category: str, aliases: list[str]) -> bool:
+def _register_command_in_commands(name: str, description: str, category: str, aliases: list[str]) -> bool:
     """Adiciona command em commands.py antes de handle_command."""
     content = COMMANDS_PATH.read_text(encoding="utf-8")
 

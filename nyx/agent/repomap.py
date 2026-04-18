@@ -20,11 +20,24 @@ logger = logging.getLogger("nyx.repomap")
 CACHE_FILE = Path.home() / ".nyx" / "cache" / "repomap.json"
 DEFAULT_BUDGET_BYTES = 2048
 EXCLUDE_DIRS = {
-    ".git", ".hg", ".svn",
-    "venv", ".venv", "env", ".env",
-    "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache",
-    "node_modules", "dist", "build", ".tox",
-    "openclaud", "logs", ".nyx",
+    ".git",
+    ".hg",
+    ".svn",
+    "venv",
+    ".venv",
+    "env",
+    ".env",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    "node_modules",
+    "dist",
+    "build",
+    ".tox",
+    "openclaud",
+    "logs",
+    ".nyx",
 }
 
 
@@ -49,8 +62,7 @@ def _extract_symbols(source: str) -> list[str]:
             methods = [
                 child.name
                 for child in node.body
-                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
-                and not child.name.startswith("_")
+                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)) and not child.name.startswith("_")
             ][:6]
             if methods:
                 symbols.append(f"class {node.name}({', '.join(methods)})")
@@ -170,9 +182,9 @@ class RepoMap:
         touched: set[str] | None = None,
     ) -> str:
         """Renderiza mapa compacto respeitando orçamento de bytes."""
-        symbols_by_path = self.build() if not self._cache else {
-            k: list(v.get("symbols", [])) for k, v in self._cache.items()
-        }
+        symbols_by_path = (
+            self.build() if not self._cache else {k: list(v.get("symbols", [])) for k, v in self._cache.items()}
+        )
         touched = touched or set()
 
         ordered = sorted(

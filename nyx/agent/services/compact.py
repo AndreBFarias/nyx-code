@@ -39,7 +39,9 @@ class AutoCompactService:
 
         logger.info(
             "[auto-compact] nível %d, compactação #%d, histórico: %d chars",
-            level, self._compactions, len(history),
+            level,
+            self._compactions,
+            len(history),
         )
         return True
 

@@ -121,6 +121,7 @@ def _html_to_text(html: str) -> str:
         return h.handle(html)
     except ImportError:
         import re
+
         text = re.sub(r"<script[^>]*>.*?</script>", "", html, flags=re.DOTALL)
         text = re.sub(r"<style[^>]*>.*?</style>", "", text, flags=re.DOTALL)
         text = re.sub(r"<[^>]+>", " ", text)

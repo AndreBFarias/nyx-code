@@ -39,8 +39,7 @@ class ConfigTool(RegisteredTool):
     tool_def = ToolDef(
         name="config",
         description=(
-            "Lê ou escreve configuração do Nyx. "
-            "Ações: get (lê chave), set (define chave=valor), list (mostra tudo)."
+            "Lê ou escreve configuração do Nyx. Ações: get (lê chave), set (define chave=valor), list (mostra tudo)."
         ),
         parameters={
             "action": {

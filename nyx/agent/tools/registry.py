@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Any
 
-from nyx.agent.models import ActionResult, ActionType
+from nyx.agent.models import ActionResult
 from nyx.agent.services.hooks import ToolHooks
 from nyx.agent.tools.base import RegisteredTool
 
@@ -31,8 +31,12 @@ from .send_message import SendMessageTool
 from .skill_tool import SkillTool
 from .sleep_tool import SleepTool
 from .task_manager import (
-    TaskCreateTool, TaskGetTool, TaskListTool,
-    TaskOutputTool, TaskStopTool, TaskUpdateTool,
+    TaskCreateTool,
+    TaskGetTool,
+    TaskListTool,
+    TaskOutputTool,
+    TaskStopTool,
+    TaskUpdateTool,
 )
 from .todo_write import TodoWriteTool
 from .tool_search import ToolSearchTool
@@ -54,18 +58,41 @@ class ToolRegistry:
 
     def _load_tools(self) -> None:
         for cls in [
-            ReadFileTool, WriteFileTool, EditFileTool,
-            RunCommandTool, GlobTool, SearchTool,
-            ListFilesTool, NotebookEditTool, TodoWriteTool,
-            WebFetchTool, WebSearchTool, TaskCreateTool,
-            TaskUpdateTool, TaskListTool, TaskGetTool,
-            TaskOutputTool, TaskStopTool, EnterPlanModeTool,
-            ExitPlanModeTool, AskUserTool, AgentTool,
-            SleepTool, ConfigTool, BriefTool,
-            EnterWorktreeTool, ExitWorktreeTool,
-            REPLTool, ToolSearchTool, SkillTool,
-            SendMessageTool, AnalyzeTool, PatchTool,
-            MultiEditTool, WriteMemoryTool, DoneTool,
+            ReadFileTool,
+            WriteFileTool,
+            EditFileTool,
+            RunCommandTool,
+            GlobTool,
+            SearchTool,
+            ListFilesTool,
+            NotebookEditTool,
+            TodoWriteTool,
+            WebFetchTool,
+            WebSearchTool,
+            TaskCreateTool,
+            TaskUpdateTool,
+            TaskListTool,
+            TaskGetTool,
+            TaskOutputTool,
+            TaskStopTool,
+            EnterPlanModeTool,
+            ExitPlanModeTool,
+            AskUserTool,
+            AgentTool,
+            SleepTool,
+            ConfigTool,
+            BriefTool,
+            EnterWorktreeTool,
+            ExitWorktreeTool,
+            REPLTool,
+            ToolSearchTool,
+            SkillTool,
+            SendMessageTool,
+            AnalyzeTool,
+            PatchTool,
+            MultiEditTool,
+            WriteMemoryTool,
+            DoneTool,
         ]:
             tool = cls()
             self._tools[tool.tool_def.name] = tool

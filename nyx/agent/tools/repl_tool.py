@@ -21,10 +21,7 @@ class REPLTool(RegisteredTool):
 
     tool_def = ToolDef(
         name="repl",
-        description=(
-            "Executa código Python e retorna o output. "
-            "Útil para cálculos, testes rápidos e exploração."
-        ),
+        description=("Executa código Python e retorna o output. Útil para cálculos, testes rápidos e exploração."),
         parameters={
             "code": {"type": "string", "description": "Código Python para executar"},
         },

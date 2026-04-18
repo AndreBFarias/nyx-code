@@ -61,10 +61,7 @@ class TaskCreateTool(RegisteredTool):
 
     tool_def = ToolDef(
         name="task_create",
-        description=(
-            "Cria uma nova tarefa no sistema de tarefas. "
-            "Retorna o ID da tarefa criada."
-        ),
+        description=("Cria uma nova tarefa no sistema de tarefas. Retorna o ID da tarefa criada."),
         parameters={
             "subject": {"type": "string", "description": "Título breve da tarefa"},
             "description": {"type": "string", "description": "Descrição detalhada"},
@@ -102,10 +99,7 @@ class TaskUpdateTool(RegisteredTool):
 
     tool_def = ToolDef(
         name="task_update",
-        description=(
-            "Atualiza status de uma tarefa existente. "
-            "Status: pending, in_progress, completed."
-        ),
+        description=("Atualiza status de uma tarefa existente. Status: pending, in_progress, completed."),
         parameters={
             "task_id": {"type": "string", "description": "ID da tarefa"},
             "status": {
@@ -199,6 +193,7 @@ class TaskGetTool(RegisteredTool):
             return ActionResult(success=False, error=f"Task #{task_id} não encontrada")
 
         from datetime import datetime
+
         created = datetime.fromtimestamp(found.created_at).strftime("%Y-%m-%d %H:%M") if found.created_at else "N/A"
         updated = datetime.fromtimestamp(found.updated_at).strftime("%Y-%m-%d %H:%M") if found.updated_at else "N/A"
 

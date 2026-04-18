@@ -15,14 +15,13 @@ RETRY_BACKOFF = 1.5
 
 
 class OllamaProvider:
-    def __init__(self, proxy_url: str = "http://127.0.0.1:11436",
-                 timeout: int = DEFAULT_TIMEOUT) -> None:
+    def __init__(self, proxy_url: str = "http://127.0.0.1:11436", timeout: int = DEFAULT_TIMEOUT) -> None:
         self._url = proxy_url.rstrip("/")
         self._timeout = timeout
 
-    async def chat(self, messages: list[dict], model: str = "qwen3:4b",
-                   tools: list[dict] | None = None,
-                   stream: bool = False) -> dict[str, Any]:
+    async def chat(
+        self, messages: list[dict], model: str = "qwen3:4b", tools: list[dict] | None = None, stream: bool = False
+    ) -> dict[str, Any]:
         """Envia request de chat. Retorna resposta formatada."""
         payload: dict[str, Any] = {
             "model": model,
@@ -61,6 +60,7 @@ class OllamaProvider:
 
             if attempt < MAX_RETRIES:
                 import asyncio
+
                 await asyncio.sleep(RETRY_BACKOFF * (attempt + 1))
 
         return {"error": f"Falha após {MAX_RETRIES + 1} tentativas: {last_error}"}

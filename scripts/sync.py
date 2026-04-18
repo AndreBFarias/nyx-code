@@ -36,8 +36,14 @@ logging.basicConfig(
 logger = logging.getLogger("nyx.sync")
 
 EXCLUDE_DIRS = {
-    "__pycache__", ".pytest_cache", "node_modules", ".git",
-    "venv", "reference", "models", ".claude",
+    "__pycache__",
+    ".pytest_cache",
+    "node_modules",
+    ".git",
+    "venv",
+    "reference",
+    "models",
+    ".claude",
 }
 
 TRACKED_EXTENSIONS = {".py", ".sh", ".md", ".json", ".yml", ".toml", ".exp", ".css"}
@@ -108,7 +114,17 @@ class SyncChecker:
         hits = _grep_files(
             r"openclaude|OpenClaude|open.claude",
             self._files,
-            ignore_paths=["reference/", "package-lock.json", "dev-journey/09-legacy/", ".github/workflows/", "scripts/sync.py", "dev-journey/06-sprints/", "dev-journey/02-architecture/", "dev-journey/03-decisions/", "dev-journey/PORT_STATUS.md"],
+            ignore_paths=[
+                "reference/",
+                "package-lock.json",
+                "dev-journey/09-legacy/",
+                ".github/workflows/",
+                "scripts/sync.py",
+                "dev-journey/06-sprints/",
+                "dev-journey/02-architecture/",
+                "dev-journey/03-decisions/",
+                "dev-journey/PORT_STATUS.md",
+            ],
         )
         if hits:
             for path, line, content in hits[:5]:
@@ -136,8 +152,13 @@ class SyncChecker:
             r"\bClaude\b|\bGPT\b|\bGemini\b|\bCopilot\b|\bAnthropic\b(?!_API_KEY)",
             self._files,
             ignore_paths=[
-                "reference/", "package-lock.json", "node_modules/",
-                "dev-journey/09-legacy/", ".env", "CLAUDE.md", ".claude/",
+                "reference/",
+                "package-lock.json",
+                "node_modules/",
+                "dev-journey/09-legacy/",
+                ".env",
+                "CLAUDE.md",
+                ".claude/",
             ],
         )
         if hits:
@@ -220,7 +241,8 @@ class SyncChecker:
                 continue
             result = subprocess.run(
                 ["bash", "-n", str(path)],
-                capture_output=True, text=True,
+                capture_output=True,
+                text=True,
             )
             if result.returncode != 0:
                 self._errors.append(f"Sintaxe shell quebrada: {name}: {result.stderr[:100]}")
@@ -237,7 +259,8 @@ class SyncChecker:
         for module, import_str in checks:
             result = subprocess.run(
                 [sys.executable, "-c", import_str],
-                capture_output=True, text=True,
+                capture_output=True,
+                text=True,
                 cwd=str(PROJECT_ROOT),
             )
             if result.returncode != 0:
@@ -254,9 +277,9 @@ class SyncChecker:
             return
         registry_content = registry.read_text(encoding="utf-8")
         tool_files = sorted(
-            f.stem for f in tools_dir.glob("*.py")
-            if f.stem not in ("__init__", "base", "registry")
-            and not f.stem.startswith("__")
+            f.stem
+            for f in tools_dir.glob("*.py")
+            if f.stem not in ("__init__", "base", "registry") and not f.stem.startswith("__")
         )
         missing = [f for f in tool_files if f"from .{f} import" not in registry_content]
         if missing:
@@ -268,9 +291,11 @@ class SyncChecker:
         """Verifica total de commands registrados."""
         try:
             result = subprocess.run(
-                [sys.executable, "-c",
-                 "from nyx.agent.commands import list_commands; print(len(list_commands()))"],
-                capture_output=True, text=True, cwd=str(PROJECT_ROOT), timeout=10,
+                [sys.executable, "-c", "from nyx.agent.commands import list_commands; print(len(list_commands()))"],
+                capture_output=True,
+                text=True,
+                cwd=str(PROJECT_ROOT),
+                timeout=10,
             )
             count = int(result.stdout.strip())
             if count >= 33:
@@ -287,14 +312,16 @@ class SyncChecker:
             self._errors.append("Diretório de services não existe")
             return
         svc_files = sorted(
-            f.stem for f in services_dir.glob("*.py")
-            if f.stem != "__init__" and not f.stem.startswith("__")
+            f.stem for f in services_dir.glob("*.py") if f.stem != "__init__" and not f.stem.startswith("__")
         )
         failed = []
         for svc in svc_files:
             result = subprocess.run(
                 [sys.executable, "-c", f"import nyx.agent.services.{svc}"],
-                capture_output=True, text=True, cwd=str(PROJECT_ROOT), timeout=10,
+                capture_output=True,
+                text=True,
+                cwd=str(PROJECT_ROOT),
+                timeout=10,
             )
             if result.returncode != 0:
                 failed.append(svc)
@@ -365,7 +392,9 @@ class SyncChecker:
 
         print()
         total = len(self._ok) + len(self._warnings) + len(self._errors)
-        print(f"  Total: {total} verificações | OK: {len(self._ok)} | Avisos: {len(self._warnings)} | Erros: {len(self._errors)}")
+        print(
+            f"  Total: {total} verificações | OK: {len(self._ok)} | Avisos: {len(self._warnings)} | Erros: {len(self._errors)}"
+        )
         print()
 
         if self._errors:

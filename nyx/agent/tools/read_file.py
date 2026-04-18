@@ -46,7 +46,7 @@ class ReadFileTool(RegisteredTool):
         try:
             content = path.read_text(encoding="utf-8", errors="replace")
             lines = content.splitlines()
-            numbered = "\n".join(f"{i+1:4d}\t{line}" for i, line in enumerate(lines))
+            numbered = "\n".join(f"{i + 1:4d}\t{line}" for i, line in enumerate(lines))
             return ActionResult(
                 success=True,
                 output=f"{numbered}\n[{len(lines)} linhas lidas. Analise e execute a próxima ação.]",

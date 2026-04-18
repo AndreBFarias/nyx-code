@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
-from nyx.agent.session import CodeSession, HistoryEntry
+from nyx.agent.session import CodeSession
 
 logger = logging.getLogger("nyx.services.summary")
 
@@ -55,11 +54,7 @@ def summarize_by_type(session: CodeSession) -> dict[str, list[str]]:
 def get_key_actions(session: CodeSession) -> list[str]:
     """Extrai ações-chave (decisões de escrita)."""
     key_tools = {"write_file", "edit_file", "run_command", "create_file"}
-    return [
-        f"{e.tool_name}: {str(e.tool_args)[:80]}"
-        for e in session.history
-        if e.tool_name in key_tools
-    ]
+    return [f"{e.tool_name}: {str(e.tool_args)[:80]}" for e in session.history if e.tool_name in key_tools]
 
 
 def _categorize(tool_name: str) -> str:

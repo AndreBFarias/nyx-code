@@ -9,7 +9,6 @@ um limite de chars. Se o LLM falhar, mantém o resumo anterior.
 from __future__ import annotations
 
 import logging
-import time
 from pathlib import Path
 
 import httpx
@@ -113,7 +112,8 @@ class SessionSummarizer:
         session.last_summarized_at = session.iteration
         logger.info(
             "summarizer: resumo atualizado (%d chars, iteration=%d)",
-            len(content), session.iteration,
+            len(content),
+            session.iteration,
         )
         return content
 

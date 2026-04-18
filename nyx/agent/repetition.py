@@ -94,7 +94,7 @@ def is_cycle(history: list[HistoryEntry], window: int = 6) -> bool:
         if len(keys) < cycle_len * 2:
             continue
         tail = keys[-cycle_len:]
-        prev = keys[-(cycle_len * 2):-cycle_len]
+        prev = keys[-(cycle_len * 2) : -cycle_len]
         if tail == prev:
             logger.info("Ciclo detectado (len=%d): %s", cycle_len, tail)
             return True

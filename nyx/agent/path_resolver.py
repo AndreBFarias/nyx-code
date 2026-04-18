@@ -14,14 +14,34 @@ from pathlib import Path
 logger = logging.getLogger("nyx.path_resolver")
 
 INDEXED_EXTENSIONS = {
-    ".py", ".js", ".ts", ".json", ".yaml", ".yml", ".toml",
-    ".cfg", ".txt", ".md", ".sh", ".css", ".html",
+    ".py",
+    ".js",
+    ".ts",
+    ".json",
+    ".yaml",
+    ".yml",
+    ".toml",
+    ".cfg",
+    ".txt",
+    ".md",
+    ".sh",
+    ".css",
+    ".html",
 }
 
 BLACKLIST_DIRS = {
-    "__pycache__", ".git", "node_modules", ".venv", "venv",
-    "logs", ".pytest_cache", ".mypy_cache", ".ruff_cache",
-    "legacy", "dist", "models",
+    "__pycache__",
+    ".git",
+    "node_modules",
+    ".venv",
+    "venv",
+    "logs",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    "legacy",
+    "dist",
+    "models",
 }
 
 _PATH_REGEX = re.compile(
@@ -115,7 +135,7 @@ class PathResolver:
 
         result = "\n".join(lines)
         if len(result) > max_chars:
-            result = result[:max_chars - 20] + "\n[... truncado]"
+            result = result[: max_chars - 20] + "\n[... truncado]"
         return result
 
     def _resolve_full_path(self, mention: str) -> ResolvedPath:
@@ -130,11 +150,9 @@ class PathResolver:
         candidates = self._basename_index.get(basename, [])
 
         if len(candidates) == 1:
-            return ResolvedPath(mention=mention, resolved=candidates[0],
-                                candidates=candidates, exists=True)
+            return ResolvedPath(mention=mention, resolved=candidates[0], candidates=candidates, exists=True)
         if len(candidates) > 1:
-            return ResolvedPath(mention=mention, resolved=None,
-                                candidates=candidates, exists=True)
+            return ResolvedPath(mention=mention, resolved=None, candidates=candidates, exists=True)
 
         # Fuzzy: mesmo stem, extensão diferente
         stem = Path(basename).stem
@@ -144,11 +162,9 @@ class PathResolver:
                 if Path(key).stem == stem:
                     fuzzy.extend(paths)
             if len(fuzzy) == 1:
-                return ResolvedPath(mention=mention, resolved=fuzzy[0],
-                                    candidates=fuzzy, exists=True)
+                return ResolvedPath(mention=mention, resolved=fuzzy[0], candidates=fuzzy, exists=True)
             if fuzzy:
-                return ResolvedPath(mention=mention, resolved=None,
-                                    candidates=fuzzy, exists=True)
+                return ResolvedPath(mention=mention, resolved=None, candidates=fuzzy, exists=True)
 
         if basename in self._all_dirs:
             return ResolvedPath(mention=mention, resolved=basename, exists=True)

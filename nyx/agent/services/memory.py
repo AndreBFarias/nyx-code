@@ -11,7 +11,6 @@ import logging
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any
 
 logger = logging.getLogger("nyx.services.memory")
 
@@ -48,8 +47,7 @@ class SessionMemory:
                 logger.warning("Falha ao carregar memória %s: %s", f.name, e)
                 continue
 
-    def save(self, key: str, content: str, tags: list[str] | None = None,
-             session_id: str = "default") -> Memory:
+    def save(self, key: str, content: str, tags: list[str] | None = None, session_id: str = "default") -> Memory:
         mem = Memory(
             key=key,
             content=content,

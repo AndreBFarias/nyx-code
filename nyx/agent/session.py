@@ -54,19 +54,20 @@ class CodeSession:
     # 1500 chars ~ 375 tokens -- suficiente para resumo de arquivo.
     TOOL_RESULT_LIMIT = 1500
 
-    def add_tool_call(self, tool_name: str, args: dict[str, Any], result: str,
-                      is_key: bool = False) -> None:
-        truncated = result[:self.TOOL_RESULT_LIMIT]
+    def add_tool_call(self, tool_name: str, args: dict[str, Any], result: str, is_key: bool = False) -> None:
+        truncated = result[: self.TOOL_RESULT_LIMIT]
         if len(result) > self.TOOL_RESULT_LIMIT:
             truncated += f"\n[... truncado, {len(result)} chars total]"
-        self.history.append(HistoryEntry(
-            role="tool",
-            content=truncated,
-            tool_name=tool_name,
-            tool_args=args,
-            tool_result=truncated,
-            is_key_decision=is_key,
-        ))
+        self.history.append(
+            HistoryEntry(
+                role="tool",
+                content=truncated,
+                tool_name=tool_name,
+                tool_args=args,
+                tool_result=truncated,
+                is_key_decision=is_key,
+            )
+        )
 
     def track_files(self, files_read: list[str], files_modified: list[str]) -> None:
         self._files_read.update(files_read)
@@ -77,8 +78,7 @@ class CodeSession:
         msgs: list[dict[str, str]] = []
         for entry in self.history:
             if entry.role == "tool":
-                msgs.append({"role": "user",
-                             "content": f"[resultado de {entry.tool_name}]\n{entry.tool_result}"})
+                msgs.append({"role": "user", "content": f"[resultado de {entry.tool_name}]\n{entry.tool_result}"})
             else:
                 msgs.append({"role": entry.role, "content": entry.content})
         return msgs

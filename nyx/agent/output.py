@@ -56,11 +56,20 @@ TAG_LABELS: dict[str, str] = {
 }
 
 EXT_LANG_MAP: dict[str, str] = {
-    ".py": "python", ".js": "javascript", ".ts": "typescript",
-    ".json": "json", ".yaml": "yaml", ".yml": "yaml",
-    ".toml": "toml", ".sh": "bash", ".md": "markdown",
-    ".html": "html", ".css": "css", ".sql": "sql",
-    ".rs": "rust", ".go": "go",
+    ".py": "python",
+    ".js": "javascript",
+    ".ts": "typescript",
+    ".json": "json",
+    ".yaml": "yaml",
+    ".yml": "yaml",
+    ".toml": "toml",
+    ".sh": "bash",
+    ".md": "markdown",
+    ".html": "html",
+    ".css": "css",
+    ".sql": "sql",
+    ".rs": "rust",
+    ".go": "go",
 }
 
 
@@ -84,15 +93,17 @@ class RichOutput:
             self._console = None
             return
 
-        nyx_theme = Theme({
-            "tag.nyx": f"bold {NYX_ACCENT}",
-            "tag.ok": "bold green",
-            "tag.erro": "bold red",
-            "tag.aviso": "yellow",
-            "diff.added": "green",
-            "diff.removed": "red",
-            "diff.header": f"bold {NYX_ACCENT}",
-        })
+        nyx_theme = Theme(
+            {
+                "tag.nyx": f"bold {NYX_ACCENT}",
+                "tag.ok": "bold green",
+                "tag.erro": "bold red",
+                "tag.aviso": "yellow",
+                "diff.added": "green",
+                "diff.removed": "red",
+                "diff.header": f"bold {NYX_ACCENT}",
+            }
+        )
         self._console = console or Console(theme=nyx_theme, highlight=False)
 
     def __call__(self, tag: str, message: str) -> None:
@@ -145,8 +156,12 @@ class RichOutput:
                 else:
                     table.add_row(part.strip(), "")
             self._console.print(
-                Panel(table, title=f"[bold {NYX_ACCENT}]sessão[/bold {NYX_ACCENT}]",
-                      border_style=f"dim {NYX_ACCENT}", expand=False)
+                Panel(
+                    table,
+                    title=f"[bold {NYX_ACCENT}]sessão[/bold {NYX_ACCENT}]",
+                    border_style=f"dim {NYX_ACCENT}",
+                    expand=False,
+                )
             )
         else:
             self._console.print(f"  [bold {NYX_ACCENT}][sessão][/bold {NYX_ACCENT}] {message}")
@@ -192,8 +207,8 @@ class NyxSpinner:
         if RICH_AVAILABLE:
             try:
                 from rich.console import Console
-                from rich.spinner import Spinner
                 from rich.live import Live
+                from rich.spinner import Spinner
 
                 self._console = Console(highlight=False)
                 spinner = Spinner("dots", text=f"  [dim]{self._message}[/dim]")
@@ -202,10 +217,12 @@ class NyxSpinner:
             except Exception as e:
                 logger.debug("Rich spinner falhou: %s", e)
                 import sys
+
                 sys.stdout.write(f"  {self._message}")
                 sys.stdout.flush()
         else:
             import sys
+
             sys.stdout.write(f"  {self._message}")
             sys.stdout.flush()
         return self
@@ -225,6 +242,7 @@ class NyxSpinner:
                 logger.debug("Erro ao parar spinner: %s", e)
         elif not RICH_AVAILABLE:
             import sys
+
             sys.stdout.write("\r" + " " * 40 + "\r")
             sys.stdout.flush()
 
@@ -241,6 +259,7 @@ def _shorten_path(value: str, project_root: str | None, max_len: int) -> str:
     if project_root and "://" not in value:
         try:
             from pathlib import Path as _Path
+
             p = _Path(value).resolve()
             root = _Path(project_root).resolve()
             if p == root or root in p.parents:
@@ -337,6 +356,7 @@ def render_user_input(text: str, console_width: int | None = None) -> None:
     Fallback pra '> texto' se terminal <80 cols ou sem suporte a Rich.
     """
     import shutil
+
     if console_width is None:
         console_width = shutil.get_terminal_size(fallback=(80, 24)).columns
 
@@ -401,15 +421,13 @@ def render_footer(
       <60:     'ctx X%'
     """
     import shutil
+
     width = shutil.get_terminal_size(fallback=(80, 24)).columns
     ACCENT_FG = "\033[38;2;0;212;170m"
     DIM_FG = "\033[2m"
     NC_FG = "\033[0m"
     if width >= 80:
-        body = (
-            f"ctx {pct}% · {model} · iter {iteration} · "
-            f"lidos {reads} · modif {mods}"
-        )
+        body = f"ctx {pct}% · {model} · iter {iteration} · lidos {reads} · modif {mods}"
         padding = max(width - len(body) - 8, 3)
         line = f"── {body} " + "─" * padding
     elif width >= 60:
@@ -424,6 +442,7 @@ def render_footer(
 def render_diff(old: str, new: str, path: str = "") -> str:
     """Gera diff formatado entre duas strings."""
     import difflib
+
     old_lines = old.splitlines(keepends=True)
     new_lines = new.splitlines(keepends=True)
     diff = difflib.unified_diff(old_lines, new_lines, fromfile=path, tofile=path)

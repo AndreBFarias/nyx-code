@@ -81,6 +81,7 @@ def _build_banner(model: str, tools_count: int, project: str) -> str:
 
 def _make_ask_permission(state: dict) -> "callable":
     """Factory que devolve a callback on_permission respeitando bypass_mode."""
+
     def _ask(level: str, tool_name: str, args: dict) -> bool:
         if state.get("bypass"):
             logger.info("[bypass] auto-aprovado: %s", tool_name)
@@ -89,13 +90,17 @@ def _make_ask_permission(state: dict) -> "callable":
         args_preview = str(args)[:80]
         level_label = {"confirm_once": "uma vez", "always_confirm": "sempre"}.get(level, level)
         try:
-            resp = input(
-                f"  {ACCENT}[permissão: {level_label}]{NC} Executar "
-                f"{BOLD}{tool_name}{NC}({args_preview})? [S/n] "
-            ).strip().lower()
+            resp = (
+                input(
+                    f"  {ACCENT}[permissão: {level_label}]{NC} Executar {BOLD}{tool_name}{NC}({args_preview})? [S/n] "
+                )
+                .strip()
+                .lower()
+            )
             return resp in ("", "s", "sim", "y", "yes")
         except (EOFError, KeyboardInterrupt):
             return False
+
     return _ask
 
 
@@ -111,6 +116,7 @@ async def run_repl(streaming: bool = True) -> int:
 
     try:
         from nyx.agent.output import RichOutput
+
         output = RichOutput()
         use_rich = output.available
     except ImportError:
@@ -122,10 +128,11 @@ async def run_repl(streaming: bool = True) -> int:
     prompt_session = None
     try:
         from prompt_toolkit import PromptSession
-        from prompt_toolkit.history import FileHistory
         from prompt_toolkit.formatted_text import ANSI
+        from prompt_toolkit.history import FileHistory
         from prompt_toolkit.key_binding import KeyBindings
         from prompt_toolkit.shortcuts import CompleteStyle
+
         from nyx.agent.completer import create_completer
 
         history_path = Path.home() / ".nyx" / "history"
@@ -156,8 +163,10 @@ async def run_repl(streaming: bool = True) -> int:
 
         @kb.add("c-v")
         def _paste(event: object) -> None:
-            from nyx.agent.clipboard import capture_image, capture_text
             from prompt_toolkit.application import run_in_terminal
+
+            from nyx.agent.clipboard import capture_image, capture_text
+
             buf = event.current_buffer  # type: ignore[attr-defined]
             img_path = capture_image()
             if img_path is not None:
@@ -165,9 +174,7 @@ async def run_repl(streaming: bool = True) -> int:
                 n = image_counter["n"]
                 image_map[n] = str(img_path)
                 buf.insert_text(f"[Image #{n}]")
-                run_in_terminal(
-                    lambda: print(f"  {DIM}⇲ Image #{n} salva em {img_path}{NC}")
-                )
+                run_in_terminal(lambda: print(f"  {DIM}⇲ Image #{n} salva em {img_path}{NC}"))
                 return
             text = capture_text()
             if text:
@@ -175,6 +182,7 @@ async def run_repl(streaming: bool = True) -> int:
 
         def _bottom_toolbar() -> list:
             from prompt_toolkit.formatted_text import FormattedText
+
             parts: list[tuple[str, str]] = []
             ctx = app_state.get("ctx_pct", 0)
             iter_n = app_state.get("iter_n", 0)
@@ -190,6 +198,7 @@ async def run_repl(streaming: bool = True) -> int:
             return FormattedText(parts)
 
         import shutil as _sh
+
         _term_cols = _sh.get_terminal_size(fallback=(80, 24)).columns
         _style = CompleteStyle.MULTI_COLUMN if _term_cols >= 100 else CompleteStyle.COLUMN
 
@@ -212,12 +221,12 @@ async def run_repl(streaming: bool = True) -> int:
     model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", "qwen3:4b"))
 
     from nyx.agent.output import (
+        nyx_spinner,
+        render_assistant_end,
+        render_assistant_start,
         render_tool_call,
         render_tool_result,
         render_user_input,
-        render_assistant_start,
-        render_assistant_end,
-        nyx_spinner,
     )
 
     spinner_state: dict[str, object | None] = {"active": None}
@@ -348,6 +357,7 @@ async def run_repl(streaming: bool = True) -> int:
 
             if result == "__session_load__":
                 from nyx.agent.persistence import load_latest_session
+
                 loaded = load_latest_session(PROJECT_ROOT.name)
                 if loaded:
                     agent._session = loaded
@@ -406,7 +416,7 @@ async def run_repl(streaming: bool = True) -> int:
                 if not entries:
                     print(f"  {DIM}Nenhuma tool call na sessão.{NC}")
                 else:
-                    print(f"  Últimas tool calls:")
+                    print("  Últimas tool calls:")
                     for e in entries[-10:]:
                         args_short = str(e.tool_args)[:50]
                         print(f"    {ACCENT}{e.tool_name}{NC}({args_short})")
@@ -420,7 +430,6 @@ async def run_repl(streaming: bool = True) -> int:
 
             if isinstance(result, str) and result.startswith("__export__"):
                 fmt = result.replace("__export__", "") or "md"
-                from nyx.agent.persistence import SESSIONS_DIR
                 export_dir = Path.home() / ".nyx" / "exports"
                 export_dir.mkdir(parents=True, exist_ok=True)
                 ts = time.strftime("%Y%m%d_%H%M%S")
@@ -437,6 +446,7 @@ async def run_repl(streaming: bool = True) -> int:
 
             if result == "__copy__":
                 import subprocess as _sp
+
                 last_content = ""
                 for entry in reversed(agent.session.history):
                     if entry.role == "assistant" or entry.tool_result:
@@ -444,8 +454,7 @@ async def run_repl(streaming: bool = True) -> int:
                         break
                 if last_content:
                     try:
-                        _sp.run(["xclip", "-selection", "clipboard"],
-                                input=last_content.encode(), timeout=5)
+                        _sp.run(["xclip", "-selection", "clipboard"], input=last_content.encode(), timeout=5)
                         print(f"  {ACCENT}[ok]{NC} Copiado para clipboard ({len(last_content)} chars)")
                     except FileNotFoundError:
                         tmp = Path.home() / ".nyx" / "clipboard.txt"
@@ -482,9 +491,7 @@ async def run_repl(streaming: bool = True) -> int:
 
             streamed = turn_state["streamed_text"].strip()
             summary = (status.summary or "").strip()
-            already_shown = bool(streamed) and bool(summary) and (
-                streamed == summary or streamed.endswith(summary)
-            )
+            already_shown = bool(streamed) and bool(summary) and (streamed == summary or streamed.endswith(summary))
             if summary and not already_shown:
                 if use_rich and output:
                     output("nyx", status.summary)
@@ -574,10 +581,13 @@ async def run_headless() -> int:
             return
         shutdown_requested = True
         saved = save_session(agent.session, PROJECT_ROOT.name)
-        msg = _json.dumps({
-            "type": "shutdown",
-            "session_saved": saved.name if saved else None,
-        }, ensure_ascii=False)
+        msg = _json.dumps(
+            {
+                "type": "shutdown",
+                "session_saved": saved.name if saved else None,
+            },
+            ensure_ascii=False,
+        )
         sys.stdout.write(msg + "\n")
         sys.stdout.flush()
 
@@ -607,39 +617,48 @@ async def run_headless() -> int:
             continue
 
         if msg_type == "status":
-            resp = _json.dumps({
-                "type": "status",
-                "tools": agent.tools_count,
-                "history": len(agent.session.history),
-                "model": model,
-                "files_read": agent.session.files_read_count,
-                "files_modified": agent.session.files_modified_count,
-                "iteration": agent.session.iteration,
-            }, ensure_ascii=False)
+            resp = _json.dumps(
+                {
+                    "type": "status",
+                    "tools": agent.tools_count,
+                    "history": len(agent.session.history),
+                    "model": model,
+                    "files_read": agent.session.files_read_count,
+                    "files_modified": agent.session.files_modified_count,
+                    "iteration": agent.session.iteration,
+                },
+                ensure_ascii=False,
+            )
             sys.stdout.write(resp + "\n")
             sys.stdout.flush()
             continue
 
         if msg_type == "tools":
             tool_names = [t["function"]["name"] for t in agent._tools.tool_defs]
-            resp = _json.dumps({
-                "type": "tools",
-                "list": sorted(tool_names),
-                "count": len(tool_names),
-            }, ensure_ascii=False)
+            resp = _json.dumps(
+                {
+                    "type": "tools",
+                    "list": sorted(tool_names),
+                    "count": len(tool_names),
+                },
+                ensure_ascii=False,
+            )
             sys.stdout.write(resp + "\n")
             sys.stdout.flush()
             continue
 
         if msg_type == "session":
-            resp = _json.dumps({
-                "type": "session",
-                "files_read": agent.session.files_read_count,
-                "files_modified": agent.session.files_modified_count,
-                "iterations": agent.session.iteration,
-                "history_entries": len(agent.session.history),
-                "context": agent.session.get_files_context(),
-            }, ensure_ascii=False)
+            resp = _json.dumps(
+                {
+                    "type": "session",
+                    "files_read": agent.session.files_read_count,
+                    "files_modified": agent.session.files_modified_count,
+                    "iterations": agent.session.iteration,
+                    "history_entries": len(agent.session.history),
+                    "context": agent.session.get_files_context(),
+                },
+                ensure_ascii=False,
+            )
             sys.stdout.write(resp + "\n")
             sys.stdout.flush()
             continue
@@ -647,14 +666,17 @@ async def run_headless() -> int:
         if msg_type == "request" and content:
             try:
                 status = await agent.run(content)
-                resp = _json.dumps({
-                    "type": "response",
-                    "state": status.state.value,
-                    "summary": status.summary,
-                    "iterations": status.iterations,
-                    "files_read": agent.session.files_read_count,
-                    "files_modified": agent.session.files_modified_count,
-                }, ensure_ascii=False)
+                resp = _json.dumps(
+                    {
+                        "type": "response",
+                        "state": status.state.value,
+                        "summary": status.summary,
+                        "iterations": status.iterations,
+                        "files_read": agent.session.files_read_count,
+                        "files_modified": agent.session.files_modified_count,
+                    },
+                    ensure_ascii=False,
+                )
             except Exception as e:
                 resp = _json.dumps({"type": "error", "message": str(e)}, ensure_ascii=False)
             sys.stdout.write(resp + "\n")

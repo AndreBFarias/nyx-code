@@ -249,7 +249,7 @@ class ActionParser:
                 depth -= 1
                 if depth == 0:
                     try:
-                        data = json.loads(candidate[:i + 1])
+                        data = json.loads(candidate[: i + 1])
                         break
                     except json.JSONDecodeError:
                         continue
@@ -316,8 +316,9 @@ class ActionParser:
 
         action_type = _ACTION_ALIASES.get(action_name)
         if not action_type:
-            return ParseResult(action=None, level=ParseLevel.EXACT, success=False,
-                               error=f"Ação desconhecida: {action_name}")
+            return ParseResult(
+                action=None, level=ParseLevel.EXACT, success=False, error=f"Ação desconhecida: {action_name}"
+            )
 
         params = self._extract_params(body, strict=True)
         if "path" not in params and inline_extra:
@@ -369,8 +370,9 @@ class ActionParser:
 
         action_type = _ACTION_ALIASES.get(action_name)
         if not action_type:
-            return ParseResult(action=None, level=ParseLevel.RELAXED, success=False,
-                               error=f"Ação desconhecida: {action_name}")
+            return ParseResult(
+                action=None, level=ParseLevel.RELAXED, success=False, error=f"Ação desconhecida: {action_name}"
+            )
 
         params = self._extract_params(body, strict=False)
         if "path" not in params and inline_extra:
@@ -431,7 +433,7 @@ class ActionParser:
         best_path = ""
 
         for m in reversed(block_matches):
-            preceding = text[max(0, m.start() - 200): m.start()]
+            preceding = text[max(0, m.start() - 200) : m.start()]
             path_match = _path_re.search(preceding)
             if path_match:
                 best_block = m
@@ -444,16 +446,19 @@ class ActionParser:
             best_block = block_matches[-1]
 
         if not best_path:
-            return ParseResult(action=None, level=ParseLevel.CODE_BLOCK, success=False,
-                               error="Code block encontrado mas sem caminho de arquivo")
+            return ParseResult(
+                action=None,
+                level=ParseLevel.CODE_BLOCK,
+                success=False,
+                error="Code block encontrado mas sem caminho de arquivo",
+            )
 
         lang = best_block.group(1)
         code = best_block.group(2)
         params = {"path": best_path, "content": code.strip()}
 
         return ParseResult(
-            action=AgentAction(action_type=ActionType.CREATE_FILE, params=params,
-                               raw_block=f"```{lang}\n{code}```"),
+            action=AgentAction(action_type=ActionType.CREATE_FILE, params=params, raw_block=f"```{lang}\n{code}```"),
             level=ParseLevel.CODE_BLOCK,
             success=True,
             raw_text=text,
@@ -467,8 +472,9 @@ class ActionParser:
             path = match_read.group(1).strip()
             logger.info("Path-intent read: %s", path)
             return ParseResult(
-                action=AgentAction(action_type=ActionType.READ_FILE, params={"path": path},
-                                   raw_block=match_read.group(0)),
+                action=AgentAction(
+                    action_type=ActionType.READ_FILE, params={"path": path}, raw_block=match_read.group(0)
+                ),
                 level=ParseLevel.PATH_INTENT,
                 success=True,
                 raw_text=text,
@@ -479,8 +485,11 @@ class ActionParser:
             path = match_create.group(1).strip()
             logger.info("Path-intent create: %s", path)
             return ParseResult(
-                action=AgentAction(action_type=ActionType.CREATE_FILE, params={"path": path, "content": ""},
-                                   raw_block=match_create.group(0)),
+                action=AgentAction(
+                    action_type=ActionType.CREATE_FILE,
+                    params={"path": path, "content": ""},
+                    raw_block=match_create.group(0),
+                ),
                 level=ParseLevel.PATH_INTENT,
                 success=True,
                 raw_text=text,
@@ -513,8 +522,7 @@ class ActionParser:
         summary = stripped[:300]
         logger.info("Implicit done detectado: %s", summary[:80])
         return ParseResult(
-            action=AgentAction(action_type=ActionType.DONE, params={"summary": summary},
-                               raw_block=stripped),
+            action=AgentAction(action_type=ActionType.DONE, params={"summary": summary}, raw_block=stripped),
             level=ParseLevel.IMPLICIT_DONE,
             success=True,
             raw_text=text,

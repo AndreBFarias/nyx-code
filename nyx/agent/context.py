@@ -45,7 +45,11 @@ class ContextBudget:
         if pct > 1.0:
             logger.warning(
                 "[CONTEXT] Budget ESTOURADO: %d/%d tokens (%.0f%%). System: %d, User: %d",
-                total, self.max_tokens, pct * 100, system_tokens, user_tokens,
+                total,
+                self.max_tokens,
+                pct * 100,
+                system_tokens,
+                user_tokens,
             )
         elif pct > 0.85:
             logger.info("[CONTEXT] Budget alto: %.0f%% (%d/%d)", pct * 100, total, self.max_tokens)

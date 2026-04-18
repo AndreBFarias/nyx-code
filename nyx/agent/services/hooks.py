@@ -73,14 +73,17 @@ class ToolHooks:
 
 def create_logging_hook() -> PostHook:
     """Cria hook que loga toda execução de tool."""
+
     def _log(tool_name: str, args: dict[str, Any], result: Any) -> None:
         success = getattr(result, "success", True)
         logger.info("[hook:log] %s(%s) -> %s", tool_name, str(args)[:60], "OK" if success else "ERRO")
+
     return _log
 
 
 def create_path_guard_hook(denied_patterns: list[str]) -> PreHook:
     """Cria hook que bloqueia tools em paths específicos."""
+
     def _guard(tool_name: str, args: dict[str, Any]) -> PreHookResult | None:
         path = args.get("file_path", args.get("path", ""))
         if not path:
@@ -89,6 +92,7 @@ def create_path_guard_hook(denied_patterns: list[str]) -> PreHook:
             if pattern in path:
                 return {"block": True, "reason": f"Path bloqueado: {pattern}"}
         return None
+
     return _guard
 
 

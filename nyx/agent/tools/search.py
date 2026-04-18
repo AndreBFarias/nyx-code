@@ -66,8 +66,11 @@ class SearchTool(RegisteredTool):
 
             try:
                 proc = subprocess.run(
-                    args, capture_output=True, text=True,
-                    timeout=_SEARCH_TIMEOUT, cwd=str(root),
+                    args,
+                    capture_output=True,
+                    text=True,
+                    timeout=_SEARCH_TIMEOUT,
+                    cwd=str(root),
                 )
                 if proc.returncode not in (0, 1):
                     continue
@@ -99,7 +102,19 @@ class SearchTool(RegisteredTool):
                 rel = str(f.relative_to(root))
                 if any(exc in rel.split("/") for exc in EXCLUDE_DIRS):
                     continue
-                if f.suffix not in {".py", ".sh", ".md", ".json", ".yml", ".toml", ".txt", ".css", ".html", ".js", ".ts"}:
+                if f.suffix not in {
+                    ".py",
+                    ".sh",
+                    ".md",
+                    ".json",
+                    ".yml",
+                    ".toml",
+                    ".txt",
+                    ".css",
+                    ".html",
+                    ".js",
+                    ".ts",
+                }:
                     continue
                 try:
                     for i, line in enumerate(f.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):

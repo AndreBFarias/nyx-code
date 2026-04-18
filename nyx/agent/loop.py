@@ -26,12 +26,9 @@ from typing import Any
 
 import httpx
 
-from nyx.agent.context import ContextBudget, render_context_bar
+from nyx.agent.context import ContextBudget
 from nyx.agent.memory import NyxMemory
-from nyx.agent.repomap import RepoMap
-from nyx.agent.summarizer import SessionSummarizer
 from nyx.agent.models import (
-    ActionResult,
     ActionType,
     AgentAction,
     SessionState,
@@ -41,15 +38,16 @@ from nyx.agent.parser import ActionParser
 from nyx.agent.permissions import PermissionChecker, PermissionLevel
 from nyx.agent.preflight import check as preflight_check
 from nyx.agent.prompt import build_claude_md_context, build_system_prompt
-from nyx.agent.tools.plan_mode import is_tool_allowed_in_plan_mode
 from nyx.agent.repetition import SkipStrategy, get_skip_strategy
+from nyx.agent.repomap import RepoMap
 from nyx.agent.services.diagnostics import DiagnosticTracking
 from nyx.agent.services.tool_use_summary import ToolUseSummary
 from nyx.agent.session import CodeSession
 from nyx.agent.streaming import StreamingCollector
+from nyx.agent.summarizer import SessionSummarizer
+from nyx.agent.tools.plan_mode import is_tool_allowed_in_plan_mode
 from nyx.agent.tools.registry import ToolRegistry
 from nyx.agent.validator import validate as post_validate
-
 from nyx.config.defaults import MAX_ITERATIONS as MAX_ITERATIONS_DEFAULT
 
 logger = logging.getLogger("nyx.agent")
@@ -162,11 +160,13 @@ class AgentLoop:
         repo_map = ""
         try:
             touched = set(self._session._files_modified) | set(self._session._files_read)
-            repo_map = self._repomap.render(touched={
-                str(Path(p).relative_to(self._project_root))
-                for p in touched
-                if Path(p).is_relative_to(self._project_root)
-            })
+            repo_map = self._repomap.render(
+                touched={
+                    str(Path(p).relative_to(self._project_root))
+                    for p in touched
+                    if Path(p).is_relative_to(self._project_root)
+                }
+            )
         except Exception as e:  # noqa: BLE001
             logger.debug("repomap render falhou: %s", e)
         summary = getattr(self._session, "summary", "") if hasattr(self, "_session") else ""
@@ -202,8 +202,12 @@ class AgentLoop:
                 error_msg = response["error"]
                 self._diagnostics.record_error("llm", error_msg[:200])
                 # Auto-recovery: se conexão falhou ou Ollama crashou, tenta retentar
-                if ("connection" in error_msg.lower() or "disconnect" in error_msg.lower()
-                        or "Extra data" in error_msg or "500" in error_msg):
+                if (
+                    "connection" in error_msg.lower()
+                    or "disconnect" in error_msg.lower()
+                    or "Extra data" in error_msg
+                    or "500" in error_msg
+                ):
                     logger.warning("[loop] LLM caiu, tentando recovery...")
                     recovered = await self._try_recovery()
                     if recovered:
@@ -299,7 +303,9 @@ class AgentLoop:
 
             if not is_tool_allowed_in_plan_mode(name):
                 logger.warning("[loop] bloqueado por plan_mode: %s", name)
-                self._session.add_tool_call(name, args, f"Bloqueado: modo planejamento ativo. Use exit_plan_mode primeiro.")
+                self._session.add_tool_call(
+                    name, args, "Bloqueado: modo planejamento ativo. Use exit_plan_mode primeiro."
+                )
                 continue
 
             perm = self._permissions.check(name, args)
@@ -348,7 +354,8 @@ class AgentLoop:
                 self._on_tool_result(name, result.output if result.success else result.error)
 
             self._session.add_tool_call(
-                name, args,
+                name,
+                args,
                 result.output if result.success else result.error,
                 is_key=name in ("write_file", "edit_file", "create_file", "run_command"),
             )
@@ -416,7 +423,8 @@ class AgentLoop:
             logger.info("[loop] validator aviso para %s: %s", tool_name, warn)
 
         self._session.add_tool_call(
-            tool_name, remapped,
+            tool_name,
+            remapped,
             result.output if result.success else result.error,
             is_key=tool_name in ("write_file", "edit_file", "create_file", "run_command"),
         )
@@ -469,7 +477,8 @@ class AgentLoop:
             self._consecutive_skips += 1
             logger.info("[loop] SKIP repetição (%d consecutivos)", self._consecutive_skips)
             self._session.add_tool_call(
-                action.action_type.value, action.params,
+                action.action_type.value,
+                action.params,
                 f"Ação repetida ignorada ({self._consecutive_skips}x)",
             )
             return None
@@ -538,10 +547,12 @@ class AgentLoop:
                         args = json.loads(args)
                     except json.JSONDecodeError:
                         args = {"raw": args}
-                result["tool_calls"].append({
-                    "name": fn.get("name", ""),
-                    "arguments": args,
-                })
+                result["tool_calls"].append(
+                    {
+                        "name": fn.get("name", ""),
+                        "arguments": args,
+                    }
+                )
 
             return result
 
@@ -553,6 +564,7 @@ class AgentLoop:
     async def _try_recovery(self) -> bool:
         """Tenta reiniciar o modelo Ollama após crash."""
         import asyncio
+
         ollama_base = self._proxy_url.replace("/v1", "").rstrip("/")
         # Extrair URL do Ollama a partir da proxy (porta -1)
         # Fallback: tentar aquecer via proxy
@@ -567,7 +579,11 @@ class AgentLoop:
                         # Aquecer modelo com request simples
                         warmup = await client.post(
                             f"{ollama_base}/v1/chat/completions",
-                            json={"model": self._model, "messages": [{"role": "user", "content": "hi"}], "max_tokens": 5},
+                            json={
+                                "model": self._model,
+                                "messages": [{"role": "user", "content": "hi"}],
+                                "max_tokens": 5,
+                            },
                             timeout=120,
                         )
                         if warmup.status_code == 200:
@@ -579,8 +595,14 @@ class AgentLoop:
 
     # Tools core: sempre enviadas (essenciais para qualquer tarefa)
     _CORE_TOOLS = {
-        "read_file", "write_file", "edit_file", "run_command",
-        "search", "glob", "list_files", "done",
+        "read_file",
+        "write_file",
+        "edit_file",
+        "run_command",
+        "search",
+        "glob",
+        "list_files",
+        "done",
     }
 
     # Keywords que ativam tools condicionais

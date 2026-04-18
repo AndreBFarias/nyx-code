@@ -15,9 +15,20 @@ from nyx.agent.tools.base import RegisteredTool, ToolDef
 logger = logging.getLogger("nyx.tools.plan_mode")
 
 PLAN_MODE_BLOCKED = {"write_file", "edit_file", "run_command", "create_file", "patch"}
-PLAN_MODE_ALLOWED = {"read_file", "search", "list_files", "glob", "analyze", "done",
-                     "web_search", "web_fetch", "task_create", "task_update", "task_list",
-                     "todo_write"}
+PLAN_MODE_ALLOWED = {
+    "read_file",
+    "search",
+    "list_files",
+    "glob",
+    "analyze",
+    "done",
+    "web_search",
+    "web_fetch",
+    "task_create",
+    "task_update",
+    "task_list",
+    "todo_write",
+}
 
 _plan_mode_active: bool = False
 
@@ -75,10 +86,7 @@ class ExitPlanModeTool(RegisteredTool):
 
     tool_def = ToolDef(
         name="exit_plan_mode",
-        description=(
-            "Sai do modo planejamento e volta ao modo normal. "
-            "Todas as tools ficam disponíveis novamente."
-        ),
+        description=("Sai do modo planejamento e volta ao modo normal. Todas as tools ficam disponíveis novamente."),
         parameters={
             "plan_summary": {
                 "type": "string",

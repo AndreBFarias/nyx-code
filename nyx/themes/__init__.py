@@ -18,7 +18,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from nyx.themes.constants import DRACULA_FALLBACK, TEMA_PADRAO, ANSI_RESET
+from nyx.themes.constants import ANSI_RESET, DRACULA_FALLBACK, TEMA_PADRAO
 from nyx.themes.utils import hex_to_ansi_raw
 
 logger = logging.getLogger("nyx.themes")
@@ -91,11 +91,13 @@ class ThemeManager:
         for path in sorted(ENTITIES_DIR.glob("*.json")):
             with open(path, encoding="utf-8") as f:
                 data = json.load(f)
-            temas.append({
-                "id": data.get("id", path.stem),
-                "name": data.get("name", path.stem),
-                "description": data.get("description", ""),
-            })
+            temas.append(
+                {
+                    "id": data.get("id", path.stem),
+                    "name": data.get("name", path.stem),
+                    "description": data.get("description", ""),
+                }
+            )
         return temas
 
 

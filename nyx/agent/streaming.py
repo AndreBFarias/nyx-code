@@ -14,7 +14,6 @@ import logging
 import re
 import sys
 from collections.abc import Callable
-from typing import Any
 
 logger = logging.getLogger("nyx.streaming")
 
