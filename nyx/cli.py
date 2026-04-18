@@ -146,6 +146,7 @@ async def run_repl(streaming: bool = True) -> int:
     )
 
     spinner_state: dict[str, object | None] = {"active": None}
+    turn_state: dict[str, bool] = {"streamed": False}
 
     def _stop_spinner() -> None:
         sp = spinner_state.get("active")
@@ -155,6 +156,7 @@ async def run_repl(streaming: bool = True) -> int:
 
     def on_token(token: str) -> None:
         _stop_spinner()
+        turn_state["streamed"] = True
         sys.stdout.write(token)
         sys.stdout.flush()
 
@@ -387,6 +389,7 @@ async def run_repl(streaming: bool = True) -> int:
                 continue
 
         try:
+            turn_state["streamed"] = False
             spinner = nyx_spinner("pensando...")
             spinner.__enter__()
             spinner_state["active"] = spinner
@@ -397,11 +400,15 @@ async def run_repl(streaming: bool = True) -> int:
                 _stop_spinner()
             total_iterations += status.iterations
 
-            if status.summary:
+            from nyx.agent.models import SessionState
+            already_streamed = turn_state["streamed"] and status.state == SessionState.DONE
+            if status.summary and not already_streamed:
                 if use_rich and output:
                     output("nyx", status.summary)
                 else:
                     print(f"\n{PRIMARY}{status.summary}{NC}\n")
+            elif already_streamed:
+                print()
 
             state_label = status.state.value
             if status.state != status.state.DONE:
