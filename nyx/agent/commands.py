@@ -63,31 +63,49 @@ def list_commands() -> list[CommandDef]:
     return sorted(result, key=lambda c: c.name)
 
 
-def format_help() -> str:
+ESSENTIAL_COMMANDS = (
+    "help", "status", "tools", "plan", "explain",
+    "commit", "memory", "paste", "clear", "quit",
+)
+
+
+def format_help(show_all: bool = False) -> str:
     commands = list_commands()
     if not commands:
         return "Nenhum comando registrado."
 
-    lines = ["", "  Comandos disponíveis:", ""]
+    if not show_all:
+        essentials = [c for c in commands if c.name in ESSENTIAL_COMMANDS]
+        lines = ["", "  Comandos principais:", ""]
+        for cmd in sorted(essentials, key=lambda c: ESSENTIAL_COMMANDS.index(c.name)):
+            aliases = f" ({', '.join('/' + a for a in cmd.aliases)})" if cmd.aliases else ""
+            lines.append(f"    /{cmd.name:<10s}{aliases:14s} -- {cmd.description}")
+        lines.append("")
+        lines.append(f"  ({len(commands)} comandos no total. Use /help all pra ver todos.)")
+        lines.append("")
+        return "\n".join(lines)
+
+    lines = ["", "  Todos os comandos:", ""]
     by_cat: dict[str, list[CommandDef]] = {}
     for cmd in commands:
         by_cat.setdefault(cmd.category, []).append(cmd)
 
     for cat, cmds in sorted(by_cat.items()):
-        for cmd in cmds:
+        lines.append(f"  [{cat}]")
+        for cmd in sorted(cmds, key=lambda c: c.name):
             aliases = f" ({', '.join('/' + a for a in cmd.aliases)})" if cmd.aliases else ""
             lines.append(f"    /{cmd.name:<12s}{aliases:16s} -- {cmd.description}")
-
-    lines.append("")
+        lines.append("")
     return "\n".join(lines)
 
 
 # ── Comandos registrados ─────────────────────────────────────────
 
 
-@nyx_command(name="help", description="Mostra esta ajuda", aliases=["h"])
-def cmd_help(_args: str, _root: str) -> str:
-    return format_help()
+@nyx_command(name="help", description="Mostra esta ajuda (/help all pra todos)", aliases=["h"])
+def cmd_help(args: str, _root: str) -> str:
+    show_all = args.strip().lower() in ("all", "todos", "*")
+    return format_help(show_all=show_all)
 
 
 @nyx_command(name="quit", description="Sai do REPL", aliases=["q", "exit"])
@@ -792,6 +810,50 @@ def cmd_advisor(args: str, project_root: str) -> str:
         "3. Avalie: complexidade, duplicação, nomes, organização, testes\n"
         "4. Use done(summary='sugestões: <lista priorizada>')"
     )
+
+
+@nyx_command(name="memory", description="Lista memórias persistentes do projeto",
+             category="contexto")
+def cmd_memory(args: str, project_root: str) -> str:
+    from nyx.agent.memory import NyxMemory
+    mem = NyxMemory(project_root)
+    arg = args.strip()
+    if arg.startswith("show "):
+        name = arg[5:].strip()
+        target = mem.directory / (name if name.endswith(".md") else f"{name}.md")
+        if not target.exists():
+            return f"Memória '{name}' não existe. Use /memory pra listar."
+        return target.read_text(encoding="utf-8", errors="replace")
+    entries = mem.index()
+    if not entries:
+        return (
+            "Sem memórias gravadas pra este projeto. A Nyx grava via tool "
+            "write_memory quando você pede pra lembrar algo estável."
+        )
+    lines = [f"  Memórias em {mem.directory}:", ""]
+    for e in entries:
+        reason = e.get("reason") or ""
+        lines.append(f"    {e['file']:<24s} -- {reason}")
+    lines.append("")
+    lines.append("  (use /memory show <nome> para ver conteúdo)")
+    return "\n".join(lines)
+
+
+@nyx_command(name="paste", description="Lista imagens coladas na sessão (Ctrl+V)",
+             category="contexto")
+def cmd_paste(_args: str, _project_root: str) -> str:
+    from pathlib import Path as _P
+    pastes = _P.home() / ".nyx" / "pastes"
+    if not pastes.exists():
+        return "Nenhuma imagem colada ainda. Use Ctrl+V com imagem no clipboard."
+    files = sorted(pastes.glob("*.png"))[-20:]
+    if not files:
+        return "Nenhuma imagem em ~/.nyx/pastes/."
+    lines = [f"  Últimas {len(files)} imagens em {pastes}:", ""]
+    for f in files:
+        size_kb = f.stat().st_size / 1024
+        lines.append(f"    {f.name:<32s} {size_kb:>7.1f} KB")
+    return "\n".join(lines)
 
 
 @nyx_command(name="insights", description="Insights do projeto",

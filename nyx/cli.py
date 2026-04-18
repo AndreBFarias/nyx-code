@@ -175,13 +175,19 @@ async def run_repl(streaming: bool = True) -> int:
 
         def _bottom_toolbar() -> list:
             from prompt_toolkit.formatted_text import FormattedText
-            if app_state["bypass"]:
-                return FormattedText([
-                    ("bg:#7a4d00 fg:#ffffff bold", " ⚡ bypass permissions ON "),
-                    ("", "  "),
-                    ("fg:#808080", "shift+tab para desligar"),
-                ])
-            return FormattedText([("fg:#606060", "shift+tab liga bypass de permissões")])
+            parts: list[tuple[str, str]] = []
+            ctx = app_state.get("ctx_pct", 0)
+            iter_n = app_state.get("iter_n", 0)
+            reads = app_state.get("reads", 0)
+            mods = app_state.get("mods", 0)
+            parts.append(("fg:#00d4aa", f"ctx {ctx}% "))
+            parts.append(("fg:#606060", f"· {model} · iter {iter_n} · lidos {reads} · modif {mods}"))
+            if app_state.get("bypass"):
+                parts.append(("", "  "))
+                parts.append(("bg:#7a4d00 fg:#ffffff bold", " ⚡ bypass permissions ON "))
+            else:
+                parts.append(("fg:#404040", "   shift+tab: bypass"))
+            return FormattedText(parts)
 
         import shutil as _sh
         _term_cols = _sh.get_terminal_size(fallback=(80, 24)).columns
@@ -252,21 +258,22 @@ async def run_repl(streaming: bool = True) -> int:
 
     print(_build_banner(model, agent.tools_count, PROJECT_ROOT.name))
 
+    memory_entries = agent._memory.index() if hasattr(agent, "_memory") else []
+    if memory_entries:
+        names = ", ".join(e["file"] for e in memory_entries[:3])
+        suffix = f" (+{len(memory_entries) - 3})" if len(memory_entries) > 3 else ""
+        print(f"  {DIM}[memória: {len(memory_entries)} entradas] {names}{suffix}{NC}")
+
     session_start = time.time()
     total_iterations = 0
-
-    from nyx.agent.output import render_footer
 
     while True:
         try:
             ctx_info = agent.get_context_info()
-            render_footer(
-                pct=int(ctx_info.get("pct", 0) * 100),
-                model=model,
-                iteration=agent.session.iteration,
-                reads=agent.session.files_read_count,
-                mods=agent.session.files_modified_count,
-            )
+            app_state["ctx_pct"] = int(ctx_info.get("pct", 0) * 100)
+            app_state["iter_n"] = agent.session.iteration
+            app_state["reads"] = agent.session.files_read_count
+            app_state["mods"] = agent.session.files_modified_count
             prompt_str = f"{ACCENT}{BOLD}nyx>{NC} "
             if prompt_session:
                 user_input = (await prompt_session.prompt_async(ANSI(prompt_str))).strip()

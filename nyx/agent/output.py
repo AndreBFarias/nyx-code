@@ -325,19 +325,33 @@ def render_tool_result(result: str, max_chars: int = 110) -> None:
     print(f"    {color}└─ {first_line}{NC_FG}")
 
 
+USER_INPUT_COLLAPSE_LINES = 8
+
+
 def render_user_input(text: str, console_width: int | None = None) -> None:
     """Imprime eco da mensagem do usuário num box '╭─ você ─╮'.
+
+    Se o input tem mais de USER_INPUT_COLLAPSE_LINES linhas (paste longo),
+    colapsa pra 3 primeiras + contagem.
 
     Fallback pra '> texto' se terminal <80 cols ou sem suporte a Rich.
     """
     import shutil
     if console_width is None:
         console_width = shutil.get_terminal_size(fallback=(80, 24)).columns
+
+    lines = text.splitlines() or [text]
+    if len(lines) > USER_INPUT_COLLAPSE_LINES:
+        head = "\n".join(lines[:3])
+        display_text = f"{head}\n... [{len(lines) - 3} linhas ocultas do paste]"
+    else:
+        display_text = text
+
     if console_width < 80 or not RICH_AVAILABLE:
         ACCENT_FG = "\033[38;2;0;212;170m"
         NC_FG = "\033[0m"
         print()
-        for line in text.splitlines() or [text]:
+        for line in display_text.splitlines() or [display_text]:
             print(f"  {ACCENT_FG}>{NC_FG} {line}")
         print()
         return
@@ -346,7 +360,7 @@ def render_user_input(text: str, console_width: int | None = None) -> None:
         console.print()
         console.print(
             Panel(
-                text,
+                display_text,
                 title="você",
                 title_align="left",
                 border_style=f"{NYX_ACCENT}",
