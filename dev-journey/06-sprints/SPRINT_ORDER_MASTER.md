@@ -218,6 +218,68 @@ CTX-04 permanece opcional. TUI-01..03 + CTX-01..03 implementadas em 2026-04-17, 
 
 ---
 
+### Bloco ONDA-22: Redesign Total UX + Visão + Deploy
+
+**Origem:** brainstorm do usuário em 2026-04-18 após validação visual da Onda 21. Escopo: auditoria externa + redesign visual + fix de bugs TUI + visão moondream + instalador + desktop entry.
+
+**Decisões fechadas (2026-04-18):**
+- D1 visão via moondream CPU (ADR-022)
+- D2 paleta mista D (Claude CLI + turquesa + roxo) (ADR-023)
+- D3 auditoria cataloga + corrige (gera AUDIT-FIX dinâmicas)
+- D4 kitty opcional (padrão Luna)
+- D5 SPRINT_TEMPLATE_V2 blindado contra IA descontextualizada
+
+**Template V2:** `dev-journey/08-templates/SPRINT_TEMPLATE_V2.md`
+**Relatório da auditoria:** `dev-journey/07-reports/AUDIT_EXT_2026_04_18.md`
+**Plano consolidado:** `~/.claude/plans/image-1-venv-andrefarias-nitro-5-purring-thacker.md`
+
+| # | Sprint | Bloco | Prioridade | Status | Depende de |
+|---|--------|-------|------------|--------|------------|
+| 0 | **AUDIT-EXT-01** | 0 Auditoria | CRÍTICA | CONCLUIDA (commit 46f9ab0) | -- |
+| 1 | **AUDIT-FIX-01** | 1 Fundamentos | CRÍTICA | CONCLUIDA (commit 46f9ab0) | -- |
+| 2 | **AUDIT-FIX-03** | 1 Fundamentos | CRÍTICA | CONCLUIDA (commit 46f9ab0) | -- |
+| 3 | **AUDIT-FIX-04** | 1 Fundamentos | ALTA | CONCLUIDA (commit 46f9ab0) | -- |
+| 4 | **DEBT-02** | 1 Fundamentos | BAIXA | CONCLUIDA (commit 46f9ab0) | -- |
+| 5 | **AUDIT-FIX-02** | 2 Fundamentos | CRÍTICA | PENDENTE | AUDIT-FIX-03 |
+| 6 | **AUDIT-FIX-05** | 2 Fundamentos | ALTA | PENDENTE | -- |
+| 7 | **AUDIT-FIX-06** | 2 Fundamentos | ALTA | PENDENTE | -- |
+| 8 | **AUDIT-FIX-07** | 2 Fundamentos | ALTA | PENDENTE | -- |
+| 9 | **DEBT-01** | 2 Fundamentos | MÉDIA | PENDENTE | -- |
+| 10 | **DEBT-03** | 2 Fundamentos | MÉDIA | PENDENTE | -- |
+| 11 | **UX-DESIGN-01** | 3 Design | CRÍTICA | PENDENTE | AUDIT-FIX-03 |
+| 12 | **UX-LAYOUT-01** | 4 Layout | ALTA | PENDENTE | UX-DESIGN-01 |
+| 13 | **UX-LAYOUT-02** | 4 Layout | ALTA | PENDENTE | UX-LAYOUT-01 |
+| 14 | **UX-LAYOUT-03** | 4 Layout | ALTA | PENDENTE | UX-LAYOUT-02 |
+| 15 | **UX-BUG-01** | 5 Bugs | ALTA | PENDENTE | UX-LAYOUT-03 |
+| 16 | **UX-BUG-02** | 5 Bugs | ALTA | PENDENTE | UX-BUG-01 |
+| 17 | **UX-BUG-03** | 5 Bugs | ALTA | PENDENTE | UX-BUG-02 |
+| 18 | **VISION-01** | 6 Visão | ALTA | PENDENTE | UX-BUG-03 |
+| 19 | **VISION-02** | 6 Visão | ALTA | PENDENTE | VISION-01 |
+| 20 | **VISION-03** | 6 Visão | ALTA | PENDENTE | VISION-02 |
+| 21 | **DEPLOY-01** | 7 Deploy | ALTA | PENDENTE | VISION-03 |
+| 22 | **DEPLOY-02** | 7 Deploy | ALTA | PENDENTE | DEPLOY-01 |
+| 23 | **UX-EXTRA-01** | 8 Extra | BAIXA | PENDENTE | DEPLOY-02 |
+
+**Bloco 0 (Auditoria):** 1 sprint — relatório externo independente com 12 findings.
+
+**Bloco 1 (Fundamentos rápidos):** 4 sprints paralelas resolvidas (remoção de código morto, centralização de portas, log de exceção, remoção de dir vazio).
+
+**Bloco 2 (Fundamentos dependentes):** 6 sprints — cabeamento de `NyxSettings`, split de `commands.py` e `loop.py`, ADR-024 render layer, refactor de `ask_user`, logging unificado.
+
+**Bloco 3 (Design System):** 1 sprint — tokens canônicos + ADR-023. Destrava todo o Bloco 4.
+
+**Bloco 4 (Layout):** 3 sprints — banner, cards de tool, streaming suave. Checkpoint visual entre cada uma.
+
+**Bloco 5 (Bugs TUI):** 3 sprints — autocomplete reativo, race de input, performance.
+
+**Bloco 6 (Visão):** 3 sprints — moondream CPU, pipeline `[Image #N]`, verificação de VRAM.
+
+**Bloco 7 (Deploy):** 2 sprints — `install.sh` idempotente, desktop entry + ícone.
+
+**Bloco 8 (Extra):** 1 sprint — editar último input.
+
+---
+
 ## Ordem de Execução
 
 ```
@@ -254,6 +316,18 @@ Onda 21 (TUI-FIX -- correções pós-validação visual):
   TUI-FIX-01 (banner) -> TUI-FIX-02 (streaming) -> TUI-FIX-03 (slash popup)
   TUI-FIX-04 (bypass toggle) -> TUI-FIX-05 (image paste) -> TUI-FIX-06 (sandbox msg)
   TUI-FIX-07 (usabilidade geral -- depende de FIX-02 e FIX-06)
+
+Onda 22 (Redesign Total UX + Visão + Deploy) -- EM EXECUÇÃO:
+  Bloco 0: AUDIT-EXT-01 (auditoria externa) -- CONCLUIDA
+  Bloco 1: AUDIT-FIX-01, -03, -04, DEBT-02 (paralelos, rápidos) -- CONCLUIDA
+  Bloco 2: AUDIT-FIX-02 (dep 03), -05, -06, -07, DEBT-01, DEBT-03
+  Bloco 3: UX-DESIGN-01 (tokens + ADR-023)
+  Bloco 4: UX-LAYOUT-01 -> -02 -> -03 (checkpoint visual entre cada)
+  Bloco 5: UX-BUG-01 -> -02 -> -03
+  Bloco 6: VISION-01 -> -02 -> -03
+  Bloco 7: DEPLOY-01 -> DEPLOY-02
+  Bloco 8: UX-EXTRA-01 (opcional se sobrar tempo)
+  [CHECKPOINT final: demo interativa com install.sh em VM limpa + ícone no launcher]
 ```
 
 **REGRA: Onda 10 (INFRA) é pré-requisito para TODAS as ondas seguintes.**
@@ -277,7 +351,8 @@ Após INFRA, toda sprint usa scaffold.py. Gauntlet valida completude automaticam
 | 18 (PORT) | Auto-tune+Docker+robustez boot | +8 | 293 |
 | 19 (LUNA) | Substituição nyx antiga + mensagens inline | +5 | 298 |
 | 20 (TUI+CTX) | Redesign TUI + summarizer + memory + repomap (+ plano opcional) | +18 | 316 |
-| **FINAL** | **100% + portabilidade + Luna integrada + TUI pro + contexto** | | **316 testes** |
+| 22 (ONDA-22) | Auditoria + fundamentos + redesign + visão + deploy | +24 | 340 |
+| **FINAL** | **100% + portabilidade + Luna + TUI pro + contexto + visão + install** | | **340 testes** |
 
 ---
 

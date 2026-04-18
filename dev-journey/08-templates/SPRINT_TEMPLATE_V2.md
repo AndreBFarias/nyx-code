@@ -137,7 +137,7 @@ python -m ruff check nyx/
 
 ---
 
-## Critério binário de aceite
+## Critério binário de aceite (IA executora)
 
 - [ ] Critério 1 (claro, não ambíguo)
 - [ ] Critério 2
@@ -147,6 +147,47 @@ python -m ruff check nyx/
 - [ ] `CLAUDE.md` + `SPRINT_ORDER_MASTER.md` atualizados marcando CONCLUIDA
 - [ ] Sprint movida de `producao/` para `concluidos/`
 - [ ] Commit atômico criado com mensagem no padrão `tipo: descrição`
+
+---
+
+## Guardrails anti-engodo (obrigatórios)
+
+A IA executora **NÃO pode marcar sprint como concluída** se:
+
+- Algum critério acima estiver incompleto.
+- Tentou burlar teste modificando o teste em vez da implementação.
+- "Gauntlet passou" sem output real mostrado ao validador.
+- Falhou silenciosamente e assumiu sucesso.
+- Ignorou item de `forbidden[]` "porque seria mais fácil".
+
+Se qualquer item falhar, a IA **deve** reportar para o usuário:
+```
+[SPRINT <ID>] BLOQUEADA: <motivo objetivo em 1 linha>
+```
+
+---
+
+## Validação humana (checklist do usuário)
+
+Passos para o usuário confirmar que a sprint foi realmente feita — **sem abrir código**:
+
+```bash
+cd /home/andrefarias/Desenvolvimento/Nyx-Code
+
+# 1. Ver diff do commit dessa sprint
+git log --oneline -1
+git show --stat HEAD
+
+# 2. Rodar comando de verificação
+<comando específico da sprint>
+# saída esperada: <o que deve aparecer>
+
+# 3. Validar arquivos movidos
+ls dev-journey/06-sprints/concluidos/SPRINT_<ID>.md   # deve existir
+ls dev-journey/06-sprints/producao/SPRINT_<ID>.md     # NÃO deve existir
+```
+
+Se qualquer passo divergir do esperado, a sprint **não está concluída**, mesmo que a IA afirme.
 
 ---
 
