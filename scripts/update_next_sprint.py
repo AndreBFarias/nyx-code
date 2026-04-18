@@ -114,27 +114,42 @@ O arquivo acima será atualizado com o próximo ID automaticamente.
 """
 
 
+def _write_if_changed(path: Path, new_content: str) -> bool:
+    """Escreve apenas se o conteúdo mudou. Retorna True se mudou."""
+    if path.exists() and path.read_text(encoding="utf-8") == new_content:
+        return False
+    path.write_text(new_content, encoding="utf-8")
+    return True
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--show", action="store_true", help="imprime sem gravar")
+    parser.add_argument("--show", action="store_true", help="imprime prompt completo sem gravar")
+    parser.add_argument("--quiet", action="store_true", help="não imprime nada (só escreve se mudou)")
     args = parser.parse_args()
 
-    sprint_id = find_next_pending()
-    remaining = count_pending()
+    try:
+        sprint_id = find_next_pending()
+        remaining = count_pending()
+    except Exception as e:
+        if not args.quiet:
+            print(f"[erro] {e}", file=sys.stderr)
+        return 1
 
     if sprint_id is None:
-        content = f"""# Nenhuma sprint PENDENTE
-
-> Todas as sprints da Onda atual em `SPRINT_ORDER_MASTER.md` estão concluídas ou em outro status.
-> Verifique se há nova onda a iniciar ou sprints a reabrir.
-
-Rodar: `bash scripts/sprint_invariants.sh` para checar se repo está limpo.
-"""
+        content = (
+            "# Nenhuma sprint PENDENTE\n\n"
+            "> Todas as sprints da Onda atual em `SPRINT_ORDER_MASTER.md` estão concluídas "
+            "ou em outro status.\n> Verifique se há nova onda a iniciar ou sprints a reabrir.\n\n"
+            "Rodar: `bash scripts/sprint_invariants.sh` para checar se repo está limpo.\n"
+        )
         if args.show:
             print(content)
             return 0
-        TARGET.write_text(content, encoding="utf-8")
-        print(f"[ok] nenhuma sprint PENDENTE — {TARGET} atualizado")
+        changed = _write_if_changed(TARGET, content)
+        if not args.quiet:
+            suffix = " [atualizado]" if changed else ""
+            print(f"nenhuma sprint PENDENTE{suffix}")
         return 0
 
     prompt = build_prompt(sprint_id, remaining)
@@ -143,9 +158,10 @@ Rodar: `bash scripts/sprint_invariants.sh` para checar se repo está limpo.
         print(prompt)
         return 0
 
-    TARGET.write_text(prompt, encoding="utf-8")
-    print(f"[ok] próxima sprint: {sprint_id} ({remaining} pendentes)")
-    print(f"[ok] arquivo atualizado: {TARGET.relative_to(PROJECT_ROOT)}")
+    changed = _write_if_changed(TARGET, prompt)
+    if not args.quiet:
+        suffix = " [atualizado]" if changed else ""
+        print(f"próxima sprint: {sprint_id} ({remaining} pendentes){suffix}")
     return 0
 
 

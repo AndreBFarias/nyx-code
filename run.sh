@@ -310,6 +310,17 @@ trap cleanup EXIT SIGINT SIGTERM
 # ═══════════════════════════════════════════════════════════
 
 validate
+
+# ─── AUTO-ATUALIZAR EXECUTAR_SPRINT.md ───────────────────
+# Não-bloqueante. Lê SPRINT_ORDER_MASTER.md, detecta próxima PENDENTE,
+# atualiza EXECUTAR_SPRINT.md se o ID mudou. Falha silencioso (|| true).
+if [ -x "$SCRIPT_DIR/venv/bin/python" ] && [ -f "$SCRIPT_DIR/scripts/update_next_sprint.py" ]; then
+    _next_info="$("$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/scripts/update_next_sprint.py" 2>/dev/null || true)"
+    if [ -n "$_next_info" ]; then
+        log_nyx "$_next_info"
+    fi
+fi
+
 kill_existing_ollama
 start_ollama
 check_model
