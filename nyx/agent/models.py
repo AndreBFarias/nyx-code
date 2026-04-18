@@ -22,6 +22,7 @@ class ActionType(Enum):
     TODO_WRITE = "todo_write"
     WEB_FETCH = "web_fetch"
     WEB_SEARCH = "web_search"
+    WRITE_MEMORY = "write_memory"
     DONE = "done"
 
 

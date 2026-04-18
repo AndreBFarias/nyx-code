@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-17T22:48:20.955305",
+  "timestamp": "2026-04-17T23:07:36.462316",
   "model": "qwen3:4b",
   "phases_done": [
     "infra"
@@ -30,8 +30,8 @@
       "name": "Warmup do modelo",
       "phase": "infra",
       "passed": true,
-      "elapsed_s": 15.58,
-      "tokens": 317,
+      "elapsed_s": 15.08,
+      "tokens": 240,
       "details": "",
       "error": ""
     },
@@ -40,7 +40,7 @@
       "name": "Modelo qwen3:4b presente",
       "phase": "infra",
       "passed": true,
-      "elapsed_s": 0.05,
+      "elapsed_s": 0.04,
       "tokens": 0,
       "details": "['nyx-4b:latest', 'qwen3:4b', 'qwen2.5-coder:7b', 'qwen2.5-coder:3b']",
       "error": ""
@@ -50,7 +50,7 @@
       "name": "Proxy respondendo",
       "phase": "infra",
       "passed": true,
-      "elapsed_s": 0.03,
+      "elapsed_s": 0.02,
       "tokens": 0,
       "details": "4 modelos",
       "error": ""
@@ -60,9 +60,9 @@
       "name": "Request via proxy",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 6.05,
-      "tokens": 155,
-      "details": "Okay, the user wants me to just say \"proxy ok\". Let me check",
+      "elapsed_s": 7.23,
+      "tokens": 178,
+      "details": "Okay, the user just said \"proxy ok\". Let me see. They want m",
       "error": ""
     },
     {
@@ -74,10 +74,20 @@
       "tokens": 0,
       "details": "sem <think>",
       "error": ""
+    },
+    {
+      "feature_id": "P-04",
+      "name": "Content array normalizado",
+      "phase": "proxy",
+      "passed": true,
+      "elapsed_s": 11.61,
+      "tokens": 288,
+      "details": "",
+      "error": ""
     }
   ],
   "kpis": {
-    "warmup_s": 15.6,
-    "gauntlet_total_s": 15.8
+    "warmup_s": 15.1,
+    "gauntlet_total_s": 15.3
   }
 }

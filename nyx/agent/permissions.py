@@ -39,6 +39,7 @@ DEFAULT_PERMISSIONS: dict[str, Any] = {
     ],
     "always_confirm": [
         "run_command",
+        "write_memory",
     ],
     "deny": [
         "run_command:rm -rf *",

@@ -116,8 +116,11 @@ class ContextBudget:
     def _compact_heavy(self, session: CodeSession) -> str:
         decisions = session.get_key_decisions()
         files_ctx = session.get_files_context()
+        summary = getattr(session, "summary", "")
 
         parts: list[str] = []
+        if summary:
+            parts.append(f"[RESUMO]\n{summary}")
         if decisions:
             parts.append("Decisões: " + "; ".join(decisions[-5:]))
         if files_ctx:
@@ -134,9 +137,12 @@ class ContextBudget:
 
         history = session.get_full_history()
         last_entry = history[-1].ultra_compact() if history else ""
+        summary = getattr(session, "summary", "")
 
         parts = []
-        if last_decision:
+        if summary:
+            parts.append(f"[RESUMO]\n{summary}")
+        elif last_decision:
             parts.append(f"[RESUMO] {last_decision}")
         if last_entry:
             parts.append(last_entry)

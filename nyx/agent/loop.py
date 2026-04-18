@@ -21,11 +21,15 @@ from __future__ import annotations
 import json
 import logging
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import httpx
 
 from nyx.agent.context import ContextBudget, render_context_bar
+from nyx.agent.memory import NyxMemory
+from nyx.agent.repomap import RepoMap
+from nyx.agent.summarizer import SessionSummarizer
 from nyx.agent.models import (
     ActionResult,
     ActionType,
@@ -127,11 +131,55 @@ class AgentLoop:
         self._diagnostics = DiagnosticTracking()
         self._tool_summary = ToolUseSummary()
 
-        tool_names = [t["function"]["name"] for t in self._tools.tool_defs]
-        self._system_prompt = build_system_prompt(project_root, tool_names)
-        claude_ctx = build_claude_md_context(project_root)
-        if claude_ctx:
-            self._system_prompt += claude_ctx
+        self._memory = NyxMemory(project_root)
+        self._memory_bundle = self._memory.load()
+
+        self._summarizer = SessionSummarizer(proxy_url=proxy_url, model=model)
+        self._session_id: str = f"{Path(project_root).name}_{int(__import__('time').time())}"
+
+        self._repomap = RepoMap(project_root)
+        try:
+            self._repomap.build()
+        except Exception as e:  # noqa: BLE001 -- indexação não deve derrubar boot
+            logger.warning("repomap: falha no build inicial: %s", e)
+
+        def _on_post_tool(tool_name: str, args: dict, result: Any) -> None:
+            if tool_name not in ("write_file", "edit_file", "create_file", "multi_edit", "patch"):
+                return
+            path = args.get("file_path") or args.get("path") or ""
+            if not path or not path.endswith(".py"):
+                return
+            self._repomap.invalidate(path)
+
+        self._tools.hooks.register_post(_on_post_tool)
+
+        self._tool_names = [t["function"]["name"] for t in self._tools.tool_defs]
+        self._claude_ctx = build_claude_md_context(project_root)
+        self._rebuild_system_prompt()
+
+    def _rebuild_system_prompt(self) -> None:
+        """Reconstrói system prompt com placeholders dinâmicos atuais."""
+        repo_map = ""
+        try:
+            touched = set(self._session._files_modified) | set(self._session._files_read)
+            repo_map = self._repomap.render(touched={
+                str(Path(p).relative_to(self._project_root))
+                for p in touched
+                if Path(p).is_relative_to(self._project_root)
+            })
+        except Exception as e:  # noqa: BLE001
+            logger.debug("repomap render falhou: %s", e)
+        summary = getattr(self._session, "summary", "") if hasattr(self, "_session") else ""
+        prompt = build_system_prompt(
+            self._project_root,
+            self._tool_names,
+            memory_files=self._memory_bundle,
+            repo_map=repo_map,
+            session_summary=summary,
+        )
+        if self._claude_ctx:
+            prompt += self._claude_ctx
+        self._system_prompt = prompt
 
     async def run(self, user_input: str) -> SessionStatus:
         """Executa o ciclo completo para um input do usuário."""
@@ -639,6 +687,20 @@ class AgentLoop:
         self._last_action = None
         self._consecutive_skips = 0
         self._has_results = False
+
+    async def maybe_summarize(self) -> bool:
+        """Atualiza o resumo da sessão se o batch fechou. Fire-and-forget friendly."""
+        if not self._summarizer.should_summarize(self._session):
+            return False
+        try:
+            summary = await self._summarizer.update(self._session)
+        except Exception as e:  # noqa: BLE001 -- resumo falho não derruba loop
+            logger.warning("summarizer: erro inesperado: %s", e)
+            return False
+        if summary:
+            self._summarizer.write_to_disk(self._session_id, summary)
+            self._rebuild_system_prompt()
+        return bool(summary)
 
     async def close(self) -> None:
         """Libera recursos (httpx client)."""

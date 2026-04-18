@@ -2,7 +2,7 @@
 
 # Nyx-Code
 
-Agente de código local. 100% offline. 
+Agente de código local. 100% offline.
 
 Roda qwen3:4b via Ollama com 34 tools funcionais, 47 commands, 10 services.
 Projeto standalone, otimizado para RTX 3050 4GB.
@@ -146,7 +146,7 @@ nyx/
     completer.py     # Tab completion
     output.py        # Rich output + spinner
     tools/
-      registry.py    # 34 tools registradas
+      registry.py    # 35 tools registradas
       base.py        # RegisteredTool + ToolDef
       [34 arquivos]
     services/

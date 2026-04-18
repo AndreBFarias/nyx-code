@@ -1,6 +1,6 @@
 {
   "date": "2026-04-17",
-  "commit": "998363c",
+  "commit": "6d98321",
   "model": "qwen3:4b",
   "hardware": {
     "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
@@ -9,11 +9,11 @@
     "num_ctx": 8192
   },
   "kpis": {
-    "gauntlet_total_s": 0.0
+    "gauntlet_total_s": 51.1
   },
   "results": {
-    "total": 12,
-    "passed": 12,
+    "total": 10,
+    "passed": 10,
     "failed": 0
   }
 }

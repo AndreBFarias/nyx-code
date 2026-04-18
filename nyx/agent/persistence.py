@@ -32,6 +32,8 @@ def save_session(session: CodeSession, project_name: str = "") -> Path | None:
             "project": project_name,
             "timestamp": ts,
             "iteration": session.iteration,
+            "summary": getattr(session, "summary", ""),
+            "last_summarized_at": getattr(session, "last_summarized_at", 0),
             "files_read": sorted(session._files_read),
             "files_modified": sorted(session._files_modified),
             "history": [
@@ -70,6 +72,8 @@ def load_latest_session(project_name: str = "") -> CodeSession | None:
         session.iteration = data.get("iteration", 0)
         session._files_read = set(data.get("files_read", []))
         session._files_modified = set(data.get("files_modified", []))
+        session.summary = data.get("summary", "")
+        session.last_summarized_at = data.get("last_summarized_at", 0)
 
         for entry_data in data.get("history", []):
             session.history.append(HistoryEntry(

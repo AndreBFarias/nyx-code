@@ -40,6 +40,7 @@ from .web_fetch import WebFetchTool
 from .web_search import WebSearchTool
 from .worktree import EnterWorktreeTool, ExitWorktreeTool
 from .write_file import WriteFileTool
+from .write_memory import WriteMemoryTool
 
 logger = logging.getLogger("nyx.tools")
 
@@ -64,7 +65,7 @@ class ToolRegistry:
             EnterWorktreeTool, ExitWorktreeTool,
             REPLTool, ToolSearchTool, SkillTool,
             SendMessageTool, AnalyzeTool, PatchTool,
-            MultiEditTool, DoneTool,
+            MultiEditTool, WriteMemoryTool, DoneTool,
         ]:
             tool = cls()
             self._tools[tool.tool_def.name] = tool

@@ -40,6 +40,8 @@ class CodeSession:
         self.iteration: int = 0
         self._files_read: set[str] = set()
         self._files_modified: set[str] = set()
+        self.summary: str = ""
+        self.last_summarized_at: int = 0
 
     def add_user(self, content: str) -> None:
         self.history.append(HistoryEntry(role="user", content=content))
@@ -125,6 +127,8 @@ class CodeSession:
         self.iteration = 0
         self._files_read.clear()
         self._files_modified.clear()
+        self.summary = ""
+        self.last_summarized_at = 0
 
 
 # "O contexto é tudo." -- Wittgenstein

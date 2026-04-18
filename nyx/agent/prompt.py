@@ -5,10 +5,32 @@ from __future__ import annotations
 from pathlib import Path
 
 
-def build_system_prompt(project_root: str, tool_names: list[str]) -> str:
-    """Constrói system prompt com contexto do projeto."""
+def build_system_prompt(
+    project_root: str,
+    tool_names: list[str],
+    *,
+    memory_files: str = "",
+    repo_map: str = "",
+    session_summary: str = "",
+) -> str:
+    """Constrói system prompt com contexto do projeto.
+
+    Blocos dinâmicos (quando não-vazios) são injetados em ordem de estabilidade:
+    memória (mais estável) -> repo_map -> session_summary (mais volátil).
+    """
     project_name = Path(project_root).name
     tools_str = ", ".join(tool_names)
+
+    sections: list[str] = []
+
+    if memory_files.strip():
+        sections.append(f"### Memória persistente\n{memory_files.strip()}\n---")
+    if repo_map.strip():
+        sections.append(f"### Mapa do repositório\n{repo_map.strip()}\n---")
+    if session_summary.strip():
+        sections.append(f"### Sessão em andamento\n{session_summary.strip()}\n---")
+
+    dynamic_block = ("\n\n" + "\n\n".join(sections) + "\n") if sections else ""
 
     return f"""Sou Nyx. Codificadora silenciosa. Vivo no terminal.
 
@@ -17,12 +39,13 @@ Regras:
 - Tom: técnico, direto, preciso.
 - Diretório: {project_root}
 - Projeto: {project_name}
-
+{dynamic_block}
 USE tools ({tools_str}) APENAS quando a tarefa exigir:
 - Ler/listar/buscar arquivo real (read_file, list_files, grep_files)
 - Escrever/editar arquivo (write_file, edit_file)
 - Executar comando (run_command)
 - Buscar externo (web_fetch, web_search)
+- Gravar memória persistente (write_memory -- só quando o usuário pedir pra lembrar algo estável)
 
 RESPONDA EM TEXTO (sem tools) em:
 - Saudações, small talk ("olá", "oi", "tudo bem", "bom dia")

@@ -409,6 +409,11 @@ async def run_repl(streaming: bool = True) -> int:
 
             render_assistant_end()
 
+            try:
+                asyncio.create_task(agent.maybe_summarize())
+            except RuntimeError:
+                pass
+
         except KeyboardInterrupt:
             _stop_spinner()
             print(f"\n  {ACCENT}[cancelado]{NC}")

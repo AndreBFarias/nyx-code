@@ -110,6 +110,7 @@ PHASE_GROUPS: dict[str, list[str]] = {
             "p10_memoria", "p10_avancado", "p10_root"],
     "p11_infra": ["p11_infra"],
     "p11": ["p11_infra"],
+    "contexto": ["contexto"],
     "rapido": ["infra", "proxy", "visual", "config"],
     "port": ["parser", "robustez", "interface", "controle", "persistencia"],
     "integracao": ["e2e"],
@@ -129,6 +130,7 @@ PHASE_GROUPS: dict[str, list[str]] = {
         "p10_projeto", "p10_debug",
         "p10_memoria", "p10_avancado", "p10_root",
         "p11_infra",
+        "contexto",
     ],
 }
 
@@ -184,9 +186,10 @@ PHASE_TIMEOUTS: dict[str, int] = {
     "p10_avancado": 30,
     "p10_root": 30,
     "p11_infra": 30,
+    "contexto": 180,
 }
 
-NEEDS_OLLAMA = {"infra", "proxy", "tools", "qualidade", "performance", "resiliencia"}
+NEEDS_OLLAMA = {"infra", "proxy", "tools", "qualidade", "performance", "resiliencia", "contexto"}
 
 # ── Paths de resiliência ────────────────────────────────────────────────
 REPORTS_DIR = PROJECT_ROOT / "dev-journey" / "07-reports" / "gauntlet"
@@ -2163,6 +2166,185 @@ class NyxGauntlet:
                        ok, time.monotonic() - t)
         except Exception as e:
             self._add("P7V-02", "nyx_spinner funciona", "p7_visual",
+                       False, time.monotonic() - t, error=str(e))
+
+    # ═══════════════════════════════════════════════════════════════════
+    # FASE: CONTEXTO (10 testes -- CTX-01 summarizer + CTX-02 memory + CTX-03 repomap)
+    # ═══════════════════════════════════════════════════════════════════
+
+    async def _phase_contexto(self) -> None:
+        import tempfile
+        from pathlib import Path as _Path
+        import nyx.agent.memory as mem_mod
+        import nyx.agent.repomap as rm_mod
+
+        # CTX-01: SessionSummarizer importa e instancia
+        t = time.monotonic()
+        try:
+            from nyx.agent.summarizer import SessionSummarizer
+            from nyx.agent.session import CodeSession
+            sess = CodeSession()
+            sess.iteration = 5
+            summ = SessionSummarizer(self._proxy, self._model)
+            ok = summ.should_summarize(sess)
+            self._add("CTX-01", "Summarizer instancia e batching", "contexto",
+                       ok, time.monotonic() - t, details=f"should={ok}")
+        except Exception as e:
+            self._add("CTX-01", "Summarizer instancia e batching", "contexto",
+                       False, time.monotonic() - t, error=str(e))
+
+        # CTX-02: NyxMemory write+load roundtrip em tmpdir
+        t = time.monotonic()
+        try:
+            from nyx.agent.memory import NyxMemory
+            with tempfile.TemporaryDirectory() as tmp:
+                mem_mod.MEMORY_ROOT = _Path(tmp)
+                m = NyxMemory("/home/fake/Proj")
+                p = m.write("conv", "uso type hints sempre", "convenção")
+                bundle = m.load()
+                ok = p.exists() and "type hints" in bundle
+            self._add("CTX-02", "NyxMemory roundtrip", "contexto",
+                       ok, time.monotonic() - t, details=f"bundle_bytes={len(bundle)}")
+        except Exception as e:
+            self._add("CTX-02", "NyxMemory roundtrip", "contexto",
+                       False, time.monotonic() - t, error=str(e))
+
+        # CTX-03: NyxMemory sandbox rejeita oversize e traversal
+        t = time.monotonic()
+        try:
+            from nyx.agent.memory import NyxMemory
+            with tempfile.TemporaryDirectory() as tmp:
+                mem_mod.MEMORY_ROOT = _Path(tmp)
+                m = NyxMemory("/home/fake/Proj")
+                oversize_rejected = False
+                try:
+                    m.write("big", "x" * 5000, "oversize")
+                except ValueError:
+                    oversize_rejected = True
+                traversal_path = m.write("../../passwd", "tentativa", "traversal")
+                traversal_neutralized = traversal_path.parent == m.directory
+                ok = oversize_rejected and traversal_neutralized
+            self._add("CTX-03", "NyxMemory sandbox (size+traversal)", "contexto",
+                       ok, time.monotonic() - t,
+                       details=f"oversize={oversize_rejected} traversal={traversal_neutralized}")
+        except Exception as e:
+            self._add("CTX-03", "NyxMemory sandbox (size+traversal)", "contexto",
+                       False, time.monotonic() - t, error=str(e))
+
+        # CTX-04: WriteMemoryTool registrada
+        t = time.monotonic()
+        try:
+            from nyx.agent.tools.registry import ToolRegistry
+            reg = ToolRegistry(str(PROJECT_ROOT))
+            ok = "write_memory" in reg._tools
+            self._add("CTX-04", "WriteMemoryTool registrada", "contexto",
+                       ok, time.monotonic() - t, details=f"tools={reg.tool_count}")
+        except Exception as e:
+            self._add("CTX-04", "WriteMemoryTool registrada", "contexto",
+                       False, time.monotonic() - t, error=str(e))
+
+        # CTX-05: ActionType.WRITE_MEMORY existe
+        t = time.monotonic()
+        try:
+            from nyx.agent.models import ActionType
+            ok = ActionType.WRITE_MEMORY.value == "write_memory"
+            self._add("CTX-05", "ActionType.WRITE_MEMORY", "contexto",
+                       ok, time.monotonic() - t)
+        except Exception as e:
+            self._add("CTX-05", "ActionType.WRITE_MEMORY", "contexto",
+                       False, time.monotonic() - t, error=str(e))
+
+        # CTX-06: RepoMap.build indexa nyx/ em <3s e respeita orçamento
+        t = time.monotonic()
+        try:
+            from nyx.agent.repomap import RepoMap
+            with tempfile.TemporaryDirectory() as tmp:
+                rm_mod.CACHE_FILE = _Path(tmp) / "cache.json"
+                r = RepoMap(PROJECT_ROOT)
+                idx = r.build()
+                dt = time.monotonic() - t
+                rendered = r.render(budget_bytes=2048)
+                ok = len(idx) > 10 and dt < 3.0 and len(rendered) <= 2200
+            self._add("CTX-06", "RepoMap build + render 2KB", "contexto",
+                       ok, dt,
+                       details=f"files={len(idx)} render={len(rendered)}b dt={dt:.2f}s")
+        except Exception as e:
+            self._add("CTX-06", "RepoMap build + render 2KB", "contexto",
+                       False, time.monotonic() - t, error=str(e))
+
+        # CTX-07: RepoMap cache roundtrip
+        t = time.monotonic()
+        try:
+            from nyx.agent.repomap import RepoMap
+            with tempfile.TemporaryDirectory() as tmp:
+                rm_mod.CACHE_FILE = _Path(tmp) / "cache.json"
+                r1 = RepoMap(PROJECT_ROOT)
+                r1.build()
+                r1.save_cache()
+                r2 = RepoMap(PROJECT_ROOT)
+                ok = len(r2._cache) > 0
+            self._add("CTX-07", "RepoMap cache roundtrip", "contexto",
+                       ok, time.monotonic() - t,
+                       details=f"entries={len(r2._cache)}")
+        except Exception as e:
+            self._add("CTX-07", "RepoMap cache roundtrip", "contexto",
+                       False, time.monotonic() - t, error=str(e))
+
+        # CTX-08: RepoMap.invalidate marca reindex
+        t = time.monotonic()
+        try:
+            from nyx.agent.repomap import RepoMap
+            with tempfile.TemporaryDirectory() as tmp:
+                rm_mod.CACHE_FILE = _Path(tmp) / "cache.json"
+                r = RepoMap(PROJECT_ROOT)
+                r.build()
+                target = "nyx/agent/loop.py"
+                assert target in r._cache
+                r.invalidate(str(PROJECT_ROOT / target))
+                ok = target not in r._cache
+            self._add("CTX-08", "RepoMap invalidate", "contexto",
+                       ok, time.monotonic() - t)
+        except Exception as e:
+            self._add("CTX-08", "RepoMap invalidate", "contexto",
+                       False, time.monotonic() - t, error=str(e))
+
+        # CTX-09: build_system_prompt com os 3 placeholders
+        t = time.monotonic()
+        try:
+            from nyx.agent.prompt import build_system_prompt
+            p = build_system_prompt(
+                str(PROJECT_ROOT), ["read_file", "write_memory"],
+                memory_files="--- a.md ---\npyenv 3.12",
+                repo_map="nyx/agent/loop.py: class AgentLoop",
+                session_summary="## Objetivo\nteste\n## Estado\nok",
+            )
+            ok = ("Memória persistente" in p
+                  and "Mapa do repositório" in p
+                  and "Sessão em andamento" in p)
+            self._add("CTX-09", "Prompt com 3 placeholders", "contexto",
+                       ok, time.monotonic() - t, details=f"len={len(p)}")
+        except Exception as e:
+            self._add("CTX-09", "Prompt com 3 placeholders", "contexto",
+                       False, time.monotonic() - t, error=str(e))
+
+        # CTX-10: Summarizer roundtrip com LLM real (via proxy)
+        t = time.monotonic()
+        try:
+            from nyx.agent.summarizer import SessionSummarizer
+            from nyx.agent.session import CodeSession
+            sess = CodeSession()
+            sess.iteration = 5
+            sess.add_user("quero portar o módulo streaming do TS pra Python")
+            sess.add_tool_call("read_file", {"file_path": "openclaud/src/streaming/index.ts"}, "conteudo ...")
+            sess.add_assistant("Plano: port passo a passo")
+            summ = SessionSummarizer(self._proxy, self._model)
+            result = await summ.update(sess)
+            ok = bool(result) and len(result) > 50
+            self._add("CTX-10", "Summarizer LLM roundtrip", "contexto",
+                       ok, time.monotonic() - t,
+                       details=f"chars={len(result)}")
+        except Exception as e:
+            self._add("CTX-10", "Summarizer LLM roundtrip", "contexto",
                        False, time.monotonic() - t, error=str(e))
 
     # ═══════════════════════════════════════════════════════════════════
