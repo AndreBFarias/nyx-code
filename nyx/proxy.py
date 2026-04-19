@@ -64,7 +64,7 @@ def _is_oom_error(text: str) -> bool:
 
 
 def _normalize_content(content):
-    """Converte content array (Anthropic) para string (Ollama)."""
+    """Converte content array (formato de chat) para string (Ollama)."""
     if isinstance(content, str):
         return content
     if isinstance(content, list):

@@ -300,7 +300,7 @@ def render_tool_call(
     args: dict,
     project_root: str | None = None,
 ) -> None:
-    """Imprime tool call estilo Claude Code: '⏺ nome(arg)' em accent color."""
+    """Renderiza linha de tool call com bullet ⏺ em accent color."""
     formatted = format_tool_call(name, args, project_root=project_root)
     ACCENT_FG = "\033[38;2;0;212;170m"
     NC_FG = "\033[0m"

@@ -13,8 +13,11 @@ sprint:
 
   touches:
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/nyx/agent/output.py
-      reason: "Docstring da função render_tool_call_start menciona 'estilo Claude Code' — violação ADR-005"
+      reason: "Docstring da função render_tool_call menciona 'estilo Claude Code' — violação ADR-005"
       linhas_alvo: "303"
+    - path: /home/andrefarias/Desenvolvimento/Nyx-Code/nyx/proxy.py
+      reason: "Docstring de _normalize_content menciona 'Anthropic' — invariante #2 do sprint_invariants.sh não fecha enquanto essa linha permanece. Incluído no escopo para satisfazer acceptance_criteria 'Invariante #2 cai'. Decisão registrada no relatório da sprint (Opção C, 2026-04-19)."
+      linhas_alvo: "67"
 
   creates: []
   removes: []

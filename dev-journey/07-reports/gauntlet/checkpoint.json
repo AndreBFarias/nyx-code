@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-18T21:07:34.868241",
+  "timestamp": "2026-04-19T19:26:24.132036",
   "model": "qwen3:4b",
   "phases_done": [
     "infra",
@@ -32,8 +32,8 @@
       "name": "Warmup do modelo",
       "phase": "infra",
       "passed": true,
-      "elapsed_s": 13.59,
-      "tokens": 217,
+      "elapsed_s": 11.55,
+      "tokens": 239,
       "details": "",
       "error": ""
     },
@@ -42,7 +42,7 @@
       "name": "Modelo qwen3:4b presente",
       "phase": "infra",
       "passed": true,
-      "elapsed_s": 0.03,
+      "elapsed_s": 0.04,
       "tokens": 0,
       "details": "['nyx-4b:latest', 'qwen3:4b', 'qwen2.5-coder:7b', 'qwen2.5-coder:3b']",
       "error": ""
@@ -62,8 +62,8 @@
       "name": "Request via proxy",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 8.02,
-      "tokens": 208,
+      "elapsed_s": 8.47,
+      "tokens": 219,
       "details": "Okay, the user wants me to just say \"proxy ok\". Let me check",
       "error": ""
     },
@@ -82,8 +82,8 @@
       "name": "Content array normalizado",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 11.27,
-      "tokens": 296,
+      "elapsed_s": 5.05,
+      "tokens": 136,
       "details": "",
       "error": ""
     },
@@ -92,7 +92,7 @@
       "name": "Formato OpenAI correto",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 42.8,
+      "elapsed_s": 30.84,
       "tokens": 0,
       "details": "choices=True usage=True message=True",
       "error": ""
@@ -102,7 +102,7 @@
       "name": "Listagem /v1/models",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 0.05,
+      "elapsed_s": 0.04,
       "tokens": 0,
       "details": "4 modelos",
       "error": ""
@@ -112,8 +112,8 @@
       "name": "tool_calls propagam",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 12.47,
-      "tokens": 440,
+      "elapsed_s": 5.47,
+      "tokens": 265,
       "details": "['{\"file_path\": \"README.md\"}']",
       "error": ""
     },
@@ -189,7 +189,7 @@
     }
   ],
   "kpis": {
-    "warmup_s": 13.6,
-    "gauntlet_total_s": 88.4
+    "warmup_s": 11.5,
+    "gauntlet_total_s": 61.7
   }
 }

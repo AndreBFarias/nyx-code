@@ -1,15 +1,15 @@
-# Executar próxima sprint — AUDIT-FIX-08
+# Executar próxima sprint — AUDIT-FIX-09
 
 > **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
 > Copie o bloco abaixo e cole em uma session nova de Claude Opus 4.7.
-> Restam **22** sprints PENDENTE(S) na fila.
+> Restam **21** sprints PENDENTE(S) na fila.
 
 ---
 
 ## Prompt para colar na session
 
 ```
-Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_AUDIT_FIX_08.md.
+Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_AUDIT_FIX_09.md.
 
 Modelo obrigatório: claude-opus-4-7 (sem subagentes).
 Protocolo obrigatório (CLAUDE.md seção "próxima sprint" + workflow anti-gambiarra):
@@ -27,10 +27,10 @@ Protocolo obrigatório (CLAUDE.md seção "próxima sprint" + workflow anti-gamb
 10. Após CONCLUIDA: commit atômico, move sprint file para concluidos/, roda `python scripts/update_next_sprint.py` para atualizar este arquivo.
 
 Se qualquer passo falhar, reporte:
-    [SPRINT AUDIT-FIX-08] BLOQUEADA: <motivo objetivo>
+    [SPRINT AUDIT-FIX-09] BLOQUEADA: <motivo objetivo>
 
-ID desta sprint: AUDIT-FIX-08
-Arquivo: dev-journey/06-sprints/producao/SPRINT_AUDIT_FIX_08.md
+ID desta sprint: AUDIT-FIX-09
+Arquivo: dev-journey/06-sprints/producao/SPRINT_AUDIT_FIX_09.md
 ```
 
 ---
