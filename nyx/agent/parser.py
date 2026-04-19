@@ -13,12 +13,13 @@
 from __future__ import annotations
 
 import json
-import logging
 import re
+
+from nyx.agent.services.logging_service import get_logger
 
 from .models import ActionType, AgentAction, ParseLevel, ParseResult
 
-logger = logging.getLogger("nyx.parser")
+logger = get_logger("nyx.parser")
 
 _ACTION_ALIASES: dict[str, ActionType] = {
     "read_file": ActionType.READ_FILE,

@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 import httpx
 
+from nyx.agent.services.logging_service import get_logger
 from nyx.config.defaults import PROXY_URL as _DEFAULT_PROXY_URL
 
-logger = logging.getLogger("nyx.providers.ollama")
+logger = get_logger("nyx.providers.ollama")
 
 DEFAULT_TIMEOUT = 300
 MAX_RETRIES = 2

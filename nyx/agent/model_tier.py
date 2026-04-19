@@ -11,12 +11,13 @@ Auto-detecta GPU via nvidia-smi e seleciona o perfil adequado.
 
 from __future__ import annotations
 
-import logging
 import subprocess
 from dataclasses import dataclass
 from enum import Enum
 
-logger = logging.getLogger("nyx.tier")
+from nyx.agent.services.logging_service import get_logger
+
+logger = get_logger("nyx.tier")
 
 
 class HardwareProfile(Enum):

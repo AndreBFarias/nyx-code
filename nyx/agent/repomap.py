@@ -10,12 +10,13 @@ from __future__ import annotations
 
 import ast
 import json
-import logging
 import time
 from pathlib import Path
 from typing import Iterable
 
-logger = logging.getLogger("nyx.repomap")
+from nyx.agent.services.logging_service import get_logger
+
+logger = get_logger("nyx.repomap")
 
 CACHE_FILE = Path.home() / ".nyx" / "cache" / "repomap.json"
 DEFAULT_BUDGET_BYTES = 2048

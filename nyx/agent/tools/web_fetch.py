@@ -6,14 +6,14 @@ Usa httpx + html2text. 100% local, sem LLM intermediário.
 
 from __future__ import annotations
 
-import logging
 import time
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
+from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tools.base import RegisteredTool, ToolDef
 
-logger = logging.getLogger("nyx.tools.web_fetch")
+logger = get_logger("nyx.tools.web_fetch")
 
 FETCH_TIMEOUT = 30
 MAX_CONTENT_BYTES = 100_000

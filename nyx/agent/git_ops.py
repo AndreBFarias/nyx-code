@@ -6,11 +6,12 @@ Wrappers seguros sobre subprocess para git. Nunca lançam exceção.
 
 from __future__ import annotations
 
-import logging
 import subprocess
 from pathlib import Path
 
-logger = logging.getLogger("nyx.git_ops")
+from nyx.agent.services.logging_service import get_logger
+
+logger = get_logger("nyx.git_ops")
 
 GIT_TIMEOUT = 15
 

@@ -5,11 +5,12 @@ Permite registrar callbacks que executam antes e depois de cada tool.
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Callable
 from typing import Any
 
-logger = logging.getLogger("nyx.services.hooks")
+from nyx.agent.services.logging_service import get_logger
+
+logger = get_logger("nyx.services.hooks")
 
 PreHookResult = dict[str, Any]
 PreHook = Callable[[str, dict[str, Any]], PreHookResult | None]

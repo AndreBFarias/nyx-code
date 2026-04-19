@@ -19,13 +19,14 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import logging
 import os
 import signal
 import sys
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+from nyx.agent.services.logging_service import get_logger
 
 if TYPE_CHECKING:
     from nyx.config.settings import NyxSettings
@@ -36,7 +37,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from nyx.agent.services.logging_service import InternalLogging  # noqa: E402
 
 InternalLogging()
-logger = logging.getLogger("nyx.cli")
+logger = get_logger("nyx.cli")
 
 from nyx.__version__ import __version__ as NYX_VERSION  # noqa: E402
 

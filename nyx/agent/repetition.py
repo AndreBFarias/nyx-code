@@ -10,13 +10,14 @@ Três níveis de detecção:
 
 from __future__ import annotations
 
-import logging
 from enum import Enum
+
+from nyx.agent.services.logging_service import get_logger
 
 from .models import ActionType, AgentAction
 from .session import HistoryEntry
 
-logger = logging.getLogger("nyx.repetition")
+logger = get_logger("nyx.repetition")
 
 
 class SkipStrategy(Enum):

@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
+from nyx.agent.services.logging_service import get_logger
 
-logger = logging.getLogger("nyx.tools.base")
+logger = get_logger("nyx.tools.base")
 
 MAX_FILE_SIZE = 1_048_576  # 1 MB
 

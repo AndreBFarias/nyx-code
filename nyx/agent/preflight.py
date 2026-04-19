@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger("nyx.preflight")
+from nyx.agent.services.logging_service import get_logger
+
+logger = get_logger("nyx.preflight")
 
 
 @dataclass

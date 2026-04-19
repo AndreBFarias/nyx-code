@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import logging
 import time
 from dataclasses import dataclass
 
-logger = logging.getLogger("nyx.services.diagnostics")
+from nyx.agent.services.logging_service import get_logger
+
+logger = get_logger("nyx.services.diagnostics")
 
 
 @dataclass

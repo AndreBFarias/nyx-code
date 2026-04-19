@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-import logging
 import subprocess
 import sys
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
+from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tools.base import RegisteredTool, ToolDef
 
-logger = logging.getLogger("nyx.tools.repl")
+logger = get_logger("nyx.tools.repl")
 
 REPL_TIMEOUT = 30
 MAX_OUTPUT = 10_000

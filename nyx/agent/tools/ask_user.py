@@ -8,13 +8,13 @@ renderiza e coleta a resposta do humano (ADR-013, ADR-024).
 from __future__ import annotations
 
 import json
-import logging
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
+from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tools.base import RegisteredTool, ToolDef
 
-logger = logging.getLogger("nyx.tools.ask_user")
+logger = get_logger("nyx.tools.ask_user")
 
 
 class AskUserTool(RegisteredTool):

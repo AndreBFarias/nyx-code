@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 import os
 import subprocess
 import sys
 from pathlib import Path
 
 from nyx.agent.commands._registry import nyx_command
+from nyx.agent.services.logging_service import get_logger
 from nyx.config.defaults import (
     OLLAMA_PORT as _OLLAMA_PORT,
 )
@@ -22,7 +22,7 @@ from nyx.config.defaults import (
     PROXY_V1_URL as _PROXY_V1_URL,
 )
 
-logger = logging.getLogger("nyx.commands")
+logger = get_logger("nyx.commands")
 
 
 @nyx_command(name="config", description="Mostra ou edita configuração", category="sistema")

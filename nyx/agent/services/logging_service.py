@@ -13,6 +13,22 @@ LOG_FILE = LOGS_DIR / "nyx.log"
 MAX_BYTES = 5 * 1024 * 1024  # 5 MB
 BACKUP_COUNT = 3
 
+_INITIALIZED = False
+
+
+def get_logger(name: str) -> logging.Logger:
+    """Retorna logger garantindo que InternalLogging foi inicializado.
+
+    Idempotente: inicializa o handler rotacionado apenas na primeira chamada.
+    Todos os módulos do nyx devem usar esta função em vez de logging.getLogger,
+    exceto logging_service.py (self) e nyx/proxy.py (standalone, basicConfig próprio).
+    """
+    global _INITIALIZED
+    if not _INITIALIZED:
+        InternalLogging()
+        _INITIALIZED = True
+    return logging.getLogger(name)
+
 
 class InternalLogging:
     """Logging rotacionado para ~/.nyx/logs/nyx.log."""

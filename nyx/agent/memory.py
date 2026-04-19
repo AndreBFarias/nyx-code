@@ -8,11 +8,12 @@ por "memória". MEMORY.md mantém índice gerado automaticamente.
 from __future__ import annotations
 
 import hashlib
-import logging
 import re
 from pathlib import Path
 
-logger = logging.getLogger("nyx.memory")
+from nyx.agent.services.logging_service import get_logger
+
+logger = get_logger("nyx.memory")
 
 MEMORY_ROOT = Path.home() / ".nyx" / "memory"
 MAX_FILE_BYTES = 4096

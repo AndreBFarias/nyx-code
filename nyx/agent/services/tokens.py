@@ -6,10 +6,11 @@ JSON é mais denso (~2 bytes/token), texto normal ~4 bytes/token.
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 
-logger = logging.getLogger("nyx.services.tokens")
+from nyx.agent.services.logging_service import get_logger
+
+logger = get_logger("nyx.services.tokens")
 
 DEFAULT_BYTES_PER_TOKEN = 4
 

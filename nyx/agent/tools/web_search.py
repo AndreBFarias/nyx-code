@@ -10,7 +10,6 @@ Requer: pip install ddgs
 from __future__ import annotations
 
 import hashlib
-import logging
 import re
 import time
 from dataclasses import asdict, dataclass
@@ -18,9 +17,10 @@ from datetime import datetime
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
+from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tools.base import RegisteredTool, ToolDef
 
-logger = logging.getLogger("nyx.tools.web_search")
+logger = get_logger("nyx.tools.web_search")
 
 SEARCH_TIMEOUT = 15
 MAX_RESULTS_DEFAULT = 8

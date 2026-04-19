@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
+from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tools.base import RegisteredTool, ToolDef, validate_path
 
-logger = logging.getLogger("nyx.tools.edit_file")
+logger = get_logger("nyx.tools.edit_file")
 
 
 class EditFileTool(RegisteredTool):

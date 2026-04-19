@@ -14,14 +14,14 @@ Uso:
 from __future__ import annotations
 
 import json
-import logging
 from pathlib import Path
 from typing import Any
 
+from nyx.agent.services.logging_service import get_logger
 from nyx.themes.constants import ANSI_RESET, DRACULA_FALLBACK, TEMA_PADRAO
 from nyx.themes.utils import hex_to_ansi_raw
 
-logger = logging.getLogger("nyx.themes")
+logger = get_logger("nyx.themes")
 
 ENTITIES_DIR = Path(__file__).parent / "entities"
 

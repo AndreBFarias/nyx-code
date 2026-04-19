@@ -7,11 +7,12 @@ Context-aware:
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger("nyx.completer")
+from nyx.agent.services.logging_service import get_logger
+
+logger = get_logger("nyx.completer")
 
 try:
     from prompt_toolkit.completion import Completer, Completion

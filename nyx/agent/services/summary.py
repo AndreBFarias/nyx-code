@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import logging
-
+from nyx.agent.services.logging_service import get_logger
 from nyx.agent.session import CodeSession
 
-logger = logging.getLogger("nyx.services.summary")
+logger = get_logger("nyx.services.summary")
 
 
 def summarize(session: CodeSession) -> str:

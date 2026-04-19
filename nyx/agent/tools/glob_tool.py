@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
+from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tools.base import RegisteredTool, ToolDef, validate_path
 
-logger = logging.getLogger("nyx.tools.glob")
+logger = get_logger("nyx.tools.glob")
 
 
 class GlobTool(RegisteredTool):

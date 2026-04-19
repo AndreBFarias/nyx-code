@@ -14,11 +14,12 @@ Config em ~/.nyx/permissions.json.
 from __future__ import annotations
 
 import json
-import logging
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger("nyx.permissions")
+from nyx.agent.services.logging_service import get_logger
+
+logger = get_logger("nyx.permissions")
 
 PERMISSIONS_FILE = Path.home() / ".nyx" / "permissions.json"
 

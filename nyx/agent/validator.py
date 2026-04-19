@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
 from typing import Any
 
 from nyx.agent.models import ActionResult
+from nyx.agent.services.logging_service import get_logger
 
-logger = logging.getLogger("nyx.validator")
+logger = get_logger("nyx.validator")
 
 
 @dataclass

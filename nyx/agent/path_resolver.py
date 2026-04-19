@@ -6,12 +6,13 @@ Constrói índice do projeto e resolve caminhos por basename ou fuzzy match.
 
 from __future__ import annotations
 
-import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-logger = logging.getLogger("nyx.path_resolver")
+from nyx.agent.services.logging_service import get_logger
+
+logger = get_logger("nyx.path_resolver")
 
 INDEXED_EXTENSIONS = {
     ".py",

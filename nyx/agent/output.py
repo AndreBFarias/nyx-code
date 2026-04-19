@@ -7,10 +7,11 @@ Fallback: se Rich não estiver instalado, funciona com ANSI puro.
 
 from __future__ import annotations
 
-import logging
 import re
 
-logger = logging.getLogger("nyx.output")
+from nyx.agent.services.logging_service import get_logger
+
+logger = get_logger("nyx.output")
 
 try:
     from rich.console import Console

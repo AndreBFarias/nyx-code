@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import json
-import logging
 from typing import Any
 
 from nyx.agent.models import ActionResult
 from nyx.agent.services.hooks import ToolHooks
+from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tools.base import RegisteredTool
 
 from .agent_tool import AgentTool
@@ -46,7 +46,7 @@ from .worktree import EnterWorktreeTool, ExitWorktreeTool
 from .write_file import WriteFileTool
 from .write_memory import WriteMemoryTool
 
-logger = logging.getLogger("nyx.tools")
+logger = get_logger("nyx.tools")
 
 
 class ToolRegistry:

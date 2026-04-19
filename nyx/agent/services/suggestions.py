@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import logging
-
+from nyx.agent.services.logging_service import get_logger
 from nyx.agent.session import CodeSession
 
-logger = logging.getLogger("nyx.services.suggestions")
+logger = get_logger("nyx.services.suggestions")
 
 RULES: list[tuple[str, str, str]] = [
     ("read_file", "edit_file", "Editar o arquivo que acabou de ler"),

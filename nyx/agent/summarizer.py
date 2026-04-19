@@ -8,14 +8,14 @@ um limite de chars. Se o LLM falhar, mantém o resumo anterior.
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 
 import httpx
 
+from nyx.agent.services.logging_service import get_logger
 from nyx.agent.session import CodeSession
 
-logger = logging.getLogger("nyx.summarizer")
+logger = get_logger("nyx.summarizer")
 
 DEFAULT_BATCH = 5
 MAX_SUMMARY_CHARS = 3200

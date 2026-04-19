@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import json
-import logging
 from pathlib import Path
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
+from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tools.base import RegisteredTool, ToolDef
 
-logger = logging.getLogger("nyx.tools.config")
+logger = get_logger("nyx.tools.config")
 
 CONFIG_FILE = Path.home() / ".nyx" / "config.json"
 

@@ -8,7 +8,6 @@ Suporta: create, update, get, list.
 from __future__ import annotations
 
 import json
-import logging
 import time
 import uuid
 from dataclasses import asdict, dataclass, field
@@ -16,9 +15,10 @@ from pathlib import Path
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
+from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tools.base import RegisteredTool, ToolDef
 
-logger = logging.getLogger("nyx.tools.tasks")
+logger = get_logger("nyx.tools.tasks")
 
 TASKS_FILE = Path.home() / ".nyx" / "tasks.json"
 

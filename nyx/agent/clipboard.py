@@ -7,12 +7,13 @@ normal. Se xclip não instalado, degrada silencioso.
 
 from __future__ import annotations
 
-import logging
 import subprocess
 import time
 from pathlib import Path
 
-logger = logging.getLogger("nyx.clipboard")
+from nyx.agent.services.logging_service import get_logger
+
+logger = get_logger("nyx.clipboard")
 
 PASTES_DIR = Path.home() / ".nyx" / "pastes"
 XCLIP_TIMEOUT = 2

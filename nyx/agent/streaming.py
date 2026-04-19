@@ -10,12 +10,13 @@ Arquitetura:
 
 from __future__ import annotations
 
-import logging
 import re
 import sys
 from collections.abc import Callable
 
-logger = logging.getLogger("nyx.streaming")
+from nyx.agent.services.logging_service import get_logger
+
+logger = get_logger("nyx.streaming")
 
 StreamTokenCallback = Callable[[str], None]
 

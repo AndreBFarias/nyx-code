@@ -12,7 +12,6 @@ Fluxo integrado:
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -32,6 +31,7 @@ from nyx.agent.permissions import PermissionChecker
 from nyx.agent.prompt import build_claude_md_context, build_system_prompt
 from nyx.agent.repomap import RepoMap
 from nyx.agent.services.diagnostics import DiagnosticTracking
+from nyx.agent.services.logging_service import get_logger
 from nyx.agent.services.tool_use_summary import ToolUseSummary
 from nyx.agent.session import CodeSession
 from nyx.agent.streaming import StreamingCollector
@@ -43,7 +43,7 @@ from nyx.config.defaults import PROXY_URL as _DEFAULT_PROXY_URL
 if TYPE_CHECKING:
     from nyx.config.settings import NyxSettings
 
-logger = logging.getLogger("nyx.agent")
+logger = get_logger("nyx.agent")
 
 
 class AgentLoop(_IterationMixin):

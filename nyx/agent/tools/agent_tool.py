@@ -7,13 +7,13 @@ com prompt isolado e sessão separada.
 from __future__ import annotations
 
 import asyncio
-import logging
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
+from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tools.base import RegisteredTool, ToolDef
 
-logger = logging.getLogger("nyx.tools.agent")
+logger = get_logger("nyx.tools.agent")
 
 AGENT_MAX_ITERATIONS = 15
 AGENT_TIMEOUT = 120

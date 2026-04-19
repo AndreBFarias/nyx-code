@@ -9,7 +9,6 @@ _on_permission, _last_action, _consecutive_skips, _has_results, etc.).
 from __future__ import annotations
 
 import json
-import logging
 from typing import Any
 
 import httpx
@@ -24,10 +23,11 @@ from nyx.agent.models import (
 from nyx.agent.permissions import PermissionLevel
 from nyx.agent.preflight import check as preflight_check
 from nyx.agent.repetition import SkipStrategy, get_skip_strategy
+from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tools.plan_mode import is_tool_allowed_in_plan_mode
 from nyx.agent.validator import validate as post_validate
 
-logger = logging.getLogger("nyx.agent")
+logger = get_logger("nyx.agent")
 
 
 class _IterationMixin:

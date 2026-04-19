@@ -7,13 +7,14 @@ Sessões salvas em ~/.nyx/sessions/ como JSON.
 from __future__ import annotations
 
 import json
-import logging
 import time
 from pathlib import Path
 
+from nyx.agent.services.logging_service import get_logger
+
 from .session import CodeSession, HistoryEntry
 
-logger = logging.getLogger("nyx.persistence")
+logger = get_logger("nyx.persistence")
 
 SESSIONS_DIR = Path.home() / ".nyx" / "sessions"
 MAX_SESSION_AGE_DAYS = 7

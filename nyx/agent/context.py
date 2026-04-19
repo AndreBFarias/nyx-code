@@ -11,11 +11,11 @@ Port de Luna src/skills/code_agent/context_manager.py.
 
 from __future__ import annotations
 
-import logging
+from nyx.agent.services.logging_service import get_logger
 
 from .session import CodeSession, HistoryEntry
 
-logger = logging.getLogger("nyx.context")
+logger = get_logger("nyx.context")
 
 DEFAULT_MAX_TOKENS = 12000
 MAX_PARTIAL_ENTRIES = 8

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 import re
 import shutil
 import subprocess
@@ -10,9 +9,10 @@ from pathlib import Path
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
+from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tools.base import RegisteredTool, ToolDef, validate_path
 
-logger = logging.getLogger("nyx.tools.search")
+logger = get_logger("nyx.tools.search")
 
 EXCLUDE_DIRS = {"__pycache__", ".git", "node_modules", "venv", ".venv", "dist"}
 _SEARCH_TIMEOUT = 30

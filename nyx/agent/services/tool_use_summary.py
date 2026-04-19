@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import logging
 from collections import Counter
 
-logger = logging.getLogger("nyx.services.tool_use_summary")
+from nyx.agent.services.logging_service import get_logger
+
+logger = get_logger("nyx.services.tool_use_summary")
 
 
 class ToolUseSummary:
