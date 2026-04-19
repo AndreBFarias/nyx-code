@@ -1,11 +1,13 @@
-"""AskUser -- Pergunta ao usuário com opções formatadas.
+"""AskUser -- Pergunta ao usuário e retorna payload estruturado.
 
-Permite ao agent fazer perguntas ao usuário durante a execução.
-Suporta opções com descrições para decisões de design.
+A tool NÃO renderiza UI nem bloqueia com input(); retorna dict serializado
+como JSON em ActionResult.output. A camada CLI (output.py + cli.py) é quem
+renderiza e coleta a resposta do humano (ADR-013, ADR-024).
 """
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -48,45 +50,25 @@ class AskUserTool(RegisteredTool):
         if not question:
             return ActionResult(success=False, error="Pergunta vazia")
 
-        options = params.get("options", [])
-
-        lines = [f"\n  [pergunta] {question}\n"]
-
-        if options and isinstance(options, list):
-            for i, opt in enumerate(options, 1):
+        raw_options = params.get("options", []) or []
+        sanitized: list[dict[str, str]] = []
+        if isinstance(raw_options, list):
+            for opt in raw_options:
                 if not isinstance(opt, dict):
                     continue
-                label = opt.get("label", "")
-                desc = opt.get("description", "")
-                if desc:
-                    lines.append(f"    {i}. {label} -- {desc}")
-                else:
-                    lines.append(f"    {i}. {label}")
-            lines.append("")
+                label = str(opt.get("label", "")).strip()
+                if not label:
+                    continue
+                desc = str(opt.get("description", "")).strip()
+                sanitized.append({"label": label, "description": desc})
 
-        prompt_text = "\n".join(lines)
-        print(prompt_text)
-
-        try:
-            if options:
-                answer = input("  Resposta (número ou texto): ").strip()
-                try:
-                    idx = int(answer) - 1
-                    if 0 <= idx < len(options):
-                        selected = options[idx]
-                        answer = selected.get("label", answer)
-                except ValueError:
-                    pass
-            else:
-                answer = input("  Resposta: ").strip()
-        except (EOFError, KeyboardInterrupt):
-            return ActionResult(success=True, output="Usuário cancelou a pergunta.")
-
-        if not answer:
-            answer = "Sem resposta"
-
-        logger.info("Usuário respondeu: %s", answer[:60])
-        return ActionResult(success=True, output=f"Resposta do usuário: {answer}")
+        payload = {
+            "kind": "question",
+            "question": question,
+            "options": sanitized,
+        }
+        logger.info("ask_user: %s (%d opções)", question[:60], len(sanitized))
+        return ActionResult(success=True, output=json.dumps(payload, ensure_ascii=False))
 
 
 # "Perguntar é o início da sabedoria." -- Sócrates

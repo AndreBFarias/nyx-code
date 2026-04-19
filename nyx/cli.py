@@ -269,6 +269,29 @@ async def run_repl(streaming: bool = True) -> int:
         render_tool_call(name, args, project_root=project_root)
 
     def on_tool_result(name: str, result: str) -> None:
+        if name == "ask_user":
+            import json as _json
+
+            try:
+                payload = _json.loads(result) if isinstance(result, str) and result.startswith("{") else {}
+            except _json.JSONDecodeError:
+                payload = {}
+            if payload.get("kind") == "question":
+                from nyx.agent.output import render_ask_user
+
+                render_ask_user(payload.get("question", ""), payload.get("options", []))
+                try:
+                    answer = input("  Resposta: ").strip()
+                except (EOFError, KeyboardInterrupt):
+                    answer = ""
+                if answer:
+                    idx_opts = payload.get("options", []) or []
+                    if answer.isdigit():
+                        idx = int(answer) - 1
+                        if 0 <= idx < len(idx_opts):
+                            answer = idx_opts[idx].get("label", answer)
+                    agent.session.add_user(f"[resposta] {answer}")
+                return
         render_tool_result(result)
 
     agent = AgentLoop(

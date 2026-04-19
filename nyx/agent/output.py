@@ -457,4 +457,21 @@ def _fallback_output(tag: str, message: str) -> None:
     print(f"  {ACCENT}[{label}]{NC} {message}")
 
 
+def render_ask_user(question: str, options: list[dict[str, str]] | None = None) -> None:
+    """Renderiza pergunta do agent ao usuário, com opções numeradas se existirem."""
+    ACCENT_FG = "\033[38;2;0;212;170m"
+    DIM_FG = "\033[2m"
+    NC_FG = "\033[0m"
+    print()
+    print(f"  {ACCENT_FG}[pergunta]{NC_FG} {question}")
+    for i, opt in enumerate(options or [], 1):
+        label = opt.get("label", "")
+        desc = opt.get("description", "")
+        if desc:
+            print(f"    {ACCENT_FG}{i}.{NC_FG} {label} {DIM_FG}-- {desc}{NC_FG}")
+        else:
+            print(f"    {ACCENT_FG}{i}.{NC_FG} {label}")
+    print()
+
+
 # "A forma segue a função." -- Louis Sullivan
