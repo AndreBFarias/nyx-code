@@ -267,7 +267,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 13 | **DEBT-04** | 2.5 Limpeza | MÉDIA | CONCLUIDA (commit a326d98) | -- |
 | 14 | **DEBT-05** | 2.5 Limpeza | BAIXA | ABSORVIDA_POR_DEBT_06 (commit 4f73432) | -- |
 | 15 | **DEBT-06** | 2.5 Limpeza | BAIXA | CONCLUIDA (commit 4f73432) | -- |
-| 16 | **ADR-021-DOC** | 2.5 Limpeza | MÉDIA | PENDENTE | -- |
+| 16 | **ADR-021-DOC** | 2.5 Limpeza | MÉDIA | CONCLUIDA | -- |
 | 17 | **ADR-022-DOC** | 2.5 Limpeza | MÉDIA | PENDENTE | -- |
 | 18 | **INFRA-GAUNTLET-01** | 2.6 Infra | CRÍTICA | PENDENTE | AUDIT-FIX-08, AUDIT-FIX-09, DEBT-04, DEBT-05, DEBT-06 |
 | 19 | **VALIDATE-ONDA-20** | 2.7 Validação | ALTA | PENDENTE | INFRA-GAUNTLET-01 |
