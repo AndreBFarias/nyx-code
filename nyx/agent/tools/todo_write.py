@@ -55,8 +55,6 @@ class TodoWriteTool(RegisteredTool):
         if not isinstance(todos, list):
             return ActionResult(success=False, error="'todos' deve ser uma lista")
 
-        old_todos = _load_todos()
-
         validated: list[dict[str, str]] = []
         for item in todos:
             if not isinstance(item, dict):

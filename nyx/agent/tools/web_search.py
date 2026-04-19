@@ -58,18 +58,13 @@ class WebSearchEngine:
         logger.info("WebSearch: DuckDuckGo=%s", self._ddg_available)
 
     def _check_ddg(self) -> bool:
-        try:
-            from ddgs import DDGS
+        import importlib.util
 
-            return True
-        except ImportError:
-            try:
-                from duckduckgo_search import DDGS
-
+        for mod in ("ddgs", "duckduckgo_search"):
+            if importlib.util.find_spec(mod) is not None:
                 return True
-            except ImportError:
-                logger.warning("ddgs não instalado. Execute: pip install ddgs")
-                return False
+        logger.warning("ddgs não instalado. Execute: pip install ddgs")
+        return False
 
     def search(self, query: str, max_results: int = MAX_RESULTS_DEFAULT) -> list[SearchResult]:
         if not query or not query.strip():

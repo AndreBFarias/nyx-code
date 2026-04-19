@@ -43,7 +43,7 @@ class AnalyzeTool(RegisteredTool):
 
         lines = content.split("\n")
         total_lines = len(lines)
-        blank_lines = sum(1 for l in lines if not l.strip())
+        blank_lines = sum(1 for line in lines if not line.strip())
 
         if path.suffix == ".py":
             return self._analyze_python(content, path, total_lines, blank_lines)
