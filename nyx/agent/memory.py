@@ -127,8 +127,8 @@ class NyxMemory:
                 m = re.match(r"<!-- reason:\s*(.*?)\s*-->", first)
                 if m:
                     reason = m.group(1)
-            except OSError:
-                pass
+            except OSError as e:
+                logger.debug("falha ao ler reason de memória %s: %s", path, e)
             entry = f"- [{path.stem}]({path.name})"
             if reason:
                 entry += f" -- {reason}"

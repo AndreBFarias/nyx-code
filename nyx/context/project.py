@@ -77,8 +77,8 @@ def detect(project_root: str | Path) -> ProjectInfo:
                 ext = f.suffix.lower()
                 if ext:
                     ext_counts[ext] = ext_counts.get(ext, 0) + 1
-    except PermissionError:
-        pass
+    except PermissionError as e:
+        logger.debug("sem permissão em scan de projeto %s: %s", root, e)
 
     info.structure = dict(sorted(ext_counts.items(), key=lambda x: -x[1])[:10])
 

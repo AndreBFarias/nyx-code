@@ -265,8 +265,8 @@ def _shorten_path(value: str, project_root: str | None, max_len: int) -> str:
             root = _Path(project_root).resolve()
             if p == root or root in p.parents:
                 value = str(p.relative_to(root))
-        except (ValueError, OSError):
-            pass
+        except (ValueError, OSError) as e:
+            logger.debug("shorten_path fallback para %s: %s", value, e)
     if len(value) <= max_len:
         return value
     head_len = max_len // 2 - 1
