@@ -42,10 +42,19 @@ diff /tmp/inv_before.txt /tmp/inv_after.txt
 | AUDIT-FIX-05 | **#7** arquivo > 800 linhas (commands.py) |
 | AUDIT-FIX-06 | — (ADR docs) |
 | AUDIT-FIX-07 | **#3** print em tool; **#4** except silencioso (ask_user.py) |
+| AUDIT-FIX-08 | **#2** "Claude Code" docstring em output.py |
+| AUDIT-FIX-09 | **#4** except silencioso (memory.py, output.py, project.py) — fecha completamente |
 | DEBT-01 | — (loop.py já < 800) |
 | DEBT-02 | — (interface/ vazio, removido) |
 | DEBT-03 | — (logging unificação) |
-| UX-DESIGN-01 | **#1** emoji ⚡; **#2** "Claude Code" docstring; **#6** hex hardcoded |
+| DEBT-04 | **#10** ruff (F841 em analyze_tool/todo_write, F401 em web_search) |
+| DEBT-05 | — (pre-commit hook, cosmético) |
+| ADR-021-DOC | — (docs, zero código) |
+| ADR-022-DOC | — (docs, zero código) |
+| INFRA-GAUNTLET-01 | — (valida todos; refresca baseline) |
+| VALIDATE-ONDA-20 | preservar; valida 7 sprints em limbo |
+| VALIDATE-ONDA-21 | preservar; valida 7 sprints em limbo |
+| UX-DESIGN-01 | **#1** emoji ⚡; **#6** hex hardcoded |
 | UX-LAYOUT-01/02/03 | preservar todos; não reintroduzir |
 | UX-BUG-01/02/03 | preservar; não adicionar sleep (#18 do catálogo geral) |
 | VISION-01/02/03 | preservar |
@@ -235,6 +244,71 @@ Invariante #5 do `sprint_invariants.sh` vigia regressão futura.
   - **Detectar:** pexpect: envia Ctrl+Up, buffer deve ter conteúdo anterior, não escape sequence.
 - **`/edit` retorna placeholder sem prefill:**
   - **Detectar:** teste: digitar `oi`, enviar; digitar `/edit`; prompt seguinte deve pré-popular `oi`.
+
+---
+
+### AUDIT-FIX-08 (docstring Claude Code em output.py)
+
+- **Substituir por sinônimo sutil** ("estilo Anthropic-CLI", "como no CC"): proibido. Grep textual `Claude` deve ser 0.
+  - **Detectar:** `grep -rn 'Claude\|claude' nyx/ --include='*.py' | grep -v '# noqa'` vazio.
+- **Transformar docstring em comentário** achando que sai do check. Proibido: `sprint_invariants.sh` usa grep puro.
+- **Deletar a função inteira** em vez de reescrever. Proibido: mantém assinatura e comportamento.
+
+### AUDIT-FIX-09 (excepts silenciosos residuais)
+
+- **Remover o except** para "resolver" o invariante — exceção vira não tratada. Proibido: tipo específico (OSError, PermissionError) foi mantido por design.
+  - **Detectar:** `grep -nB1 -A2 'except.*:$' nyx/agent/memory.py nyx/agent/output.py nyx/context/project.py` deve mostrar 3 blocos com logger, nenhum com `pass` isolado.
+- **Logger no nível errado** (`error` onde é best-effort esperado). Detectar: revisar severidade caso a caso.
+- **`print()` em vez de logger.** Proibido: ADR-024 permite print só em output.py render layer, não em except block.
+
+### DEBT-04 (ruff F841/F401)
+
+- **`# noqa: F841`** inline em vez de corrigir. Proibido.
+  - **Detectar:** `grep -n 'noqa' nyx/agent/tools/analyze_tool.py nyx/agent/tools/todo_write.py nyx/agent/tools/web_search.py` deve retornar vazio após a sprint.
+- **Deletar a linha da variável** sem investigar se era parte de fluxo perdido. Exige analisar contexto e justificar decisão no commit.
+- **`_ = DDGS`** no nível do módulo só para silenciar linter. Proibido.
+
+### DEBT-05 (pre-commit hook acentuação)
+
+- **`exclude: '.*\.md$'`** genérico. Proibido — só os 2 arquivos nomeados.
+- **Desativar o hook inteiro** em vez de excluir. Proibido.
+- **Não testar o caminho positivo** (arquivo .md real com "funcao" sem acento deve disparar warning). Obrigatório verificar ambos caminhos.
+
+### ADR-021-DOC (tree-sitter opcional)
+
+- **ADR Status: proposto** ou sem Status. Proibido: ACEITO exigido.
+- **Copiar ADR-001 e trocar título.** Proibido: cada ADR tem contexto próprio.
+- **Pular seção "Alternativas"** — obrigatória em todo ADR deste projeto.
+- **Não atualizar CLAUDE.md.** Detectar: `grep -c '^| 021 |' CLAUDE.md` deve ser >= 1.
+
+### ADR-022-DOC (moondream CPU)
+
+- **Número genérico de RAM** ("poucos GB"). Proibido: valor concreto.
+- **Alternativa fantasma** (mencionar sem comparar). Obrigatório: cada alternativa rejeitada tem argumento objetivo.
+- **Deixar detalhes para VISION-01.** Proibido: ADR é onde a decisão vive, não só no código.
+- **Licença não verificada.** Obrigatório: citar licença do moondream2 no ADR.
+
+### INFRA-GAUNTLET-01 (gauntlet + watchdog VRAM)
+
+- **Watchdog só loga, não aborta.** Proibido: precisa executar `pkill` real na breach.
+- **Threshold alto demais** (ex.: 2000 MiB) — aborta preventivamente quando gauntlet ainda rodaria. Manter padrão 500 MiB configurable via env.
+- **Baseline forjado** (copy de checkpoint antigo). Detectar: timestamp do JSON deve ser de hoje.
+- **Pular fase via `--only`** e declarar gauntlet "completo". Proibido: exigido `./run.sh --gauntlet` sem filtros.
+- **Pass rate 99% passar por 100%.** Proibido: critério é binário, 100% exigido.
+
+### VALIDATE-ONDA-20 (TUI+CTX)
+
+- **Marcar CONCLUIDA só lendo código** sem rodar `./run.sh`. Proibido: validação é visual+funcional.
+- **OK no checklist sem output.** Obrigatório: observação literal ou screenshot por item.
+- **BLOQUEADA virar "débito" sem sprint.** Proibido (feedback "nenhum débito para trás"): cada BLOQUEADA precisa de sprint nova com ID no master.
+- **Aglutinar as 7 num só checkpoint.** Proibido: cada sprint decide independente.
+
+### VALIDATE-ONDA-21 (TUI-FIX)
+
+- **"Parece que funciona" sem executar.** Proibido.
+- **Screenshot ausente para item visual.** Obrigatório para FIX-01 (banner), FIX-02 (streaming), FIX-03 (popup), FIX-07 (toolbar).
+- **BLOQUEADA sem sprint nova.** Proibido.
+- **xclip ausente virar "CONCLUIDA".** Detectar: `command -v xclip` é pré-check; se faltar, BLOQUEADA com motivo.
 
 ---
 

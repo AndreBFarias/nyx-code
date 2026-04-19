@@ -19,7 +19,7 @@ sprint:
 
   touches:
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/nyx/agent/output.py
-      reason: "Importar tokens; remover hex hardcoded (8+ pontos); limpar docstring 'Claude Code'"
+      reason: "Importar tokens; remover hex hardcoded (8+ pontos). Docstring 'Claude Code' é escopo de AUDIT-FIX-08, NÃO desta sprint."
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/nyx/cli.py
       reason: "Importar tokens; substituir ACCENT/PRIMARY/DIM locais por design_tokens; trocar emoji ⚡ por glifo do sistema"
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/nyx/themes/__init__.py
@@ -36,8 +36,6 @@ sprint:
   tests:
     - cmd: "grep -rn '#[0-9A-Fa-f]\\{6\\}' nyx/ --include='*.py' | grep -v 'design_tokens.py\\|themes/constants.py'"
       esperado: "vazio (zero hex hardcoded fora da fonte)"
-    - cmd: "grep -rn 'Claude' nyx/ --include='*.py'"
-      esperado: "vazio"
     - cmd: "python -c 'from nyx.themes.design_tokens import NYX_ACCENT, NYX_PURPLE, BULLETS, BOX_CHARS, SPINNER_FRAMES; print(NYX_ACCENT)'"
       deve_passar: true
     - cmd: "./run.sh --gauntlet --only rapido"
@@ -48,7 +46,6 @@ sprint:
     - "ADR-023 criado e marcado ACEITO"
     - "CLAUDE.md atualizado (lista ADRs + contagem)"
     - "Zero hex (#RRGGBB) em código Python fora de design_tokens.py e themes/constants.py"
-    - "Zero menção a 'Claude Code' em Python"
     - "Zero emoji (⚡) em código — substituído pelo glifo BULLETS['bypass']"
     - "ThemeManager.get_ansi_colors('nyx') retorna cores derivadas de design_tokens"
     - "cli.py e output.py importam de design_tokens"
@@ -389,18 +386,14 @@ print('tokens OK')
 grep -rn '#[0-9A-Fa-f]\{6\}' nyx/ --include='*.py' | grep -v 'design_tokens.py\|themes/constants.py'
 # esperado: vazio
 
-# 3. Zero menção a Claude
-grep -rn 'Claude' nyx/ --include='*.py'
-# esperado: vazio
-
-# 4. Zero emoji ⚡
+# 3. Zero emoji ⚡
 grep -rn $'\u26A1' nyx/ --include='*.py'
 # esperado: vazio
 
-# 5. ADR existe
+# 4. ADR existe
 test -s dev-journey/03-decisions/ADR_023_DESIGN_SYSTEM.md && echo "ADR OK"
 
-# 6. ThemeManager retorna tokens
+# 5. ThemeManager retorna tokens
 python -c "
 from nyx.themes import ThemeManager
 c = ThemeManager().get_ansi_colors('nyx')
@@ -408,7 +401,7 @@ assert 'accent' in c
 print('ThemeManager OK')
 "
 
-# 7. Gauntlet
+# 6. Gauntlet
 ./run.sh --gauntlet --only rapido
 ```
 
@@ -418,7 +411,6 @@ print('ThemeManager OK')
 - [ ] ADR-023 criado (Status: ACEITO)
 - [ ] CLAUDE.md tabela de ADRs até 25
 - [ ] `grep #[0-9A-Fa-f]{6}` em `nyx/*.py` retorna vazio (exceto `design_tokens.py` e `themes/constants.py`)
-- [ ] `grep Claude nyx/*.py` retorna vazio
 - [ ] `grep ⚡ nyx/*.py` retorna vazio
 - [ ] `cli.py` e `output.py` importam de `design_tokens`
 - [ ] `ThemeManager.get_ansi_colors("nyx")` retorna dict dos tokens
