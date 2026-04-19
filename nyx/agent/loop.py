@@ -22,9 +22,12 @@ import json
 import logging
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
+
+if TYPE_CHECKING:
+    from nyx.config.settings import NyxSettings
 
 from nyx.agent.context import ContextBudget
 from nyx.agent.memory import NyxMemory
@@ -105,7 +108,17 @@ class AgentLoop:
         on_tool_result: Any = None,
         on_permission: PermissionCallback | None = None,
         streaming: bool = True,
+        settings: "NyxSettings | None" = None,
     ) -> None:
+        if settings is not None:
+            if proxy_url == _DEFAULT_PROXY_URL:
+                proxy_url = settings.proxy_url
+            if model == "qwen3:4b":
+                model = settings.model
+            if max_iterations == MAX_ITERATIONS_DEFAULT:
+                max_iterations = settings.max_iterations
+
+        self._settings = settings
         self._project_root = project_root
         self._proxy_url = proxy_url
         self._model = model

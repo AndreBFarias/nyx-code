@@ -19,6 +19,7 @@ class NyxSettings:
     project_root: Path
     ollama_host: str
     ollama_port: int
+    proxy_port: int
     model: str
     vram_max_gb: float
     max_iterations: int
@@ -31,6 +32,14 @@ class NyxSettings:
     @property
     def ollama_base_url(self) -> str:
         return f"http://{self.ollama_host}:{self.ollama_port}"
+
+    @property
+    def proxy_url(self) -> str:
+        return f"http://{self.ollama_host}:{self.proxy_port}"
+
+    @property
+    def proxy_v1_url(self) -> str:
+        return f"{self.proxy_url}/v1"
 
     @property
     def num_gpu(self) -> int:
@@ -49,12 +58,14 @@ def load_settings(args: Any = None) -> NyxSettings:
 
     model = defaults.DEFAULT_MODEL
     port = int(os.getenv("NYX_OLLAMA_PORT", str(defaults.OLLAMA_PORT)))
+    proxy_port = int(os.getenv("NYX_PROXY_PORT", str(defaults.PROXY_PORT)))
     debug = os.getenv("NYX_DEBUG", "0") == "1"
     headless = False
 
     if args is not None:
         model = getattr(args, "model", model)
         port = getattr(args, "port", port)
+        proxy_port = getattr(args, "proxy_port", proxy_port)
         debug = getattr(args, "debug", debug)
         headless = getattr(args, "headless", headless)
 
@@ -62,6 +73,7 @@ def load_settings(args: Any = None) -> NyxSettings:
         project_root=project_root,
         ollama_host=os.getenv("NYX_OLLAMA_HOST", defaults.OLLAMA_HOST),
         ollama_port=port,
+        proxy_port=proxy_port,
         model=model,
         vram_max_gb=float(os.getenv("NYX_VRAM_MAX", str(defaults.VRAM_MAX_GB))),
         max_iterations=int(os.getenv("NYX_MAX_ITERATIONS", str(defaults.MAX_ITERATIONS))),

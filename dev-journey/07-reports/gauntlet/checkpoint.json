@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-18T00:12:43.898962",
+  "timestamp": "2026-04-18T21:07:34.868241",
   "model": "qwen3:4b",
   "phases_done": [
     "infra",
@@ -32,8 +32,8 @@
       "name": "Warmup do modelo",
       "phase": "infra",
       "passed": true,
-      "elapsed_s": 16.4,
-      "tokens": 303,
+      "elapsed_s": 13.59,
+      "tokens": 217,
       "details": "",
       "error": ""
     },
@@ -52,7 +52,7 @@
       "name": "Proxy respondendo",
       "phase": "infra",
       "passed": true,
-      "elapsed_s": 0.03,
+      "elapsed_s": 0.02,
       "tokens": 0,
       "details": "4 modelos",
       "error": ""
@@ -62,8 +62,8 @@
       "name": "Request via proxy",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 5.03,
-      "tokens": 136,
+      "elapsed_s": 8.02,
+      "tokens": 208,
       "details": "Okay, the user wants me to just say \"proxy ok\". Let me check",
       "error": ""
     },
@@ -82,8 +82,8 @@
       "name": "Content array normalizado",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 6.67,
-      "tokens": 181,
+      "elapsed_s": 11.27,
+      "tokens": 296,
       "details": "",
       "error": ""
     },
@@ -92,7 +92,7 @@
       "name": "Formato OpenAI correto",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 42.21,
+      "elapsed_s": 42.8,
       "tokens": 0,
       "details": "choices=True usage=True message=True",
       "error": ""
@@ -102,7 +102,7 @@
       "name": "Listagem /v1/models",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 0.04,
+      "elapsed_s": 0.05,
       "tokens": 0,
       "details": "4 modelos",
       "error": ""
@@ -112,8 +112,8 @@
       "name": "tool_calls propagam",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 8.78,
-      "tokens": 357,
+      "elapsed_s": 12.47,
+      "tokens": 440,
       "details": "['{\"file_path\": \"README.md\"}']",
       "error": ""
     },
@@ -189,7 +189,7 @@
     }
   ],
   "kpis": {
-    "warmup_s": 16.4,
-    "gauntlet_total_s": 79.3
+    "warmup_s": 13.6,
+    "gauntlet_total_s": 88.4
   }
 }

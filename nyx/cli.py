@@ -25,6 +25,10 @@ import signal
 import sys
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from nyx.config.settings import NyxSettings
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -45,16 +49,22 @@ BOLD = "\033[1m"
 NC = "\033[0m"
 
 
-def _build_banner(model: str, tools_count: int, project: str) -> str:
-    import os
+def _build_banner(
+    model: str,
+    tools_count: int,
+    project: str,
+    settings: "NyxSettings | None" = None,
+) -> str:
     import shutil
 
-    from nyx.config.defaults import OLLAMA_PORT as _OLLAMA_PORT
-    from nyx.config.defaults import PROXY_PORT as _PROXY_PORT
+    from nyx.config.settings import load_settings
+
+    if settings is None:
+        settings = load_settings()
 
     cols = shutil.get_terminal_size(fallback=(80, 24)).columns
-    ollama_port = os.environ.get("NYX_OLLAMA_PORT", str(_OLLAMA_PORT))
-    proxy_port = os.environ.get("NYX_PROXY_PORT", str(_PROXY_PORT))
+    ollama_port = str(settings.ollama_port)
+    proxy_port = str(settings.proxy_port)
 
     if cols < 60:
         return (
@@ -113,6 +123,9 @@ async def run_repl(streaming: bool = True) -> int:
     from nyx.agent.loop import AgentLoop
     from nyx.agent.persistence import cleanup_old_sessions, save_session
     from nyx.agent.services.analytics import Analytics
+    from nyx.config.settings import load_settings
+
+    settings = load_settings()
 
     cleanup_old_sessions()
     analytics = Analytics()
@@ -217,14 +230,11 @@ async def run_repl(streaming: bool = True) -> int:
         logger.info("prompt-toolkit ativo (histórico: %s)", history_path)
     except ImportError:
         logger.info("prompt-toolkit indisponível, usando input() nativo")
-    from nyx.config.defaults import PROXY_URL as _PROXY_URL
-    from nyx.config.defaults import PROXY_V1_URL as _PROXY_V1_URL
-
-    proxy_url = os.environ.get("OPENAI_BASE_URL", _PROXY_V1_URL)
+    proxy_url = os.environ.get("OPENAI_BASE_URL", settings.proxy_v1_url)
     proxy_url = proxy_url.replace("/v1", "").rstrip("/")
     if not proxy_url.startswith("http"):
-        proxy_url = _PROXY_URL
-    model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", "qwen3:4b"))
+        proxy_url = settings.proxy_url
+    model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", settings.model))
 
     from nyx.agent.output import (
         nyx_spinner,
@@ -270,9 +280,10 @@ async def run_repl(streaming: bool = True) -> int:
         on_tool_result=on_tool_result,
         on_permission=_make_ask_permission(app_state),
         streaming=streaming,
+        settings=settings,
     )
 
-    print(_build_banner(model, agent.tools_count, PROJECT_ROOT.name))
+    print(_build_banner(model, agent.tools_count, PROJECT_ROOT.name, settings=settings))
 
     memory_entries = agent._memory.index() if hasattr(agent, "_memory") else []
     if memory_entries:
@@ -558,15 +569,15 @@ async def run_headless() -> int:
 
     from nyx.agent.loop import AgentLoop
     from nyx.agent.persistence import save_session
-    from nyx.config.defaults import PROXY_URL as _PROXY_URL
-    from nyx.config.defaults import PROXY_V1_URL as _PROXY_V1_URL
+    from nyx.config.settings import load_settings
 
+    settings = load_settings()
     project_root = str(PROJECT_ROOT)
-    proxy_url = os.environ.get("OPENAI_BASE_URL", _PROXY_V1_URL)
+    proxy_url = os.environ.get("OPENAI_BASE_URL", settings.proxy_v1_url)
     proxy_url = proxy_url.replace("/v1", "").rstrip("/")
     if not proxy_url.startswith("http"):
-        proxy_url = _PROXY_URL
-    model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", "qwen3:4b"))
+        proxy_url = settings.proxy_url
+    model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", settings.model))
 
     def on_tool(name: str, args: dict) -> None:
         msg = _json.dumps({"type": "tool_use", "tool": name, "args": args}, ensure_ascii=False)
@@ -579,6 +590,7 @@ async def run_headless() -> int:
         model=model,
         on_tool=on_tool,
         streaming=False,
+        settings=settings,
     )
 
     shutdown_requested = False
