@@ -1,15 +1,15 @@
-# Executar próxima sprint — ADR-022-DOC
+# Executar próxima sprint — INFRA-GAUNTLET-01
 
 > **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
 > Copie o bloco abaixo e cole em uma session nova de Claude Opus 4.7.
-> Restam **17** sprints PENDENTE(S) na fila.
+> Restam **16** sprints PENDENTE(S) na fila.
 
 ---
 
 ## Prompt para colar na session
 
 ```
-Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_ADR_022_DOC.md.
+Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_INFRA_GAUNTLET_01.md.
 
 Modelo obrigatório: claude-opus-4-7 (sem subagentes).
 Protocolo obrigatório (CLAUDE.md seção "próxima sprint" + workflow anti-gambiarra):
@@ -27,10 +27,10 @@ Protocolo obrigatório (CLAUDE.md seção "próxima sprint" + workflow anti-gamb
 10. Após CONCLUIDA: commit atômico, move sprint file para concluidos/, roda `python scripts/update_next_sprint.py` para atualizar este arquivo.
 
 Se qualquer passo falhar, reporte:
-    [SPRINT ADR-022-DOC] BLOQUEADA: <motivo objetivo>
+    [SPRINT INFRA-GAUNTLET-01] BLOQUEADA: <motivo objetivo>
 
-ID desta sprint: ADR-022-DOC
-Arquivo: dev-journey/06-sprints/producao/SPRINT_ADR_022_DOC.md
+ID desta sprint: INFRA-GAUNTLET-01
+Arquivo: dev-journey/06-sprints/producao/SPRINT_INFRA_GAUNTLET_01.md
 ```
 
 ---
