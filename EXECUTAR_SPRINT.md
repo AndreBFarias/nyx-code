@@ -1,15 +1,15 @@
-# Executar próxima sprint — DEBT-03
+# Executar próxima sprint — UX-DESIGN-01
 
 > **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
 > Copie o bloco abaixo e cole em uma session nova de Claude Opus 4.7.
-> Restam **14** sprints PENDENTE(S) na fila.
+> Restam **13** sprints PENDENTE(S) na fila.
 
 ---
 
 ## Prompt para colar na session
 
 ```
-Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_DEBT_03.md.
+Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_UX_DESIGN_01.md.
 
 Modelo obrigatório: claude-opus-4-7 (sem subagentes).
 Protocolo obrigatório (CLAUDE.md seção "próxima sprint" + workflow anti-gambiarra):
@@ -27,10 +27,10 @@ Protocolo obrigatório (CLAUDE.md seção "próxima sprint" + workflow anti-gamb
 10. Após CONCLUIDA: commit atômico, move sprint file para concluidos/, roda `python scripts/update_next_sprint.py` para atualizar este arquivo.
 
 Se qualquer passo falhar, reporte:
-    [SPRINT DEBT-03] BLOQUEADA: <motivo objetivo>
+    [SPRINT UX-DESIGN-01] BLOQUEADA: <motivo objetivo>
 
-ID desta sprint: DEBT-03
-Arquivo: dev-journey/06-sprints/producao/SPRINT_DEBT_03.md
+ID desta sprint: UX-DESIGN-01
+Arquivo: dev-journey/06-sprints/producao/SPRINT_UX_DESIGN_01.md
 ```
 
 ---
