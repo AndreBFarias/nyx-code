@@ -1,0 +1,328 @@
+"""AgentLoop -- Ciclo plan-execute-observe do Nyx.
+
+Fluxo integrado:
+1. Recebe pedido do usuário
+2. ContextBudget verifica budget -> compacta se necessário
+3. Envia ao proxy (/v1/chat/completions com tools)
+4. Se tool_calls: executa via PermissionChecker + RepetitionDetector
+5. Se texto puro: ActionParser (7 níveis fallback) -> executa como tool
+6. Se done(): salva sessão, termina
+7. Se max_iterations: force_done
+"""
+
+from __future__ import annotations
+
+import logging
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+import httpx
+
+from nyx.agent.context import ContextBudget
+from nyx.agent.loop._iteration import _IterationMixin
+from nyx.agent.loop._types import PermissionCallback
+from nyx.agent.memory import NyxMemory
+from nyx.agent.models import (
+    AgentAction,
+    SessionState,
+    SessionStatus,
+)
+from nyx.agent.parser import ActionParser
+from nyx.agent.permissions import PermissionChecker
+from nyx.agent.prompt import build_claude_md_context, build_system_prompt
+from nyx.agent.repomap import RepoMap
+from nyx.agent.services.diagnostics import DiagnosticTracking
+from nyx.agent.services.tool_use_summary import ToolUseSummary
+from nyx.agent.session import CodeSession
+from nyx.agent.streaming import StreamingCollector
+from nyx.agent.summarizer import SessionSummarizer
+from nyx.agent.tools.registry import ToolRegistry
+from nyx.config.defaults import MAX_ITERATIONS as MAX_ITERATIONS_DEFAULT
+from nyx.config.defaults import PROXY_URL as _DEFAULT_PROXY_URL
+
+if TYPE_CHECKING:
+    from nyx.config.settings import NyxSettings
+
+logger = logging.getLogger("nyx.agent")
+
+
+class AgentLoop(_IterationMixin):
+    def __init__(
+        self,
+        project_root: str,
+        proxy_url: str = _DEFAULT_PROXY_URL,
+        model: str = "qwen3:4b",
+        max_iterations: int = MAX_ITERATIONS_DEFAULT,
+        on_token: Any = None,
+        on_tool: Any = None,
+        on_tool_result: Any = None,
+        on_permission: PermissionCallback | None = None,
+        streaming: bool = True,
+        settings: "NyxSettings | None" = None,
+    ) -> None:
+        if settings is not None:
+            if proxy_url == _DEFAULT_PROXY_URL:
+                proxy_url = settings.proxy_url
+            if model == "qwen3:4b":
+                model = settings.model
+            if max_iterations == MAX_ITERATIONS_DEFAULT:
+                max_iterations = settings.max_iterations
+
+        self._settings = settings
+        self._project_root = project_root
+        self._proxy_url = proxy_url
+        self._model = model
+        self._max_iterations = max_iterations
+        self._tools = ToolRegistry(project_root)
+        self._session = CodeSession()
+        self._on_token = on_token
+        self._on_tool = on_tool
+        self._on_tool_result = on_tool_result
+        self._on_permission = on_permission
+        self._streaming = streaming
+
+        self._parser = ActionParser()
+        self._budget = ContextBudget()
+        self._permissions = PermissionChecker()
+        self._last_action: AgentAction | None = None
+        self._consecutive_skips: int = 0
+        self._has_results: bool = False
+
+        self._collector = StreamingCollector(on_token=on_token) if streaming and on_token else None
+        self._http_client: httpx.AsyncClient | None = None
+        self._diagnostics = DiagnosticTracking()
+        self._tool_summary = ToolUseSummary()
+
+        self._memory = NyxMemory(project_root)
+        self._memory_bundle = self._memory.load()
+
+        self._summarizer = SessionSummarizer(proxy_url=proxy_url, model=model)
+        self._session_id: str = f"{Path(project_root).name}_{int(__import__('time').time())}"
+
+        self._repomap = RepoMap(project_root)
+        try:
+            self._repomap.build()
+        except Exception as e:  # noqa: BLE001 -- indexação não deve derrubar boot
+            logger.warning("repomap: falha no build inicial: %s", e)
+
+        def _on_post_tool(tool_name: str, args: dict, result: Any) -> None:
+            if tool_name not in ("write_file", "edit_file", "create_file", "multi_edit", "patch"):
+                return
+            path = args.get("file_path") or args.get("path") or ""
+            if not path or not path.endswith(".py"):
+                return
+            self._repomap.invalidate(path)
+
+        self._tools.hooks.register_post(_on_post_tool)
+
+        self._tool_names = [t["function"]["name"] for t in self._tools.tool_defs]
+        self._claude_ctx = build_claude_md_context(project_root)
+        self._rebuild_system_prompt()
+
+    def _rebuild_system_prompt(self) -> None:
+        """Reconstrói system prompt com placeholders dinâmicos atuais."""
+        repo_map = ""
+        try:
+            touched = set(self._session._files_modified) | set(self._session._files_read)
+            repo_map = self._repomap.render(
+                touched={
+                    str(Path(p).relative_to(self._project_root))
+                    for p in touched
+                    if Path(p).is_relative_to(self._project_root)
+                }
+            )
+        except Exception as e:  # noqa: BLE001
+            logger.debug("repomap render falhou: %s", e)
+        summary = getattr(self._session, "summary", "") if hasattr(self, "_session") else ""
+        prompt = build_system_prompt(
+            self._project_root,
+            self._tool_names,
+            memory_files=self._memory_bundle,
+            repo_map=repo_map,
+            session_summary=summary,
+        )
+        if self._claude_ctx:
+            prompt += self._claude_ctx
+        self._system_prompt = prompt
+
+    async def run(self, user_input: str) -> SessionStatus:
+        """Executa o ciclo completo para um input do usuário."""
+        self._session.add_user(user_input)
+        self._session.iteration = 0
+        self._consecutive_skips = 0
+        self._has_results = False
+
+        for i in range(self._max_iterations):
+            self._session.iteration = i + 1
+            logger.info("[loop] iteração %d/%d", i + 1, self._max_iterations)
+
+            if self._budget.should_compact(self._session):
+                level = self._budget.get_compaction_level(self._session)
+                logger.info("[loop] compactação nível %d", level)
+                self._budget.compact_history(self._session)
+
+            response = await self._call_llm()
+            if "error" in response:
+                error_msg = response["error"]
+                self._diagnostics.record_error("llm", error_msg[:200])
+                if (
+                    "connection" in error_msg.lower()
+                    or "disconnect" in error_msg.lower()
+                    or "Extra data" in error_msg
+                    or "500" in error_msg
+                ):
+                    logger.warning("[loop] LLM caiu, tentando recovery...")
+                    recovered = await self._try_recovery()
+                    if recovered:
+                        response = await self._call_llm()
+                        if "error" not in response:
+                            logger.info("[loop] recovery OK, continuando")
+                        else:
+                            logger.error("[loop] recovery falhou: %s", response.get("error"))
+                            if self._has_results:
+                                return SessionStatus(
+                                    state=SessionState.DONE,
+                                    iterations=i + 1,
+                                    summary=self._build_force_done_summary(),
+                                )
+                            return SessionStatus(
+                                state=SessionState.ERROR,
+                                iterations=i + 1,
+                                summary=error_msg,
+                            )
+                    else:
+                        if self._has_results:
+                            return SessionStatus(
+                                state=SessionState.DONE,
+                                iterations=i + 1,
+                                summary=self._build_force_done_summary(),
+                            )
+                        return SessionStatus(
+                            state=SessionState.ERROR,
+                            iterations=i + 1,
+                            summary=error_msg,
+                        )
+                else:
+                    logger.error("[loop] erro LLM: %s", error_msg)
+                    return SessionStatus(
+                        state=SessionState.ERROR,
+                        iterations=i + 1,
+                        summary=error_msg,
+                    )
+
+            tool_calls = response.get("tool_calls", [])
+
+            if tool_calls:
+                status = self._execute_tool_calls(tool_calls, i + 1)
+                if status:
+                    return status
+                continue
+
+            content = response.get("content", "")
+            if content:
+                parse_result = self._parser.parse(content)
+                if parse_result.success and parse_result.action:
+                    action = parse_result.action
+                    logger.info(
+                        "[loop] parser fallback: %s (nível %s)",
+                        action.action_type.value,
+                        parse_result.level.value,
+                    )
+                    status = self._execute_parsed_action(action, i + 1)
+                    if status:
+                        return status
+                    continue
+
+                self._session.add_assistant(content)
+                return SessionStatus(
+                    state=SessionState.DONE,
+                    iterations=i + 1,
+                    summary=content,
+                )
+
+        return SessionStatus(
+            state=SessionState.MAX_ITERATIONS,
+            iterations=self._max_iterations,
+            summary=f"Atingiu limite de {self._max_iterations} iterações",
+        )
+
+    def _build_force_done_summary(self) -> str:
+        """Gera resumo real do que foi feito ao forçar done."""
+        parts: list[str] = []
+        for entry in reversed(self._session.history):
+            if entry.tool_name and entry.tool_result and "OK:" in entry.tool_result:
+                parts.append(entry.tool_result.split(". Se a tarefa")[0])
+                break
+            if entry.tool_name and entry.tool_result and entry.is_key_decision:
+                parts.append(entry.tool_result[:200])
+                break
+        modified = sorted(self._session._files_modified)
+        if modified:
+            parts.append(f"Arquivos: {', '.join(modified[:5])}")
+        if not parts:
+            parts.append("Tarefa processada")
+        return ". ".join(parts)
+
+    @property
+    def tools_count(self) -> int:
+        return self._tools.tool_count
+
+    @property
+    def session(self) -> CodeSession:
+        return self._session
+
+    @property
+    def budget(self) -> ContextBudget:
+        return self._budget
+
+    @property
+    def parser_stats(self) -> dict[str, Any]:
+        return self._parser.stats
+
+    @property
+    def permissions(self) -> PermissionChecker:
+        return self._permissions
+
+    @property
+    def diagnostics(self) -> DiagnosticTracking:
+        return self._diagnostics
+
+    @property
+    def tool_summary(self) -> ToolUseSummary:
+        return self._tool_summary
+
+    def reset(self) -> None:
+        self._session.reset()
+        self._parser.reset_stats()
+        self._permissions.reset_session()
+        self._last_action = None
+        self._consecutive_skips = 0
+        self._has_results = False
+
+    async def maybe_summarize(self) -> bool:
+        """Atualiza o resumo da sessão se o batch fechou. Fire-and-forget friendly."""
+        if not self._summarizer.should_summarize(self._session):
+            return False
+        try:
+            summary = await self._summarizer.update(self._session)
+        except Exception as e:  # noqa: BLE001 -- resumo falho não derruba loop
+            logger.warning("summarizer: erro inesperado: %s", e)
+            return False
+        if summary:
+            self._summarizer.write_to_disk(self._session_id, summary)
+            self._rebuild_system_prompt()
+        return bool(summary)
+
+    async def close(self) -> None:
+        """Libera recursos (httpx client)."""
+        if self._http_client is not None:
+            await self._http_client.aclose()
+            self._http_client = None
+
+    def get_context_info(self) -> dict:
+        """Retorna info do budget para exibição no CLI."""
+        history = self._session.get_compressed_history()
+        return self._budget.estimate(self._system_prompt, history)
+
+
+# "O loop é a essência da computação." -- Alan Turing
