@@ -1,15 +1,15 @@
-# Executar próxima sprint — DEBT-06
+# Executar próxima sprint — ADR-021-DOC
 
 > **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
 > Copie o bloco abaixo e cole em uma session nova de Claude Opus 4.7.
-> Restam **19** sprints PENDENTE(S) na fila.
+> Restam **18** sprints PENDENTE(S) na fila.
 
 ---
 
 ## Prompt para colar na session
 
 ```
-Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_DEBT_06.md.
+Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_ADR_021_DOC.md.
 
 Modelo obrigatório: claude-opus-4-7 (sem subagentes).
 Protocolo obrigatório (CLAUDE.md seção "próxima sprint" + workflow anti-gambiarra):
@@ -27,10 +27,10 @@ Protocolo obrigatório (CLAUDE.md seção "próxima sprint" + workflow anti-gamb
 10. Após CONCLUIDA: commit atômico, move sprint file para concluidos/, roda `python scripts/update_next_sprint.py` para atualizar este arquivo.
 
 Se qualquer passo falhar, reporte:
-    [SPRINT DEBT-06] BLOQUEADA: <motivo objetivo>
+    [SPRINT ADR-021-DOC] BLOQUEADA: <motivo objetivo>
 
-ID desta sprint: DEBT-06
-Arquivo: dev-journey/06-sprints/producao/SPRINT_DEBT_06.md
+ID desta sprint: ADR-021-DOC
+Arquivo: dev-journey/06-sprints/producao/SPRINT_ADR_021_DOC.md
 ```
 
 ---

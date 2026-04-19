@@ -265,8 +265,8 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 11 | **AUDIT-FIX-08** | 2.5 Limpeza | ALTA | CONCLUIDA (commit 4995500) | -- |
 | 12 | **AUDIT-FIX-09** | 2.5 Limpeza | ALTA | CONCLUIDA (commit c2ba860) | -- |
 | 13 | **DEBT-04** | 2.5 Limpeza | MÉDIA | CONCLUIDA (commit a326d98) | -- |
-| 14 | **DEBT-05** | 2.5 Limpeza | BAIXA | BLOQUEADA (AC-03: hook real é global; aguarda DEBT-06) | -- |
-| 15 | **DEBT-06** | 2.5 Limpeza | BAIXA | PENDENTE | -- |
+| 14 | **DEBT-05** | 2.5 Limpeza | BAIXA | ABSORVIDA_POR_DEBT_06 | -- |
+| 15 | **DEBT-06** | 2.5 Limpeza | BAIXA | CONCLUIDA | -- |
 | 16 | **ADR-021-DOC** | 2.5 Limpeza | MÉDIA | PENDENTE | -- |
 | 17 | **ADR-022-DOC** | 2.5 Limpeza | MÉDIA | PENDENTE | -- |
 | 18 | **INFRA-GAUNTLET-01** | 2.6 Infra | CRÍTICA | PENDENTE | AUDIT-FIX-08, AUDIT-FIX-09, DEBT-04, DEBT-05, DEBT-06 |
