@@ -26,15 +26,19 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from nyx.agent.services.logging_service import get_logger
+# Permitir execução como script direto (python nyx/cli.py) além de -m nyx.cli.
+# Sem isso, só o diretório nyx/ entra no sys.path e `import nyx.*` falha.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from nyx.agent.services.logging_service import (  # noqa: E402
+    InternalLogging,
+    get_logger,
+)
 
 if TYPE_CHECKING:
     from nyx.config.settings import NyxSettings
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
-
-from nyx.agent.services.logging_service import InternalLogging  # noqa: E402
 
 InternalLogging()
 logger = get_logger("nyx.cli")
@@ -751,7 +755,16 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Nyx CLI -- Code Agent local")
     parser.add_argument("--no-stream", action="store_true", help="Desativa streaming de tokens")
     parser.add_argument("--headless", action="store_true", help="Modo headless: stdin/stdout JSON")
+    parser.add_argument(
+        "--smoke",
+        action="store_true",
+        help="Prova que imports resolvem (imprime 'boot ok' e sai).",
+    )
     args = parser.parse_args()
+
+    if args.smoke:
+        print("boot ok")
+        sys.exit(0)
 
     if args.headless:
         sys.exit(asyncio.run(run_headless()))

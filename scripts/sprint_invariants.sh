@@ -191,6 +191,16 @@ else
     ok "12. root sem arquivos de teste/scratch esquecidos"
 fi
 
+# 13. ./run.sh --smoke retorna 0 e imprime exatamente 'boot ok' (boot integrity, BOOT-FIX-01)
+SMOKE_OUT=$(timeout 5 ./run.sh --smoke 2>&1)
+SMOKE_RC=$?
+if [ $SMOKE_RC -eq 0 ] && echo "$SMOKE_OUT" | grep -qx "boot ok"; then
+    ok "13. ./run.sh --smoke (boot integrity)"
+else
+    SMOKE_HEAD=$(echo "$SMOKE_OUT" | head -3 | tr '\n' '|')
+    fail "13. ./run.sh --smoke (boot integrity)" "exit=${SMOKE_RC}, stdout=${SMOKE_HEAD}"
+fi
+
 section "Resumo"
 printf "PASS: %d\n" "$PASS"
 printf "FAIL: %d\n" "$FAIL"

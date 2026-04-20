@@ -55,6 +55,10 @@ EXTRA_ARGS=()
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --smoke)
+            # Smoke check: prova que imports resolvem sem subir Ollama/proxy.
+            exec "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/nyx/cli.py" --smoke
+            ;;
         --3b)
             MODEL="qwen2.5-coder:3b"
             shift ;;
