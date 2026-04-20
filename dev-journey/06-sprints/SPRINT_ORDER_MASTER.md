@@ -275,7 +275,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 21 | **BUG-PORT-PARSE-01** | 2.6 Integração | CRÍTICA | CONCLUIDA | -- |
 | 22 | **TUI-FIX-08** | 2.8 Fixes Onda 20 | ALTA | CONCLUIDA | BUG-PORT-PARSE-01 |
 | 23 | **TUI-FIX-09** | 2.8 Fixes Onda 20 | MÉDIA | CONCLUIDA | BUG-PORT-PARSE-01 |
-| 24 | **TUI-FIX-10** | 2.8 Fixes Onda 20 | MÉDIA | PENDENTE | TUI-FIX-09 |
+| 24 | **TUI-FIX-10** | 2.8 Fixes Onda 20 | MÉDIA | CONCLUIDA (commit b17be7d) | TUI-FIX-09 |
 | 25 | **VALIDATE-ONDA-20** | 2.7 Validação | ALTA | PENDENTE | BUG-PORT-PARSE-01, TUI-FIX-08, TUI-FIX-09, TUI-FIX-10 |
 | 26 | **VALIDATE-ONDA-21** | 2.7 Validação | ALTA | PENDENTE | VALIDATE-ONDA-20 |
 | 27 | **OBSERVABILITY-01** | 2.9 Integração | ALTA | PENDENTE | VALIDATE-ONDA-21 |

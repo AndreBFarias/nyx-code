@@ -48,7 +48,7 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (commit b17be7d)
 **Data criação:** 2026-04-20
 **Origem:** achado colateral durante execução de **TUI-FIX-09** (formatação do `/theme`). Teste programático de `cmd_theme('xyz-inexistente')` retornou `"Tema 'xyz-inexistente' carregado. Primary: #BD93F9"` em vez da mensagem de erro esperada. Causa: `ThemeManager.load_theme()` em `nyx/themes/__init__.py:44-61` faz fallback silencioso para `DRACULA_FALLBACK.copy()` quando o JSON da entidade não existe, sempre retornando dict truthy.
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
