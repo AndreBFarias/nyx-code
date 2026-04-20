@@ -157,10 +157,11 @@ def cmd_theme(args: str, _root: str) -> str:
                 else:
                     lines.append(f"    - {tid}: {tname}")
             return "\n".join(lines)
+        ids_validos = {t["id"] for t in tm.list_themes()}
+        if args not in ids_validos:
+            return f"  Tema '{args}' não encontrado."
         theme = tm.load_theme(args)
-        if theme:
-            return f"  Tema '{args}' carregado. Primary: {theme.get('primary', '?')}"
-        return f"  Tema '{args}' não encontrado."
+        return f"  Tema '{args}' carregado. Primary: {theme.get('primary', '?')}"
     except ImportError:
         return "  Módulo de temas não disponível."
 
