@@ -10,6 +10,9 @@ from pathlib import Path
 from nyx.agent.commands._registry import nyx_command
 from nyx.agent.services.logging_service import get_logger
 from nyx.config.defaults import (
+    OLLAMA_HOST as _OLLAMA_HOST,
+)
+from nyx.config.defaults import (
     OLLAMA_PORT as _OLLAMA_PORT,
 )
 from nyx.config.defaults import (
@@ -31,7 +34,9 @@ def cmd_config(args: str, project_root: str) -> str:
     if not args:
         proxy = os.environ.get("OPENAI_BASE_URL", _PROXY_V1_URL)
         model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", "qwen3:4b"))
-        ollama = os.environ.get("OLLAMA_HOST", _OLLAMA_URL)
+        ollama_host = os.environ.get("NYX_OLLAMA_HOST", _OLLAMA_HOST)
+        ollama_port = os.environ.get("NYX_OLLAMA_PORT", str(_OLLAMA_PORT))
+        ollama = f"http://{ollama_host}:{ollama_port}"
         return (
             "  Configuração atual:\n"
             f"    modelo: {model}\n"

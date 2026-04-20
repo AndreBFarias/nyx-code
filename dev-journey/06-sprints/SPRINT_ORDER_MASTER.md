@@ -272,7 +272,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 18 | **DEBT-07** | 2.5 Limpeza | ALTA | CONCLUIDA (commit 8c91fe5) | -- |
 | 19 | **INFRA-GAUNTLET-01** | 2.6 Integração | CRÍTICA | DESCARTADA (decisão de escopo 2026-04-19) | -- |
 | 20 | **BOOT-FIX-01** | 2.6 Integração | CRÍTICA | CONCLUIDA (commit bb3d61b) | -- |
-| 21 | **BUG-PORT-PARSE-01** | 2.6 Integração | CRÍTICA | PENDENTE | -- |
+| 21 | **BUG-PORT-PARSE-01** | 2.6 Integração | CRÍTICA | CONCLUIDA | -- |
 | 22 | **TUI-FIX-08** | 2.8 Fixes Onda 20 | ALTA | PENDENTE | BUG-PORT-PARSE-01 |
 | 23 | **TUI-FIX-09** | 2.8 Fixes Onda 20 | MÉDIA | PENDENTE | BUG-PORT-PARSE-01 |
 | 24 | **VALIDATE-ONDA-20** | 2.7 Validação | ALTA | PENDENTE | BUG-PORT-PARSE-01, TUI-FIX-08, TUI-FIX-09 |
@@ -318,7 +318,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 
 **Bloco 2.5 (Limpeza de pendências, 2026-04-19):** 8 sprints — materializa sprints que haviam ficado como débito implícito: docstring órfã, excepts residuais, higienização ruff, pre-commit local, pre-commit global (DEBT-06 desdobrada de DEBT-05 quando se descobriu que o hook executado é o global `core.hookspath`), ADR-021, ADR-022, e DEBT-07 (exports pós-split `loop.py` — resíduo de DEBT-01 exposto por INFRA-GAUNTLET-01). Regra "nenhum débito para trás".
 
-**Bloco 2.6 (Integração — baseline limpo):** 3 sprints — INFRA-GAUNTLET-01 DESCARTADA (decisão de escopo 2026-04-19; validações visuais não exigem baseline gauntlet 100% pré-release, smoke gauntlet por fase cobre regressão pontual quando necessário), BOOT-FIX-01 CONCLUIDA (2026-04-19, commit bb3d61b — fixou `nyx/cli.py` promovendo `sys.path.insert` para antes de `from nyx.*` e adicionou check #13 ao `scripts/sprint_invariants.sh`) e BUG-PORT-PARSE-01 PENDENTE (descoberto durante VALIDATE-ONDA-20 em 2026-04-19 — `run.sh:45` define `NYX_OLLAMA_HOST="host:port"` mas `settings.py:38 proxy_url` concatena `:porta` de novo, gerando `http://127.0.0.1:11435:11436` e `ValueError: Invalid port: '11435:11436'` em toda chamada HTTP do agente; bloqueia 100% de tool calls).
+**Bloco 2.6 (Integração — baseline limpo):** 3 sprints — INFRA-GAUNTLET-01 DESCARTADA (decisão de escopo 2026-04-19; validações visuais não exigem baseline gauntlet 100% pré-release, smoke gauntlet por fase cobre regressão pontual quando necessário), BOOT-FIX-01 CONCLUIDA (2026-04-19, commit bb3d61b — fixou `nyx/cli.py` promovendo `sys.path.insert` para antes de `from nyx.*` e adicionou check #13 ao `scripts/sprint_invariants.sh`) e BUG-PORT-PARSE-01 CONCLUIDA (2026-04-19 — estabeleceu contrato dual para `OLLAMA_HOST`: interno Nyx/Python = host puro via `NYX_OLLAMA_HOST`; daemon Ollama externo = `host:port` composto no export de `run.sh`. Separou `NYX_OLLAMA_HOST` e `NYX_OLLAMA_PORT` em `run.sh:45`, ajustou 4 call-sites internos e removeu reformat do case `--port`. Adicionou guard `ValueError` em `settings.py` e alinhou fallback em `commands/system.py`. Gauntlet rapido 11/11 APROVADO, `httpx.URL` parseia corretamente `http://127.0.0.1:11436/v1/...`).
 
 **Bloco 2.7 (Validação das ondas 20/21):** 2 sprints — VALIDATE-ONDA-20 e VALIDATE-ONDA-21, destravando as 14 sprints em limbo. **VALIDATE-ONDA-20 ganhou deps em 2026-04-19**: BUG-PORT-PARSE-01 (CRÍTICO), TUI-FIX-08 e TUI-FIX-09 precisam concluir primeiro (achados colaterais da Rodada 1 — ver Bloco 2.6 e 2.8).
 
@@ -390,7 +390,7 @@ Onda 22 (Redesign Total UX + Visão + Deploy) -- EM EXECUÇÃO:
   Bloco 1: AUDIT-FIX-01, -03, -04, DEBT-02 (paralelos, rápidos) -- CONCLUIDA
   Bloco 2: AUDIT-FIX-02 (dep 03), -05, -06, -07, DEBT-01, DEBT-03 -- CONCLUIDA (2026-04-18)
   Bloco 2.5 (2026-04-19): AUDIT-FIX-08, -09, DEBT-04, DEBT-05 (BLOQUEADA por DEBT-06), DEBT-06, ADR-021-DOC, ADR-022-DOC (paralelos)
-  Bloco 2.6 (Integração): INFRA-GAUNTLET-01 DESCARTADA + BOOT-FIX-01 CONCLUIDA + BUG-PORT-PARSE-01 PENDENTE (URL com porta dupla 11435:11436, achado em 2026-04-19)
+  Bloco 2.6 (Integração): INFRA-GAUNTLET-01 DESCARTADA + BOOT-FIX-01 CONCLUIDA + BUG-PORT-PARSE-01 CONCLUIDA (contrato dual OLLAMA_HOST, 2026-04-19)
   Bloco 2.8 (Fixes Onda 20): TUI-FIX-08 (popup sem filtro por prefixo) + TUI-FIX-09 (/theme imprime dict cru)
   Bloco 2.7: VALIDATE-ONDA-20 -> VALIDATE-ONDA-21 (destrava 14 sprints em limbo)
   Bloco 3: UX-DESIGN-01 (tokens + ADR-023)

@@ -41,8 +41,10 @@ fi
 CURL_TIMEOUT="${NYX_CURL_TIMEOUT:-10}"
 OLLAMA_START_TIMEOUT="${NYX_OLLAMA_START_TIMEOUT:-30}"
 WARMUP_TIMEOUT=90
+# Contrato: NYX_OLLAMA_HOST é host puro (sem porta). OLLAMA_HOST exportado
+# para o daemon Ollama compõe host:port (convenção do binário).
 NYX_OLLAMA_PORT="${NYX_OLLAMA_PORT:-11435}"
-NYX_OLLAMA_HOST="${NYX_OLLAMA_HOST:-127.0.0.1}:${NYX_OLLAMA_PORT}"
+NYX_OLLAMA_HOST="${NYX_OLLAMA_HOST:-127.0.0.1}"
 NYX_PROXY_PORT="${NYX_PROXY_PORT:-11436}"
 
 # ─── PARSE FLAGS ──────────────────────────────────────────
@@ -73,7 +75,6 @@ while [[ $# -gt 0 ]]; do
             shift 2 ;;
         --port)
             NYX_OLLAMA_PORT="$2"
-            NYX_OLLAMA_HOST="${NYX_OLLAMA_HOST%%:*}:${NYX_OLLAMA_PORT}"
             shift 2 ;;
         --debug)
             DEBUG=1
@@ -95,7 +96,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 # ─── VARIÁVEIS OLLAMA ────────────────────────────────────
-export OLLAMA_HOST="$NYX_OLLAMA_HOST"
+# Daemon Ollama exige host:port em OLLAMA_HOST (convenção upstream).
+export OLLAMA_HOST="${NYX_OLLAMA_HOST}:${NYX_OLLAMA_PORT}"
 export OLLAMA_MODELS="$SCRIPT_DIR/models"
 export OLLAMA_NUM_PARALLEL=1
 export OLLAMA_MAX_LOADED_MODELS=1
@@ -178,7 +180,7 @@ start_ollama() {
     OLLAMA_PID=$!
 
     local elapsed=0
-    while ! curl -sf "http://${NYX_OLLAMA_HOST}/api/version" > /dev/null 2>&1; do
+    while ! curl -sf "http://${NYX_OLLAMA_HOST}:${NYX_OLLAMA_PORT}/api/version" > /dev/null 2>&1; do
         sleep 1
         elapsed=$((elapsed + 1))
         if [ "$elapsed" -ge "$OLLAMA_START_TIMEOUT" ]; then
@@ -228,7 +230,7 @@ warmup_model() {
     log_nyx "Aquecendo modelo $MODEL..."
     local response
     response=$(curl -sf --max-time "$WARMUP_TIMEOUT" \
-        "http://${NYX_OLLAMA_HOST}/v1/chat/completions" \
+        "http://${NYX_OLLAMA_HOST}:${NYX_OLLAMA_PORT}/v1/chat/completions" \
         -H "Content-Type: application/json" \
         -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":3}" 2>&1)
 
@@ -344,7 +346,7 @@ export OPENAI_TIMEOUT=300000
 
 # ─── PRE-CARREGAR MODELO COM NUM_GPU LIMITADO ────────────
 log_nyx "Pré-carregando modelo (num_gpu=$NYX_NUM_GPU)..."
-if curl -sf --max-time 120 "http://${NYX_OLLAMA_HOST}/api/chat" \
+if curl -sf --max-time 120 "http://${NYX_OLLAMA_HOST}:${NYX_OLLAMA_PORT}/api/chat" \
     -H "Content-Type: application/json" \
     -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"stream\":false,\"think\":false,\"options\":{\"num_gpu\":$NYX_NUM_GPU,\"num_ctx\":4096}}" \
     > /dev/null 2>&1; then
@@ -394,7 +396,7 @@ if [ "$GAUNTLET" -eq 1 ]; then
     log_nyx "Executando Gauntlet (fase: $GAUNTLET_ONLY)..."
     "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/scripts/gauntlet/nyx_gauntlet.py" \
         --proxy-url "http://127.0.0.1:${NYX_PROXY_PORT}" \
-        --ollama-url "http://${NYX_OLLAMA_HOST}" \
+        --ollama-url "http://${NYX_OLLAMA_HOST}:${NYX_OLLAMA_PORT}" \
         --only "$GAUNTLET_ONLY" \
         --model "$MODEL"
     EXIT_CODE=$?

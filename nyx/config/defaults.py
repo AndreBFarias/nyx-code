@@ -4,6 +4,10 @@ from __future__ import annotations
 
 OLLAMA_PORT: int = 11435
 PROXY_PORT: int = 11436
+# Contrato dual:
+# - NYX_OLLAMA_HOST (interno, consumido por Nyx/Python): host puro, sem porta.
+# - OLLAMA_HOST exportado (daemon Ollama externo): host:port, convenção upstream.
+# run.sh monta a composição no momento do export; este default é o host puro.
 OLLAMA_HOST: str = "127.0.0.1"
 OLLAMA_URL: str = f"http://{OLLAMA_HOST}:{OLLAMA_PORT}"
 PROXY_URL: str = f"http://{OLLAMA_HOST}:{PROXY_PORT}"

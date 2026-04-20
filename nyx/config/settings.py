@@ -69,9 +69,16 @@ def load_settings(args: Any = None) -> NyxSettings:
         debug = getattr(args, "debug", debug)
         headless = getattr(args, "headless", headless)
 
+    raw_host = os.getenv("NYX_OLLAMA_HOST", defaults.OLLAMA_HOST)
+    if ":" in raw_host:
+        raise ValueError(
+            f"NYX_OLLAMA_HOST deve ser host puro (sem porta), recebido '{raw_host}'. "
+            "Use NYX_OLLAMA_PORT para a porta."
+        )
+
     return NyxSettings(
         project_root=project_root,
-        ollama_host=os.getenv("NYX_OLLAMA_HOST", defaults.OLLAMA_HOST),
+        ollama_host=raw_host,
         ollama_port=port,
         proxy_port=proxy_port,
         model=model,

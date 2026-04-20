@@ -15,8 +15,8 @@ sprint:
 
   touches:
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/run.sh
-      reason: "NYX_OLLAMA_HOST é redefinido para `HOST:PORT` (linha 45); quebra o contrato implícito de que OLLAMA_HOST é apenas host"
-      linhas_alvo: "44-46, 94"
+      reason: "NYX_OLLAMA_HOST é redefinido para `HOST:PORT` (linha 45); quebra o contrato implícito de que OLLAMA_HOST é apenas host. Expansão pós-diagnóstico: 4 call-sites internos (curl/flags) e bloco --port também dependem do formato — todos ajustados no mesmo touch."
+      linhas_alvo: "44-46, 74-77, 97-98, 181, 231, 347, 397"
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/nyx/config/settings.py
       reason: "ollama_host lê NYX_OLLAMA_HOST que pode vir com porta embutida; properties concatenam `:porta` gerando URL com porta dupla"
       linhas_alvo: "20, 34, 38, 42, 74"
@@ -67,8 +67,9 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-04-19
+**Data conclusão:** 2026-04-19
 **Origem:** achado colateral durante **VALIDATE-ONDA-20** (Rodada 1). Usuário reportou `Nyx: Invalid port: '11435:11436'` em toda resposta do modelo.
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 
@@ -163,10 +164,20 @@ Contrato canônico: **`NYX_OLLAMA_HOST` é host puro, `NYX_OLLAMA_PORT` é porta
    ```
    Onde o shell hoje usa `NYX_OLLAMA_HOST` como `host:port` (ex: `curl "http://${NYX_OLLAMA_HOST}/..."`), trocar por `"http://${NYX_OLLAMA_HOST}:${NYX_OLLAMA_PORT}"`.
 
-2. `run.sh:94` — manter export, mas agora com host puro:
+2. `run.sh:98` — **correção pós-diagnóstico**: o daemon Ollama externo espera `OLLAMA_HOST` no formato `host:port` (convenção upstream). O contrato "host puro" vale apenas para o consumo interno em Python. Portanto, compor no export:
    ```bash
-   export OLLAMA_HOST="$NYX_OLLAMA_HOST"   # só host
+   # Daemon Ollama exige host:port em OLLAMA_HOST (convenção upstream).
+   export OLLAMA_HOST="${NYX_OLLAMA_HOST}:${NYX_OLLAMA_PORT}"
    ```
+
+   **Contrato dual:**
+
+   | Variável | Consumidor | Formato |
+   |----------|-----------|---------|
+   | `NYX_OLLAMA_HOST` | Nyx (Python `settings.py`) | host puro |
+   | `OLLAMA_HOST` (exportado) | Daemon Ollama externo | `host:port` |
+
+   Consequentemente, os 4 call-sites em `run.sh` que usavam `"http://${NYX_OLLAMA_HOST}/..."` (linhas 181, 231, 347, 397) também foram reescritos para `"http://${NYX_OLLAMA_HOST}:${NYX_OLLAMA_PORT}/..."`, e a linha 76 (reformat dentro do case `--port`) foi removida por ser desnecessária com host puro.
 
 3. `nyx/config/defaults.py:7-9` — adicionar comentário inline reforçando o contrato:
    ```python
