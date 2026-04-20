@@ -164,7 +164,15 @@ async def run_repl(streaming: bool = True) -> int:
 
         @kb.add("enter")
         def _submit(event: object) -> None:
-            event.current_buffer.validate_and_handle()  # type: ignore[attr-defined]
+            buf = event.current_buffer  # type: ignore[attr-defined]
+            state = buf.complete_state
+            if (
+                state
+                and state.completions
+                and buf.document.text_before_cursor.lstrip().startswith("/")
+            ):
+                buf.apply_completion(state.current_completion or state.completions[0])
+            buf.validate_and_handle()
 
         @kb.add("c-j")
         def _newline(event: object) -> None:

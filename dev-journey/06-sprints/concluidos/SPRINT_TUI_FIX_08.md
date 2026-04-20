@@ -58,7 +58,7 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (2026-04-20) -- fix no handler Enter de `nyx/cli.py` aceita completion ativa de slash antes de submeter; validado visualmente pelo usuário.
 **Data criação:** 2026-04-19
 **Origem:** achado colateral durante **VALIDATE-ONDA-20** (Rodada 1). Usuário digitou `/them` (typo de `/theme`); esperava popup filtrado navegável, recebeu `Comando desconhecido: /them. Use /help.` do dispatcher (`nyx/agent/commands/_dispatcher.py:19`).
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)

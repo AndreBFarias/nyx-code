@@ -273,7 +273,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 19 | **INFRA-GAUNTLET-01** | 2.6 Integração | CRÍTICA | DESCARTADA (decisão de escopo 2026-04-19) | -- |
 | 20 | **BOOT-FIX-01** | 2.6 Integração | CRÍTICA | CONCLUIDA (commit bb3d61b) | -- |
 | 21 | **BUG-PORT-PARSE-01** | 2.6 Integração | CRÍTICA | CONCLUIDA | -- |
-| 22 | **TUI-FIX-08** | 2.8 Fixes Onda 20 | ALTA | PENDENTE | BUG-PORT-PARSE-01 |
+| 22 | **TUI-FIX-08** | 2.8 Fixes Onda 20 | ALTA | CONCLUIDA | BUG-PORT-PARSE-01 |
 | 23 | **TUI-FIX-09** | 2.8 Fixes Onda 20 | MÉDIA | PENDENTE | BUG-PORT-PARSE-01 |
 | 24 | **VALIDATE-ONDA-20** | 2.7 Validação | ALTA | PENDENTE | BUG-PORT-PARSE-01, TUI-FIX-08, TUI-FIX-09 |
 | 25 | **VALIDATE-ONDA-21** | 2.7 Validação | ALTA | PENDENTE | VALIDATE-ONDA-20 |
