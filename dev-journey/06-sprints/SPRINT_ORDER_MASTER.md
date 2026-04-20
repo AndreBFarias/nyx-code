@@ -269,8 +269,8 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 15 | **DEBT-06** | 2.5 Limpeza | BAIXA | CONCLUIDA (commit 4f73432) | -- |
 | 16 | **ADR-021-DOC** | 2.5 Limpeza | MÉDIA | CONCLUIDA (commit c918e3b) | -- |
 | 17 | **ADR-022-DOC** | 2.5 Limpeza | MÉDIA | CONCLUIDA (commit 8eefed3) | -- |
-| 18 | **DEBT-07** | 2.5 Limpeza | ALTA | PENDENTE | -- |
-| 19 | **INFRA-GAUNTLET-01** | 2.6 Infra | CRÍTICA | BLOQUEADA (gauntlet crasha fase 15, ImportError _remap_params residual de DEBT-01; aguarda DEBT-07) | AUDIT-FIX-08, AUDIT-FIX-09, DEBT-04, DEBT-05, DEBT-06, DEBT-07 |
+| 18 | **DEBT-07** | 2.5 Limpeza | ALTA | CONCLUIDA (commit 8c91fe5) | -- |
+| 19 | **INFRA-GAUNTLET-01** | 2.6 Infra | CRÍTICA | PENDENTE | AUDIT-FIX-08, AUDIT-FIX-09, DEBT-04, DEBT-05, DEBT-06, DEBT-07 |
 | 20 | **VALIDATE-ONDA-20** | 2.7 Validação | ALTA | PENDENTE | INFRA-GAUNTLET-01 |
 | 21 | **VALIDATE-ONDA-21** | 2.7 Validação | ALTA | PENDENTE | VALIDATE-ONDA-20 |
 | 22 | **UX-DESIGN-01** | 3 Design | CRÍTICA | PENDENTE | AUDIT-FIX-03, AUDIT-FIX-08, AUDIT-FIX-09, DEBT-04 |
