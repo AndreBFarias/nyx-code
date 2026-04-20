@@ -270,8 +270,8 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 16 | **ADR-021-DOC** | 2.5 Limpeza | MÉDIA | CONCLUIDA (commit c918e3b) | -- |
 | 17 | **ADR-022-DOC** | 2.5 Limpeza | MÉDIA | CONCLUIDA (commit 8eefed3) | -- |
 | 18 | **DEBT-07** | 2.5 Limpeza | ALTA | CONCLUIDA (commit 8c91fe5) | -- |
-| 19 | **INFRA-GAUNTLET-01** | 2.6 Infra | CRÍTICA | PENDENTE | AUDIT-FIX-08, AUDIT-FIX-09, DEBT-04, DEBT-05, DEBT-06, DEBT-07 |
-| 20 | **VALIDATE-ONDA-20** | 2.7 Validação | ALTA | PENDENTE | INFRA-GAUNTLET-01 |
+| 19 | **INFRA-GAUNTLET-01** | 2.6 Infra | CRÍTICA | DESCARTADA (decisão de escopo 2026-04-19) | AUDIT-FIX-08, AUDIT-FIX-09, DEBT-04, DEBT-05, DEBT-06, DEBT-07 |
+| 20 | **VALIDATE-ONDA-20** | 2.7 Validação | ALTA | PENDENTE | -- |
 | 21 | **VALIDATE-ONDA-21** | 2.7 Validação | ALTA | PENDENTE | VALIDATE-ONDA-20 |
 | 22 | **UX-DESIGN-01** | 3 Design | CRÍTICA | PENDENTE | AUDIT-FIX-03, AUDIT-FIX-08, AUDIT-FIX-09, DEBT-04 |
 | 23 | **UX-LAYOUT-01** | 4 Layout | ALTA | PENDENTE | UX-DESIGN-01 |
@@ -295,7 +295,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 
 **Bloco 2.5 (Limpeza de pendências, 2026-04-19):** 8 sprints — materializa sprints que haviam ficado como débito implícito: docstring órfã, excepts residuais, higienização ruff, pre-commit local, pre-commit global (DEBT-06 desdobrada de DEBT-05 quando se descobriu que o hook executado é o global `core.hookspath`), ADR-021, ADR-022, e DEBT-07 (exports pós-split `loop.py` — resíduo de DEBT-01 exposto por INFRA-GAUNTLET-01). Regra "nenhum débito para trás".
 
-**Bloco 2.6 (Infra — baseline limpo):** 1 sprint — INFRA-GAUNTLET-01 com watchdog de VRAM. Precede validações e UX-DESIGN-01.
+**Bloco 2.6 (Infra — baseline limpo):** 1 sprint descartada em 2026-04-19 por decisão de escopo do usuário. Validações visuais (Bloco 2.7) não exigem baseline gauntlet 100% pré-release; smoke gauntlet por fase cobre regressão pontual quando necessário. Sprint movida para `concluidos/` com status DESCARTADA, preservada como histórico.
 
 **Bloco 2.7 (Validação das ondas 20/21):** 2 sprints — VALIDATE-ONDA-20 e VALIDATE-ONDA-21, destravando as 14 sprints em limbo.
 
@@ -355,7 +355,7 @@ Onda 22 (Redesign Total UX + Visão + Deploy) -- EM EXECUÇÃO:
   Bloco 1: AUDIT-FIX-01, -03, -04, DEBT-02 (paralelos, rápidos) -- CONCLUIDA
   Bloco 2: AUDIT-FIX-02 (dep 03), -05, -06, -07, DEBT-01, DEBT-03 -- CONCLUIDA (2026-04-18)
   Bloco 2.5 (2026-04-19): AUDIT-FIX-08, -09, DEBT-04, DEBT-05 (BLOQUEADA por DEBT-06), DEBT-06, ADR-021-DOC, ADR-022-DOC (paralelos)
-  Bloco 2.6: INFRA-GAUNTLET-01 (watchdog de VRAM + refresca baseline)
+  Bloco 2.6: -- (INFRA-GAUNTLET-01 DESCARTADA em 2026-04-19; smoke gauntlet por fase basta)
   Bloco 2.7: VALIDATE-ONDA-20 -> VALIDATE-ONDA-21 (destrava 14 sprints em limbo)
   Bloco 3: UX-DESIGN-01 (tokens + ADR-023)
   Bloco 4: UX-LAYOUT-01 -> -02 -> -03 (checkpoint visual entre cada)

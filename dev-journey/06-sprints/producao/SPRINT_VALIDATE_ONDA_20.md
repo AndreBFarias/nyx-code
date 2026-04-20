@@ -8,7 +8,7 @@ sprint:
   bloco: 2.7
   prioridade: ALTA
   tipo: Audit
-  dependencias: [INFRA-GAUNTLET-01]
+  dependencias: []
   desbloqueia: [VALIDATE-ONDA-21, UX-DESIGN-01]
 
   touches:
