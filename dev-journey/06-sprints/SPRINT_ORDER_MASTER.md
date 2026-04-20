@@ -270,26 +270,45 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 16 | **ADR-021-DOC** | 2.5 Limpeza | MÉDIA | CONCLUIDA (commit c918e3b) | -- |
 | 17 | **ADR-022-DOC** | 2.5 Limpeza | MÉDIA | CONCLUIDA (commit 8eefed3) | -- |
 | 18 | **DEBT-07** | 2.5 Limpeza | ALTA | CONCLUIDA (commit 8c91fe5) | -- |
-| 19 | **INFRA-GAUNTLET-01** | 2.6 Integração | CRÍTICA | DESCARTADA (decisão de escopo 2026-04-19) | AUDIT-FIX-08, AUDIT-FIX-09, DEBT-04, DEBT-05, DEBT-06, DEBT-07 |
+| 19 | **INFRA-GAUNTLET-01** | 2.6 Integração | CRÍTICA | DESCARTADA (decisão de escopo 2026-04-19) | -- |
 | 20 | **BOOT-FIX-01** | 2.6 Integração | CRÍTICA | CONCLUIDA (commit bb3d61b) | -- |
 | 21 | **BUG-PORT-PARSE-01** | 2.6 Integração | CRÍTICA | PENDENTE | -- |
 | 22 | **TUI-FIX-08** | 2.8 Fixes Onda 20 | ALTA | PENDENTE | BUG-PORT-PARSE-01 |
 | 23 | **TUI-FIX-09** | 2.8 Fixes Onda 20 | MÉDIA | PENDENTE | BUG-PORT-PARSE-01 |
 | 24 | **VALIDATE-ONDA-20** | 2.7 Validação | ALTA | PENDENTE | BUG-PORT-PARSE-01, TUI-FIX-08, TUI-FIX-09 |
 | 25 | **VALIDATE-ONDA-21** | 2.7 Validação | ALTA | PENDENTE | VALIDATE-ONDA-20 |
-| 26 | **UX-DESIGN-01** | 3 Design | CRÍTICA | PENDENTE | AUDIT-FIX-03, AUDIT-FIX-08, AUDIT-FIX-09, DEBT-04 |
-| 27 | **UX-LAYOUT-01** | 4 Layout | ALTA | PENDENTE | UX-DESIGN-01 |
-| 28 | **UX-LAYOUT-02** | 4 Layout | ALTA | PENDENTE | UX-LAYOUT-01 |
-| 29 | **UX-LAYOUT-03** | 4 Layout | ALTA | PENDENTE | UX-LAYOUT-02 |
-| 30 | **UX-BUG-01** | 5 Bugs | ALTA | PENDENTE | UX-LAYOUT-03 |
-| 31 | **UX-BUG-02** | 5 Bugs | ALTA | PENDENTE | UX-BUG-01 |
-| 32 | **UX-BUG-03** | 5 Bugs | ALTA | PENDENTE | UX-BUG-02 |
-| 33 | **VISION-01** | 6 Visão | ALTA | PENDENTE | UX-BUG-03, ADR-022-DOC |
-| 34 | **VISION-02** | 6 Visão | ALTA | PENDENTE | VISION-01 |
-| 35 | **VISION-03** | 6 Visão | ALTA | PENDENTE | VISION-02 |
-| 36 | **DEPLOY-01** | 7 Deploy | ALTA | PENDENTE | VISION-03 |
-| 37 | **DEPLOY-02** | 7 Deploy | ALTA | PENDENTE | DEPLOY-01 |
-| 38 | **UX-EXTRA-01** | 8 Extra | BAIXA | PENDENTE | DEPLOY-02 |
+| 26 | **OBSERVABILITY-01** | 2.9 Integração | ALTA | PENDENTE | VALIDATE-ONDA-21 |
+| 27 | **DOC-CONSOLIDATE-01** | 2.9 Integração | MÉDIA | PENDENTE | -- |
+| 28 | **UX-DESIGN-01** | 3 Design | CRÍTICA | PENDENTE | AUDIT-FIX-03 |
+| 29 | **UX-LAYOUT-01** | 4 Layout | ALTA | ABSORVIDA_POR_UX-LAYOUT-01A, UX-LAYOUT-01B (decisão de escopo 2026-04-19) | UX-DESIGN-01 |
+| 30 | **UX-LAYOUT-01A** | 4 Layout | ALTA | PENDENTE | UX-DESIGN-01 |
+| 31 | **UX-LAYOUT-01B** | 4 Layout | ALTA | PENDENTE | UX-LAYOUT-01A, OBSERVABILITY-01 |
+| 32 | **UX-LAYOUT-02** | 4 Layout | ALTA | PENDENTE | UX-LAYOUT-01B, OBSERVABILITY-01 |
+| 33 | **UX-LAYOUT-03** | 4 Layout | ALTA | PENDENTE | UX-LAYOUT-02 |
+| 34 | **TUI-FIX-07** | 4b Herdado | MÉDIA | ABSORVIDA_POR_TUI-FIX-07A, TUI-FIX-07B, TUI-FIX-07C (decisão de escopo 2026-04-19) | VALIDATE-ONDA-21 |
+| 35 | **TUI-FIX-07A** | 4b Herdado | MÉDIA | PENDENTE | VALIDATE-ONDA-21 |
+| 36 | **TUI-FIX-07B** | 4b Herdado | MÉDIA | PENDENTE | TUI-FIX-07A |
+| 37 | **TUI-FIX-07C** | 4b Herdado | BAIXA | PENDENTE | TUI-FIX-07B |
+| 38 | **UX-BUG-01** | 5 Bugs | ALTA | PENDENTE | UX-LAYOUT-03 |
+| 39 | **ERROR-MSG-01** | 5 Bugs | ALTA | PENDENTE | UX-DESIGN-01 |
+| 40 | **COMPLETER-ARGS-01** | 5 Bugs | MÉDIA | PENDENTE | UX-BUG-01 |
+| 41 | **UX-BUG-02** | 5 Bugs | ALTA | ABSORVIDA_POR_UX-BUG-02A, UX-BUG-02B, UX-BUG-02C (decisão de escopo 2026-04-19) | UX-BUG-01 |
+| 42 | **UX-BUG-02A** | 5 Bugs | ALTA | PENDENTE | UX-BUG-01 |
+| 43 | **UX-BUG-02B** | 5 Bugs | ALTA | PENDENTE | UX-BUG-02A, OBSERVABILITY-01 |
+| 44 | **UX-BUG-02C** | 5 Bugs | ALTA | PENDENTE | UX-BUG-02A |
+| 45 | **UX-BUG-03** | 5 Bugs | ALTA | PENDENTE | UX-LAYOUT-03 |
+| 46 | **VISION-01** | 6 Visão | ALTA | PENDENTE | UX-BUG-03, ADR-022-DOC |
+| 47 | **VISION-02** | 6 Visão | ALTA | PENDENTE | VISION-01 |
+| 48 | **VISION-03** | 6 Visão | ALTA | PENDENTE | VISION-02 |
+| 49 | **SESSION-RESUME-01** | 6b Sessões | MÉDIA | PENDENTE | CTX-02 |
+| 50 | **DEPLOY-01** | 7 Deploy | ALTA | ABSORVIDA_POR_DEPLOY-01A, DEPLOY-01B (decisão de escopo 2026-04-19) | VISION-03 |
+| 51 | **DEPLOY-01A** | 7 Deploy | ALTA | PENDENTE | VISION-03 |
+| 52 | **DEPLOY-01B** | 7 Deploy | ALTA | PENDENTE | DEPLOY-01A |
+| 53 | **DEPLOY-02** | 7 Deploy | ALTA | PENDENTE | DEPLOY-01B |
+| 54 | **ONBOARDING-01** | 7b Onboarding | MÉDIA | PENDENTE | SESSION-RESUME-01, HELP-EXAMPLES-01 |
+| 55 | **HELP-EXAMPLES-01** | 8 Extra | BAIXA | PENDENTE | UX-BUG-01 |
+| 56 | **UX-EXTRA-01** | 8 Extra | BAIXA | PENDENTE | UX-BUG-01 |
+| 57 | **VALIDATE-FINAL-01** | 9 Release | CRÍTICA | PENDENTE | UX-EXTRA-01, DEPLOY-02, ONBOARDING-01, VISION-03, DOC-CONSOLIDATE-01 |
 
 **Bloco 0 (Auditoria):** 1 sprint — relatório externo independente com 12 findings.
 
@@ -305,17 +324,27 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 
 **Bloco 2.8 (Fixes Onda 20, 2026-04-19):** 2 sprints materializadas como achados colaterais de VALIDATE-ONDA-20 (Rodada 1, protocolo anti-débito). **TUI-FIX-08** (ALTA) — popup de `/` não filtra dinamicamente por prefixo (violação da especificação TUI-03 "Popup navegável"); usuário digitou `/them` e recebeu `Comando desconhecido` em vez de popup filtrado para `/theme`. **TUI-FIX-09** (MÉDIA) — comando `/theme` imprime lista de dicts Python crua (`{'id': ..., 'name': ..., 'description': ...}`) em vez de linhas formatadas (viola ADR-024 render layer e higiene definida em TUI-01). Ambas dependem de BUG-PORT-PARSE-01 para validação real no REPL.
 
-**Bloco 3 (Design System):** 1 sprint — tokens canônicos + ADR-023. Destrava todo o Bloco 4.
+**Bloco 2.9 (Integração — observability + docs, 2026-04-19):** 2 sprints criadas após revisão ampla do projeto. **OBSERVABILITY-01** (ALTA) — wirea callbacks `on_compaction` e `on_model_state` no `AgentLoop` (hoje inexistentes); adiciona `/debug session` e `/replay <id>`; log centralizado rotacionado. Pré-requisito para UX-LAYOUT-02 (que hoje *assume* `on_compaction` existe) e UX-BUG-02B (estado cold/warming/warm). **DOC-CONSOLIDATE-01** (MÉDIA) — reduz carga cognitiva da IA executora de ~1000 para ~400 linhas: funde catálogo universal em GAMBIARRAS, atualiza `update_next_sprint.py` para injetar recorte GAMBIARRAS no EXECUTAR_SPRINT, cria `PROJECT_SNAPSHOT.md` auto-gerado.
 
-**Bloco 4 (Layout):** 3 sprints — banner, cards de tool, streaming suave. Checkpoint visual entre cada uma.
+**Bloco 3 (Design System):** 1 sprint — tokens canônicos + ADR-023. Destrava todo o Bloco 4. **Agora pode rodar em paralelo a VALIDATE-ONDA-20/21/2.8/2.9** (só depende de AUDIT-FIX-03 já CONCLUIDA).
 
-**Bloco 5 (Bugs TUI):** 3 sprints — autocomplete reativo, race de input, performance.
+**Bloco 4 (Layout):** banner (LAYOUT-01A), toolbar (LAYOUT-01B, depende de OBSERVABILITY-01), cards de tool (LAYOUT-02), streaming suave (LAYOUT-03). Checkpoint visual entre cada uma. UX-LAYOUT-01 original ABSORVIDA por 01A+01B em 2026-04-19 (split: responsabilidades separadas).
 
-**Bloco 6 (Visão):** 3 sprints — moondream CPU, pipeline `[Image #N]`, verificação de VRAM.
+**Bloco 4b (Herdado):** TUI-FIX-07 original ABSORVIDA por TUI-FIX-07A (footer + spinner ASCII + indicador memória boot), TUI-FIX-07B (paste longo + /help categorizado), TUI-FIX-07C (/memory + /paste + /tools + /recall). Split em 2026-04-19: escopo inchado de 8 critérios heterogêneos.
 
-**Bloco 7 (Deploy):** 2 sprints — `install.sh` idempotente, desktop entry + ícone.
+**Bloco 5 (Bugs TUI + mensagens):** autocomplete reativo (UX-BUG-01), ERROR-MSG-01 (auditoria de mensagens de erro em PT-BR + cor + actionable — paralelo), COMPLETER-ARGS-01 (completer de argumentos de slash commands), UX-BUG-02A/B/C (split do race input + estado warm/cold), UX-BUG-03 (perf). UX-BUG-02 original ABSORVIDA. UX-BUG-01 e UX-BUG-03 **podem rodar em paralelo** (arquivos disjuntos).
 
-**Bloco 8 (Extra):** 1 sprint — editar último input.
+**Bloco 6 (Visão):** moondream CPU, pipeline `[Image #N]`, verificação de VRAM.
+
+**Bloco 6b (Sessões):** SESSION-RESUME-01 (`/resume` retoma última sessão; índice em `~/.nyx/sessions/index.json`) — paralelo a VISION.
+
+**Bloco 7 (Deploy):** DEPLOY-01A (install.sh local idempotente), DEPLOY-01B (teste Docker Ubuntu + README), DEPLOY-02 (desktop entry + ícone). DEPLOY-01 original ABSORVIDA por 01A+01B (371 linhas → 2 arquivos por responsabilidade).
+
+**Bloco 7b (Onboarding):** ONBOARDING-01 (tutorial 30s na primeira run + `/config setup` interativo) — paralelo a DEPLOY.
+
+**Bloco 8 (Extra):** HELP-EXAMPLES-01 (`/help <cmd>` com 2-3 exemplos reais para cada um dos 47 commands), UX-EXTRA-01 (editar último input). UX-EXTRA-01 desvinculada de DEPLOY-02 em 2026-04-19 — depende apenas de UX-BUG-01 (keybindings).
+
+**Bloco 9 (Release gate):** VALIDATE-FINAL-01 — demo end-to-end, checklist de paridade com Claude Code CLI, smoke install em VM Docker limpa, benchmark start<1.5s, gauntlet 100%. Bloqueia tag v1.0.
 
 ---
 

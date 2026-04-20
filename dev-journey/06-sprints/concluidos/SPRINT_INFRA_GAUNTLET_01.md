@@ -52,8 +52,11 @@ sprint:
 
 # Sprint INFRA-GAUNTLET-01 — Gauntlet com watchdog de VRAM
 
-**Status:** PENDENTE
+> **STATUS: DESCARTADA (2026-04-19).** Decisão de escopo do usuário: baseline limpo pré-release não é pré-requisito das validações visuais. Sprint preservada como histórico. Se no futuro o projeto voltar a precisar de baseline completo, criar sprint nova (INFRA-GAUNTLET-02) em vez de reabrir esta.
+
+**Status:** DESCARTADA
 **Data criação:** 2026-04-19
+**Data descarte:** 2026-04-19
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 
 ---
