@@ -108,15 +108,12 @@ Quatro comandos via `@nyx_command`:
 
 ### `/home/andrefarias/Desenvolvimento/Nyx-Code/nyx/agent/commands/system.py`
 
-**Antes:** não há `cmd_memory` nem `cmd_paste`.
-
-**Depois:**
 ```python
 from nyx.agent.commands import nyx_command
 from nyx.agent.memory import NyxMemory
 
 
-@nyx_command(name="memory", description="Lista memórias persistentes ou exibe uma (/memory show <arquivo>)")
+@nyx_command(name="memory", description="Lista memórias (/memory show <arquivo>)")
 def cmd_memory(args: str, root) -> str:
     m = NyxMemory(root)
     parts = args.strip().split(maxsplit=1)
@@ -127,7 +124,6 @@ def cmd_memory(args: str, root) -> str:
             return f"memória '{parts[1]}' não encontrada."
         except Exception as exc:
             return f"erro ao ler memória: {exc}"
-
     entries = m.index()
     if not entries:
         return "Sem memórias gravadas. Use write_memory para criar."
@@ -136,25 +132,20 @@ def cmd_memory(args: str, root) -> str:
 
 @nyx_command(name="paste", description="Lista imagens coladas nesta sessão")
 def cmd_paste(args: str, root) -> str:
-    from nyx.agent.session import get_session  # ajustar import ao módulo real
+    from nyx.agent.session import get_session
     sess = get_session()
     imgs = getattr(sess, "image_map", None) or {}
     if not imgs:
         return "Nenhuma imagem colada nesta sessão."
-    linhas = [f"#{i+1} {path}" for i, (_key, path) in enumerate(imgs.items())]
-    return "\n".join(linhas)
+    return "\n".join(f"#{i+1} {path}" for i, (_k, path) in enumerate(imgs.items()))
 ```
 
-**Mudanças:**
-- Dois comandos novos (`memory`, `paste`).
-- Error handling explícito (`except FileNotFoundError`, `except Exception as exc`).
-- `getattr` defensivo em `session.image_map`.
+Dois comandos novos com error handling explícito e `getattr` defensivo em `session.image_map`.
 
 ### `/home/andrefarias/Desenvolvimento/Nyx-Code/nyx/agent/commands/code.py`
 
-**Antes:** verificar existência de `cmd_tools` e `cmd_recall` com grep.
+Se `cmd_tools`/`cmd_recall` já existirem no repo, apenas ampliar. Se ausentes:
 
-**Depois (exemplo, se ausentes):**
 ```python
 from nyx.agent.commands import nyx_command
 
@@ -191,9 +182,7 @@ def cmd_recall(args: str, root) -> str:
     return "\n".join(resultados)
 ```
 
-**Mudanças:**
-- Dois comandos (`tools`, `recall`), cada um com erro explícito.
-- `cmd_tools` deriva lista do `ToolRegistry` (fonte única).
+Lista de tools sempre derivada do `ToolRegistry`; `/recall` itera via `NyxMemory.read`, nunca abre path arbitrário.
 
 ---
 
