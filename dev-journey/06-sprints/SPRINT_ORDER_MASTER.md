@@ -269,22 +269,23 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 15 | **DEBT-06** | 2.5 Limpeza | BAIXA | CONCLUIDA (commit 4f73432) | -- |
 | 16 | **ADR-021-DOC** | 2.5 Limpeza | MÉDIA | CONCLUIDA (commit c918e3b) | -- |
 | 17 | **ADR-022-DOC** | 2.5 Limpeza | MÉDIA | CONCLUIDA (commit 8eefed3) | -- |
-| 18 | **INFRA-GAUNTLET-01** | 2.6 Infra | CRÍTICA | PENDENTE | AUDIT-FIX-08, AUDIT-FIX-09, DEBT-04, DEBT-05, DEBT-06 |
-| 19 | **VALIDATE-ONDA-20** | 2.7 Validação | ALTA | PENDENTE | INFRA-GAUNTLET-01 |
-| 20 | **VALIDATE-ONDA-21** | 2.7 Validação | ALTA | PENDENTE | VALIDATE-ONDA-20 |
-| 21 | **UX-DESIGN-01** | 3 Design | CRÍTICA | PENDENTE | AUDIT-FIX-03, AUDIT-FIX-08, AUDIT-FIX-09, DEBT-04 |
-| 22 | **UX-LAYOUT-01** | 4 Layout | ALTA | PENDENTE | UX-DESIGN-01 |
-| 23 | **UX-LAYOUT-02** | 4 Layout | ALTA | PENDENTE | UX-LAYOUT-01 |
-| 24 | **UX-LAYOUT-03** | 4 Layout | ALTA | PENDENTE | UX-LAYOUT-02 |
-| 25 | **UX-BUG-01** | 5 Bugs | ALTA | PENDENTE | UX-LAYOUT-03 |
-| 26 | **UX-BUG-02** | 5 Bugs | ALTA | PENDENTE | UX-BUG-01 |
-| 27 | **UX-BUG-03** | 5 Bugs | ALTA | PENDENTE | UX-BUG-02 |
-| 28 | **VISION-01** | 6 Visão | ALTA | PENDENTE | UX-BUG-03, ADR-022-DOC |
-| 29 | **VISION-02** | 6 Visão | ALTA | PENDENTE | VISION-01 |
-| 30 | **VISION-03** | 6 Visão | ALTA | PENDENTE | VISION-02 |
-| 31 | **DEPLOY-01** | 7 Deploy | ALTA | PENDENTE | VISION-03 |
-| 32 | **DEPLOY-02** | 7 Deploy | ALTA | PENDENTE | DEPLOY-01 |
-| 33 | **UX-EXTRA-01** | 8 Extra | BAIXA | PENDENTE | DEPLOY-02 |
+| 18 | **DEBT-07** | 2.5 Limpeza | ALTA | PENDENTE | -- |
+| 19 | **INFRA-GAUNTLET-01** | 2.6 Infra | CRÍTICA | BLOQUEADA (gauntlet crasha fase 15, ImportError _remap_params residual de DEBT-01; aguarda DEBT-07) | AUDIT-FIX-08, AUDIT-FIX-09, DEBT-04, DEBT-05, DEBT-06, DEBT-07 |
+| 20 | **VALIDATE-ONDA-20** | 2.7 Validação | ALTA | PENDENTE | INFRA-GAUNTLET-01 |
+| 21 | **VALIDATE-ONDA-21** | 2.7 Validação | ALTA | PENDENTE | VALIDATE-ONDA-20 |
+| 22 | **UX-DESIGN-01** | 3 Design | CRÍTICA | PENDENTE | AUDIT-FIX-03, AUDIT-FIX-08, AUDIT-FIX-09, DEBT-04 |
+| 23 | **UX-LAYOUT-01** | 4 Layout | ALTA | PENDENTE | UX-DESIGN-01 |
+| 24 | **UX-LAYOUT-02** | 4 Layout | ALTA | PENDENTE | UX-LAYOUT-01 |
+| 25 | **UX-LAYOUT-03** | 4 Layout | ALTA | PENDENTE | UX-LAYOUT-02 |
+| 26 | **UX-BUG-01** | 5 Bugs | ALTA | PENDENTE | UX-LAYOUT-03 |
+| 27 | **UX-BUG-02** | 5 Bugs | ALTA | PENDENTE | UX-BUG-01 |
+| 28 | **UX-BUG-03** | 5 Bugs | ALTA | PENDENTE | UX-BUG-02 |
+| 29 | **VISION-01** | 6 Visão | ALTA | PENDENTE | UX-BUG-03, ADR-022-DOC |
+| 30 | **VISION-02** | 6 Visão | ALTA | PENDENTE | VISION-01 |
+| 31 | **VISION-03** | 6 Visão | ALTA | PENDENTE | VISION-02 |
+| 32 | **DEPLOY-01** | 7 Deploy | ALTA | PENDENTE | VISION-03 |
+| 33 | **DEPLOY-02** | 7 Deploy | ALTA | PENDENTE | DEPLOY-01 |
+| 34 | **UX-EXTRA-01** | 8 Extra | BAIXA | PENDENTE | DEPLOY-02 |
 
 **Bloco 0 (Auditoria):** 1 sprint — relatório externo independente com 12 findings.
 
@@ -292,7 +293,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 
 **Bloco 2 (Fundamentos dependentes):** 6 sprints — cabeamento de `NyxSettings`, split de `commands.py` e `loop.py`, ADR-024 render layer, refactor de `ask_user`, logging unificado.
 
-**Bloco 2.5 (Limpeza de pendências, 2026-04-19):** 7 sprints — materializa sprints que haviam ficado como débito implícito: docstring órfã, excepts residuais, higienização ruff, pre-commit local, pre-commit global (DEBT-06 desdobrada de DEBT-05 quando se descobriu que o hook executado é o global `core.hookspath`), ADR-021, ADR-022. Regra "nenhum débito para trás".
+**Bloco 2.5 (Limpeza de pendências, 2026-04-19):** 8 sprints — materializa sprints que haviam ficado como débito implícito: docstring órfã, excepts residuais, higienização ruff, pre-commit local, pre-commit global (DEBT-06 desdobrada de DEBT-05 quando se descobriu que o hook executado é o global `core.hookspath`), ADR-021, ADR-022, e DEBT-07 (exports pós-split `loop.py` — resíduo de DEBT-01 exposto por INFRA-GAUNTLET-01). Regra "nenhum débito para trás".
 
 **Bloco 2.6 (Infra — baseline limpo):** 1 sprint — INFRA-GAUNTLET-01 com watchdog de VRAM. Precede validações e UX-DESIGN-01.
 
