@@ -149,7 +149,13 @@ def cmd_theme(args: str, _root: str) -> str:
             temas = tm.list_themes()
             lines = ["  Temas disponíveis:"]
             for t in temas:
-                lines.append(f"    - {t}")
+                tid = t.get("id", "?")
+                tname = t.get("name", tid)
+                tdesc = t.get("description", "").strip()
+                if tdesc:
+                    lines.append(f"    - {tid}: {tname} — {tdesc}")
+                else:
+                    lines.append(f"    - {tid}: {tname}")
             return "\n".join(lines)
         theme = tm.load_theme(args)
         if theme:

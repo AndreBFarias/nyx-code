@@ -57,7 +57,7 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (2026-04-20) -- cmd_theme extrai id/name/description; achado colateral (load_theme fallback silencioso) materializado como SPRINT_TUI_FIX_10 antes do commit.
 **Data criação:** 2026-04-19
 **Origem:** achado colateral durante **VALIDATE-ONDA-20** (Rodada 1). Usuário rodou `/theme` e recebeu:
 ```
