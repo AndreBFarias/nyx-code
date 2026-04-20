@@ -1,9 +1,20 @@
+> **Status:** ABSORVIDA_POR_TUI-FIX-07A, TUI-FIX-07B, TUI-FIX-07C (2026-04-19)
+>
+> **Nota de absorção:** sprint original tinha escopo inchado (8 critérios heterogêneos: footer, paste, /help, indicador memória, /memory, /paste, spinner, cores de tool result). Dividida para respeitar escopo atômico por sprint (CLAUDE.md §9.5). Migração:
+> - Fase 1 (footer em bottom_toolbar), Fase 4 (indicador memória boot), Fase 7 (spinner ASCII) → `SPRINT_TUI_FIX_07A.md`.
+> - Fase 2 (paste colapsado + Ctrl+O), Fase 3 (/help categorizado) → `SPRINT_TUI_FIX_07B.md`.
+> - Fase 5 (/memory), Fase 6 (/paste), /tools, /recall → `SPRINT_TUI_FIX_07C.md`.
+>
+> Arquivo preservado em `producao/` como referência histórica (REVIEWER_PROTOCOL.md §8).
+
+---
+
 ## 0. SPEC (machine-readable)
 
 ```yaml
 sprint:
   id: TUI-FIX-07
-  title: "Consertos gerais de usabilidade (footer, paste longo, help, indicadores)"
+  title: "[ABSORVIDA] Consertos gerais de usabilidade (footer, paste longo, help, indicadores)"
   touches:
     - path: nyx/cli.py
       reason: "Deixar de re-printar footer a cada turno (só no boot + quando muda)"

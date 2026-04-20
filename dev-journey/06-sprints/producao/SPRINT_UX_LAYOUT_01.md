@@ -1,9 +1,20 @@
+> **Status:** ABSORVIDA_POR_UX-LAYOUT-01A, UX-LAYOUT-01B (2026-04-19)
+>
+> **Nota de absorção:** sprint original misturava 3 responsabilidades (banner, toolbar, paste). Dividida:
+> - Banner + BOX_CHARS + modo compacto → `SPRINT_UX_LAYOUT_01A.md`.
+> - Toolbar + ctx N/M tok + bypass roxo + schema de secções → `SPRINT_UX_LAYOUT_01B.md` (deps: 01A + OBSERVABILITY-01).
+> - Paste colapsado preservando contexto → migrado para `SPRINT_TUI_FIX_07B.md` (junto do resto de paste-longo).
+>
+> Arquivo preservado em `producao/` como referência histórica.
+
+---
+
 ## 0. SPEC
 
 ```yaml
 sprint:
   id: UX-LAYOUT-01
-  title: "Banner + toolbar repaginados + colapso de paste preservando contexto + ctx em N/M tok"
+  title: "[ABSORVIDA] Banner + toolbar repaginados + colapso de paste preservando contexto + ctx em N/M tok"
   onda: 22
   bloco: 4
   prioridade: ALTA

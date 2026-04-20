@@ -1,9 +1,20 @@
+> **Status:** ABSORVIDA_POR_UX-BUG-02A, UX-BUG-02B, UX-BUG-02C (2026-04-19)
+>
+> **Nota de absorção:** sprint original tinha 5 responsabilidades (repro, diagnóstico de 3 hipóteses, reorder init, drenar stdin, estado warm/cold). Dividida por protocolo `systematic-debugging`:
+> - Parte A (diagnóstico sistemático + repro_race_input.sh + DIAG_RACE_INPUT.md) → `SPRINT_UX_BUG_02A.md`.
+> - Parte B.3/B.4 (estado cold/warming/warm + toolbar) → `SPRINT_UX_BUG_02B.md` (deps: 02A + OBSERVABILITY-01).
+> - Parte B.1/B.2 (reorder init + termios.tcflush) → `SPRINT_UX_BUG_02C.md` (deps: 02A).
+>
+> Arquivo preservado em `producao/` como referência histórica.
+
+---
+
 ## 0. SPEC
 
 ```yaml
 sprint:
   id: UX-BUG-02
-  title: "Race de input-readiness + indicador visual qwen3 cold/warm"
+  title: "[ABSORVIDA] Race de input-readiness + indicador visual qwen3 cold/warm"
   onda: 22
   bloco: 5
   prioridade: ALTA

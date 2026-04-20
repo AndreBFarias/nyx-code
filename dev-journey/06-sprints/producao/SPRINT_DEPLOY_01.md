@@ -1,9 +1,19 @@
+> **Status:** ABSORVIDA_POR_DEPLOY-01A, DEPLOY-01B (2026-04-19)
+>
+> **Nota de absorção:** sprint original tinha 371 linhas cobrindo script de instalação + teste Docker + README. Dividida em duas responsabilidades:
+> - install.sh idempotente local (10 fases, 4 flags, detecção de distro) → `SPRINT_DEPLOY_01A.md`.
+> - Teste Docker Ubuntu 22.04 + fase `install` no Gauntlet + seção README → `SPRINT_DEPLOY_01B.md`.
+>
+> Arquivo preservado em `producao/` como referência histórica.
+
+---
+
 ## 0. SPEC
 
 ```yaml
 sprint:
   id: DEPLOY-01
-  title: "install.sh idempotente: Ollama + qwen3 + moondream + xclip + kitty (opcional)"
+  title: "[ABSORVIDA] install.sh idempotente: Ollama + qwen3 + moondream + xclip + kitty (opcional)"
   onda: 22
   bloco: 7
   prioridade: ALTA
