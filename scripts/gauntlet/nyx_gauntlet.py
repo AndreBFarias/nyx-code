@@ -2804,7 +2804,7 @@ class NyxGauntlet:
                 rm_mod.CACHE_FILE = _Path(tmp) / "cache.json"
                 r = RepoMap(PROJECT_ROOT)
                 r.build()
-                target = "nyx/agent/loop.py"
+                target = "nyx/agent/loop/_core.py"
                 assert target in r._cache
                 r.invalidate(str(PROJECT_ROOT / target))
                 ok = target not in r._cache
