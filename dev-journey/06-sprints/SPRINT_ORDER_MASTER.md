@@ -272,21 +272,24 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 18 | **DEBT-07** | 2.5 Limpeza | ALTA | CONCLUIDA (commit 8c91fe5) | -- |
 | 19 | **INFRA-GAUNTLET-01** | 2.6 Integração | CRÍTICA | DESCARTADA (decisão de escopo 2026-04-19) | AUDIT-FIX-08, AUDIT-FIX-09, DEBT-04, DEBT-05, DEBT-06, DEBT-07 |
 | 20 | **BOOT-FIX-01** | 2.6 Integração | CRÍTICA | CONCLUIDA (commit bb3d61b) | -- |
-| 21 | **VALIDATE-ONDA-20** | 2.7 Validação | ALTA | PENDENTE | -- |
-| 22 | **VALIDATE-ONDA-21** | 2.7 Validação | ALTA | PENDENTE | VALIDATE-ONDA-20 |
-| 23 | **UX-DESIGN-01** | 3 Design | CRÍTICA | PENDENTE | AUDIT-FIX-03, AUDIT-FIX-08, AUDIT-FIX-09, DEBT-04 |
-| 24 | **UX-LAYOUT-01** | 4 Layout | ALTA | PENDENTE | UX-DESIGN-01 |
-| 25 | **UX-LAYOUT-02** | 4 Layout | ALTA | PENDENTE | UX-LAYOUT-01 |
-| 26 | **UX-LAYOUT-03** | 4 Layout | ALTA | PENDENTE | UX-LAYOUT-02 |
-| 27 | **UX-BUG-01** | 5 Bugs | ALTA | PENDENTE | UX-LAYOUT-03 |
-| 28 | **UX-BUG-02** | 5 Bugs | ALTA | PENDENTE | UX-BUG-01 |
-| 29 | **UX-BUG-03** | 5 Bugs | ALTA | PENDENTE | UX-BUG-02 |
-| 30 | **VISION-01** | 6 Visão | ALTA | PENDENTE | UX-BUG-03, ADR-022-DOC |
-| 31 | **VISION-02** | 6 Visão | ALTA | PENDENTE | VISION-01 |
-| 32 | **VISION-03** | 6 Visão | ALTA | PENDENTE | VISION-02 |
-| 33 | **DEPLOY-01** | 7 Deploy | ALTA | PENDENTE | VISION-03 |
-| 34 | **DEPLOY-02** | 7 Deploy | ALTA | PENDENTE | DEPLOY-01 |
-| 35 | **UX-EXTRA-01** | 8 Extra | BAIXA | PENDENTE | DEPLOY-02 |
+| 21 | **BUG-PORT-PARSE-01** | 2.6 Integração | CRÍTICA | PENDENTE | -- |
+| 22 | **TUI-FIX-08** | 2.8 Fixes Onda 20 | ALTA | PENDENTE | BUG-PORT-PARSE-01 |
+| 23 | **TUI-FIX-09** | 2.8 Fixes Onda 20 | MÉDIA | PENDENTE | BUG-PORT-PARSE-01 |
+| 24 | **VALIDATE-ONDA-20** | 2.7 Validação | ALTA | PENDENTE | BUG-PORT-PARSE-01, TUI-FIX-08, TUI-FIX-09 |
+| 25 | **VALIDATE-ONDA-21** | 2.7 Validação | ALTA | PENDENTE | VALIDATE-ONDA-20 |
+| 26 | **UX-DESIGN-01** | 3 Design | CRÍTICA | PENDENTE | AUDIT-FIX-03, AUDIT-FIX-08, AUDIT-FIX-09, DEBT-04 |
+| 27 | **UX-LAYOUT-01** | 4 Layout | ALTA | PENDENTE | UX-DESIGN-01 |
+| 28 | **UX-LAYOUT-02** | 4 Layout | ALTA | PENDENTE | UX-LAYOUT-01 |
+| 29 | **UX-LAYOUT-03** | 4 Layout | ALTA | PENDENTE | UX-LAYOUT-02 |
+| 30 | **UX-BUG-01** | 5 Bugs | ALTA | PENDENTE | UX-LAYOUT-03 |
+| 31 | **UX-BUG-02** | 5 Bugs | ALTA | PENDENTE | UX-BUG-01 |
+| 32 | **UX-BUG-03** | 5 Bugs | ALTA | PENDENTE | UX-BUG-02 |
+| 33 | **VISION-01** | 6 Visão | ALTA | PENDENTE | UX-BUG-03, ADR-022-DOC |
+| 34 | **VISION-02** | 6 Visão | ALTA | PENDENTE | VISION-01 |
+| 35 | **VISION-03** | 6 Visão | ALTA | PENDENTE | VISION-02 |
+| 36 | **DEPLOY-01** | 7 Deploy | ALTA | PENDENTE | VISION-03 |
+| 37 | **DEPLOY-02** | 7 Deploy | ALTA | PENDENTE | DEPLOY-01 |
+| 38 | **UX-EXTRA-01** | 8 Extra | BAIXA | PENDENTE | DEPLOY-02 |
 
 **Bloco 0 (Auditoria):** 1 sprint — relatório externo independente com 12 findings.
 
@@ -296,9 +299,11 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 
 **Bloco 2.5 (Limpeza de pendências, 2026-04-19):** 8 sprints — materializa sprints que haviam ficado como débito implícito: docstring órfã, excepts residuais, higienização ruff, pre-commit local, pre-commit global (DEBT-06 desdobrada de DEBT-05 quando se descobriu que o hook executado é o global `core.hookspath`), ADR-021, ADR-022, e DEBT-07 (exports pós-split `loop.py` — resíduo de DEBT-01 exposto por INFRA-GAUNTLET-01). Regra "nenhum débito para trás".
 
-**Bloco 2.6 (Integração — baseline limpo):** 2 sprints — INFRA-GAUNTLET-01 DESCARTADA (decisão de escopo 2026-04-19; validações visuais não exigem baseline gauntlet 100% pré-release, smoke gauntlet por fase cobre regressão pontual quando necessário) e BOOT-FIX-01 CONCLUIDA (2026-04-19). BOOT-FIX-01 fixou `nyx/cli.py` (promovendo `sys.path.insert` para antes de `from nyx.*`, mirror de `proxy.py:22-24`) e adicionou check #13 ao `scripts/sprint_invariants.sh` — invariante executa `./run.sh --smoke` em ≤5s e prova que o entrypoint oficial sobe após cada sprint. Gap exposto por VALIDATE-ONDA-20 fechado.
+**Bloco 2.6 (Integração — baseline limpo):** 3 sprints — INFRA-GAUNTLET-01 DESCARTADA (decisão de escopo 2026-04-19; validações visuais não exigem baseline gauntlet 100% pré-release, smoke gauntlet por fase cobre regressão pontual quando necessário), BOOT-FIX-01 CONCLUIDA (2026-04-19, commit bb3d61b — fixou `nyx/cli.py` promovendo `sys.path.insert` para antes de `from nyx.*` e adicionou check #13 ao `scripts/sprint_invariants.sh`) e BUG-PORT-PARSE-01 PENDENTE (descoberto durante VALIDATE-ONDA-20 em 2026-04-19 — `run.sh:45` define `NYX_OLLAMA_HOST="host:port"` mas `settings.py:38 proxy_url` concatena `:porta` de novo, gerando `http://127.0.0.1:11435:11436` e `ValueError: Invalid port: '11435:11436'` em toda chamada HTTP do agente; bloqueia 100% de tool calls).
 
-**Bloco 2.7 (Validação das ondas 20/21):** 2 sprints — VALIDATE-ONDA-20 e VALIDATE-ONDA-21, destravando as 14 sprints em limbo.
+**Bloco 2.7 (Validação das ondas 20/21):** 2 sprints — VALIDATE-ONDA-20 e VALIDATE-ONDA-21, destravando as 14 sprints em limbo. **VALIDATE-ONDA-20 ganhou deps em 2026-04-19**: BUG-PORT-PARSE-01 (CRÍTICO), TUI-FIX-08 e TUI-FIX-09 precisam concluir primeiro (achados colaterais da Rodada 1 — ver Bloco 2.6 e 2.8).
+
+**Bloco 2.8 (Fixes Onda 20, 2026-04-19):** 2 sprints materializadas como achados colaterais de VALIDATE-ONDA-20 (Rodada 1, protocolo anti-débito). **TUI-FIX-08** (ALTA) — popup de `/` não filtra dinamicamente por prefixo (violação da especificação TUI-03 "Popup navegável"); usuário digitou `/them` e recebeu `Comando desconhecido` em vez de popup filtrado para `/theme`. **TUI-FIX-09** (MÉDIA) — comando `/theme` imprime lista de dicts Python crua (`{'id': ..., 'name': ..., 'description': ...}`) em vez de linhas formatadas (viola ADR-024 render layer e higiene definida em TUI-01). Ambas dependem de BUG-PORT-PARSE-01 para validação real no REPL.
 
 **Bloco 3 (Design System):** 1 sprint — tokens canônicos + ADR-023. Destrava todo o Bloco 4.
 
@@ -356,7 +361,8 @@ Onda 22 (Redesign Total UX + Visão + Deploy) -- EM EXECUÇÃO:
   Bloco 1: AUDIT-FIX-01, -03, -04, DEBT-02 (paralelos, rápidos) -- CONCLUIDA
   Bloco 2: AUDIT-FIX-02 (dep 03), -05, -06, -07, DEBT-01, DEBT-03 -- CONCLUIDA (2026-04-18)
   Bloco 2.5 (2026-04-19): AUDIT-FIX-08, -09, DEBT-04, DEBT-05 (BLOQUEADA por DEBT-06), DEBT-06, ADR-021-DOC, ADR-022-DOC (paralelos)
-  Bloco 2.6 (Integração): INFRA-GAUNTLET-01 DESCARTADA + BOOT-FIX-01 CONCLUIDA (smoke check #13 no protocolo anti-regressão, 2026-04-19)
+  Bloco 2.6 (Integração): INFRA-GAUNTLET-01 DESCARTADA + BOOT-FIX-01 CONCLUIDA + BUG-PORT-PARSE-01 PENDENTE (URL com porta dupla 11435:11436, achado em 2026-04-19)
+  Bloco 2.8 (Fixes Onda 20): TUI-FIX-08 (popup sem filtro por prefixo) + TUI-FIX-09 (/theme imprime dict cru)
   Bloco 2.7: VALIDATE-ONDA-20 -> VALIDATE-ONDA-21 (destrava 14 sprints em limbo)
   Bloco 3: UX-DESIGN-01 (tokens + ADR-023)
   Bloco 4: UX-LAYOUT-01 -> -02 -> -03 (checkpoint visual entre cada)
