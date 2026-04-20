@@ -66,25 +66,32 @@ diff /tmp/inv_before.txt /tmp/inv_after.txt
 ```
 
 Ler também:
-- `dev-journey/08-templates/SPRINT_TEMPLATE_V2.md` → catálogo de 20 gambiarras universais.
-- `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` → bypass-paths específicos por ID.
-- `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` matriz → quais invariantes cada sprint fecha.
+- `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §"Catálogo Universal" → 20 padrões de gambiarra.
+- `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §"<ID>" → bypass-paths específicos por sprint.
+- `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §"Matriz" → quais invariantes cada sprint fecha.
+- `dev-journey/08-templates/REVIEWER_PROTOCOL.md` → como o reviewer valida após conclusão.
+- `dev-journey/08-templates/PROJECT_SNAPSHOT.md` → estado atual (contagens, portas, ADRs).
 
 ---
 
-## Fluxo completo de uma sprint
+## Fluxo completo de uma sprint (10 passos — fonte única)
 
 1. `cat EXECUTAR_SPRINT.md` → pega o ID e o prompt já preenchido.
-2. Abre **session nova** de Claude Opus 4.7 (sem subagentes).
-3. Cola o prompt.
-4. A IA segue os 10 passos do protocolo (ver `EXECUTAR_SPRINT.md`).
-5. Você valida:
-   - `git show --stat HEAD` bate com o esperado?
-   - `diff /tmp/inv_before.txt /tmp/inv_after.txt` foi colado?
-   - Output dos comandos de verificação foi colado?
-   - Sprint file moveu de `producao/` para `concluidos/`?
-6. Se sim: `python scripts/update_next_sprint.py` → `EXECUTAR_SPRINT.md` auto-atualiza com a próxima.
-7. Se não: sprint fica **BLOQUEADA**; cobrar a IA ou reverter e refazer.
+2. Abre **session nova** de Claude Opus 4.7 (sem subagentes, salvo autorização explícita).
+3. Cola o prompt. A IA executora lê: o arquivo da sprint + GAMBIARRAS_POR_SPRINT.md (Universal + §ID).
+4. IA roda `bash scripts/sprint_invariants.sh > /tmp/inv_before.txt 2>&1` e mostra `FAIL_BEFORE`.
+5. IA apresenta plano e pergunta dúvidas **antes** de editar código.
+6. IA implementa seguindo literalmente o arquivo da sprint.
+7. IA roda `bash scripts/sprint_invariants.sh > /tmp/inv_after.txt 2>&1` e cola o diff.
+8. IA cola output bruto dos comandos de verificação da sprint.
+9. IA commit atômico + `git mv producao→concluidos` + `python scripts/update_next_sprint.py`.
+10. Reviewer valida conforme `dev-journey/08-templates/REVIEWER_PROTOCOL.md`.
+
+**Regra binária:** `FAIL_AFTER <= FAIL_BEFORE`. Caso contrário, regressão → `git reset --hard HEAD~1` e refazer.
+
+**Se qualquer passo falhar:** sprint fica **BLOQUEADA** com motivo de 1 linha; pode virar sprint nova (regra "nenhum débito para trás").
+
+*Este fluxo é citado por `CLAUDE.md §próxima sprint` e `EXECUTAR_SPRINT.md §Prompt`. Atualizar aqui, não duplicar.*
 
 ---
 

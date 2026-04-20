@@ -167,44 +167,11 @@ Se qualquer item falhar, a IA **deve** reportar para o usuário:
 
 ---
 
-## Catálogo de gambiarras proibidas (20 padrões)
+## Catálogo de gambiarras proibidas
 
-Toda sprint é vulnerável a pelo menos um destes. A IA executora que fizer qualquer deles está em **violação grave** e será auditada.
+O catálogo universal de 20 padrões (estruturais, testes, linter, git, semânticas) foi consolidado em `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §"Catálogo Universal". **Ler antes de implementar.**
 
-### Burlas estruturais
-
-1. **Rename em vez de delete.** Renomear `compact.py` para `_compact.py`, `compact_old.py`, `_compact_DEPRECATED.py`. **Regra:** quando a sprint pede remoção, o arquivo **deixa de existir** no filesystem.
-2. **Stub como implementação.** Criar função que retorna `""`, `None`, `True`, `[]` fixo. **Regra:** função deve produzir output **diferente** para inputs diferentes.
-3. **Copy-paste sem adaptação.** Colar código da Luna/openclaud sem ajustar paths/imports. **Regra:** grep por strings típicas da Luna (ex.: `src.core.`) deve retornar 0 no código Nyx.
-4. **Documentação como implementação.** Escrever docstring dizendo o que a função "deveria fazer" sem implementar. **Regra:** chamada real deve produzir efeito observável (print, write, HTTP, mutação de estado).
-5. **Arquivo único gigante no lugar do split.** Pedir "dividir em 8 módulos", IA cria `commands/everything.py` com 900 linhas. **Regra:** `find ... -exec wc -l ... '$1 > 300' | head` = vazio.
-
-### Burlas de testes
-
-6. **Modificar teste em vez de corrigir código.** Assertion falha → IA troca `assert x == 5` por `assert x >= 0`. **Regra:** comparar diff do teste **antes/depois**; alteração de assert é suspeita e precisa justificativa explícita.
-7. **Test só passa com fixture fake.** Pré-popular cache, mock de HTTP, input hardcoded do que deveria ser dinâmico. **Regra:** teste precisa rodar contra **infra real** (ADR-010 Zero Mocks).
-8. **Grep que não detecta o bug.** `grep "success" output.log` passa mesmo com falha real. **Regra:** verificação precisa **fail** quando o código não funciona, **pass** quando funciona. Escrever ambos os casos: o caminho positivo e o negativo.
-9. **Condicional de skip.** `if os.environ.get("CI"): return True`. **Regra:** proibido adicionar `SKIP_*` env vars novos sem ADR explícita.
-10. **Benchmark sem cronômetro.** Medir performance com `print("rápido")` sem `time.monotonic()`. **Regra:** número em ms/s real no output da verificação.
-
-### Burlas de linter / type check
-
-11. **`# noqa` indiscriminado.** Adicionar `# noqa` ou `# type: ignore` em vez de corrigir. **Regra:** cada `noqa` precisa especificar regra (`# noqa: E402`) e motivo em comentário adjacente.
-12. **Remover arquivo que a regra checa.** Deletar `commands.py` para passar `grep "print(" commands.py`. **Regra:** verificação global (grep no repo inteiro), não no arquivo tocado.
-13. **Desabilitar regra no pyproject.** Editar `select = [...]` removendo a letra que reclama. **Regra:** mudança em `pyproject.toml` só com ADR.
-
-### Burlas de git / commit
-
-14. **Commit message mentindo.** "feat: implementa X" mas só adicionou TODO. **Regra:** `git show --stat` precisa ter linhas líquidas compatíveis com o escopo (mínimo ~20 linhas novas para feature, ~5 para fix trivial).
-15. **Amend para esconder retrabalho.** Sprint "concluída" em 3 commits viram 1 via amend. **Regra:** commits atômicos preservados; se amend acontecer, justificar.
-16. **Squash que apaga reverts.** Esconder que algo foi revertido e reaplicado. **Regra:** nunca `git rebase -i` em histórico público.
-
-### Burlas semânticas
-
-17. **Silent except.** `except Exception: pass`. Já coberto por regra anti-burla global; repetido aqui por frequência. **Regra:** todo `except` precisa de `logger.warning/error` OU `raise`.
-18. **Sleep como fix.** `time.sleep(1)` para "resolver" race condition. **Regra:** sprints que envolvem concorrência precisam mostrar que removeram sleeps prévios e não adicionaram novos.
-19. **Feature flag falsa.** Esconder código incompleto atrás de `if FEATURE_X: ...` que nunca é True. **Regra:** novos flags precisam de teste que ativa True E False; se só testa False, não está implementado.
-20. **Checkpoint marcado sem verificar.** `- [x] critério X` sem rodar o comando de verificação. **Regra:** IA executora **deve colar o output** do comando de verificação junto do checkbox marcado.
+Gambiarras específicas desta sprint ficam em §"Gambiarras específicas desta sprint" abaixo.
 
 ---
 

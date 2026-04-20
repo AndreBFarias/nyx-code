@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Sprint Invariants -- proof-of-work de cada sprint da Onda 22+.
 #
-# Roda 12 checks que detectam as gambiarras mais comuns. Exit 0 = todos
+# Roda 13 checks que detectam as gambiarras mais comuns. Exit 0 = todos
 # invariantes preservados. Exit != 0 = sprint NÃO pode ser marcada concluída.
+# Check #13 (./run.sh --smoke) foi adicionado em 2026-04-19 via BOOT-FIX-01.
 #
 # Uso:
 #   bash scripts/sprint_invariants.sh          # modo humano
