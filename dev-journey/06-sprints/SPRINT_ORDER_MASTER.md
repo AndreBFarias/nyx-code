@@ -316,6 +316,10 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 56 | **HELP-EXAMPLES-01** | 8 Extra | BAIXA | PENDENTE | UX-BUG-01 |
 | 57 | **UX-EXTRA-01** | 8 Extra | BAIXA | PENDENTE | UX-BUG-01 |
 | 58 | **VALIDATE-FINAL-01** | 9 Release | CRÍTICA | PENDENTE | UX-EXTRA-01, DEPLOY-02, ONBOARDING-01, VISION-03, DOC-CONSOLIDATE-01 |
+| 59 | **PRODUCAO-CLEANUP-01** | 2.10 Higiene | ALTA | CONCLUIDA (commit 767e871) | -- |
+| 60 | **INVENTORY-SYNC-01** | 2.10 Higiene | MÉDIA | PENDENTE | PRODUCAO-CLEANUP-01 |
+| 61 | **COMPLETER-SEPS-01** | 5 Bugs | MÉDIA | PENDENTE | UX-BUG-01 |
+| 62 | **TUI-CLEANUP-01** | 2.10 Higiene | BAIXA | PENDENTE | UX-LAYOUT-02, OBSERVABILITY-01 |
 
 **Bloco 0 (Auditoria):** 1 sprint — relatório externo independente com 12 findings.
 
@@ -352,6 +356,8 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 **Bloco 8 (Extra):** HELP-EXAMPLES-01 (`/help <cmd>` com 2-3 exemplos reais para cada um dos 47 commands), UX-EXTRA-01 (editar último input). UX-EXTRA-01 desvinculada de DEPLOY-02 em 2026-04-19 — depende apenas de UX-BUG-01 (keybindings).
 
 **Bloco 9 (Release gate):** VALIDATE-FINAL-01 — demo end-to-end, checklist de paridade com Claude Code CLI, smoke install em VM Docker limpa, benchmark start<1.5s, gauntlet 100%. Bloqueia tag v1.0.
+
+**Bloco 2.10 (Higiene, 2026-04-21):** 4 sprints materializadas como achados colaterais da auditoria profunda das sprints concluídas pós-bloco 2.5 (protocolo anti-débito, meta-regra #9). **PRODUCAO-CLEANUP-01** (ALTA) — 4 arquivos de sprint com status ABSORVIDA sobreviveram em `producao/` após commit `3e29a4f`; `update_next_sprint.py` não filtra por Status e pode eleger fantasma como próxima sprint. `git mv` dos 4 para `concluidos/` + whitelist `PENDENTE` no script. **INVENTORY-SYNC-01** (MÉDIA, dep PRODUCAO-CLEANUP-01) — três fontes de contagens divergentes (realidade 28 tools / 47 commands / 9 services × `PROJECT_SNAPSHOT.md` 30/54/9 × `CLAUDE.md`+`SPRINT_ORDER_MASTER.md` 34/47/10) violam meta-regra #1 (sincronização N-para-N); normalizar apontando `PROJECT_SNAPSHOT.md` como fonte única. **COMPLETER-SEPS-01** (MÉDIA, dep UX-BUG-01) — 5º critério de UX-BUG-01 (separadores visuais `---- [categoria] ----` no popup) foi silenciado sem ressalva declarada; implementar via `Completion` cabeçalho com `text=""` + skip no keybinding Enter. **TUI-CLEANUP-01** (BAIXA, dep UX-LAYOUT-02, OBSERVABILITY-01) — `render_tool_call`/`render_tool_result` em `output.py:349,364` sem caller (UX-LAYOUT-02 prometeu remoção ou `@deprecated` — nenhum feito); `on_compaction_log` em `_observability.py:23` órfão após UX-LAYOUT-02; docstring de `on_model_state_log` mente atribuindo substituição a UX-LAYOUT-02 quando o sucessor correto é UX-BUG-02B.
 
 ---
 
