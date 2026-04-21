@@ -424,7 +424,7 @@ async def run_repl(streaming: bool = True) -> int:
                     f"Contexto: {ctx.get('pct', 0):.0%}"
                 )
                 if use_rich and output:
-                    output("sessao", status_msg)
+                    output("sessão", status_msg)
                 else:
                     print(f"  {ACCENT}[sessão]{NC} {status_msg}")
                 continue
@@ -672,7 +672,7 @@ async def run_repl(streaming: bool = True) -> int:
         f"Tempo: {elapsed:.1f}s"
     )
     if use_rich and output:
-        output("sessao", session_summary)
+        output("sessão", session_summary)
     else:
         print(f"\n  {ACCENT}[sessão]{NC} {session_summary}\n")
 

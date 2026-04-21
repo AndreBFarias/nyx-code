@@ -47,8 +47,8 @@ TAG_STYLES: dict[str, str] = {
     "aviso": "yellow",
     "tool": f"bold {NYX_ACCENT}",
     "skip": "dim",
-    "sessao": f"bold {NYX_ACCENT}",
-    "metricas": f"dim {NYX_ACCENT}",
+    "sessão": f"bold {NYX_ACCENT}",
+    "métricas": f"dim {NYX_ACCENT}",
     "contexto": "dim yellow",
 }
 
@@ -59,8 +59,8 @@ TAG_LABELS: dict[str, str] = {
     "aviso": "aviso",
     "tool": "tool",
     "skip": "skip",
-    "sessao": "sessão",
-    "metricas": "métricas",
+    "sessão": "sessão",
+    "métricas": "métricas",
     "contexto": "ctx",
 }
 
@@ -134,7 +134,7 @@ class RichOutput:
             self._console.print()
             return
 
-        if tag == "sessao":
+        if tag == "sessão":
             self._render_session_summary(message)
             return
 
