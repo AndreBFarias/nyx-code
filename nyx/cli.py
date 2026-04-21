@@ -181,23 +181,43 @@ async def run_repl(streaming: bool = True) -> int:
                 buf.insert_text(text)
 
         def _bottom_toolbar() -> list:
+            """Toolbar inferior do PromptSession.
+
+            Schema de secções (separadas por ' · '):
+              [ctx]                     -- ctx X% (Ntok/Mtok) ou ctx X%
+              [modelo · iter · lidos · modif]
+              [bypass]                  -- ON: fundo roxo; OFF: dica muted
+              [<extensões futuras>]     -- UX-BUG-02B adicionará warm/cold aqui
+
+            Contrato: cada secção é um FormattedText fragment. Extensões
+            anexam seus fragments ao final de `parts`, sem sobrescrever.
+            """
             from prompt_toolkit.formatted_text import FormattedText
 
             parts: list[tuple[str, str]] = []
-            ctx = app_state.get("ctx_pct", 0)
+            ctx_pct = app_state.get("ctx_pct", 0)
+            total_tok = app_state.get("total_tokens", 0)
+            max_tok = app_state.get("max_tokens", 0)
             iter_n = app_state.get("iter_n", 0)
             reads = app_state.get("reads", 0)
             mods = app_state.get("mods", 0)
-            parts.append((f"fg:{NYX_ACCENT}", f"ctx {ctx}% "))
-            parts.append((f"fg:{NYX_MUTED}", f"· {model} · iter {iter_n} · lidos {reads} · modif {mods}"))
+
+            ctx_label = f"ctx {ctx_pct}%"
+            if max_tok:
+                ctx_label += f" ({total_tok}/{max_tok}tok)"
+            parts.append((f"fg:{NYX_ACCENT}", ctx_label))
+
+            meta = f" · {model} · iter {iter_n} · lidos {reads} · modif {mods}"
+            parts.append((f"fg:{NYX_MUTED}", meta))
+
             if app_state.get("bypass"):
                 parts.append(("", "  "))
                 parts.append((
                     f"bg:{NYX_PURPLE_DIM} fg:{NYX_PRIMARY} bold",
-                    f" {BULLETS['bypass_on']} bypass permissions ON ",
+                    f" {BULLETS['bypass_on']} bypass ON ",
                 ))
             else:
-                parts.append((f"fg:{NYX_MUTED}", "   shift+tab: bypass"))
+                parts.append((f"fg:{NYX_MUTED}", f"   {BULLETS['bypass_off']} shift+tab: bypass"))
             return FormattedText(parts)
 
         import shutil as _sh
@@ -312,6 +332,8 @@ async def run_repl(streaming: bool = True) -> int:
         try:
             ctx_info = agent.get_context_info()
             app_state["ctx_pct"] = int(ctx_info.get("pct", 0) * 100)
+            app_state["total_tokens"] = ctx_info.get("total_tokens", 0)
+            app_state["max_tokens"] = ctx_info.get("max_tokens", 0)
             app_state["iter_n"] = agent.session.iteration
             app_state["reads"] = agent.session.files_read_count
             app_state["mods"] = agent.session.files_modified_count
