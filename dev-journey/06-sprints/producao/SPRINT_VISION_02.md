@@ -42,6 +42,12 @@ sprint:
 
 ---
 
+**Status:** PENDENTE
+**Data criação:** 2026-04-18
+**Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
+
+---
+
 # Sprint VISION-02 — Pipeline de imagens
 
 ## Contexto

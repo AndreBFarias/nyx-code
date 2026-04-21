@@ -53,6 +53,12 @@ sprint:
 
 ---
 
+**Status:** PENDENTE
+**Data criação:** 2026-04-18
+**Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
+
+---
+
 # Sprint DEPLOY-02 — Desktop entry + ícone + feedback
 
 ## Contexto

@@ -50,6 +50,12 @@ sprint:
 
 ---
 
+**Status:** PENDENTE
+**Data criação:** 2026-04-18
+**Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
+
+---
+
 # Sprint VISION-01 — Provider moondream + Service + ADR-022
 
 ## Contexto
