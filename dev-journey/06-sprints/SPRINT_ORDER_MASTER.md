@@ -319,7 +319,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 62 | **TUI-CLEANUP-01** | 2.10 Higiene | BAIXA | CONCLUIDA (commit 3fd91e3) | UX-LAYOUT-02, OBSERVABILITY-01 |
 | 63 | **BANNER-TOOLS-COUNT-01** | 2.10 Higiene | MÉDIA | CONCLUIDA | INVENTORY-SYNC-01 |
 | 64 | **TAG-KEY-ACCENT-01** | 2.10 Higiene | BAIXA | PENDENTE | -- |
-| 65 | **STATUS-FILTER-HARDEN-01** | 2.10 Higiene | MÉDIA | PENDENTE | PRODUCAO-CLEANUP-01 |
+| 65 | **STATUS-FILTER-HARDEN-01** | 2.10 Higiene | MÉDIA | CONCLUIDA | PRODUCAO-CLEANUP-01 |
 
 **Bloco 0 (Auditoria):** 1 sprint — relatório externo independente com 12 findings.
 

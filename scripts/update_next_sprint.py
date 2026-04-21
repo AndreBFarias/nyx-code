@@ -46,6 +46,19 @@ _STATUS_RE = re.compile(
     re.MULTILINE,
 )
 
+# Blocos de código (cerca tripla) — removidos antes da busca de Status para
+# ignorar '**Status:** ...' que esteja citado dentro de bloco Python/YAML/md.
+_CODE_FENCE_RE = re.compile(r"```.*?```", re.DOTALL)
+
+# Seções de ADR embedded no corpo da sprint (ex: SPRINT_VISION_01.md cita
+# ADR-022 inline). Remover a região 'ADR-xxx ... próximo heading de mesmo
+# nível não-ADR' antes da busca evita que '**Status:** ACEITO' do ADR
+# citado seja confundido com o Status da sprint.
+_ADR_SECTION_RE = re.compile(
+    r"^#\s+ADR[-_ ].*?(?=^#\s+(?!ADR[-_ ])|\Z)",
+    re.MULTILINE | re.DOTALL | re.IGNORECASE,
+)
+
 # Whitelist: só consideramos sprints com este status literal no arquivo físico.
 _VALID_STATUS = {"PENDENTE"}
 
@@ -58,18 +71,47 @@ if not logger.handlers:
 
 
 def _read_status(path: Path) -> str:
-    """Lê o primeiro campo 'Status' do arquivo da sprint.
+    """Lê o campo 'Status' da região canônica de metadata da sprint.
 
-    Tolera blockquote (``> **Status:** ...``) e variações em asteriscos.
-    Retorna ``"DESCONHECIDO"`` quando o arquivo não tem campo Status legível.
+    Antes de buscar ``**Status:**``, mascara dois tipos de região onde o
+    campo pode aparecer de forma "alienígena":
+
+      - Blocos de código (````` ... `````) — Status em snippet de exemplo.
+      - Seções de ADR embedded (``# ADR-022 ...`` até próximo heading de
+        mesmo nível que não seja outro ADR) — o ADR citado tem Status
+        próprio (ex: ``ACEITO``) que não é da sprint.
+
+    A metadata da sprint é tipicamente ``**Status:** PENDENTE`` em linha
+    solta, em um dos dois padrões canônicos de ``SPRINT_TEMPLATE_V2.md``:
+    antes do heading ``# Sprint <ID>`` (padrão novo), ou depois dele
+    (padrão CTX-04). Ambos sobrevivem ao mascaramento.
+
+    Retornos:
+      - Status canônico (ex: ``"PENDENTE"``) quando o campo foi encontrado.
+      - ``"SEM_METADATA"`` quando o arquivo não tem Status legível
+        (template violado) — emite warning com hint acionável.
+      - ``"DESCONHECIDO"`` apenas em erro de I/O.
     """
     try:
-        head = path.read_text(encoding="utf-8", errors="replace")[:8000]
+        text = path.read_text(encoding="utf-8", errors="replace")[:8000]
     except OSError as exc:
         logger.warning("não foi possível ler %s: %s", path, exc)
         return "DESCONHECIDO"
-    match = _STATUS_RE.search(head)
-    return match.group(1) if match else "DESCONHECIDO"
+
+    masked = _CODE_FENCE_RE.sub("", text)
+    masked = _ADR_SECTION_RE.sub("", masked)
+
+    match = _STATUS_RE.search(masked)
+    if match:
+        return match.group(1)
+
+    logger.warning(
+        "sprint %s sem campo Status na região de metadata -- "
+        "adicione '**Status:** PENDENTE' em linha própria após o bloco YAML "
+        "(0. SPEC), conforme SPRINT_TEMPLATE_V2.md",
+        path.name,
+    )
+    return "SEM_METADATA"
 
 
 def _scan_producao_statuses() -> dict[str, str]:

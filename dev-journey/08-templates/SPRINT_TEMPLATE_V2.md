@@ -52,6 +52,42 @@ sprint:
 
 ---
 
+## Bloco de metadata (OBRIGATÓRIO)
+
+O `scripts/update_next_sprint.py` extrai o `Status` da sprint a partir
+deste bloco. Sem ele, o script retorna `SEM_METADATA`, emite warning
+com hint e a sprint não entra na fila de execução.
+
+Regras:
+- `**Status:**` em linha própria, não dentro de bloco de código nem
+  dentro de seção de ADR embedded (`# ADR-xxx ...`). O script mascara
+  essas duas regiões antes da busca; metadata em linha solta sobrevive.
+- Posicionar **imediatamente** após o `---` que fecha o `## 0. SPEC`.
+  Pode vir antes ou depois do heading `# Sprint <ID>`; ambos os
+  padrões são aceitos (preferir antes nas sprints novas).
+- Valores aceitos de `Status`:
+  - `PENDENTE` — único que entra na fila.
+  - `CONCLUIDA` — terminal de sucesso.
+  - `ABSORVIDA_POR_<OUTRA-ID>` — escopo foi absorvido por outra sprint.
+  - `DEFERIDA` — reagendada fora da janela atual.
+  - `OPCIONAL` — feature opt-in sem deadline.
+
+Forma canônica literal (copiar-colar):
+
+```
+---
+
+# Sprint <ID> — Título
+
+**Status:** PENDENTE
+**Data criação:** YYYY-MM-DD
+**Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
+
+---
+```
+
+---
+
 # Sprint <ID> — Título
 
 **Status:** PENDENTE
