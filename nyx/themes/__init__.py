@@ -1,7 +1,7 @@
 """Sistema de temas por entidade.
 
 Cada tema é um JSON em nyx/themes/entities/ com as cores de uma entidade
-do panteão Luna. O tema padrão é Nyx (cyan/teal #00D4AA).
+do panteão Luna. O tema padrão é Nyx (cyan/teal via design_tokens).
 
 Uso:
     from nyx.themes import ThemeManager
@@ -61,7 +61,31 @@ class ThemeManager:
         return cores
 
     def get_ansi_colors(self, entity_id: str | None = None) -> dict[str, str]:
-        """Retorna cores como escape sequences ANSI 24-bit."""
+        """Retorna cores como escape sequences ANSI 24-bit.
+
+        Para entity_id='nyx' (default), deriva de design_tokens (ADR-023).
+        Demais entidades continuam via JSON + hex_to_ansi_raw.
+        """
+        entity_id = entity_id or self._tema_ativo
+        if entity_id == "nyx":
+            from nyx.themes.design_tokens import (
+                ANSI_ACCENT_FG,
+                ANSI_ERROR_FG,
+                ANSI_MUTED_FG,
+                ANSI_PRIMARY_FG,
+                ANSI_PURPLE_FG,
+                ANSI_SUCCESS_FG,
+            )
+
+            return {
+                "accent": ANSI_ACCENT_FG,
+                "primary": ANSI_PRIMARY_FG,
+                "muted": ANSI_MUTED_FG,
+                "error": ANSI_ERROR_FG,
+                "success": ANSI_SUCCESS_FG,
+                "special": ANSI_PURPLE_FG,
+                "reset": ANSI_RESET,
+            }
         cores = self.load_theme(entity_id)
         ansi: dict[str, str] = {}
         for chave, hex_cor in cores.items():

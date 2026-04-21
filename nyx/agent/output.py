@@ -1,7 +1,7 @@
 """Rich Output -- Renderização formatada para o Nyx Agent.
 
 Port de Luna src/skills/code_agent/rich_output.py.
-Cores adaptadas para paleta Nyx (#00D4AA accent, #E8E8E8 primary).
+Cores vêm de nyx.themes.design_tokens (fonte única, ADR-023).
 Fallback: se Rich não estiver instalado, funciona com ANSI puro.
 """
 
@@ -10,6 +10,14 @@ from __future__ import annotations
 import re
 
 from nyx.agent.services.logging_service import get_logger
+from nyx.themes.design_tokens import (
+    ANSI_ACCENT_FG,
+    ANSI_DIM,
+    ANSI_ERROR_FG,
+    ANSI_RESET,
+    BULLETS,
+    NYX_ACCENT,
+)
 
 logger = get_logger("nyx.output")
 
@@ -26,11 +34,6 @@ except ImportError:
     RICH_AVAILABLE = False
 
 _DIFF_LINE_PATTERN = re.compile(r"^[+-@]")
-
-# Cores Nyx
-NYX_ACCENT = "#00D4AA"
-NYX_PRIMARY = "#E8E8E8"
-NYX_BG = "#2A2C39"
 
 TAG_STYLES: dict[str, str] = {
     "nyx": f"bold {NYX_ACCENT}",
@@ -300,11 +303,9 @@ def render_tool_call(
     args: dict,
     project_root: str | None = None,
 ) -> None:
-    """Renderiza linha de tool call com bullet ⏺ em accent color."""
+    """Renderiza linha de tool call com bullet em accent color."""
     formatted = format_tool_call(name, args, project_root=project_root)
-    ACCENT_FG = "\033[38;2;0;212;170m"
-    NC_FG = "\033[0m"
-    print(f"  {ACCENT_FG}⏺{NC_FG} {formatted}")
+    print(f"  {ANSI_ACCENT_FG}{BULLETS['tool']}{ANSI_RESET} {formatted}")
 
 
 _ERROR_PREFIXES = (
@@ -337,12 +338,9 @@ def render_tool_result(result: str, max_chars: int = 110) -> None:
         return
     if len(first_line) > max_chars:
         first_line = first_line[: max_chars - 1] + "…"
-    NC_FG = "\033[0m"
-    AMBER_FG = "\033[38;2;255;176;0m"
-    DIM_FG = "\033[2m"
     is_error = any(first_line.startswith(p) for p in _ERROR_PREFIXES)
-    color = AMBER_FG if is_error else DIM_FG
-    print(f"    {color}└─ {first_line}{NC_FG}")
+    color = ANSI_ERROR_FG if is_error else ANSI_DIM
+    print(f"    {color}{BULLETS['result']} {first_line}{ANSI_RESET}")
 
 
 USER_INPUT_COLLAPSE_LINES = 8
@@ -369,11 +367,9 @@ def render_user_input(text: str, console_width: int | None = None) -> None:
         display_text = text
 
     if console_width < 80 or not RICH_AVAILABLE:
-        ACCENT_FG = "\033[38;2;0;212;170m"
-        NC_FG = "\033[0m"
         print()
         for line in display_text.splitlines() or [display_text]:
-            print(f"  {ACCENT_FG}>{NC_FG} {line}")
+            print(f"  {ANSI_ACCENT_FG}>{ANSI_RESET} {line}")
         print()
         return
     try:
@@ -395,11 +391,10 @@ def render_user_input(text: str, console_width: int | None = None) -> None:
 
 def render_assistant_start() -> None:
     """Imprime header 'Nyx\\n───' antes do streaming da resposta."""
-    ACCENT_FG = "\033[38;2;0;212;170m"
-    BOLD = "\033[1m"
-    NC_FG = "\033[0m"
-    print(f"\n  {ACCENT_FG}{BOLD}Nyx{NC_FG}")
-    print(f"  {ACCENT_FG}───{NC_FG}")
+    from nyx.themes.design_tokens import ANSI_BOLD
+
+    print(f"\n  {ANSI_ACCENT_FG}{ANSI_BOLD}Nyx{ANSI_RESET}")
+    print(f"  {ANSI_ACCENT_FG}───{ANSI_RESET}")
 
 
 def render_assistant_end() -> None:
@@ -424,9 +419,6 @@ def render_footer(
     import shutil
 
     width = shutil.get_terminal_size(fallback=(80, 24)).columns
-    ACCENT_FG = "\033[38;2;0;212;170m"
-    DIM_FG = "\033[2m"
-    NC_FG = "\033[0m"
     if width >= 80:
         body = f"ctx {pct}% · {model} · iter {iteration} · lidos {reads} · modif {mods}"
         padding = max(width - len(body) - 8, 3)
@@ -437,7 +429,7 @@ def render_footer(
         line = f"── {body} " + "─" * padding
     else:
         line = f"ctx {pct}%"
-    print(f"{DIM_FG}{ACCENT_FG}{line}{NC_FG}")
+    print(f"{ANSI_DIM}{ANSI_ACCENT_FG}{line}{ANSI_RESET}")
 
 
 def render_diff(old: str, new: str, path: str = "") -> str:
@@ -452,26 +444,21 @@ def render_diff(old: str, new: str, path: str = "") -> str:
 
 def _fallback_output(tag: str, message: str) -> None:
     """Fallback ANSI puro quando Rich não está disponível."""
-    ACCENT = "\033[38;2;0;212;170m"
-    NC = "\033[0m"
     label = TAG_LABELS.get(tag, tag)
-    print(f"  {ACCENT}[{label}]{NC} {message}")
+    print(f"  {ANSI_ACCENT_FG}[{label}]{ANSI_RESET} {message}")
 
 
 def render_ask_user(question: str, options: list[dict[str, str]] | None = None) -> None:
     """Renderiza pergunta do agent ao usuário, com opções numeradas se existirem."""
-    ACCENT_FG = "\033[38;2;0;212;170m"
-    DIM_FG = "\033[2m"
-    NC_FG = "\033[0m"
     print()
-    print(f"  {ACCENT_FG}[pergunta]{NC_FG} {question}")
+    print(f"  {ANSI_ACCENT_FG}[pergunta]{ANSI_RESET} {question}")
     for i, opt in enumerate(options or [], 1):
         label = opt.get("label", "")
         desc = opt.get("description", "")
         if desc:
-            print(f"    {ACCENT_FG}{i}.{NC_FG} {label} {DIM_FG}-- {desc}{NC_FG}")
+            print(f"    {ANSI_ACCENT_FG}{i}.{ANSI_RESET} {label} {ANSI_DIM}-- {desc}{ANSI_RESET}")
         else:
-            print(f"    {ACCENT_FG}{i}.{NC_FG} {label}")
+            print(f"    {ANSI_ACCENT_FG}{i}.{ANSI_RESET} {label}")
     print()
 
 

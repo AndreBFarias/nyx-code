@@ -38,63 +38,34 @@ from nyx.agent.services.logging_service import (  # noqa: E402
 )
 
 if TYPE_CHECKING:
-    from nyx.config.settings import NyxSettings
+    pass
 
 InternalLogging()
 logger = get_logger("nyx.cli")
 
-from nyx.__version__ import __version__ as NYX_VERSION  # noqa: E402
 
-# ── Cores Nyx (fallback ANSI) ─────────────────────────────────────
+# ── Cores e glifos Nyx (design_tokens é fonte única, ADR-023) ─────
+from nyx.themes.design_tokens import (  # noqa: E402
+    ANSI_ACCENT_FG,
+    ANSI_BOLD,
+    ANSI_DIM,
+    ANSI_PRIMARY_FG,
+    ANSI_RESET,
+    BULLETS,
+    NYX_ACCENT,
+    NYX_MUTED,
+    NYX_PRIMARY,
+    NYX_PURPLE_DIM,
+)
 
-ACCENT = "\033[38;2;0;212;170m"
-PRIMARY = "\033[38;2;232;232;232m"
-DIM = "\033[2m"
-BOLD = "\033[1m"
-NC = "\033[0m"
+ACCENT = ANSI_ACCENT_FG
+PRIMARY = ANSI_PRIMARY_FG
+DIM = ANSI_DIM
+BOLD = ANSI_BOLD
+NC = ANSI_RESET
 
 
-def _build_banner(
-    model: str,
-    tools_count: int,
-    project: str,
-    settings: "NyxSettings | None" = None,
-) -> str:
-    import shutil
-
-    from nyx.config.settings import load_settings
-
-    if settings is None:
-        settings = load_settings()
-
-    cols = shutil.get_terminal_size(fallback=(80, 24)).columns
-    ollama_port = str(settings.ollama_port)
-    proxy_port = str(settings.proxy_port)
-
-    if cols < 60:
-        return (
-            f"\n  {ACCENT}{BOLD}── Nyx v{NYX_VERSION} · {model} · "
-            f"{tools_count} tools · 100% offline ──{NC}\n\n"
-            f"  {DIM}/help · Ctrl+D{NC}\n"
-        )
-
-    title = f"Nyx -- Code Agent Local v{NYX_VERSION}"
-    tools_info = f"{tools_count} · 100% offline"
-    proxy_info = f":{ollama_port} (ollama)  ·  :{proxy_port} (proxy)"
-    lines = [
-        "",
-        f"  {ACCENT}{BOLD}╭──────────────────────────────────────────────╮{NC}",
-        f"  {ACCENT}{BOLD}│{NC}  {BOLD}{title:<44s}{NC}{ACCENT}{BOLD}│{NC}",
-        f"  {ACCENT}{BOLD}│{NC}  modelo   {model:<35s}{ACCENT}{BOLD}│{NC}",
-        f"  {ACCENT}{BOLD}│{NC}  projeto  {project:<35s}{ACCENT}{BOLD}│{NC}",
-        f"  {ACCENT}{BOLD}│{NC}  tools    {tools_info:<35s}{ACCENT}{BOLD}│{NC}",
-        f"  {ACCENT}{BOLD}│{NC}  rede     {proxy_info:<35s}{ACCENT}{BOLD}│{NC}",
-        f"  {ACCENT}{BOLD}╰──────────────────────────────────────────────╯{NC}",
-        "",
-        f"  {DIM}/help para comandos. Ctrl+D para sair.{NC}",
-        "",
-    ]
-    return "\n".join(lines)
+from nyx.agent.banner import build_banner as _build_banner  # noqa: E402
 
 
 def _make_ask_permission(state: dict) -> "callable":
@@ -103,7 +74,7 @@ def _make_ask_permission(state: dict) -> "callable":
     def _ask(level: str, tool_name: str, args: dict) -> bool:
         if state.get("bypass"):
             logger.info("[bypass] auto-aprovado: %s", tool_name)
-            print(f"  {DIM}⚡ bypass · {tool_name} auto-aprovado{NC}")
+            print(f"  {DIM}{BULLETS['bypass_on']} bypass · {tool_name} auto-aprovado{NC}")
             return True
         args_preview = str(args)[:80]
         level_label = {"confirm_once": "uma vez", "always_confirm": "sempre"}.get(level, level)
@@ -217,13 +188,16 @@ async def run_repl(streaming: bool = True) -> int:
             iter_n = app_state.get("iter_n", 0)
             reads = app_state.get("reads", 0)
             mods = app_state.get("mods", 0)
-            parts.append(("fg:#00d4aa", f"ctx {ctx}% "))
-            parts.append(("fg:#606060", f"· {model} · iter {iter_n} · lidos {reads} · modif {mods}"))
+            parts.append((f"fg:{NYX_ACCENT}", f"ctx {ctx}% "))
+            parts.append((f"fg:{NYX_MUTED}", f"· {model} · iter {iter_n} · lidos {reads} · modif {mods}"))
             if app_state.get("bypass"):
                 parts.append(("", "  "))
-                parts.append(("bg:#7a4d00 fg:#ffffff bold", " ⚡ bypass permissions ON "))
+                parts.append((
+                    f"bg:{NYX_PURPLE_DIM} fg:{NYX_PRIMARY} bold",
+                    f" {BULLETS['bypass_on']} bypass permissions ON ",
+                ))
             else:
-                parts.append(("fg:#404040", "   shift+tab: bypass"))
+                parts.append((f"fg:{NYX_MUTED}", "   shift+tab: bypass"))
             return FormattedText(parts)
 
         import shutil as _sh
