@@ -23,7 +23,7 @@ Fonte única de portas/URLs: `nyx/config/defaults.py` (ADR-AUDIT-FIX-03).
 
 ---
 
-## Contagens (verificadas em 2026-04-21)
+## Contagens (verificadas em 2026-04-21, pós UX-BUG-01)
 
 | Categoria | Quantidade | Como verificar |
 |----------|------------|----------------|
@@ -32,8 +32,8 @@ Fonte única de portas/URLs: `nyx/config/defaults.py` (ADR-AUDIT-FIX-03).
 | Services | 9 | `find nyx/agent/services -maxdepth 1 -name "*.py" ! -name "__init__.py" \| wc -l` |
 | ADRs vigentes | 24 (ADR-023 e ADR-024 já criados na Onda 22) | `ls dev-journey/03-decisions/ADR_*.md \| wc -l` |
 | Testes no Gauntlet | 135 + crescendo por sprint | `./run.sh --gauntlet --only rapido` |
-| Sprints concluídas | 127 | `ls dev-journey/06-sprints/concluidos/*.md \| wc -l` |
-| Sprints pendentes | 28 (Onda 22 blocos 2.7 em diante) | `ls dev-journey/06-sprints/producao/*.md \| wc -l` |
+| Sprints concluídas | 133 | `ls dev-journey/06-sprints/concluidos/*.md \| wc -l` |
+| Sprints pendentes | 22 (Onda 22 restante — próxima: ERROR-MSG-01) | `ls dev-journey/06-sprints/producao/*.md \| wc -l` |
 
 ---
 

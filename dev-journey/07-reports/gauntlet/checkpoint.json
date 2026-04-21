@@ -1,195 +1,58 @@
 {
-  "timestamp": "2026-04-19T19:54:10.494894",
+  "timestamp": "2026-04-21T01:15:19.492286",
   "model": "qwen3:4b",
-  "phases_done": [
-    "infra",
-    "proxy",
-    "visual"
-  ],
+  "phases_done": [],
   "results": [
     {
-      "feature_id": "I-01",
-      "name": "Ollama respondendo",
-      "phase": "infra",
-      "passed": true,
-      "elapsed_s": 0.02,
-      "tokens": 0,
-      "details": "",
-      "error": ""
-    },
-    {
-      "feature_id": "I-03",
-      "name": "Versão Ollama",
-      "phase": "infra",
-      "passed": true,
-      "elapsed_s": 0.02,
-      "tokens": 0,
-      "details": "0.13.5",
-      "error": ""
-    },
-    {
-      "feature_id": "I-05",
-      "name": "Warmup do modelo",
-      "phase": "infra",
-      "passed": true,
-      "elapsed_s": 18.72,
-      "tokens": 410,
-      "details": "",
-      "error": ""
-    },
-    {
-      "feature_id": "I-09",
-      "name": "Modelo qwen3:4b presente",
-      "phase": "infra",
-      "passed": true,
-      "elapsed_s": 0.04,
-      "tokens": 0,
-      "details": "['nyx-4b:latest', 'qwen3:4b', 'qwen2.5-coder:7b', 'qwen2.5-coder:3b']",
-      "error": ""
-    },
-    {
-      "feature_id": "I-11",
-      "name": "Proxy respondendo",
-      "phase": "infra",
-      "passed": true,
-      "elapsed_s": 0.02,
-      "tokens": 0,
-      "details": "4 modelos",
-      "error": ""
-    },
-    {
-      "feature_id": "P-01",
-      "name": "Request via proxy",
-      "phase": "proxy",
-      "passed": true,
-      "elapsed_s": 10.61,
-      "tokens": 266,
-      "details": "Okay, the user wants me to just say \"proxy ok\". Let me check",
-      "error": ""
-    },
-    {
-      "feature_id": "P-02",
-      "name": "think=false injetado",
-      "phase": "proxy",
+      "feature_id": "IF-01",
+      "name": "Streaming importa",
+      "phase": "interface",
       "passed": true,
       "elapsed_s": 0,
       "tokens": 0,
-      "details": "sem <think>",
+      "details": "chars=5",
       "error": ""
     },
     {
-      "feature_id": "P-04",
-      "name": "Content array normalizado",
-      "phase": "proxy",
-      "passed": true,
-      "elapsed_s": 5.44,
-      "tokens": 144,
-      "details": "",
-      "error": ""
-    },
-    {
-      "feature_id": "P-05",
-      "name": "Formato OpenAI correto",
-      "phase": "proxy",
-      "passed": true,
-      "elapsed_s": 37.15,
-      "tokens": 0,
-      "details": "choices=True usage=True message=True",
-      "error": ""
-    },
-    {
-      "feature_id": "P-06",
-      "name": "Listagem /v1/models",
-      "phase": "proxy",
-      "passed": true,
-      "elapsed_s": 0.04,
-      "tokens": 0,
-      "details": "4 modelos",
-      "error": ""
-    },
-    {
-      "feature_id": "P-07",
-      "name": "tool_calls propagam",
-      "phase": "proxy",
-      "passed": true,
-      "elapsed_s": 11.83,
-      "tokens": 430,
-      "details": "['{\"file_path\": \"README.md\"}']",
-      "error": ""
-    },
-    {
-      "feature_id": "V-05",
-      "name": "7 temas carregam",
-      "phase": "visual",
+      "feature_id": "IF-02",
+      "name": "Output importa",
+      "phase": "interface",
       "passed": true,
       "elapsed_s": 0,
       "tokens": 0,
-      "details": "7 temas",
+      "details": "rich=True",
       "error": ""
     },
     {
-      "feature_id": "V-06",
-      "name": "Fallback Dracula",
-      "phase": "visual",
+      "feature_id": "IF-03",
+      "name": "Commands /help",
+      "phase": "interface",
       "passed": true,
       "elapsed_s": 0,
       "tokens": 0,
-      "details": "",
+      "details": "len=705",
       "error": ""
     },
     {
-      "feature_id": "V-07",
-      "name": "Hex -> ANSI 24-bit",
-      "phase": "visual",
+      "feature_id": "IF-04",
+      "name": "Commands /explain",
+      "phase": "interface",
       "passed": true,
       "elapsed_s": 0,
       "tokens": 0,
-      "details": "",
+      "details": "Analise e explique o arquivo 'README.md'. Passos:\n1. Use rea",
       "error": ""
     },
     {
-      "feature_id": "C-01",
-      "name": ".env existe",
-      "phase": "config",
+      "feature_id": "IF-05",
+      "name": "Commands /plan",
+      "phase": "interface",
       "passed": true,
       "elapsed_s": 0,
       "tokens": 0,
-      "details": "",
-      "error": ""
-    },
-    {
-      "feature_id": "C-02",
-      "name": "NyxSettings carrega",
-      "phase": "config",
-      "passed": true,
-      "elapsed_s": 0,
-      "tokens": 0,
-      "details": "port=11435 model=qwen3:4b",
-      "error": ""
-    },
-    {
-      "feature_id": "C-03",
-      "name": "settings.json dark+pt-BR",
-      "phase": "config",
-      "passed": true,
-      "elapsed_s": 0,
-      "tokens": 0,
-      "details": "theme=dark lang=pt-BR",
-      "error": ""
-    },
-    {
-      "feature_id": "C-04",
-      "name": "CLAUDE.md contém Nyx",
-      "phase": "config",
-      "passed": true,
-      "elapsed_s": 0,
-      "tokens": 0,
-      "details": "",
+      "details": "Crie um plano de implementação para: feature X\nPassos:\n1. Us",
       "error": ""
     }
   ],
-  "kpis": {
-    "warmup_s": 18.7,
-    "gauntlet_total_s": 84.0
-  }
+  "kpis": {}
 }
