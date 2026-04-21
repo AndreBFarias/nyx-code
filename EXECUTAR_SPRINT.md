@@ -1,15 +1,15 @@
-# Executar próxima sprint — DOC-CONSOLIDATE-01
+# Executar próxima sprint — UX-LAYOUT-03
 
 > **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
 > Copie o bloco abaixo e cole em uma session nova de Claude Opus 4.7.
-> Restam **23** sprints PENDENTE(S) na fila.
+> Restam **22** sprints PENDENTE(S) na fila.
 
 ---
 
 ## Prompt para colar na session
 
 ```
-Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_DOC_CONSOLIDATE_01.md.
+Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_UX_LAYOUT_03.md.
 
 Modelo obrigatório: claude-opus-4-7 (sem subagentes).
 Protocolo obrigatório (CLAUDE.md seção "próxima sprint" + workflow anti-gambiarra):
@@ -27,11 +27,30 @@ Protocolo obrigatório (CLAUDE.md seção "próxima sprint" + workflow anti-gamb
 10. Após CONCLUIDA: commit atômico, move sprint file para concluidos/, roda `python scripts/update_next_sprint.py` para atualizar este arquivo.
 
 Se qualquer passo falhar, reporte:
-    [SPRINT DOC-CONSOLIDATE-01] BLOQUEADA: <motivo objetivo>
+    [SPRINT UX-LAYOUT-03] BLOQUEADA: <motivo objetivo>
 
-ID desta sprint: DOC-CONSOLIDATE-01
-Arquivo: dev-journey/06-sprints/producao/SPRINT_DOC_CONSOLIDATE_01.md
+ID desta sprint: UX-LAYOUT-03
+Arquivo: dev-journey/06-sprints/producao/SPRINT_UX_LAYOUT_03.md
 ```
+
+---
+
+<!-- GAMBIARRAS_INJECT -->
+
+## Gambiarras específicas (recorte auto-injetado)
+
+> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §UX-LAYOUT-03. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
+
+### UX-LAYOUT-03 (streaming + spinner + Ctrl+C)
+
+- **Buffer nunca esvazia:** resposta só aparece no fim — quebra streaming.
+  - **Detectar:** enviar pergunta longa; ver tokens aparecendo **durante** a geração, não no final.
+- **Spinner hardcoded em vez de SPINNER_FRAMES:**
+  - **Detectar:** `grep "⠋\|spinner.*'⠋'" nyx/agent/output.py` deve apontar para uso via import de design_tokens, não char literal.
+- **Ctrl+C imprime `[cancelado]` sem `\r\x1b[2K`:**
+  - **Detectar:** no código: `grep -B1 -A3 "KeyboardInterrupt" nyx/cli.py | grep "2K"`.
+
+<!-- /GAMBIARRAS_INJECT -->
 
 ---
 

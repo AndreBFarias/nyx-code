@@ -1,6 +1,6 @@
 # Project Snapshot — Nyx-Code
 
-**Atualizado em:** 2026-04-19
+**Atualizado em:** 2026-04-21
 **Versão do projeto:** em Onda 22 (rumo a v1.0)
 **Este arquivo é referenciável por qualquer sprint** em vez de copiar o estado inline. Atualizar com regularidade (após fim de bloco, ou quando contagens mudarem).
 
@@ -23,17 +23,17 @@ Fonte única de portas/URLs: `nyx/config/defaults.py` (ADR-AUDIT-FIX-03).
 
 ---
 
-## Contagens (pós-limpeza PROD 2026-04-09)
+## Contagens (verificadas em 2026-04-21)
 
-| Categoria | Quantidade |
-|----------|------------|
-| Tools no registry | 34 |
-| Commands (slash) | 47 |
-| Services | 10 |
-| ADRs vigentes | 24 (023 pendente, será criado via UX-DESIGN-01) |
-| Testes no Gauntlet | 135 + crescendo por sprint |
-| Sprints concluídas | 82 (port + auditoria + Onda 22 blocos 0-2.6) |
-| Sprints pendentes | ~29 (Onda 22 blocos 2.7 em diante + 8 novas criadas em 2026-04-19) |
+| Categoria | Quantidade | Como verificar |
+|----------|------------|----------------|
+| Tools no registry | 30 | `find nyx/agent/tools -maxdepth 1 -name "*.py" ! -name "__init__.py" \| wc -l` |
+| Commands (slash) | 54 | `grep -rn "@nyx_command" nyx/agent/commands/ \| wc -l` |
+| Services | 9 | `find nyx/agent/services -maxdepth 1 -name "*.py" ! -name "__init__.py" \| wc -l` |
+| ADRs vigentes | 24 (ADR-023 e ADR-024 já criados na Onda 22) | `ls dev-journey/03-decisions/ADR_*.md \| wc -l` |
+| Testes no Gauntlet | 135 + crescendo por sprint | `./run.sh --gauntlet --only rapido` |
+| Sprints concluídas | 127 | `ls dev-journey/06-sprints/concluidos/*.md \| wc -l` |
+| Sprints pendentes | 28 (Onda 22 blocos 2.7 em diante) | `ls dev-journey/06-sprints/producao/*.md \| wc -l` |
 
 ---
 
@@ -82,7 +82,7 @@ Fonte única de portas/URLs: `nyx/config/defaults.py` (ADR-AUDIT-FIX-03).
 4. **PT-BR com acentuação** (ADR-006): nunca "funcao", sempre "função".
 5. **Render layer** (ADR-024): `print()` só em `cli.py` e `output.py`.
 6. **Portas** só em `nyx/config/defaults.py` (invariant #5).
-7. **Hex de cor** só em `nyx/themes/design_tokens.py` (invariant #6, ativo pós UX-DESIGN-01).
+7. **Hex de cor** só em `nyx/themes/design_tokens.py` (invariant #6, ativo desde UX-DESIGN-01).
 8. **Integração obrigatória** (ADR-013): tool no registry, command em commands.py, service importável.
 9. **Testes via Gauntlet** (ADR-014): sem pytest/unittest solto.
 10. **Proof-of-work**: `bash scripts/sprint_invariants.sh` antes e depois, `FAIL_AFTER <= FAIL_BEFORE`.
@@ -99,8 +99,8 @@ Estado dos callbacks observacionais (atualizado conforme sprints):
 | `on_tool(name: str, args: dict)` | IMPLEMENTADO | — |
 | `on_tool_result(name: str, result: str)` | IMPLEMENTADO | — |
 | `on_permission(tool, args)` | IMPLEMENTADO | — |
-| `on_compaction(level, tokens_removed, pct_before, pct_after)` | PENDENTE | OBSERVABILITY-01 |
-| `on_model_state(state: str)` | PENDENTE | OBSERVABILITY-01 |
+| `on_compaction(level, tokens_removed, pct_before, pct_after)` | IMPLEMENTADO | OBSERVABILITY-01 + UX-LAYOUT-02 |
+| `on_model_state(state: str)` | IMPLEMENTADO | OBSERVABILITY-01 |
 
 ---
 

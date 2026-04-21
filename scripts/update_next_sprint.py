@@ -24,6 +24,13 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MASTER = PROJECT_ROOT / "dev-journey" / "06-sprints" / "SPRINT_ORDER_MASTER.md"
 TARGET = PROJECT_ROOT / "EXECUTAR_SPRINT.md"
 PRODUCAO_DIR = PROJECT_ROOT / "dev-journey" / "06-sprints" / "producao"
+GAMBIARRAS_PATH = (
+    PROJECT_ROOT / "dev-journey" / "08-templates" / "GAMBIARRAS_POR_SPRINT.md"
+)
+
+INJECT_BEGIN = "<!-- GAMBIARRAS_INJECT -->"
+INJECT_END = "<!-- /GAMBIARRAS_INJECT -->"
+MAX_INJECT_LINES = 50
 
 ROW_PATTERN = re.compile(
     r"^\|\s*\d+\s*\|\s*\*\*([A-Z][A-Z0-9_\-]+)\*\*\s*\|.*\|\s*PENDENTE\s*\|",
@@ -49,6 +56,46 @@ def sprint_file_name(sprint_id: str) -> str:
     return "SPRINT_" + sprint_id.replace("-", "_") + ".md"
 
 
+def _extract_gambiarras_section(
+    sprint_id: str, gambiarras_path: Path = GAMBIARRAS_PATH
+) -> str:
+    """Extrai a seção específica de um sprint ID do catálogo GAMBIARRAS_POR_SPRINT.md.
+
+    Busca marcador ``### {sprint_id}`` no documento e retorna conteúdo até a
+    próxima seção ``###`` ou ``##``. Se não achar, devolve mensagem curta com
+    aponte para ler o catálogo inteiro.
+    """
+    if not gambiarras_path.exists():
+        return f"(catálogo {gambiarras_path.name} não encontrado)"
+
+    content = gambiarras_path.read_text(encoding="utf-8")
+    marker = f"### {sprint_id}"
+    idx = content.find(marker)
+    if idx == -1:
+        return (
+            f"(seção específica para {sprint_id} não encontrada em "
+            f"{gambiarras_path.name}; ler catálogo universal e matriz geral)"
+        )
+
+    rest = content[idx:]
+    next_section_idx = len(marker)
+    next_markers = ("\n### ", "\n## ", "\n---\n")
+    cut = len(rest)
+    for m in next_markers:
+        found = rest.find(m, next_section_idx)
+        if found != -1 and found < cut:
+            cut = found
+    snippet = rest[:cut].rstrip()
+
+    lines = snippet.splitlines()
+    if len(lines) > MAX_INJECT_LINES:
+        lines = lines[:MAX_INJECT_LINES]
+        lines.append(
+            f"(...) ver {gambiarras_path.name} seção {sprint_id} para conteúdo completo"
+        )
+    return "\n".join(lines)
+
+
 def count_pending() -> int:
     if not MASTER.exists():
         return 0
@@ -63,6 +110,15 @@ def build_prompt(sprint_id: str, remaining: int) -> str:
         ""
         if sprint_path.exists()
         else f"\n> AVISO: {sprint_path} não existe. Verifique SPRINT_ORDER_MASTER.md.\n"
+    )
+    gambiarras_snippet = _extract_gambiarras_section(sprint_id)
+    gambiarras_block = (
+        f"{INJECT_BEGIN}\n\n"
+        f"## Gambiarras específicas (recorte auto-injetado)\n\n"
+        f"> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` "
+        f"§{sprint_id}. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.\n\n"
+        f"{gambiarras_snippet}\n\n"
+        f"{INJECT_END}"
     )
     return f"""# Executar próxima sprint — {sprint_id}
 
@@ -98,6 +154,10 @@ Se qualquer passo falhar, reporte:
 ID desta sprint: {sprint_id}
 Arquivo: dev-journey/06-sprints/producao/{fname}
 ```
+
+---
+
+{gambiarras_block}
 
 ---
 
