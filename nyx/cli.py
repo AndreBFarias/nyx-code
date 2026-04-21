@@ -96,6 +96,7 @@ async def run_repl(streaming: bool = True) -> int:
     prompt_session = None
     try:
         from prompt_toolkit import PromptSession
+        from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
         from prompt_toolkit.formatted_text import ANSI
         from prompt_toolkit.history import FileHistory
         from prompt_toolkit.key_binding import KeyBindings
@@ -141,7 +142,19 @@ async def run_repl(streaming: bool = True) -> int:
             buf = event.current_buffer  # type: ignore[attr-defined]
             buf.insert_text("/")
             if buf.document.text_before_cursor.lstrip() == "/":
-                buf.start_completion(select_first=False)
+                buf.start_completion(select_first=True)
+
+        @kb.add("tab")
+        def _accept_suggestion(event: object) -> None:
+            buf = event.current_buffer  # type: ignore[attr-defined]
+            sug = buf.suggestion
+            if sug and sug.text:
+                buf.insert_text(sug.text)
+                return
+            if buf.complete_state:
+                buf.complete_next()
+            else:
+                buf.insert_text("    ")
 
         @kb.add("s-tab")
         def _toggle_bypass(event: object) -> None:
@@ -220,6 +233,7 @@ async def run_repl(streaming: bool = True) -> int:
             complete_while_typing=True,
             complete_style=_style,
             bottom_toolbar=_bottom_toolbar,
+            auto_suggest=AutoSuggestFromHistory(),
         )
         logger.info("prompt-toolkit ativo (histórico: %s)", history_path)
     except ImportError:

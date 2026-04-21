@@ -51,15 +51,27 @@ class NyxCompleter(Completer):
 
     def _complete_commands(self, word: str) -> Any:
         prefix = word.lstrip("/").lower()
+        matched: list[dict] = []
         for cmd in self._commands:
             name = cmd.get("name", "")
             if name.startswith(prefix):
-                desc = cmd.get("description", "")
-                yield Completion(
-                    f"/{name}",
-                    start_position=-len(word),
-                    display_meta=desc[:40],
-                )
+                matched.append(cmd)
+        # Ordena por (categoria, nome) para que o popup agrupe visualmente.
+        matched.sort(key=lambda c: (c.get("category", "geral"), c.get("name", "")))
+        for cmd in matched:
+            name = cmd.get("name", "")
+            desc = cmd.get("description", "")
+            cat = cmd.get("category", "geral")
+            aliases = cmd.get("aliases", []) or []
+            alias_str = (
+                f" ({', '.join('/' + a for a in aliases)})" if aliases else ""
+            )
+            display_meta_text = f"[{cat}] {desc}{alias_str}"[:60]
+            yield Completion(
+                f"/{name}",
+                start_position=-len(word),
+                display_meta=display_meta_text,
+            )
 
     def _complete_paths(self, word: str) -> Any:
         if not word:
@@ -101,7 +113,15 @@ def create_completer(project_root: str) -> NyxCompleter | None:
 
     from nyx.agent.commands import list_commands
 
-    cmds = [{"name": c.name, "description": c.description} for c in list_commands()]
+    cmds = [
+        {
+            "name": c.name,
+            "description": c.description,
+            "category": c.category,
+            "aliases": list(c.aliases),
+        }
+        for c in list_commands()
+    ]
 
     return NyxCompleter(project_root, commands=cmds)
 

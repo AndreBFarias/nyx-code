@@ -7,10 +7,14 @@ from pathlib import Path
 from nyx.agent.commands._registry import format_help, nyx_command
 
 
-@nyx_command(name="help", description="Mostra esta ajuda (/help all pra todos)", aliases=["h"])
+@nyx_command(name="help", description="Mostra esta ajuda (/help <filtro>, /help all)", aliases=["h"])
 def cmd_help(args: str, _root: str) -> str:
-    show_all = args.strip().lower() in ("all", "todos", "*")
-    return format_help(show_all=show_all)
+    arg = args.strip().lower()
+    if arg in ("all", "todos", "*"):
+        return format_help(show_all=True)
+    if arg:
+        return format_help(show_all=False, filter_query=arg)
+    return format_help(show_all=False)
 
 
 @nyx_command(name="quit", description="Sai do REPL", aliases=["q", "exit"])

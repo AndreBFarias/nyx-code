@@ -68,10 +68,30 @@ ESSENTIAL_COMMANDS = (
 )
 
 
-def format_help(show_all: bool = False) -> str:
+def format_help(show_all: bool = False, filter_query: str | None = None) -> str:
     commands = list_commands()
     if not commands:
         return "Nenhum comando registrado."
+
+    if filter_query:
+        fq = filter_query.strip().rstrip("*").lower()
+        matched = [
+            c for c in commands
+            if c.name.startswith(fq) or c.category.lower() == fq
+        ]
+        if not matched:
+            return f"Nenhum comando bate com '{filter_query}'."
+        lines = ["", f"  Comandos para '{filter_query}':", ""]
+        for cmd in matched:
+            aliases = (
+                f" ({', '.join('/' + a for a in cmd.aliases)})"
+                if cmd.aliases else ""
+            )
+            lines.append(
+                f"    /{cmd.name:<12s}{aliases:16s} -- {cmd.description}"
+            )
+        lines.append("")
+        return "\n".join(lines)
 
     if not show_all:
         essentials = [c for c in commands if c.name in ESSENTIAL_COMMANDS]
