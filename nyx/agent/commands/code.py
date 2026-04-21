@@ -11,7 +11,10 @@ from nyx.agent.commands._registry import nyx_command
 def cmd_explain(file_path: str, project_root: str) -> str:
     full = Path(project_root) / file_path.strip()
     if not full.exists():
-        return f"Arquivo '{file_path}' não encontrado. Verifique o caminho."
+        return (
+            f"__error__Arquivo '{file_path}' não existe em {project_root}."
+            "||Confira o caminho com: ls -la ou tab-completion."
+        )
 
     return (
         f"Analise e explique o arquivo '{file_path}'. "
@@ -43,7 +46,10 @@ def cmd_plan(description: str, _root: str) -> str:
 def cmd_test(file_path: str, project_root: str) -> str:
     full = Path(project_root) / file_path.strip()
     if not full.exists():
-        return f"Arquivo '{file_path}' não encontrado."
+        return (
+            f"__error__Arquivo '{file_path}' não existe em {project_root}."
+            "||Confira o caminho com: ls -la ou tab-completion."
+        )
 
     return (
         f"Gere testes para '{file_path}'. "

@@ -33,7 +33,10 @@ def cmd_diff(_args: str, project_root: str) -> str:
     ok_diff, diff = git_diff_full(project_root)
 
     if not ok_status and not ok_diff:
-        return "Erro ao obter diff. Verifique se é um repositório git."
+        return (
+            "__error__Falha ao obter o diff do repositório."
+            "||Confirme que está dentro de um repositório git com: git rev-parse --show-toplevel"
+        )
 
     parts = []
     if status:
@@ -76,13 +79,19 @@ def cmd_branch(args: str, project_root: str) -> str:
     args = args.strip()
     if not args:
         ok, out = run_git(["branch", "--list"], project_root)
-        return f"Branches:\n{out}" if ok else f"Erro: {out}"
+        if ok:
+            return f"Branches:\n{out}"
+        return f"__error__Falha ao listar branches.||Detalhe: {out.strip()[:120]}"
     if args.startswith("-d "):
         branch = args[3:].strip()
         ok, out = run_git(["branch", "-d", branch], project_root)
-        return out if ok else f"Erro: {out}"
+        if ok:
+            return out
+        return f"__error__Falha ao remover a branch '{branch}'.||Detalhe: {out.strip()[:120]}"
     ok, out = run_git(["checkout", "-b", args], project_root)
-    return out if ok else f"Erro ao criar branch: {out}"
+    if ok:
+        return out
+    return f"__error__Falha ao criar a branch '{args}'.||Detalhe: {out.strip()[:120]}"
 
 
 @nyx_command(name="issue", description="Cria/lista issues via gh CLI", category="git")
@@ -98,10 +107,18 @@ def cmd_issue(args: str, project_root: str) -> str:
             r = subprocess.run(
                 ["gh", "issue", "view", args], capture_output=True, text=True, timeout=15, cwd=project_root
             )
-            return r.stdout if r.stdout else f"Issue #{args} não encontrada."
+            if r.stdout:
+                return r.stdout
+            return (
+                f"__error__Issue #{args} não encontrada neste repositório."
+                "||Liste issues abertas com /issue (sem argumento)."
+            )
         return f'Crie uma issue sobre: {args}\nUse run_command(\'gh issue create --title "..." --body "..."\')'
     except FileNotFoundError:
-        return "gh CLI não instalado. Instale: https://cli.github.com"
+        return (
+            "__error__gh CLI não está instalado no sistema."
+            "||Instale com: sudo apt install gh -- ou veja https://cli.github.com"
+        )
 
 
 @nyx_command(name="pr", description="Lista/mostra PRs via gh CLI", category="git")
@@ -117,17 +134,31 @@ def cmd_pr(args: str, project_root: str) -> str:
             r = subprocess.run(
                 ["gh", "pr", "view", args, "--comments"], capture_output=True, text=True, timeout=15, cwd=project_root
             )
-            return r.stdout if r.stdout else f"PR #{args} não encontrada."
-        return "Uso: /pr [número]"
+            if r.stdout:
+                return r.stdout
+            return (
+                f"__error__PR #{args} não encontrada neste repositório."
+                "||Liste PRs abertas com /pr (sem argumento)."
+            )
+        return (
+            "__error__Argumento inválido para /pr."
+            "||Uso correto: /pr [número] -- sem argumento lista as PRs abertas."
+        )
     except FileNotFoundError:
-        return "gh CLI não instalado. Instale: https://cli.github.com"
+        return (
+            "__error__gh CLI não está instalado no sistema."
+            "||Instale com: sudo apt install gh -- ou veja https://cli.github.com"
+        )
 
 
 @nyx_command(name="pr-comments", description="Mostra comentários de PR", category="avançado")
 def cmd_pr_comments(args: str, project_root: str) -> str:
     pr_number = args.strip()
     if not pr_number or not pr_number.isdigit():
-        return "  Uso: /pr-comments <número>"
+        return (
+            "__error__Argumento inválido para /pr-comments."
+            "||Uso correto: /pr-comments <número> -- ex: /pr-comments 123"
+        )
     try:
         r = subprocess.run(
             [
@@ -148,9 +179,15 @@ def cmd_pr_comments(args: str, project_root: str) -> str:
         )
         if r.stdout.strip():
             return f"  Comentários da PR #{pr_number}:\n{r.stdout}"
-        return f"  PR #{pr_number}: nenhum comentário."
+        return (
+            f"__error__PR #{pr_number} não possui comentários."
+            "||Abra a PR para comentar: gh pr view {pr_number} --web"
+        )
     except FileNotFoundError:
-        return "  gh CLI não instalado."
+        return (
+            "__error__gh CLI não está instalado no sistema."
+            "||Instale com: sudo apt install gh -- ou veja https://cli.github.com"
+        )
 
 
 @nyx_command(name="commit-push-pr", description="Commit, push e PR", category="root")

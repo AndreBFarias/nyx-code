@@ -47,7 +47,12 @@ def cmd_config(args: str, project_root: str) -> str:
     parts = args.split(" ", 1)
     if len(parts) == 1:
         val = os.environ.get(parts[0].upper(), None)
-        return f"  {parts[0]}: {val}" if val else f"  Chave '{parts[0]}' não definida."
+        if val:
+            return f"  {parts[0]}: {val}"
+        return (
+            f"__error__Chave '{parts[0]}' não está definida no ambiente."
+            "||Defina com: export {KEY}=<valor> ou use /env para ver as ativas."
+        )
     return f"  Configuração via env: export {parts[0].upper()}={parts[1]}"
 
 
@@ -159,11 +164,17 @@ def cmd_theme(args: str, _root: str) -> str:
             return "\n".join(lines)
         ids_validos = {t["id"] for t in tm.list_themes()}
         if args not in ids_validos:
-            return f"  Tema '{args}' não encontrado."
+            return (
+                f"__error__Tema '{args}' não existe no ThemeManager."
+                "||Liste os temas disponíveis com /theme list."
+            )
         theme = tm.load_theme(args)
         return f"  Tema '{args}' carregado. Primary: {theme.get('primary', '?')}"
-    except ImportError:
-        return "  Módulo de temas não disponível."
+    except ImportError as exc:
+        return (
+            f"__error__Módulo de temas indisponível: {type(exc).__name__}."
+            "||Reinstale dependências com: ./run.sh --install"
+        )
 
 
 @nyx_command(name="permissions", description="Mostra permissões por tool", aliases=["perms"], category="sistema")
@@ -226,10 +237,16 @@ def cmd_init(_args: str, project_root: str) -> str:
 def cmd_add_dir(args: str, project_root: str) -> str:
     target = args.strip()
     if not target:
-        return "  Uso: /add-dir <caminho>"
+        return (
+            "__error__Argumento obrigatório ausente em /add-dir."
+            "||Uso correto: /add-dir <caminho relativo ao projeto>."
+        )
     full = Path(project_root) / target
     if not full.is_dir():
-        return f"  Diretório '{target}' não encontrado."
+        return (
+            f"__error__Diretório '{target}' não existe em {project_root}."
+            "||Confira o caminho com: ls -la ou tab-completion."
+        )
     return (
         f"Adicione o diretório '{target}' ao seu contexto de trabalho.\n"
         f"Use list_files(path='{target}') para ver o conteúdo.\n"

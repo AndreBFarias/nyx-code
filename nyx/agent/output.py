@@ -7,7 +7,9 @@ Fallback: se Rich não estiver instalado, funciona com ANSI puro.
 
 from __future__ import annotations
 
+import os
 import re
+import sys
 
 from nyx.agent.services.logging_service import get_logger
 from nyx.themes.design_tokens import (
@@ -634,6 +636,34 @@ def _fallback_output(tag: str, message: str) -> None:
     """Fallback ANSI puro quando Rich não está disponível."""
     label = TAG_LABELS.get(tag, tag)
     print(f"  {ANSI_ACCENT_FG}[{label}]{ANSI_RESET} {message}")
+
+
+def print_error(
+    msg: str,
+    hint: str | None = None,
+    debug_detail: str | None = None,
+) -> None:
+    """Imprime mensagem de erro canônica do REPL (ERROR-MSG-01).
+
+    Contrato:
+      - Prefixo ``[erro]`` em vermelho (ANSI_ERROR_FG) via design_tokens.
+      - Corpo da mensagem em PT-BR, cor padrão do terminal.
+      - ``hint`` (opcional) em ANSI_DIM -- verbo imperativo acionável.
+      - ``debug_detail`` (opcional) só aparece se ``NYX_DEBUG=1`` -- tipo e
+        linha da exceção subjacente, para troubleshooting sem poluir o UX.
+
+    Formato renderizado:
+      ``[erro] <mensagem>. <hint em dim>``
+      ``  detalhe: <debug_detail>``   (somente com NYX_DEBUG=1)
+    """
+    prefix = f"{ANSI_ERROR_FG}[erro]{ANSI_RESET}"
+    body = f"  {prefix} {msg}"
+    if hint:
+        body += f" {ANSI_DIM}{hint}{ANSI_RESET}"
+    sys.stdout.write(body + "\n")
+    if debug_detail and os.environ.get("NYX_DEBUG") == "1":
+        sys.stdout.write(f"  {ANSI_DIM}detalhe: {debug_detail}{ANSI_RESET}\n")
+    sys.stdout.flush()
 
 
 def render_ask_user(question: str, options: list[dict[str, str]] | None = None) -> None:

@@ -26,6 +26,7 @@ from nyx.agent.repetition import SkipStrategy, get_skip_strategy
 from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tools.plan_mode import is_tool_allowed_in_plan_mode
 from nyx.agent.validator import validate as post_validate
+from nyx.providers.base import ProviderError
 
 logger = get_logger("nyx.agent")
 
@@ -267,7 +268,11 @@ class _IterationMixin:
             data = r.json()
 
             if "choices" not in data:
-                return {"error": f"Resposta sem choices: {str(data)[:200]}"}
+                return {
+                    "error": "Resposta do proxy sem campo 'choices'. "
+                    "Reinicie o proxy com ./run.sh ou inspecione ~/.nyx/logs/proxy.log.",
+                    "error_detail": str(data)[:200],
+                }
 
             msg = data["choices"][0]["message"]
             tc = msg.get("tool_calls", [])
@@ -296,10 +301,29 @@ class _IterationMixin:
 
             return result
 
-        except httpx.TimeoutException:
-            return {"error": "Timeout ao chamar LLM (proxy não respondeu)"}
+        except httpx.TimeoutException as e:
+            return {
+                "error": f"Proxy de inferência não respondeu em {LLM_TIMEOUT}s. "
+                "Verifique se o Ollama e o proxy estão vivos: systemctl status ollama && ss -ltnp | grep 1143",
+                "error_detail": f"{type(e).__name__}: {e}",
+            }
+        except httpx.ConnectError as e:
+            return {
+                "error": "Conexão recusada pelo proxy de inferência. "
+                "Reinicie o stack com ./run.sh ou confira ~/.nyx/logs/proxy.log.",
+                "error_detail": f"{type(e).__name__}: {e}",
+            }
+        except ProviderError as e:
+            return {
+                "error": f"{e.user_message}" + (f" {e.hint}" if e.hint else ""),
+                "error_detail": f"{type(e.cause).__name__ if e.cause else type(e).__name__}: {e.cause or e}",
+            }
         except Exception as e:
-            return {"error": str(e)}
+            return {
+                "error": f"Falha inesperada ao contatar o proxy: {type(e).__name__}. "
+                "Abra ~/.nyx/logs/nyx.log para o traceback completo.",
+                "error_detail": f"{type(e).__name__}: {e}",
+            }
 
     async def _try_recovery(self) -> bool:
         """Tenta reiniciar o modelo Ollama após crash."""

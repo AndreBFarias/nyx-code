@@ -18,10 +18,16 @@ def cmd_session(action: str, _root: str) -> str:
 
     if action == "list":
         if not SESSIONS_DIR.exists():
-            return "  Nenhuma sessão salva."
+            return (
+                "__error__Diretório de sessões ainda não existe."
+                "||Rode /init para criar ~/.nyx/sessions/."
+            )
         files = sorted(SESSIONS_DIR.glob("session_*.json"), reverse=True)[:10]
         if not files:
-            return "  Nenhuma sessão salva."
+            return (
+                "__error__Nenhuma sessão salva encontrada."
+                "||Saia do REPL com /quit para salvar a sessão atual."
+            )
         lines = ["  Sessões recentes:"]
         for f in files:
             lines.append(f"    {f.name}")
@@ -31,7 +37,10 @@ def cmd_session(action: str, _root: str) -> str:
         session = load_latest_session()
         if session:
             return "__session_load__"
-        return "  Nenhuma sessão para restaurar."
+        return (
+            "__error__Nenhuma sessão salva para restaurar."
+            "||Saia do REPL com /quit para salvar a sessão atual."
+        )
 
     if action == "save":
         return "__session_save__"
@@ -61,7 +70,10 @@ def cmd_resume(_args: str, _root: str) -> str:
 def cmd_replay(args: str, _root: str) -> str:
     args = args.strip()
     if not args:
-        return "  Uso: /replay <session_id> -- ex: session_Nyx-Code_1776736000"
+        return (
+            "__error__Argumento obrigatório ausente em /replay."
+            "||Uso: /replay <session_id> -- ex: session_Nyx-Code_1776736000"
+        )
     return f"__replay__{args}"
 
 
@@ -112,7 +124,10 @@ def cmd_trace(_args: str, _root: str) -> str:
 def cmd_btw(args: str, _root: str) -> str:
     note = args.strip()
     if not note:
-        return "  Uso: /btw <nota> -- injeta contexto sem gerar resposta"
+        return (
+            "__error__Argumento obrigatório ausente em /btw."
+            "||Uso: /btw <nota> -- injeta contexto sem gerar resposta."
+        )
     return f"__btw__{note}"
 
 

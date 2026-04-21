@@ -63,7 +63,10 @@ def render_replay(project_root: Path, session_id: str) -> str:
     """Lê sessão salva e devolve rendering read-only."""
     session_id = session_id.strip()
     if not session_id:
-        return "  Uso: /replay <session_id>"
+        return (
+            "__error__Argumento obrigatório ausente em /replay."
+            "||Uso: /replay <session_id>"
+        )
 
     candidates = [
         Path.home() / ".nyx" / "sessions" / f"{session_id}.json",
@@ -72,13 +75,19 @@ def render_replay(project_root: Path, session_id: str) -> str:
     ]
     session_path = next((p for p in candidates if p.exists()), None)
     if session_path is None:
-        return f"  Sessão não encontrada: {session_id}"
+        return (
+            f"__error__Sessão '{session_id}' não encontrada em ~/.nyx/sessions/ nem em {project_root}/logs/sessions/."
+            "||Liste sessões disponíveis com /session list."
+        )
 
     try:
         data = json.loads(session_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         logger.error("replay falhou ao parsear %s: %s", session_path, exc)
-        return f"  Sessão corrompida: {exc}"
+        return (
+            f"__error__Sessão {session_path.name} está corrompida (JSON inválido)."
+            f"||Inspecione o arquivo ou remova com: rm {session_path}"
+        )
 
     lines = [f"  [replay read-only de {session_path.name}]"]
     history = data.get("history", [])

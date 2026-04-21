@@ -67,6 +67,7 @@ NC = ANSI_RESET
 
 from nyx.agent.banner import build_banner as _build_banner  # noqa: E402
 from nyx.agent.output import make_ask_permission as _make_ask_permission  # noqa: E402
+from nyx.agent.output import print_error as _print_error  # noqa: E402
 
 
 async def run_repl(streaming: bool = True) -> int:
@@ -436,7 +437,10 @@ async def run_repl(streaming: bool = True) -> int:
                 if saved:
                     print(f"  {ACCENT}[ok]{NC} Sessão salva: {saved.name}")
                 else:
-                    print(f"  {DIM}Falha ao salvar sessão.{NC}")
+                    _print_error(
+                        "Falha ao salvar a sessão atual.",
+                        hint="Verifique permissões de escrita em ~/.nyx/sessions/.",
+                    )
                 continue
 
             if result == "__session_load__":
@@ -447,7 +451,10 @@ async def run_repl(streaming: bool = True) -> int:
                     agent._session = loaded
                     print(f"  {ACCENT}[ok]{NC} Sessão restaurada ({len(loaded.history)} entradas)")
                 else:
-                    print(f"  {DIM}Nenhuma sessão para restaurar.{NC}")
+                    _print_error(
+                        "Nenhuma sessão salva para restaurar.",
+                        hint="Use /quit para salvar esta sessão e rode novamente para carregá-la.",
+                    )
                 continue
 
             if isinstance(result, str) and result.startswith("__model__"):
@@ -492,7 +499,13 @@ async def run_repl(streaming: bool = True) -> int:
 
             if result == "__files__":
                 ctx = agent.session.get_files_context()
-                print(f"  {ctx}" if ctx else "  Nenhum arquivo no contexto.")
+                if ctx:
+                    print(f"  {ctx}")
+                else:
+                    _print_error(
+                        "Nenhum arquivo no contexto da sessão.",
+                        hint="Peça a Nyx para ler um arquivo ou use /read <caminho>.",
+                    )
                 continue
 
             if result == "__debug_session__":
@@ -507,7 +520,10 @@ async def run_repl(streaming: bool = True) -> int:
             if result == "__trace__":
                 entries = [e for e in agent.session.history if e.tool_name]
                 if not entries:
-                    print(f"  {DIM}Nenhuma tool call na sessão.{NC}")
+                    _print_error(
+                        "Nenhuma tool call registrada nesta sessão.",
+                        hint="Faça uma pergunta à Nyx para gerar atividade antes de inspecionar /trace.",
+                    )
                 else:
                     print("  Últimas tool calls:")
                     for e in entries[-10:]:
@@ -549,16 +565,28 @@ async def run_repl(streaming: bool = True) -> int:
                     try:
                         _sp.run(["xclip", "-selection", "clipboard"], input=last_content.encode(), timeout=5)
                         print(f"  {ACCENT}[ok]{NC} Copiado para clipboard ({len(last_content)} chars)")
-                    except FileNotFoundError:
+                    except FileNotFoundError as exc:
                         tmp = Path.home() / ".nyx" / "clipboard.txt"
                         tmp.write_text(last_content, encoding="utf-8")
-                        print(f"  {DIM}xclip indisponível. Salvo em {tmp}{NC}")
+                        _print_error(
+                            "xclip indisponível no sistema.",
+                            hint=f"Conteúdo salvo em {tmp}. Instale com: sudo apt install xclip",
+                            debug_detail=str(exc),
+                        )
                 else:
-                    print(f"  {DIM}Nenhum output para copiar.{NC}")
+                    _print_error(
+                        "Nenhum output disponível para copiar.",
+                        hint="Aguarde uma resposta da Nyx ou execute um comando antes de /copy.",
+                    )
                 continue
 
-            if result.startswith("  Comando desconhecido"):
-                print(result)
+            if isinstance(result, str) and result.startswith("__error__"):
+                payload = result[len("__error__"):]
+                if "||" in payload:
+                    msg, hint = payload.split("||", 1)
+                else:
+                    msg, hint = payload, None
+                _print_error(msg, hint=hint)
                 continue
 
             if "read_file" in result or "list_files" in result or "done(" in result:
@@ -604,7 +632,13 @@ async def run_repl(streaming: bool = True) -> int:
 
             state_label = status.state.value
             if status.state != status.state.DONE:
-                print(f"  {DIM}[{state_label}]{NC}")
+                if state_label == "error":
+                    _print_error(
+                        f"Iteração encerrou em estado '{state_label}'.",
+                        hint="Consulte ~/.nyx/logs/nyx.log para o traceback completo.",
+                    )
+                else:
+                    print(f"  {DIM}[{state_label}]{NC}")
 
             render_assistant_end()
 

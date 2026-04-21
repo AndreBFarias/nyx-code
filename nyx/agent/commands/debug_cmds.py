@@ -52,7 +52,10 @@ def cmd_debug(args: str, _root: str) -> str:
     sub = args.strip().lower()
     if sub == "session":
         return "__debug_session__"
-    return "  Uso: /debug session -- métricas estruturadas da sessão corrente"
+    return (
+        "__error__Subcomando inválido para /debug."
+        "||Uso: /debug session -- métricas estruturadas da sessão corrente."
+    )
 
 
 @nyx_command(name="tasks", description="Gerencia tarefas", category="execução")
@@ -78,7 +81,10 @@ def cmd_tasks(args: str, project_root: str) -> str:
         r = tu.execute({"task_id": task_id, "status": "completed"}, project_root)
         return r.output
 
-    return "  Uso: /tasks [list|create <título>|done <id>]"
+    return (
+        "__error__Subcomando inválido para /tasks."
+        "||Uso: /tasks [list|create <título>|done <id>]"
+    )
 
 
 @nyx_command(name="skills", description="Lista skills disponíveis", category="execução")
@@ -87,7 +93,10 @@ def cmd_skills(_args: str, _root: str) -> str:
 
     skills = _list_skills()
     if not skills:
-        return "  Nenhum skill em ~/.nyx/skills/. Crie arquivos .py com função execute()."
+        return (
+            "__error__Nenhum skill registrado em ~/.nyx/skills/."
+            "||Crie arquivos .py com função execute() para disponibilizar skills."
+        )
     lines = ["  Skills disponíveis:"]
     for name, desc in skills:
         lines.append(f"    - {name}: {desc}")

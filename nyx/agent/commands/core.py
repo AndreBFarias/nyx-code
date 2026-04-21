@@ -62,7 +62,10 @@ def cmd_memory(args: str, project_root: str) -> str:
         name = arg[5:].strip()
         target = mem.directory / (name if name.endswith(".md") else f"{name}.md")
         if not target.exists():
-            return f"Memória '{name}' não existe. Use /memory pra listar."
+            return (
+                f"__error__Memória '{name}' não foi encontrada em {mem.directory}."
+                "||Liste as memórias disponíveis com /memory."
+            )
         return target.read_text(encoding="utf-8", errors="replace")
     entries = mem.index()
     if not entries:
@@ -90,12 +93,18 @@ def cmd_recall(args: str, project_root: str) -> str:
 
     termo = args.strip()
     if not termo:
-        return "uso: /recall <termo>"
+        return (
+            "__error__Argumento obrigatório ausente em /recall."
+            "||Use: /recall <termo> -- busca textual nas memórias do projeto."
+        )
 
     mem = NyxMemory(project_root)
     entries = mem.index()
     if not entries:
-        return "Nenhuma memória gravada para buscar."
+        return (
+            "__error__Nenhuma memória gravada neste projeto."
+            "||Peça à Nyx para lembrar algo estável e rode /recall depois."
+        )
 
     termo_lower = termo.lower()
     resultados: list[str] = []
@@ -112,7 +121,10 @@ def cmd_recall(args: str, project_root: str) -> str:
                 resultados.append(f"  {fname}:{n}: {linha.strip()}")
 
     if not resultados:
-        return f"Nenhuma ocorrência de '{termo}' nas memórias."
+        return (
+            f"__error__Nenhuma ocorrência de '{termo}' nas memórias do projeto."
+            "||Tente um termo mais curto ou liste as memórias com /memory."
+        )
     return "\n".join(resultados)
 
 
@@ -120,10 +132,16 @@ def cmd_recall(args: str, project_root: str) -> str:
 def cmd_paste(_args: str, _project_root: str) -> str:
     pastes = Path.home() / ".nyx" / "pastes"
     if not pastes.exists():
-        return "Nenhuma imagem colada ainda. Use Ctrl+V com imagem no clipboard."
+        return (
+            "__error__Nenhuma imagem colada ainda nesta sessão."
+            "||Use Ctrl+V com uma imagem no clipboard para colar."
+        )
     files = sorted(pastes.glob("*.png"), key=lambda p: p.stat().st_mtime)[-20:]
     if not files:
-        return "Nenhuma imagem em ~/.nyx/pastes/."
+        return (
+            "__error__Diretório ~/.nyx/pastes/ está vazio."
+            "||Cole uma imagem com Ctrl+V antes de usar /paste."
+        )
     lines = [f"  Últimas {len(files)} imagens em {pastes}:", ""]
     for n, f in enumerate(files, start=1):
         lines.append(f"  #{n} {f}")

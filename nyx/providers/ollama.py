@@ -8,6 +8,7 @@ import httpx
 
 from nyx.agent.services.logging_service import get_logger
 from nyx.config.defaults import PROXY_URL as _DEFAULT_PROXY_URL
+from nyx.providers.base import ProviderError
 
 logger = get_logger("nyx.providers.ollama")
 
@@ -32,7 +33,7 @@ class OllamaProvider:
         if tools:
             payload["tools"] = tools
 
-        last_error = ""
+        last_cause: BaseException | None = None
         for attempt in range(MAX_RETRIES + 1):
             try:
                 async with httpx.AsyncClient(timeout=self._timeout) as client:
@@ -43,7 +44,11 @@ class OllamaProvider:
                     data = r.json()
 
                 if "choices" not in data:
-                    return {"error": f"Resposta sem choices: {str(data)[:200]}"}
+                    raise ProviderError(
+                        user_message="Resposta do proxy sem campo 'choices'.",
+                        hint="Reinicie o proxy com ./run.sh ou inspecione ~/.nyx/logs/proxy.log.",
+                        cause=RuntimeError(str(data)[:200]),
+                    )
 
                 msg = data["choices"][0]["message"]
                 return {
@@ -53,19 +58,37 @@ class OllamaProvider:
                     "finish_reason": data["choices"][0].get("finish_reason", ""),
                 }
 
-            except httpx.TimeoutException:
-                last_error = "Timeout"
-            except httpx.ConnectError:
-                last_error = "Conexão recusada"
+            except ProviderError:
+                raise
+            except httpx.TimeoutException as e:
+                last_cause = e
+            except httpx.ConnectError as e:
+                last_cause = e
             except Exception as e:
-                last_error = str(e)
+                last_cause = e
 
             if attempt < MAX_RETRIES:
                 import asyncio
 
                 await asyncio.sleep(RETRY_BACKOFF * (attempt + 1))
 
-        return {"error": f"Falha após {MAX_RETRIES + 1} tentativas: {last_error}"}
+        if isinstance(last_cause, httpx.TimeoutException):
+            raise ProviderError(
+                user_message=f"Ollama não respondeu em {self._timeout}s.",
+                hint="Verifique se está rodando: systemctl status ollama",
+                cause=last_cause,
+            )
+        if isinstance(last_cause, httpx.ConnectError):
+            raise ProviderError(
+                user_message=f"Conexão recusada com o proxy em {self._url}.",
+                hint="Reinicie com ./run.sh ou confira a porta com ss -ltnp | grep 1143",
+                cause=last_cause,
+            )
+        raise ProviderError(
+            user_message=f"Falha após {MAX_RETRIES + 1} tentativas de chat com o proxy.",
+            hint="Consulte ~/.nyx/logs/nyx.log para o traceback completo.",
+            cause=last_cause,
+        )
 
     async def health(self) -> bool:
         """Verifica se proxy/Ollama responde."""
