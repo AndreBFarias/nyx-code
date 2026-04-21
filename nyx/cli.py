@@ -229,7 +229,7 @@ async def run_repl(streaming: bool = True) -> int:
         import shutil as _sh
 
         _term_cols = _sh.get_terminal_size(fallback=(80, 24)).columns
-        _style = CompleteStyle.MULTI_COLUMN if _term_cols >= 100 else CompleteStyle.COLUMN
+        _style = CompleteStyle.COLUMN
 
         prompt_session = PromptSession(
             history=FileHistory(str(history_path)),
