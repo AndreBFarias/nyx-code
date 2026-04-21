@@ -178,15 +178,15 @@ P8-A (Analyze, Patch, MultiEdit), P8-B (Provider, ProjectContext). **+3 tools, +
 
 | # | Nome | Testes | Status | Deps |
 |---|------|--------|--------|------|
-| **TUI-01** | Higiene: silenciar logs, corrigir banner, formatar tool calls | +2 testes | EM VALIDAÇÃO | -- |
-| **TUI-02** | Boxes ╭─╮ no user input, tool calls com ⏺ └─ colapsável | +2 testes | EM VALIDAÇÃO | TUI-01 |
-| **TUI-03** | Footer 1 linha + popup navegável de slash command | +2 testes | EM VALIDAÇÃO | TUI-02 |
-| **CTX-01** | SessionSummarizer: resumo vivo injetado em compactação | +3 testes | EM VALIDAÇÃO | TUI-03 |
-| **CTX-02** | Memória persistente cross-session em ~/.nyx/memory/ | +3 testes | EM VALIDAÇÃO | CTX-01 |
-| **CTX-03** | RepoMap via AST (tree-sitter opcional, ADR-021) | +4 testes | EM VALIDAÇÃO | CTX-02 |
-| **CTX-04** | Plano ativo opt-in via /plan (opcional) | +2 testes | OPCIONAL | CTX-03 |
+| **TUI-01** | Higiene: silenciar logs, corrigir banner, formatar tool calls | +2 testes | CONCLUIDA (VALIDATE-ONDA-20 2026-04-20) | -- |
+| **TUI-02** | Boxes ╭─╮ no user input, tool calls com ⏺ └─ colapsável | +2 testes | CONCLUIDA (VALIDATE-ONDA-20 2026-04-20) | TUI-01 |
+| **TUI-03** | Footer 1 linha + popup navegável de slash command | +2 testes | CONCLUIDA (VALIDATE-ONDA-20 2026-04-20) | TUI-02 |
+| **CTX-01** | SessionSummarizer: resumo vivo injetado em compactação | +3 testes | CONCLUIDA (VALIDATE-ONDA-20 2026-04-20) | TUI-03 |
+| **CTX-02** | Memória persistente cross-session em ~/.nyx/memory/ | +3 testes | CONCLUIDA (VALIDATE-ONDA-20 2026-04-20) | CTX-01 |
+| **CTX-03** | RepoMap via AST (tree-sitter opcional, ADR-021) | +4 testes | CONCLUIDA (VALIDATE-ONDA-20 2026-04-20) | CTX-02 |
+| **CTX-04** | Plano ativo opt-in via /plan (opcional) | +2 testes | DEFERIDA (VALIDATE-ONDA-20 2026-04-20) | CTX-03 |
 
-**EM VALIDAÇÃO = implementado + Gauntlet passou, aguardando validação visual interativa pelo usuário (vide RELATORIO_ONDA_20.md).**
+**CONCLUIDA = implementado + Gauntlet passou + validação visual/interativa em 2026-04-20 (vide RELATORIO_VALIDACAO_ONDA_20.md). Onda 20 fechada.**
 
 ---
 
@@ -282,7 +282,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 24d | **TOOL-INVOKE-MEMORY-01** | 2.6 Integração | ALTA | CONCLUIDA (commit 815f2fc) | AUTOTUNE-FIX-01 |
 | 24e | **TUI-POPUP-META-01** | 2.8 Fixes Onda 20 | MÉDIA | CONCLUIDA (commit 94d7327) | -- |
 | 24f | **TUI-BOOT-LOG-01** | 2.8 Fixes Onda 20 | BAIXA | CONCLUIDA (commit 91e27f4) | -- |
-| 25 | **VALIDATE-ONDA-20** | 2.7 Validação | ALTA | PENDENTE | BUG-PORT-PARSE-01, TUI-FIX-08, TUI-FIX-09, TUI-FIX-10, GAUNTLET-FIX-LOOP-SPLIT, AUTOTUNE-FIX-01, TOOL-INVOKE-MEMORY-01, TUI-POPUP-META-01, TUI-BOOT-LOG-01 |
+| 25 | **VALIDATE-ONDA-20** | 2.7 Validação | ALTA | CONCLUIDA (RELATORIO_VALIDACAO_ONDA_20.md) | BUG-PORT-PARSE-01, TUI-FIX-08, TUI-FIX-09, TUI-FIX-10, GAUNTLET-FIX-LOOP-SPLIT, AUTOTUNE-FIX-01, AUTOTUNE-FIX-02, TOOL-INVOKE-MEMORY-01, TUI-POPUP-META-01, TUI-BOOT-LOG-01 |
 | 26 | **VALIDATE-ONDA-21** | 2.7 Validação | ALTA | PENDENTE | VALIDATE-ONDA-20 |
 | 27 | **OBSERVABILITY-01** | 2.9 Integração | ALTA | PENDENTE | VALIDATE-ONDA-21 |
 | 28 | **DOC-CONSOLIDATE-01** | 2.9 Integração | MÉDIA | PENDENTE | -- |
