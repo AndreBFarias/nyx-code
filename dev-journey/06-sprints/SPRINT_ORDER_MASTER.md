@@ -279,7 +279,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 24b | **GAUNTLET-FIX-LOOP-SPLIT** | 2.6 Integração | CRÍTICA | CONCLUIDA (commit dd29b98) | -- |
 | 24c | **AUTOTUNE-FIX-01** | 2.6 Integração | CRÍTICA | CONCLUIDA (commit 6f5273b) | -- |
 | 24d | **TOOL-INVOKE-MEMORY-01** | 2.6 Integração | ALTA | CONCLUIDA (commit 815f2fc) | AUTOTUNE-FIX-01 |
-| 24e | **TUI-POPUP-META-01** | 2.8 Fixes Onda 20 | MÉDIA | PENDENTE | -- |
+| 24e | **TUI-POPUP-META-01** | 2.8 Fixes Onda 20 | MÉDIA | CONCLUIDA (commit 94d7327) | -- |
 | 24f | **TUI-BOOT-LOG-01** | 2.8 Fixes Onda 20 | BAIXA | PENDENTE | -- |
 | 25 | **VALIDATE-ONDA-20** | 2.7 Validação | ALTA | PENDENTE | BUG-PORT-PARSE-01, TUI-FIX-08, TUI-FIX-09, TUI-FIX-10, GAUNTLET-FIX-LOOP-SPLIT, AUTOTUNE-FIX-01, TOOL-INVOKE-MEMORY-01, TUI-POPUP-META-01, TUI-BOOT-LOG-01 |
 | 26 | **VALIDATE-ONDA-21** | 2.7 Validação | ALTA | PENDENTE | VALIDATE-ONDA-20 |
