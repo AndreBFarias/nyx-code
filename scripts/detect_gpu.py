@@ -66,7 +66,7 @@ DEFAULT_MODEL = "qwen3:4b"
 #   6GB  -> num_gpu=28 confortável
 #   8GB  -> num_gpu=36 confortável (~full GPU)
 VRAM_CAP_MB_TO_LAYERS: list[tuple[int, int]] = [
-    (4096, 15),
+    (4096, 12),
     (6144, 28),
     (8192, 36),
 ]
