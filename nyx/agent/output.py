@@ -14,7 +14,9 @@ from nyx.themes.design_tokens import (
     ANSI_ACCENT_FG,
     ANSI_DIM,
     ANSI_ERROR_FG,
+    ANSI_MUTED_FG,
     ANSI_RESET,
+    BOX_CHARS,
     BULLETS,
     NYX_ACCENT,
 )
@@ -298,16 +300,6 @@ def format_tool_call(
     return f"{name}({primary_value})"
 
 
-def render_tool_call(
-    name: str,
-    args: dict,
-    project_root: str | None = None,
-) -> None:
-    """Renderiza linha de tool call com bullet em accent color."""
-    formatted = format_tool_call(name, args, project_root=project_root)
-    print(f"  {ANSI_ACCENT_FG}{BULLETS['tool']}{ANSI_RESET} {formatted}")
-
-
 _ERROR_PREFIXES = (
     "Fora do projeto",
     "Acesso negado",
@@ -323,10 +315,32 @@ _ERROR_PREFIXES = (
 )
 
 
-def render_tool_result(result: str, max_chars: int = 110) -> None:
-    """Imprime resumo colapsado do resultado de uma tool: '    └─ 1ª linha'.
+def is_tool_error(text: str) -> bool:
+    """Detecta se o output de uma tool é erro por prefixo conhecido."""
+    if not text:
+        return False
+    return any(text.startswith(p) for p in _ERROR_PREFIXES)
 
-    Erros (prefixos conhecidos) saem em âmbar; sucesso sai em dim.
+
+def render_tool_call(
+    name: str,
+    args: dict,
+    project_root: str | None = None,
+) -> None:
+    """Renderiza linha de tool call com bullet em accent color.
+
+    Forma compacta (sem card). Preservada para call-sites que não têm
+    duração. Call-sites novos (cli.py on_tool/on_tool_result) usam
+    render_tool_card_start/end com duração.
+    """
+    formatted = format_tool_call(name, args, project_root=project_root)
+    print(f"  {ANSI_ACCENT_FG}{BULLETS['tool']}{ANSI_RESET} {formatted}")
+
+
+def render_tool_result(result: str, max_chars: int = 110) -> None:
+    """Resumo colapsado do resultado de uma tool: '    └─ 1ª linha'.
+
+    Erros (prefixos conhecidos) saem em vermelho; sucesso em dim.
     """
     if not result:
         return
@@ -338,9 +352,150 @@ def render_tool_result(result: str, max_chars: int = 110) -> None:
         return
     if len(first_line) > max_chars:
         first_line = first_line[: max_chars - 1] + "…"
-    is_error = any(first_line.startswith(p) for p in _ERROR_PREFIXES)
-    color = ANSI_ERROR_FG if is_error else ANSI_DIM
+    color = ANSI_ERROR_FG if is_tool_error(first_line) else ANSI_DIM
     print(f"    {color}{BULLETS['result']} {first_line}{ANSI_RESET}")
+
+
+def _format_duration(duration_ms: int) -> str:
+    """Formata duração em ms ou s (>=1000ms)."""
+    if duration_ms < 1000:
+        return f"{duration_ms}ms"
+    return f"{duration_ms / 1000:.1f}s"
+
+
+def format_args_preview(args: dict, max_total: int = 100) -> str:
+    """Formata dict de args como 'k=v · k=v' para exibição compacta."""
+    if not args:
+        return ""
+    parts_list: list[str] = []
+    for k, v in args.items():
+        val = str(v)
+        if len(val) > 40:
+            val = val[:37] + "…"
+        parts_list.append(f"{k}={val}")
+        if sum(len(p) for p in parts_list) > max_total:
+            break
+    return " · ".join(parts_list)
+
+
+def render_tool_card_start(
+    name: str,
+    args_preview: str,
+    spinner_frame: str = "",
+) -> None:
+    """Abre card de tool em execução.
+
+    Usado quando se quer mostrar progresso antes do resultado. Não todos
+    os call-sites usam — tools rápidas (<200ms) podem ir direto ao end.
+    """
+    h = BOX_CHARS["h"]
+    tl = BOX_CHARS["tl"]
+    tr = BOX_CHARS["tr"]
+    v = BOX_CHARS["v"]
+    frame = f"{spinner_frame} " if spinner_frame else ""
+    header = f" {frame}{name} "
+    tail_pad = max(2, 66 - len(header) - len(" executando "))
+    line1 = f"  {ANSI_ACCENT_FG}{tl}{h}{header}{h * tail_pad}{h} executando {h}{tr}{ANSI_RESET}"
+    args_line = f"  {ANSI_ACCENT_FG}{v}{ANSI_RESET}  {ANSI_DIM}{args_preview}{ANSI_RESET}"
+    print(line1)
+    print(args_line)
+
+
+def render_tool_card_end(
+    name: str,
+    duration_ms: int,
+    summary_line: str,
+    is_error: bool = False,
+    extra_lines: list[str] | None = None,
+) -> None:
+    """Fecha card de tool com duração e primeira linha do resultado.
+
+    Call-site principal (cli.py on_tool_result) chama sempre este — o
+    card é de linha única quando o start não foi chamado (tool rápida).
+    """
+    h = BOX_CHARS["h"]
+    tl = BOX_CHARS["tl"]
+    tr = BOX_CHARS["tr"]
+    bl = BOX_CHARS["bl"]
+    br = BOX_CHARS["br"]
+    v = BOX_CHARS["v"]
+    border = ANSI_ERROR_FG if is_error else ANSI_ACCENT_FG
+    label = "ERRO" if is_error else "ok"
+    duration = _format_duration(duration_ms)
+
+    header = f" {BULLETS['tool']} {name} "
+    tail = f" {label} · {duration} "
+    pad = max(2, 66 - len(header) - len(tail))
+    top = f"  {border}{tl}{h}{header}{h * pad}{h}{tail}{h}{tr}{ANSI_RESET}"
+    body_lines: list[str] = []
+    if summary_line:
+        body_lines.append(f"  {border}{v}{ANSI_RESET}  {summary_line[:110]}")
+    for extra in extra_lines or []:
+        body_lines.append(f"  {border}{v}{ANSI_RESET}  {ANSI_DIM}{extra[:110]}{ANSI_RESET}")
+    if not body_lines:
+        body_lines.append(f"  {border}{v}{ANSI_RESET}")
+    bottom = f"  {border}{bl}{h * 70}{br}{ANSI_RESET}"
+
+    print(top)
+    for line in body_lines:
+        print(line)
+    print(bottom)
+
+
+def make_ask_permission(state: dict) -> "callable":
+    """Factory do callback on_permission. Respeita state['bypass'].
+
+    Extraído de cli.py para manter o arquivo abaixo de 800 linhas
+    (CLAUDE.md §6). Permanece aqui porque é render layer (ADR-024).
+    """
+    from nyx.themes.design_tokens import ANSI_BOLD
+
+    def _ask(level: str, tool_name: str, args: dict) -> bool:
+        if state.get("bypass"):
+            logger.info("[bypass] auto-aprovado: %s", tool_name)
+            print(
+                f"  {ANSI_DIM}{BULLETS['bypass_on']} bypass · {tool_name} "
+                f"auto-aprovado{ANSI_RESET}"
+            )
+            return True
+        args_preview = str(args)[:80]
+        level_label = {
+            "confirm_once": "uma vez",
+            "always_confirm": "sempre",
+        }.get(level, level)
+        try:
+            resp = (
+                input(
+                    f"  {ANSI_ACCENT_FG}[permissão: {level_label}]{ANSI_RESET} "
+                    f"Executar {ANSI_BOLD}{tool_name}{ANSI_RESET}"
+                    f"({args_preview})? [S/n] "
+                )
+                .strip()
+                .lower()
+            )
+            return resp in ("", "s", "sim", "y", "yes")
+        except (EOFError, KeyboardInterrupt):
+            return False
+
+    return _ask
+
+
+def render_compaction_event(
+    level: int,
+    tokens_removed: int,
+    pct_before: float,
+    pct_after: float,
+) -> None:
+    """Linha discreta informando compactação automática (OBSERVABILITY-01 hook).
+
+    Formato: '  · compactação nível N: -Ktok (ctx B% → A%)' em muted.
+    """
+    before_pct = int(pct_before * 100) if pct_before <= 1 else int(pct_before)
+    after_pct = int(pct_after * 100) if pct_after <= 1 else int(pct_after)
+    print(
+        f"  {ANSI_MUTED_FG}{BULLETS['note']} compactação nível {level}: "
+        f"-{tokens_removed} tokens (ctx {before_pct}% → {after_pct}%){ANSI_RESET}"
+    )
 
 
 USER_INPUT_COLLAPSE_LINES = 8

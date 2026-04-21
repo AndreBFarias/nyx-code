@@ -66,31 +66,7 @@ NC = ANSI_RESET
 
 
 from nyx.agent.banner import build_banner as _build_banner  # noqa: E402
-
-
-def _make_ask_permission(state: dict) -> "callable":
-    """Factory que devolve a callback on_permission respeitando bypass_mode."""
-
-    def _ask(level: str, tool_name: str, args: dict) -> bool:
-        if state.get("bypass"):
-            logger.info("[bypass] auto-aprovado: %s", tool_name)
-            print(f"  {DIM}{BULLETS['bypass_on']} bypass · {tool_name} auto-aprovado{NC}")
-            return True
-        args_preview = str(args)[:80]
-        level_label = {"confirm_once": "uma vez", "always_confirm": "sempre"}.get(level, level)
-        try:
-            resp = (
-                input(
-                    f"  {ACCENT}[permissão: {level_label}]{NC} Executar {BOLD}{tool_name}{NC}({args_preview})? [S/n] "
-                )
-                .strip()
-                .lower()
-            )
-            return resp in ("", "s", "sim", "y", "yes")
-        except (EOFError, KeyboardInterrupt):
-            return False
-
-    return _ask
+from nyx.agent.output import make_ask_permission as _make_ask_permission  # noqa: E402
 
 
 async def run_repl(streaming: bool = True) -> int:
@@ -244,11 +220,14 @@ async def run_repl(streaming: bool = True) -> int:
     model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", settings.model))
 
     from nyx.agent.output import (
+        format_args_preview,
+        is_tool_error,
         nyx_spinner,
         render_assistant_end,
         render_assistant_start,
-        render_tool_call,
-        render_tool_result,
+        render_compaction_event,
+        render_tool_card_end,
+        render_tool_card_start,
         render_user_input,
     )
 
@@ -257,6 +236,7 @@ async def run_repl(streaming: bool = True) -> int:
     app_state: dict[str, bool] = {"bypass": False}
     image_counter: dict[str, int] = {"n": 0}
     image_map: dict[int, str] = {}
+    tool_timers: dict[str, float] = {}
 
     def _stop_spinner() -> None:
         sp = spinner_state.get("active")
@@ -273,7 +253,8 @@ async def run_repl(streaming: bool = True) -> int:
     def on_tool(name: str, args: dict) -> None:
         _stop_spinner()
         turn_state["streamed_text"] = ""
-        render_tool_call(name, args, project_root=project_root)
+        tool_timers[name] = time.monotonic()
+        render_tool_card_start(name, format_args_preview(args))
 
     def on_tool_result(name: str, result: str) -> None:
         if name == "ask_user":
@@ -299,9 +280,20 @@ async def run_repl(streaming: bool = True) -> int:
                             answer = idx_opts[idx].get("label", answer)
                     agent.session.add_user(f"[resposta] {answer}")
                 return
-        render_tool_result(result)
+        started = tool_timers.pop(name, None)
+        duration_ms = int((time.monotonic() - started) * 1000) if started else 0
+        first_line = next((ln.strip() for ln in (result or "").splitlines() if ln.strip()), "")
+        render_tool_card_end(
+            name,
+            duration_ms=duration_ms,
+            summary_line=first_line,
+            is_error=is_tool_error(first_line),
+        )
 
-    from nyx.agent.commands._observability import on_compaction_log, on_model_state_log
+    def on_compaction(level: int, tokens_removed: int, pct_before: float, pct_after: float) -> None:
+        render_compaction_event(level, tokens_removed, pct_before, pct_after)
+
+    from nyx.agent.commands._observability import on_model_state_log
 
     agent = AgentLoop(
         project_root=project_root,
@@ -311,7 +303,7 @@ async def run_repl(streaming: bool = True) -> int:
         on_tool=on_tool,
         on_tool_result=on_tool_result,
         on_permission=_make_ask_permission(app_state),
-        on_compaction=on_compaction_log,
+        on_compaction=on_compaction,
         on_model_state=on_model_state_log,
         streaming=streaming,
         settings=settings,
