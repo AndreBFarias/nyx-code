@@ -232,11 +232,13 @@ async def run_repl(streaming: bool = True) -> int:
     )
 
     spinner_state: dict[str, object | None] = {"active": None}
-    turn_state: dict[str, str] = {"streamed_text": ""}
+    turn_state: dict[str, str] = {"streamed_text": "", "token_buffer": ""}
     app_state: dict[str, bool] = {"bypass": False}
     image_counter: dict[str, int] = {"n": 0}
     image_map: dict[int, str] = {}
     tool_timers: dict[str, float] = {}
+
+    TOKEN_FLUSH_CHARS = 32
 
     def _stop_spinner() -> None:
         sp = spinner_state.get("active")
@@ -244,11 +246,22 @@ async def run_repl(streaming: bool = True) -> int:
             sp.stop()  # type: ignore[union-attr]
             spinner_state["active"] = None
 
+    def _flush_buffer() -> None:
+        buf = turn_state.get("token_buffer", "")
+        if buf:
+            sys.stdout.write(buf)
+            sys.stdout.flush()
+            turn_state["token_buffer"] = ""
+
     def on_token(token: str) -> None:
-        _stop_spinner()
+        if not turn_state["streamed_text"]:
+            _stop_spinner()
+            sys.stdout.write("\r\x1b[2K")
+            sys.stdout.flush()
         turn_state["streamed_text"] += token
-        sys.stdout.write(token)
-        sys.stdout.flush()
+        turn_state["token_buffer"] += token
+        if len(turn_state["token_buffer"]) >= TOKEN_FLUSH_CHARS or "\n" in token:
+            _flush_buffer()
 
     def on_tool(name: str, args: dict) -> None:
         _stop_spinner()
@@ -533,6 +546,7 @@ async def run_repl(streaming: bool = True) -> int:
 
         try:
             turn_state["streamed_text"] = ""
+            turn_state["token_buffer"] = ""
             spinner = nyx_spinner("pensando...")
             spinner.__enter__()
             spinner_state["active"] = spinner
@@ -541,11 +555,19 @@ async def run_repl(streaming: bool = True) -> int:
                 status = await agent.run(user_input)
             finally:
                 _stop_spinner()
+                _flush_buffer()
             total_iterations += status.iterations
 
             streamed = turn_state["streamed_text"].strip()
             summary = (status.summary or "").strip()
-            already_shown = bool(streamed) and bool(summary) and (streamed == summary or streamed.endswith(summary))
+
+            def _is_subset(a: str, b: str) -> bool:
+                """Retorna True se a é essencialmente contida em b (ignora whitespace)."""
+                ca = " ".join(a.split())
+                cb = " ".join(b.split())
+                return bool(ca) and bool(cb) and (ca in cb or cb in ca)
+
+            already_shown = bool(streamed) and bool(summary) and _is_subset(streamed, summary)
             if summary and not already_shown:
                 if use_rich and output:
                     output("nyx", status.summary)
@@ -567,6 +589,9 @@ async def run_repl(streaming: bool = True) -> int:
 
         except KeyboardInterrupt:
             _stop_spinner()
+            _flush_buffer()
+            sys.stdout.write("\r\x1b[2K")
+            sys.stdout.flush()
             print(f"\n  {ACCENT}[cancelado]{NC}")
 
     elapsed = time.time() - session_start

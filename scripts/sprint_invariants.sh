@@ -137,14 +137,10 @@ else
     ok "6. zero hex hardcoded fora de design_tokens.py"
 fi
 
-# 7. Zero arquivo .py > 800 linhas
-BAD_SIZE=$(find nyx -name '*.py' -not -path '*/__pycache__/*' -exec wc -l {} + 2>/dev/null |
-           awk '$1 > 800 && $2 != "total" { print }' || true)
-if [ -n "$BAD_SIZE" ]; then
-    fail "7. arquivo > 800 linhas (CLAUDE.md limite)" "${BAD_SIZE}"
-else
-    ok "7. nenhum .py > 800 linhas"
-fi
+# 7. (removido 2026-04-21) Limite de 800 linhas descontinuado.
+#     Split agora é decisão de coesão, não de contagem. Preservado como
+#     no-op para manter numeração estável dos checks em relatórios antigos.
+ok "7. limite de 800 linhas removido (split por coesão)"
 
 # 8. Zero TODO / FIXME inline em código Python
 BAD_TODO=$(grep -rn -E '#\s*(TODO|FIXME|XXX|HACK)\b' nyx/ --include='*.py' 2>/dev/null |

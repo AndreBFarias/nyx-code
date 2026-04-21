@@ -19,6 +19,7 @@ from nyx.themes.design_tokens import (
     BOX_CHARS,
     BULLETS,
     NYX_ACCENT,
+    SPINNER_FRAMES,
 )
 
 logger = get_logger("nyx.output")
@@ -202,59 +203,61 @@ class RichOutput:
 
 
 class NyxSpinner:
-    """Context manager para spinner durante operações longas."""
+    """Spinner com frames Braille de SPINNER_FRAMES (ADR-023).
 
-    def __init__(self, message: str = "Pensando...") -> None:
+    Thread daemon rotaciona frames a cada 80ms. Ao parar, emite
+    ``\\r\\x1b[2K`` para limpar a linha antes que on_token escreva.
+    Idempotente: ``stop()`` duplicado é no-op.
+    """
+
+    FRAME_INTERVAL_S = 0.08
+
+    def __init__(self, message: str = "pensando...") -> None:
+        import threading
+
         self._message = message
-        self._spinner = None
-        self._console = None
+        self._stop_evt = threading.Event()
+        self._thread: threading.Thread | None = None
+        self._stopped = False
 
     def __enter__(self) -> NyxSpinner:
-        if RICH_AVAILABLE:
-            try:
-                from rich.console import Console
-                from rich.live import Live
-                from rich.spinner import Spinner
+        import sys
+        import threading
 
-                self._console = Console(highlight=False)
-                spinner = Spinner("dots", text=f"  [dim]{self._message}[/dim]")
-                self._live = Live(spinner, console=self._console, refresh_per_second=10)
-                self._live.start()
-            except Exception as e:
-                logger.debug("Rich spinner falhou: %s", e)
-                import sys
-
-                sys.stdout.write(f"  {self._message}")
+        def _loop() -> None:
+            idx = 0
+            while not self._stop_evt.is_set():
+                frame = SPINNER_FRAMES[idx % len(SPINNER_FRAMES)]
+                sys.stdout.write(
+                    f"\r  {ANSI_ACCENT_FG}{frame}{ANSI_RESET}  {ANSI_DIM}{self._message}{ANSI_RESET}"
+                )
                 sys.stdout.flush()
-        else:
-            import sys
+                idx += 1
+                self._stop_evt.wait(self.FRAME_INTERVAL_S)
 
-            sys.stdout.write(f"  {self._message}")
-            sys.stdout.flush()
+        self._thread = threading.Thread(target=_loop, daemon=True)
+        self._thread.start()
         return self
 
     def __exit__(self, *args: object) -> None:
         self.stop()
 
     def stop(self) -> None:
-        """Idempotente: para o spinner se ainda ativo."""
-        if getattr(self, "_stopped", False):
+        """Idempotente. Limpa a linha do spinner com \\r\\x1b[2K."""
+        if self._stopped:
             return
         self._stopped = True
-        if hasattr(self, "_live"):
-            try:
-                self._live.stop()
-            except Exception as e:
-                logger.debug("Erro ao parar spinner: %s", e)
-        elif not RICH_AVAILABLE:
-            import sys
+        self._stop_evt.set()
+        if self._thread is not None:
+            self._thread.join(timeout=0.2)
+        import sys
 
-            sys.stdout.write("\r" + " " * 40 + "\r")
-            sys.stdout.flush()
+        sys.stdout.write("\r\x1b[2K")
+        sys.stdout.flush()
 
 
-def nyx_spinner(message: str = "Pensando...") -> NyxSpinner:
-    """Cria spinner para uso como context manager."""
+def nyx_spinner(message: str = "pensando...") -> NyxSpinner:
+    """Cria spinner Braille para uso como context manager."""
     return NyxSpinner(message)
 
 
