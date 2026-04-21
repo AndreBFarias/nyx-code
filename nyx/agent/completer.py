@@ -17,6 +17,7 @@ logger = get_logger("nyx.completer")
 try:
     from prompt_toolkit.completion import Completer, Completion
     from prompt_toolkit.document import Document
+    from prompt_toolkit.formatted_text import FormattedText
 
     HAS_PROMPT_TOOLKIT = True
 except ImportError:
@@ -29,6 +30,9 @@ except ImportError:
         pass
 
     class Document:  # type: ignore[no-redef]
+        pass
+
+    class FormattedText(list):  # type: ignore[no-redef]
         pass
 
 
@@ -58,11 +62,29 @@ class NyxCompleter(Completer):
                 matched.append(cmd)
         # Ordena por (categoria, nome) para que o popup agrupe visualmente.
         matched.sort(key=lambda c: (c.get("category", "geral"), c.get("name", "")))
+
+        last_cat: str | None = None
         for cmd in matched:
             name = cmd.get("name", "")
             desc = cmd.get("description", "")
             cat = cmd.get("category", "geral")
             aliases = cmd.get("aliases", []) or []
+
+            # Separador de categoria -- só quando cat muda e há comando real a seguir.
+            # Como o loop só emite header antes de um comando real do grupo,
+            # cabeçalhos órfãos são impossíveis por construção.
+            if cat != last_cat:
+                header = FormattedText(
+                    [("class:completion.header", f"---- [{cat}] ----")]
+                )
+                yield Completion(
+                    text="",
+                    start_position=0,
+                    display=header,
+                    display_meta="",
+                )
+                last_cat = cat
+
             alias_str = (
                 f" ({', '.join('/' + a for a in aliases)})" if aliases else ""
             )

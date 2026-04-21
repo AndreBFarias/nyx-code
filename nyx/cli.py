@@ -131,7 +131,16 @@ async def run_repl(streaming: bool = True) -> int:
                 and state.completions
                 and buf.document.text_before_cursor.lstrip().startswith("/")
             ):
-                buf.apply_completion(state.current_completion or state.completions[0])
+                current = state.current_completion or state.completions[0]
+                # Pula cabeçalhos de categoria (text=""): busca próximo Completion real.
+                # Se só houver cabeçalhos (impossível por construção do completer),
+                # fallback para o primeiro Completion disponível.
+                if not current.text:
+                    current = next(
+                        (c for c in state.completions if c.text),
+                        state.completions[0],
+                    )
+                buf.apply_completion(current)
             buf.validate_and_handle()
 
         @kb.add("c-j")
