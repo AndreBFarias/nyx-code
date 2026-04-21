@@ -108,6 +108,17 @@ async def run_repl(streaming: bool = True) -> int:
         completer = create_completer(project_root)
 
         kb = KeyBindings()
+        last_input_state: dict[str, str] = {"text": ""}
+
+        @kb.add("c-o")
+        def _expand_last_input(event: object) -> None:
+            from prompt_toolkit.application import run_in_terminal
+
+            from nyx.agent.output import render_user_input as _render_expanded
+
+            text = last_input_state.get("text", "")
+            if text:
+                run_in_terminal(lambda: _render_expanded(text, expanded=True))
 
         @kb.add("enter")
         def _submit(event: object) -> None:
@@ -357,6 +368,7 @@ async def run_repl(streaming: bool = True) -> int:
             continue
 
         if not user_input.startswith("/"):
+            last_input_state["text"] = user_input
             render_user_input(user_input)
 
         if user_input.startswith("/"):

@@ -525,11 +525,17 @@ def render_compaction_event(
 USER_INPUT_COLLAPSE_LINES = 8
 
 
-def render_user_input(text: str, console_width: int | None = None) -> None:
+def render_user_input(
+    text: str,
+    console_width: int | None = None,
+    expanded: bool = False,
+) -> None:
     """Imprime eco da mensagem do usuário num box '╭─ você ─╮'.
 
-    Se o input tem mais de USER_INPUT_COLLAPSE_LINES linhas (paste longo),
-    colapsa pra 3 primeiras + contagem.
+    Se o input tem mais de USER_INPUT_COLLAPSE_LINES linhas (paste longo)
+    e ``expanded=False`` (default), colapsa para a primeira linha seguida
+    de hint explicando Ctrl+O para expandir. Limiar é estritamente maior
+    (> 8): paste com exatamente 8 linhas renderiza integralmente.
 
     Fallback pra '> texto' se terminal <80 cols ou sem suporte a Rich.
     """
@@ -539,9 +545,12 @@ def render_user_input(text: str, console_width: int | None = None) -> None:
         console_width = shutil.get_terminal_size(fallback=(80, 24)).columns
 
     lines = text.splitlines() or [text]
-    if len(lines) > USER_INPUT_COLLAPSE_LINES:
-        head = "\n".join(lines[:3])
-        display_text = f"{head}\n... [{len(lines) - 3} linhas ocultas do paste]"
+    if not expanded and len(lines) > USER_INPUT_COLLAPSE_LINES:
+        hidden = len(lines) - 1
+        display_text = (
+            f"{lines[0]}\n"
+            f"... [{hidden} linhas ocultas -- Ctrl+O para expandir]"
+        )
     else:
         display_text = text
 

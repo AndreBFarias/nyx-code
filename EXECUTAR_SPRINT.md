@@ -1,15 +1,15 @@
-# Executar próxima sprint — TUI-FIX-07B
+# Executar próxima sprint — TUI-FIX-07C
 
 > **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
 > Copie o bloco abaixo e cole em uma session nova de Claude Opus 4.7.
-> Restam **20** sprints PENDENTE(S) na fila.
+> Restam **19** sprints PENDENTE(S) na fila.
 
 ---
 
 ## Prompt para colar na session
 
 ```
-Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_TUI_FIX_07B.md.
+Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_TUI_FIX_07C.md.
 
 Modelo obrigatório: claude-opus-4-7 (sem subagentes).
 Protocolo obrigatório (CLAUDE.md seção "próxima sprint" + workflow anti-gambiarra):
@@ -27,10 +27,10 @@ Protocolo obrigatório (CLAUDE.md seção "próxima sprint" + workflow anti-gamb
 10. Após CONCLUIDA: commit atômico, move sprint file para concluidos/, roda `python scripts/update_next_sprint.py` para atualizar este arquivo.
 
 Se qualquer passo falhar, reporte:
-    [SPRINT TUI-FIX-07B] BLOQUEADA: <motivo objetivo>
+    [SPRINT TUI-FIX-07C] BLOQUEADA: <motivo objetivo>
 
-ID desta sprint: TUI-FIX-07B
-Arquivo: dev-journey/06-sprints/producao/SPRINT_TUI_FIX_07B.md
+ID desta sprint: TUI-FIX-07C
+Arquivo: dev-journey/06-sprints/producao/SPRINT_TUI_FIX_07C.md
 ```
 
 ---
@@ -39,9 +39,9 @@ Arquivo: dev-journey/06-sprints/producao/SPRINT_TUI_FIX_07B.md
 
 ## Gambiarras específicas (recorte auto-injetado)
 
-> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §TUI-FIX-07B. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
+> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §TUI-FIX-07C. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
 
-(seção específica para TUI-FIX-07B não encontrada em GAMBIARRAS_POR_SPRINT.md; ler catálogo universal e matriz geral)
+(seção específica para TUI-FIX-07C não encontrada em GAMBIARRAS_POR_SPRINT.md; ler catálogo universal e matriz geral)
 
 <!-- /GAMBIARRAS_INJECT -->
 
