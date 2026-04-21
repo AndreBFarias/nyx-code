@@ -2856,6 +2856,54 @@ class NyxGauntlet:
         except Exception as e:
             self._add("CTX-10", "Summarizer LLM roundtrip", "contexto", False, time.monotonic() - t, error=str(e))
 
+        # CTX-11: write_memory disparado por linguagem natural (infra ADR-002)
+        t = time.monotonic()
+        try:
+            import httpx
+
+            from nyx.agent.prompt import build_system_prompt
+            from nyx.agent.tools.registry import ToolRegistry
+
+            registry = ToolRegistry(str(PROJECT_ROOT))
+            tool_names = [name for name in registry._tools]
+            system = build_system_prompt(str(PROJECT_ROOT), tool_names)
+            tool_schemas = registry.tool_defs
+
+            payload = {
+                "model": self._model,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": "lembra que eu uso pyenv 3.12 neste projeto"},
+                ],
+                "tools": tool_schemas,
+                "stream": False,
+            }
+            async with httpx.AsyncClient(timeout=180) as client:
+                r = await client.post(f"{self._proxy}/v1/chat/completions", json=payload)
+                data = r.json()
+            msg = data["choices"][0]["message"]
+            tool_calls = msg.get("tool_calls") or []
+            chose_write_memory = any(
+                c.get("function", {}).get("name") == "write_memory" for c in tool_calls
+            )
+            self._add(
+                "CTX-11",
+                "write_memory por linguagem natural",
+                "contexto",
+                chose_write_memory,
+                time.monotonic() - t,
+                details=f"tool_calls={len(tool_calls)} write_memory={chose_write_memory}",
+            )
+        except Exception as e:
+            self._add(
+                "CTX-11",
+                "write_memory por linguagem natural",
+                "contexto",
+                False,
+                time.monotonic() - t,
+                error=str(e),
+            )
+
     # ═══════════════════════════════════════════════════════════════════
     # FASE: INFRA_SYNC (5 testes)
     # ═══════════════════════════════════════════════════════════════════

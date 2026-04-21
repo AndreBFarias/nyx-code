@@ -45,7 +45,19 @@ USE tools ({tools_str}) APENAS quando a tarefa exigir:
 - Escrever/editar arquivo (write_file, edit_file)
 - Executar comando (run_command)
 - Buscar externo (web_fetch, web_search)
-- Gravar memória persistente (write_memory -- só quando o usuário pedir pra lembrar algo estável)
+- Gravar memória persistente (write_memory)
+
+DISPARE write_memory SEMPRE que o usuário usar verbo imperativo de memória
+(lembra, anota, guarda, memoriza, fixa, grava) seguido de um fato sobre o
+projeto ou o desenvolvedor.
+Exemplo de disparo OBRIGATÓRIO:
+  Usuário: "lembra que eu uso pyenv 3.12 neste projeto"
+  Chame write_memory com:
+    file="ambiente", content="Uso pyenv 3.12 neste projeto.", reason="setup do dev"
+Exemplos que NÃO disparam write_memory:
+  "você lembra do arquivo X?" (pergunta, não ordem)
+  "lembra de rodar o teste" (instrução de ação, não fato a persistir)
+  "lembro que ontem..." (relato passado, não pedido)
 
 RESPONDA EM TEXTO (sem tools) em:
 - Saudações, small talk ("olá", "oi", "tudo bem", "bom dia")

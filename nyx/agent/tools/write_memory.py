@@ -17,10 +17,11 @@ class WriteMemoryTool(RegisteredTool):
     tool_def = ToolDef(
         name="write_memory",
         description=(
-            "Grava memória persistente sobre o projeto ou o desenvolvedor "
-            "(convenções, preferências, decisões estáveis). Armazena em "
-            "~/.nyx/memory/<projeto>/. Use só para fatos que continuam válidos "
-            "entre sessões."
+            "Grava memória persistente sobre o projeto ou o desenvolvedor. "
+            "USE SEMPRE que o usuário disser em tom imperativo: 'lembra que ...', "
+            "'anota que ...', 'guarda essa decisão ...', 'memoriza ...', 'fixa ...'. "
+            "Armazena em ~/.nyx/memory/<projeto>/. Só para fatos que continuam "
+            "válidos entre sessões (convenções, preferências, decisões estáveis)."
         ),
         parameters={
             "file": {
