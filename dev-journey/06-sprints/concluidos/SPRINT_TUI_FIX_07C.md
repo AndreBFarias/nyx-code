@@ -197,55 +197,42 @@ Lista de tools sempre derivada do `ToolRegistry`; `/recall` itera via `NyxMemory
 
 ---
 
-## Comandos de verificação (literais, copy-paste)
+## Comandos de verificação
 
 ```bash
 cd /home/andrefarias/Desenvolvimento/Nyx-Code
 
-# 0. Verificar se cmd_tools e cmd_recall já existem (impacta decisão)
-grep -rn "name=\"tools\"\|name=\"recall\"" nyx/agent/commands/
-
-# 1. Validação estática
+grep -rn 'name="tools"\|name="recall"' nyx/agent/commands/
 python -m ruff check nyx/agent/commands/
 
-# 2. Sanity: comandos registrados
+# Comandos registrados
 python -c "
 from nyx.agent.commands import registry
 nomes = {c.name for c in registry.list_all()}
 for n in ('memory', 'paste', 'tools', 'recall'):
-    assert n in nomes, f'{n} não registrado'
+    assert n in nomes, n
 print('todos registrados')
 "
 
-# 3. Sanity: /memory vazio retorna mensagem clara
+# /memory vazio
 python -c "
 from nyx.agent.commands.system import cmd_memory
 out = cmd_memory('', '/tmp/nyx-empty-root')
 assert 'memória' in out.lower() or 'Sem' in out
-print('memory vazio OK:', out)
+print('memory vazio OK')
 "
 
-# 4. Sanity: /recall sem arg retorna uso
+# /recall sem arg
 python -c "
 from nyx.agent.commands.code import cmd_recall
-out = cmd_recall('', '.')
-assert 'uso' in out.lower()
-print('recall vazio OK:', out)
+assert 'uso' in cmd_recall('', '.').lower()
+print('recall vazio OK')
 "
 
-# 5. Gauntlet
 ./run.sh --gauntlet --only interface
-
-# 6. Smoke
 ./run.sh --smoke
 
-# 7. Validação manual
-./run.sh
-# /memory -- listar
-# /memory show <algum-arquivo> -- imprimir
-# /paste -- listar (ou mensagem de vazio)
-# /tools -- lista 34 tools
-# /recall python -- buscar
+# Manual: /memory, /memory show <f>, /paste, /tools, /recall <termo>.
 ```
 
 ---
@@ -276,36 +263,30 @@ Não marcar CONCLUIDA se `/tools` for duplicado; se a lista de tools for hardcod
 
 ## Gambiarras específicas
 
-1. **Stub de retorno fixo.** `/paste` sempre retorna `"Nenhuma imagem"` mesmo quando há. Proibido — gambiarra #2 do catálogo global.
-2. **Lista hardcoded de tools.** Em vez de ler do registry. Gambiarra #1 de "burlas estruturais".
-3. **`/recall` abrindo paths absolutos.** Usar só `NyxMemory.read(fname)` com nomes derivados de `index()`; nunca `open("/etc/passwd")` etc.
-4. **`/tools` duplicado.** Se já existe no código, apenas ampliar — nunca criar segundo decorator com mesmo nome.
-5. **Silent except.** `/recall` fazendo `except: continue` sem log. Proibido — usar `logger.warning` explícito ou acrescentar ao output de erros.
-6. **Ignorar dependência TUI-FIX-05.** `/paste` só faz sentido depois de TUI-FIX-05; confirmar que `session.image_map` ou estrutura equivalente existe antes. Se ausente, bloquear sprint e reportar.
+1. Stub de retorno fixo em `/paste`.
+2. Lista de tools hardcoded em vez de `ToolRegistry.list_all()`.
+3. `/recall` abrindo paths absolutos — usar `NyxMemory.read` apenas.
+4. `/tools` duplicado quando já existir no código.
+5. `except: continue` sem log em `/recall`.
+6. Ignorar TUI-FIX-05: se `session.image_map` ausente, bloquear sprint e reportar.
 
 ---
 
-## Proof-of-work obrigatório (4 passos)
+## Proof-of-work (4 passos)
 
 ```bash
-# PASSO 1 — ANTES
 bash scripts/sprint_invariants.sh > /tmp/inv_before.txt 2>&1
-FAIL_BEFORE=$(grep -c "^\[FAIL\]" /tmp/inv_before.txt)
-
-# PASSO 2 — implementação
-
-# PASSO 3 — DEPOIS
+# ... implementação ...
 bash scripts/sprint_invariants.sh > /tmp/inv_after.txt 2>&1
-FAIL_AFTER=$(grep -c "^\[FAIL\]" /tmp/inv_after.txt)
-
-# PASSO 4 — FAIL_AFTER <= FAIL_BEFORE; diff colado
+diff /tmp/inv_before.txt /tmp/inv_after.txt
+# Exigência: FAIL_AFTER <= FAIL_BEFORE
 ```
 
-Colar no relatório: `tail -10` de cada snapshot, `diff`, output literal dos 4 sanity checks, gauntlet interface, `git show --stat HEAD`.
+Colar no relatório: `tail -10` de cada snapshot, `diff`, 4 sanity checks, gauntlet interface, `git show --stat HEAD`.
 
 ---
 
-## Validação humana (checklist do usuário)
+## Validação humana
 
 ```bash
 cd /home/andrefarias/Desenvolvimento/Nyx-Code
@@ -313,13 +294,7 @@ git log --oneline -1
 git show --stat HEAD
 
 ./run.sh
-# /memory             -- lista ou "Sem memórias gravadas."
-# /memory show <arq>  -- imprime conteúdo
-# /paste              -- lista ou "Nenhuma imagem colada nesta sessão."
-# /tools              -- lista as 34 tools
-# /recall python      -- matches
-# /recall             -- "uso: /recall <termo>"
-# Ctrl+D
+# /memory, /memory show <arq>, /paste, /tools, /recall <termo>, /recall, Ctrl+D
 
 ls dev-journey/06-sprints/concluidos/SPRINT_TUI_FIX_07C.md
 ls dev-journey/06-sprints/producao/SPRINT_TUI_FIX_07C.md  # NÃO deve existir
@@ -331,10 +306,10 @@ ls dev-journey/06-sprints/producao/SPRINT_TUI_FIX_07C.md  # NÃO deve existir
 
 | Risco | Mitigação |
 |-------|-----------|
-| `session.image_map` com nome diferente (TUI-FIX-05 pode ter usado outra estrutura) | Grep antes; se diferente, adaptar import; nunca assumir |
-| `/tools` já existente em outro módulo | Passo 0 do comando de verificação detecta; se sim, ampliar |
-| `/recall` com padrão regex injetado pelo usuário | Usar comparação textual (`in`), não regex — evita ReDoS |
-| Memórias muito grandes (> 1 MB) | `/recall` itera linha a linha; aceitável; sem paginação por ora |
+| `session.image_map` com nome diferente | Grep antes; adaptar; nunca assumir |
+| `/tools` já existente | Passo 0 detecta; ampliar em vez de duplicar |
+| `/recall` com regex injetado | Comparação textual (`in`), não regex |
+| Memórias grandes | Iteração linha a linha; aceitável |
 
 ---
 

@@ -295,7 +295,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 35 | **TUI-FIX-07** | 4b Herdado | MÉDIA | ABSORVIDA_POR_TUI-FIX-07A, TUI-FIX-07B, TUI-FIX-07C (decisão de escopo 2026-04-19) | VALIDATE-ONDA-21 |
 | 36 | **TUI-FIX-07A** | 4b Herdado | MÉDIA | CONCLUIDA | VALIDATE-ONDA-21 |
 | 37 | **TUI-FIX-07B** | 4b Herdado | MÉDIA | CONCLUIDA | TUI-FIX-07A |
-| 38 | **TUI-FIX-07C** | 4b Herdado | BAIXA | PENDENTE | TUI-FIX-07B |
+| 38 | **TUI-FIX-07C** | 4b Herdado | BAIXA | CONCLUIDA | TUI-FIX-07B |
 | 39 | **UX-BUG-01** | 5 Bugs | ALTA | PENDENTE | UX-LAYOUT-03 |
 | 40 | **ERROR-MSG-01** | 5 Bugs | ALTA | PENDENTE | UX-DESIGN-01 |
 | 41 | **COMPLETER-ARGS-01** | 5 Bugs | MÉDIA | PENDENTE | UX-BUG-01 |

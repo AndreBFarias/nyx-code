@@ -63,13 +63,13 @@ def cmd_memory(args: str, project_root: str) -> str:
     entries = mem.index()
     if not entries:
         return (
-            "Sem memórias gravadas pra este projeto. A Nyx grava via tool "
+            "Sem memórias gravadas. A Nyx grava via tool "
             "write_memory quando você pede pra lembrar algo estável."
         )
     lines = [f"  Memórias em {mem.directory}:", ""]
     for e in entries:
         reason = e.get("reason") or ""
-        lines.append(f"    {e['file']:<24s} -- {reason}")
+        lines.append(f"- {e['file']}: {reason}")
     lines.append("")
     lines.append("  (use /memory show <nome> para ver conteúdo)")
     return "\n".join(lines)
@@ -77,41 +77,39 @@ def cmd_memory(args: str, project_root: str) -> str:
 
 @nyx_command(
     name="recall",
-    description="Busca em memória de sessões anteriores (SessionMemory JSON)",
+    description="Busca textual nas memórias do projeto (/recall <termo>)",
     category="memória",
     aliases=["rec"],
 )
-def cmd_recall(args: str, _root: str) -> str:
-    from nyx.agent.services.memory import SessionMemory
+def cmd_recall(args: str, project_root: str) -> str:
+    from nyx.agent.memory import NyxMemory
 
-    mem = SessionMemory()
-    action = args.strip().lower()
+    termo = args.strip()
+    if not termo:
+        return "uso: /recall <termo>"
 
-    if not action or action == "list":
-        memories = mem.get_recent(n=20)
-        if not memories:
-            return "  Nenhuma memória salva."
-        lines = ["  Memórias recentes:"]
-        for m in memories:
-            tags = f" [{', '.join(m.tags)}]" if m.tags else ""
-            lines.append(f"    - {m.key}: {m.content[:60]}{tags}")
-        return "\n".join(lines)
+    mem = NyxMemory(project_root)
+    entries = mem.index()
+    if not entries:
+        return "Nenhuma memória gravada para buscar."
 
-    if action.startswith("search "):
-        query = action[7:].strip()
-        results = mem.search(query)
-        if not results:
-            return f"  Nenhuma memória para '{query}'."
-        lines = [f"  Resultados para '{query}':"]
-        for m in results:
-            lines.append(f"    - {m.key}: {m.content[:60]}")
-        return "\n".join(lines)
+    termo_lower = termo.lower()
+    resultados: list[str] = []
+    for entry in entries:
+        fname = entry["file"]
+        target = mem.directory / entry.get("href", f"{fname}.md")
+        try:
+            conteudo = target.read_text(encoding="utf-8", errors="replace")
+        except OSError as exc:
+            resultados.append(f"  [erro ao ler {fname}: {exc}]")
+            continue
+        for n, linha in enumerate(conteudo.splitlines(), start=1):
+            if termo_lower in linha.lower():
+                resultados.append(f"  {fname}:{n}: {linha.strip()}")
 
-    return (
-        "  Uso: /recall [ação]\n"
-        "    list              -- lista memórias recentes\n"
-        "    search <termo>    -- busca nas memórias"
-    )
+    if not resultados:
+        return f"Nenhuma ocorrência de '{termo}' nas memórias."
+    return "\n".join(resultados)
 
 
 @nyx_command(name="paste", description="Lista imagens coladas na sessão (Ctrl+V)", category="contexto")
@@ -119,13 +117,12 @@ def cmd_paste(_args: str, _project_root: str) -> str:
     pastes = Path.home() / ".nyx" / "pastes"
     if not pastes.exists():
         return "Nenhuma imagem colada ainda. Use Ctrl+V com imagem no clipboard."
-    files = sorted(pastes.glob("*.png"))[-20:]
+    files = sorted(pastes.glob("*.png"), key=lambda p: p.stat().st_mtime)[-20:]
     if not files:
         return "Nenhuma imagem em ~/.nyx/pastes/."
     lines = [f"  Últimas {len(files)} imagens em {pastes}:", ""]
-    for f in files:
-        size_kb = f.stat().st_size / 1024
-        lines.append(f"    {f.name:<32s} {size_kb:>7.1f} KB")
+    for n, f in enumerate(files, start=1):
+        lines.append(f"  #{n} {f}")
     return "\n".join(lines)
 
 
