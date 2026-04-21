@@ -293,7 +293,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 33 | **UX-LAYOUT-02** | 4 Layout | ALTA | CONCLUIDA (commit 80a6ccc) | UX-LAYOUT-01B, OBSERVABILITY-01 |
 | 34 | **UX-LAYOUT-03** | 4 Layout | ALTA | CONCLUIDA | UX-LAYOUT-02 |
 | 35 | **TUI-FIX-07** | 4b Herdado | MÉDIA | ABSORVIDA_POR_TUI-FIX-07A, TUI-FIX-07B, TUI-FIX-07C (decisão de escopo 2026-04-19) | VALIDATE-ONDA-21 |
-| 36 | **TUI-FIX-07A** | 4b Herdado | MÉDIA | PENDENTE | VALIDATE-ONDA-21 |
+| 36 | **TUI-FIX-07A** | 4b Herdado | MÉDIA | CONCLUIDA | VALIDATE-ONDA-21 |
 | 37 | **TUI-FIX-07B** | 4b Herdado | MÉDIA | PENDENTE | TUI-FIX-07A |
 | 38 | **TUI-FIX-07C** | 4b Herdado | BAIXA | PENDENTE | TUI-FIX-07B |
 | 39 | **UX-BUG-01** | 5 Bugs | ALTA | PENDENTE | UX-LAYOUT-03 |

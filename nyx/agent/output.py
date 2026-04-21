@@ -202,12 +202,31 @@ class RichOutput:
         return self._console is not None
 
 
-class NyxSpinner:
-    """Spinner com frames Braille de SPINNER_FRAMES (ADR-023).
+_SPINNER_ASCII: tuple[str, ...] = ("|", "/", "-", "\\")
 
-    Thread daemon rotaciona frames a cada 80ms. Ao parar, emite
-    ``\\r\\x1b[2K`` para limpar a linha antes que on_token escreva.
-    Idempotente: ``stop()`` duplicado é no-op.
+
+def _spinner_frames() -> tuple[str, ...]:
+    """Retorna frames Braille em locale UTF-8, ASCII caso contrário.
+
+    Inspeciona LC_ALL + LANG em uppercase. Qualquer forma (UTF-8, UTF8,
+    utf-8, utf8) ativa Braille. LANG=C ou outros locales legacy caem
+    para ASCII |/-\\.
+    """
+    import os
+
+    raw = (os.environ.get("LC_ALL", "") + os.environ.get("LANG", "")).upper()
+    if "UTF-8" in raw or "UTF8" in raw:
+        return SPINNER_FRAMES
+    return _SPINNER_ASCII
+
+
+class NyxSpinner:
+    """Spinner com frames de SPINNER_FRAMES (Braille UTF-8) ou ASCII (ADR-023).
+
+    Thread daemon rotaciona frames a cada 80ms. Escolha UTF-8 vs ASCII
+    feita uma vez no start via _spinner_frames() (leitura de LC_ALL+LANG).
+    Ao parar, emite ``\\r\\x1b[2K`` para limpar a linha antes que on_token
+    escreva. Idempotente: ``stop()`` duplicado é no-op.
     """
 
     FRAME_INTERVAL_S = 0.08
@@ -224,10 +243,12 @@ class NyxSpinner:
         import sys
         import threading
 
+        frames = _spinner_frames()
+
         def _loop() -> None:
             idx = 0
             while not self._stop_evt.is_set():
-                frame = SPINNER_FRAMES[idx % len(SPINNER_FRAMES)]
+                frame = frames[idx % len(frames)]
                 sys.stdout.write(
                     f"\r  {ANSI_ACCENT_FG}{frame}{ANSI_RESET}  {ANSI_DIM}{self._message}{ANSI_RESET}"
                 )
