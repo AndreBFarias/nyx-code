@@ -348,40 +348,6 @@ def is_tool_error(text: str) -> bool:
     return any(text.startswith(p) for p in _ERROR_PREFIXES)
 
 
-def render_tool_call(
-    name: str,
-    args: dict,
-    project_root: str | None = None,
-) -> None:
-    """Renderiza linha de tool call com bullet em accent color.
-
-    Forma compacta (sem card). Preservada para call-sites que não têm
-    duração. Call-sites novos (cli.py on_tool/on_tool_result) usam
-    render_tool_card_start/end com duração.
-    """
-    formatted = format_tool_call(name, args, project_root=project_root)
-    print(f"  {ANSI_ACCENT_FG}{BULLETS['tool']}{ANSI_RESET} {formatted}")
-
-
-def render_tool_result(result: str, max_chars: int = 110) -> None:
-    """Resumo colapsado do resultado de uma tool: '    └─ 1ª linha'.
-
-    Erros (prefixos conhecidos) saem em vermelho; sucesso em dim.
-    """
-    if not result:
-        return
-    first_line = next(
-        (line.strip() for line in result.splitlines() if line.strip()),
-        "",
-    )
-    if not first_line:
-        return
-    if len(first_line) > max_chars:
-        first_line = first_line[: max_chars - 1] + "…"
-    color = ANSI_ERROR_FG if is_tool_error(first_line) else ANSI_DIM
-    print(f"    {color}{BULLETS['result']} {first_line}{ANSI_RESET}")
-
-
 def _format_duration(duration_ms: int) -> str:
     """Formata duração em ms ou s (>=1000ms)."""
     if duration_ms < 1000:

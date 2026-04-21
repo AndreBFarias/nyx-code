@@ -20,19 +20,14 @@ if TYPE_CHECKING:
 logger = get_logger("nyx.commands.observability")
 
 
-def on_compaction_log(level: int, removed: int, pct_before: float, pct_after: float) -> None:
-    """Stub do callback on_compaction. UX-LAYOUT-02 substitui por render visual."""
-    logger.debug(
-        "compaction level=%d removed=%d before=%.2f after=%.2f",
-        level,
-        removed,
-        pct_before,
-        pct_after,
-    )
-
-
 def on_model_state_log(state: str) -> None:
-    """Stub do callback on_model_state. UX-LAYOUT-02 substitui por indicador visual."""
+    """Callback que registra transições cold → warming → warm no log.
+
+    Este stub ativa o contrato de on_model_state no AgentLoop enquanto
+    o render visual não chega. UX-BUG-02B (toolbar warm/cold) substituirá
+    por indicador visual no bottom_toolbar. Enquanto isso, segue como log
+    estruturado para debug de boot lento.
+    """
     logger.debug("model state -> %s", state)
 
 
