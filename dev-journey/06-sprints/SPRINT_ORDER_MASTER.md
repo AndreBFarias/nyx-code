@@ -288,7 +288,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 28 | **DOC-CONSOLIDATE-01** | 2.9 Integração | MÉDIA | PENDENTE | -- |
 | 29 | **UX-DESIGN-01** | 3 Design | CRÍTICA | CONCLUIDA (commit e189f15) | AUDIT-FIX-03 |
 | 30 | **UX-LAYOUT-01** | 4 Layout | ALTA | ABSORVIDA_POR_UX-LAYOUT-01A, UX-LAYOUT-01B (decisão de escopo 2026-04-19) | UX-DESIGN-01 |
-| 31 | **UX-LAYOUT-01A** | 4 Layout | ALTA | PENDENTE | UX-DESIGN-01 |
+| 31 | **UX-LAYOUT-01A** | 4 Layout | ALTA | CONCLUIDA (commit af0a901) | UX-DESIGN-01 |
 | 32 | **UX-LAYOUT-01B** | 4 Layout | ALTA | PENDENTE | UX-LAYOUT-01A, OBSERVABILITY-01 |
 | 33 | **UX-LAYOUT-02** | 4 Layout | ALTA | PENDENTE | UX-LAYOUT-01B, OBSERVABILITY-01 |
 | 34 | **UX-LAYOUT-03** | 4 Layout | ALTA | PENDENTE | UX-LAYOUT-02 |
