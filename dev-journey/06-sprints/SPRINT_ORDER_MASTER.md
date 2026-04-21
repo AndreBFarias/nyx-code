@@ -27,11 +27,12 @@ Port status: `dev-journey/PORT_STATUS.md`.
 
 ## Inventário
 
-> **Fonte única:** `dev-journey/08-templates/PROJECT_SNAPSHOT.md` §Contagens. Verificação executável: `python scripts/sync.py` imprime `inventario: tools=N, commands_unicos=M, services=S` na primeira linha. Em 2026-04-21 (pós INVENTORY-SYNC-01): **28 tools · 52 commands únicos · 9 services · 24 ADRs · 135+ testes no Gauntlet**.
+> **Fonte única:** `dev-journey/08-templates/PROJECT_SNAPSHOT.md` §Contagens. Verificação executável: `python scripts/sync.py` imprime `inventario: tools=N, commands_unicos=M, services=S` na primeira linha. Em 2026-04-21 (pós BANNER-TOOLS-COUNT-01): **35 tools (runtime) · 52 commands únicos · 9 services · 24 ADRs · 135+ testes no Gauntlet**.
 
 **Nota histórica:**
 - **2026-04-09 (limpeza PROD):** removidos 27 command-stubs cloud e 11 service-stubs cloud. Port 1:1 do OpenClaude abandonado. Foco em funcionalidade local-first; features cloud/enterprise (voice, mobile, chrome, plugins, rate-limit, etc) não se aplicam.
-- **2026-04-21 (INVENTORY-SYNC-01):** contagens antes divergiam em 3 documentos (34/47/10 vs 30/54/9 vs realidade 28/52/9). Normalizado apontando para `PROJECT_SNAPSHOT.md` como fonte única.
+- **2026-04-21 (INVENTORY-SYNC-01):** contagens antes divergiam em 3 documentos (34/47/10 vs 30/54/9 vs filesystem 28/52/9). Normalizado apontando para `PROJECT_SNAPSHOT.md` como fonte única. Número de tools adotado (28) refletia filesystem, não registry runtime — ainda contradizia o banner do REPL que exibia 35.
+- **2026-04-21 (BANNER-TOOLS-COUNT-01):** reconciliado com autoridade runtime. `ToolRegistry.tool_count == 35`; diferença de 7 explicada por arquivos que exportam múltiplas tools: `task_manager.py` (6 tools: task_create/update/list/get/output/stop → +5), `plan_mode.py` (enter/exit_plan_mode → +1), `worktree.py` (enter/exit_worktree → +1). Contagem canônica passa a ser runtime (`ToolRegistry.tool_count`) em vez de filesystem (`find`). Evolução: 34 → 30 → 28 (filesystem) → 35 (runtime, definitivo).
 
 ---
 
@@ -316,7 +317,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 60 | **INVENTORY-SYNC-01** | 2.10 Higiene | MÉDIA | CONCLUIDA (commit 3689081) | PRODUCAO-CLEANUP-01 |
 | 61 | **COMPLETER-SEPS-01** | 5 Bugs | MÉDIA | CONCLUIDA (commit 920b3e6) | UX-BUG-01 |
 | 62 | **TUI-CLEANUP-01** | 2.10 Higiene | BAIXA | CONCLUIDA (commit 3fd91e3) | UX-LAYOUT-02, OBSERVABILITY-01 |
-| 63 | **BANNER-TOOLS-COUNT-01** | 2.10 Higiene | MÉDIA | PENDENTE | INVENTORY-SYNC-01 |
+| 63 | **BANNER-TOOLS-COUNT-01** | 2.10 Higiene | MÉDIA | CONCLUIDA | INVENTORY-SYNC-01 |
 | 64 | **TAG-KEY-ACCENT-01** | 2.10 Higiene | BAIXA | PENDENTE | -- |
 | 65 | **STATUS-FILTER-HARDEN-01** | 2.10 Higiene | MÉDIA | PENDENTE | PRODUCAO-CLEANUP-01 |
 

@@ -82,7 +82,30 @@ def _grep_files(pattern: str, files: list[Path], ignore_paths: list[str] | None 
 
 
 def _count_tools() -> int:
-    """Conta arquivos de tool (exclui __init__/base/registry)."""
+    """Conta tools via ToolRegistry runtime (fonte canônica, BANNER-TOOLS-COUNT-01).
+
+    O registry é o que o REPL consome e o que o LLM recebe em ``tool_defs``.
+    Contagem por arquivo subestima porque arquivos como ``task_manager.py``,
+    ``plan_mode.py`` e ``worktree.py`` exportam múltiplas tools. Fallback
+    silencioso para filesystem se o import falhar — mantém robustez do sync.
+    """
+    try:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "from nyx.agent.tools.registry import ToolRegistry; "
+                "print(ToolRegistry('.').tool_count)",
+            ],
+            capture_output=True,
+            text=True,
+            cwd=str(PROJECT_ROOT),
+            timeout=15,
+        )
+        if result.returncode == 0:
+            return int(result.stdout.strip())
+    except Exception:
+        pass
     tools_dir = PROJECT_ROOT / "nyx" / "agent" / "tools"
     if not tools_dir.exists():
         return 0
@@ -365,7 +388,9 @@ class SyncChecker:
         if missing:
             self._errors.append(f"Tools sem import no registry: {missing}")
         else:
-            self._ok.append(f"Todas {len(tool_files)} tools registradas no registry")
+            self._ok.append(
+                f"Todos {len(tool_files)} arquivos de tool importados em registry.py"
+            )
 
     def _check_command_coverage(self) -> None:
         """Verifica total de commands registrados."""

@@ -23,14 +23,19 @@ Fonte única de portas/URLs: `nyx/config/defaults.py` (ADR-AUDIT-FIX-03).
 
 ---
 
-## Contagens (verificadas em 2026-04-21, pós INVENTORY-SYNC-01)
+## Contagens (verificadas em 2026-04-21, pós BANNER-TOOLS-COUNT-01)
 
 Fonte de verdade executável: `python scripts/sync.py` imprime
 `inventario: tools=N, commands_unicos=M, services=S` na primeira linha.
 
+Contagem de tools é **runtime** (ToolRegistry), não filesystem. Arquivos como
+`task_manager.py` (6 tools), `plan_mode.py` (2) e `worktree.py` (2) exportam
+múltiplas tools por arquivo; a autoridade é o registry, que é o que o REPL
+consome e o que o LLM recebe em `tool_defs`.
+
 | Categoria | Quantidade | Como verificar |
 |----------|------------|----------------|
-| Tools no registry | 28 | `find nyx/agent/tools -maxdepth 1 -name '*.py' ! -name '__init__.py' ! -name 'base.py' ! -name 'registry.py' \| wc -l` |
+| Tools no registry (runtime) | 35 | `python -c "from nyx.agent.tools.registry import ToolRegistry; print(ToolRegistry('.').tool_count)"` |
 | Commands únicos (sem aliases) | 52 | `python -c "from nyx.agent.commands._registry import list_commands; print(len(list_commands()))"` (fonte runtime — cobre decorators multilinha; grep estático `@nyx_command\(name=` subestima em 1) |
 | Services | 9 | `find nyx/agent/services -maxdepth 1 -name '*.py' ! -name '__init__.py' \| wc -l` |
 | ADRs vigentes | 24 (ADR-023 e ADR-024 já criados na Onda 22) | `ls dev-journey/03-decisions/ADR_*.md \| wc -l` |
@@ -66,7 +71,7 @@ Fonte de verdade executável: `python scripts/sync.py` imprime
 | `nyx/agent/output.py` | render layer. `print()` permitido aqui (ADR-024). |
 | `nyx/agent/loop/` | AgentLoop, iteração, constantes, tipos. |
 | `nyx/agent/commands/` | 52 commands únicos (sem aliases) split em arquivos por categoria. |
-| `nyx/agent/tools/` | 28 tools registradas. |
+| `nyx/agent/tools/` | 28 arquivos, 35 tools no registry (runtime). |
 | `nyx/agent/services/` | 9 services (memory, summary, logging, vision, etc). |
 | `nyx/themes/` | ThemeManager + `design_tokens.py` (pós UX-DESIGN-01). |
 | `nyx/providers/` | clientes HTTP (ollama, vision). |
