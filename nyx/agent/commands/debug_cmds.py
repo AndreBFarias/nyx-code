@@ -47,6 +47,14 @@ def cmd_ctx_viz(_args: str, _root: str) -> str:
     return "__context__"
 
 
+@nyx_command(name="debug", description="Debug da sessão (subcomando: session)", category="debug")
+def cmd_debug(args: str, _root: str) -> str:
+    sub = args.strip().lower()
+    if sub == "session":
+        return "__debug_session__"
+    return "  Uso: /debug session -- métricas estruturadas da sessão corrente"
+
+
 @nyx_command(name="tasks", description="Gerencia tarefas", category="execução")
 def cmd_tasks(args: str, project_root: str) -> str:
     from nyx.agent.tools.task_manager import TaskCreateTool, TaskListTool, TaskUpdateTool

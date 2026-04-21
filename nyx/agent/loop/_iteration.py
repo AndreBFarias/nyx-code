@@ -90,7 +90,11 @@ class _IterationMixin:
             for warn in pf.warnings:
                 logger.info("[loop] preflight aviso para %s: %s", name, warn)
 
+            import time as _time
+
+            _t0 = _time.monotonic()
             result = self._tools.execute(name, args)
+            self._tool_durations.setdefault(name, []).append((_time.monotonic() - _t0) * 1000.0)
             self._tool_summary.track(name, args)
 
             vr = post_validate(name, args, result)
@@ -166,7 +170,11 @@ class _IterationMixin:
         for warn in pf.warnings:
             logger.info("[loop] preflight aviso para %s: %s", tool_name, warn)
 
+        import time as _time
+
+        _t0 = _time.monotonic()
         result = self._tools.execute(tool_name, remapped)
+        self._tool_durations.setdefault(tool_name, []).append((_time.monotonic() - _t0) * 1000.0)
 
         vr = post_validate(tool_name, remapped, result)
         for warn in vr.warnings:

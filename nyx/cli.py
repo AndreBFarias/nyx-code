@@ -307,6 +307,8 @@ async def run_repl(streaming: bool = True) -> int:
                 return
         render_tool_result(result)
 
+    from nyx.agent.commands._observability import on_compaction_log, on_model_state_log
+
     agent = AgentLoop(
         project_root=project_root,
         proxy_url=proxy_url,
@@ -315,6 +317,8 @@ async def run_repl(streaming: bool = True) -> int:
         on_tool=on_tool,
         on_tool_result=on_tool_result,
         on_permission=_make_ask_permission(app_state),
+        on_compaction=on_compaction_log,
+        on_model_state=on_model_state_log,
         streaming=streaming,
         settings=settings,
     )
@@ -462,6 +466,15 @@ async def run_repl(streaming: bool = True) -> int:
             if result == "__files__":
                 ctx = agent.session.get_files_context()
                 print(f"  {ctx}" if ctx else "  Nenhum arquivo no contexto.")
+                continue
+
+            if result == "__debug_session__":
+                from nyx.agent.commands._observability import render_debug_session
+                print(render_debug_session(agent))
+                continue
+            if isinstance(result, str) and result.startswith("__replay__"):
+                from nyx.agent.commands._observability import render_replay
+                print(render_replay(Path(project_root), result.replace("__replay__", "")))
                 continue
 
             if result == "__trace__":

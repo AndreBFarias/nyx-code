@@ -57,6 +57,14 @@ def cmd_resume(_args: str, _root: str) -> str:
     return "__session_load__"
 
 
+@nyx_command(name="replay", description="Re-renderiza sessão salva (read-only, sem chamar modelo)", category="sessão")
+def cmd_replay(args: str, _root: str) -> str:
+    args = args.strip()
+    if not args:
+        return "  Uso: /replay <session_id> -- ex: session_Nyx-Code_1776736000"
+    return f"__replay__{args}"
+
+
 @nyx_command(name="export", description="Exporta sessão para arquivo", category="sessão")
 def cmd_export(args: str, _root: str) -> str:
     return "__export__" + (args.strip() or "md")

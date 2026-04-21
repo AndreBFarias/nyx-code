@@ -13,7 +13,7 @@ Fluxo integrado:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import httpx
 
@@ -57,6 +57,8 @@ class AgentLoop(_IterationMixin):
         on_tool: Any = None,
         on_tool_result: Any = None,
         on_permission: PermissionCallback | None = None,
+        on_compaction: Optional[Callable[[int, int, float, float], None]] = None,
+        on_model_state: Optional[Callable[[str], None]] = None,
         streaming: bool = True,
         settings: "NyxSettings | None" = None,
     ) -> None:
@@ -79,7 +81,13 @@ class AgentLoop(_IterationMixin):
         self._on_tool = on_tool
         self._on_tool_result = on_tool_result
         self._on_permission = on_permission
+        self._on_compaction = on_compaction
+        self._on_model_state = on_model_state
         self._streaming = streaming
+        self._tool_durations: dict[str, list[float]] = {}
+        self._model_state: str = "cold"
+        if self._on_model_state is not None:
+            self._on_model_state("cold")
 
         self._parser = ActionParser()
         self._budget = ContextBudget()
@@ -119,6 +127,16 @@ class AgentLoop(_IterationMixin):
         self._claude_ctx = build_claude_md_context(project_root)
         self._rebuild_system_prompt()
 
+    def session_state(self) -> dict:
+        """Métricas da sessão corrente para /debug session (OBSERVABILITY-01)."""
+        return {
+            "iter": self._session.iteration,
+            "tokens_total": int(self._budget._last_pct * self._budget.max_tokens),
+            "compactions": self._budget._compactions,
+            "tool_durations": {k: list(v) for k, v in self._tool_durations.items()},
+            "model_state": self._model_state,
+        }
+
     def _rebuild_system_prompt(self) -> None:
         """Reconstrói system prompt com placeholders dinâmicos atuais."""
         repo_map = ""
@@ -152,16 +170,30 @@ class AgentLoop(_IterationMixin):
         self._consecutive_skips = 0
         self._has_results = False
 
+        if self._model_state != "warm" and self._on_model_state is not None:
+            self._model_state = "warming"
+            self._on_model_state("warming")
+
         for i in range(self._max_iterations):
             self._session.iteration = i + 1
             logger.info("[loop] iteração %d/%d", i + 1, self._max_iterations)
 
             if self._budget.should_compact(self._session):
                 level = self._budget.get_compaction_level(self._session)
+                pct_before = self._budget._history_pct(self._session)
+                tokens_before = int(pct_before * self._budget.max_tokens)
                 logger.info("[loop] compactação nível %d", level)
                 self._budget.compact_history(self._session)
+                pct_after = self._budget._history_pct(self._session)
+                tokens_after = int(pct_after * self._budget.max_tokens)
+                tokens_removed = max(0, tokens_before - tokens_after)
+                if self._on_compaction is not None:
+                    self._on_compaction(level, tokens_removed, pct_before, pct_after)
 
             response = await self._call_llm()
+            if "error" not in response and self._model_state != "warm" and self._on_model_state is not None:
+                self._model_state = "warm"
+                self._on_model_state("warm")
             if "error" in response:
                 error_msg = response["error"]
                 self._diagnostics.record_error("llm", error_msg[:200])

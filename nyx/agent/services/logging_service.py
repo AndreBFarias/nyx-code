@@ -10,8 +10,8 @@ logger = logging.getLogger("nyx.services.logging_service")
 
 LOGS_DIR = Path.home() / ".nyx" / "logs"
 LOG_FILE = LOGS_DIR / "nyx.log"
-MAX_BYTES = 5 * 1024 * 1024  # 5 MB
-BACKUP_COUNT = 3
+MAX_BYTES = 10 * 1024 * 1024  # 10 MB (OBSERVABILITY-01)
+BACKUP_COUNT = 5
 
 _INITIALIZED = False
 
