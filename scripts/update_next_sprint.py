@@ -16,6 +16,7 @@ Pode ser wired como post-commit hook se o usuário quiser.
 from __future__ import annotations
 
 import argparse
+import logging
 import re
 import sys
 from pathlib import Path
@@ -37,19 +38,82 @@ ROW_PATTERN = re.compile(
     re.MULTILINE,
 )
 
+# Tolera blockquote ('> ') opcional, asteriscos em torno de 'Status' (com
+# colon dentro OU fora dos asteriscos: `**Status:**` e `**Status**:`).
+# Captura o primeiro campo Status explícito do arquivo da sprint.
+_STATUS_RE = re.compile(
+    r"^(?:>\s*)?\*{0,2}Status:?\*{0,2}:?\s*([A-Z][A-Z0-9_\-]*)",
+    re.MULTILINE,
+)
+
+# Whitelist: só consideramos sprints com este status literal no arquivo físico.
+_VALID_STATUS = {"PENDENTE"}
+
+logger = logging.getLogger("update_next_sprint")
+if not logger.handlers:
+    _handler = logging.StreamHandler(sys.stderr)
+    _handler.setFormatter(logging.Formatter("[%(name)s] %(message)s"))
+    logger.addHandler(_handler)
+    logger.setLevel(logging.INFO)
+
+
+def _read_status(path: Path) -> str:
+    """Lê o primeiro campo 'Status' do arquivo da sprint.
+
+    Tolera blockquote (``> **Status:** ...``) e variações em asteriscos.
+    Retorna ``"DESCONHECIDO"`` quando o arquivo não tem campo Status legível.
+    """
+    try:
+        head = path.read_text(encoding="utf-8", errors="replace")[:8000]
+    except OSError as exc:
+        logger.warning("não foi possível ler %s: %s", path, exc)
+        return "DESCONHECIDO"
+    match = _STATUS_RE.search(head)
+    return match.group(1) if match else "DESCONHECIDO"
+
+
+def _scan_producao_statuses() -> dict[str, str]:
+    """Varre producao/*.md e emite log 'pulando' para status não-PENDENTE.
+
+    Retorna mapa ``{nome_arquivo: status}`` para uso posterior pelo seletor.
+    Efeito colateral: logs diagnósticos de cada sprint não-PENDENTE.
+    """
+    statuses: dict[str, str] = {}
+    if not PRODUCAO_DIR.is_dir():
+        return statuses
+    for p in sorted(PRODUCAO_DIR.glob("SPRINT_*.md")):
+        status = _read_status(p)
+        statuses[p.name] = status
+        if status not in _VALID_STATUS:
+            logger.info("pulando %s (status=%s)", p.name, status)
+    return statuses
+
 
 def find_next_pending() -> str | None:
-    """Retorna o ID da primeira sprint PENDENTE encontrada em ordem."""
+    """Retorna o ID da primeira sprint PENDENTE válida.
+
+    Itera sobre as linhas PENDENTE do SPRINT_ORDER_MASTER.md (fonte de ordem
+    canônica) e descarta aquelas cujo arquivo físico em ``producao/`` tem
+    Status fora da whitelist. Garante que fantasmas (ABSORVIDA/DEFERIDA/
+    CONCLUIDA que ainda sobrevivem em producao/) não sejam eleitos.
+    """
     if not MASTER.exists():
-        print(f"[erro] {MASTER} não encontrado", file=sys.stderr)
+        logger.error("%s não encontrado", MASTER)
         return None
     content = MASTER.read_text(encoding="utf-8")
-    match = ROW_PATTERN.search(content)
-    if not match:
-        return None
-    sprint_id = match.group(1)
-    # Normalizar: AUDIT-FIX-02 -> AUDIT_FIX_02 para match com nome de arquivo
-    return sprint_id
+    for match in ROW_PATTERN.finditer(content):
+        sprint_id = match.group(1)
+        sprint_path = PRODUCAO_DIR / sprint_file_name(sprint_id)
+        if not sprint_path.exists():
+            logger.info(
+                "pulando %s (arquivo ausente em producao/)", sprint_path.name
+            )
+            continue
+        status = _read_status(sprint_path)
+        if status in _VALID_STATUS:
+            return sprint_id
+        logger.info("pulando %s (status=%s)", sprint_path.name, status)
+    return None
 
 
 def sprint_file_name(sprint_id: str) -> str:
@@ -188,7 +252,11 @@ def main() -> int:
     parser.add_argument("--quiet", action="store_true", help="não imprime nada (só escreve se mudou)")
     args = parser.parse_args()
 
+    if args.quiet:
+        logger.setLevel(logging.WARNING)
+
     try:
+        _scan_producao_statuses()
         sprint_id = find_next_pending()
         remaining = count_pending()
     except Exception as e:
