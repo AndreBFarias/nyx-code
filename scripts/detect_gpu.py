@@ -59,6 +59,28 @@ MODEL_TABLE: dict[str, dict[str, int]] = {
 
 DEFAULT_MODEL = "qwen3:4b"
 
+# Cap por VRAM total (ADR-003 + ADR-009). A heurística por VRAM livre é otimista
+# em hardware pequeno porque ignora overhead dinâmico do KV cache, buffers do
+# Ollama e compartilhamento com desktop. Tabela empírica:
+#   4GB  -> num_gpu=12 muito estável, 15 estável, 20 instável, 37 OOM
+#   6GB  -> num_gpu=28 confortável
+#   8GB  -> num_gpu=36 confortável (~full GPU)
+VRAM_CAP_MB_TO_LAYERS: list[tuple[int, int]] = [
+    (4096, 15),
+    (6144, 28),
+    (8192, 36),
+]
+
+
+def apply_vram_cap(num_gpu: int, vram_total_mb: int) -> int:
+    """Limita num_gpu em hardware pequeno conforme tabela ADR-003."""
+    if vram_total_mb <= 0:
+        return num_gpu
+    for cap_mb, max_layers in VRAM_CAP_MB_TO_LAYERS:
+        if vram_total_mb <= cap_mb:
+            return min(num_gpu, max_layers)
+    return num_gpu
+
 
 def detect_gpu() -> dict[str, object]:
     """Retorna dict com gpu_name, vram_total_mb, vram_free_mb, has_gpu."""
@@ -112,7 +134,7 @@ def detect_gpu() -> dict[str, object]:
     return info
 
 
-def calc_num_gpu(model: str, vram_free_mb: int) -> int:
+def calc_num_gpu(model: str, vram_free_mb: int, vram_total_mb: int = 0) -> int:
     entry = MODEL_TABLE.get(model)
     if entry is None:
         for known in MODEL_TABLE:
@@ -127,12 +149,14 @@ def calc_num_gpu(model: str, vram_free_mb: int) -> int:
         return 0
 
     layers = usable // entry["mb_per_layer"]
-    return max(0, min(entry["total_layers"], int(layers)))
+    num_gpu = max(0, min(entry["total_layers"], int(layers)))
+    return apply_vram_cap(num_gpu, vram_total_mb)
 
 
 def build_report(gpu: dict[str, object]) -> dict[str, object]:
     vram_free = int(gpu.get("vram_free_mb") or 0)
-    per_model = {m: calc_num_gpu(m, vram_free) for m in MODEL_TABLE}
+    vram_total = int(gpu.get("vram_total_mb") or 0)
+    per_model = {m: calc_num_gpu(m, vram_free, vram_total) for m in MODEL_TABLE}
     return {
         "has_gpu": gpu["has_gpu"],
         "gpu_name": gpu["gpu_name"],
@@ -188,7 +212,11 @@ def cmd_dry_run(model_filter: str | None) -> int:
     report = build_report(gpu)
     if model_filter:
         report["selected_model"] = model_filter
-        report["selected_num_gpu"] = calc_num_gpu(model_filter, int(gpu.get("vram_free_mb") or 0))
+        report["selected_num_gpu"] = calc_num_gpu(
+            model_filter,
+            int(gpu.get("vram_free_mb") or 0),
+            int(gpu.get("vram_total_mb") or 0),
+        )
     print(json.dumps(report, indent=2, ensure_ascii=False))
     logger.info(
         "dry-run: gpu=%s vram_free=%sMB per_model=%s",
@@ -206,7 +234,11 @@ def cmd_write_env(env_path: Path, model: str) -> int:
         return 0
 
     gpu = detect_gpu()
-    num_gpu = calc_num_gpu(model, int(gpu.get("vram_free_mb") or 0))
+    num_gpu = calc_num_gpu(
+        model,
+        int(gpu.get("vram_free_mb") or 0),
+        int(gpu.get("vram_total_mb") or 0),
+    )
     write_env_var(env_path, "NYX_NUM_GPU", str(num_gpu))
     logger.info(
         "write-env: modelo=%s num_gpu=%s gpu=%s vram_free=%sMB -> %s",
@@ -223,7 +255,11 @@ def cmd_write_env(env_path: Path, model: str) -> int:
 
 def cmd_for_model(model: str) -> int:
     gpu = detect_gpu()
-    num_gpu = calc_num_gpu(model, int(gpu.get("vram_free_mb") or 0))
+    num_gpu = calc_num_gpu(
+        model,
+        int(gpu.get("vram_free_mb") or 0),
+        int(gpu.get("vram_total_mb") or 0),
+    )
     logger.info(
         "for-model %s: num_gpu=%s (vram_free=%sMB, gpu=%s)",
         model,

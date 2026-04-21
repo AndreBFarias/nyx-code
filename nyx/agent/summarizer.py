@@ -19,7 +19,7 @@ logger = get_logger("nyx.summarizer")
 
 DEFAULT_BATCH = 5
 MAX_SUMMARY_CHARS = 3200
-REQUEST_TIMEOUT = 60
+REQUEST_TIMEOUT = 180
 
 SUMMARY_SYSTEM = (
     "Sou um resumidor. Recebo o histórico de uma sessão de programação "
