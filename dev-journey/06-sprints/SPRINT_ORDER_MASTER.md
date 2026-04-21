@@ -194,13 +194,13 @@ P8-A (Analyze, Patch, MultiEdit), P8-B (Provider, ProjectContext). **+3 tools, +
 
 | # | Nome | Testes | Status | Deps |
 |---|------|--------|--------|------|
-| **TUI-FIX-01** | Banner único e limpo (sem duplicação, sem ASCII corrompido) | +1 teste | EM VALIDAÇÃO | -- |
-| **TUI-FIX-02** | Fim da resposta duplicada (streaming + render final) | +1 teste | EM VALIDAÇÃO | -- |
-| **TUI-FIX-03** | Popup de slash commands abrindo automaticamente | +1 teste | EM VALIDAÇÃO | -- |
-| **TUI-FIX-04** | Shift+Tab toggle bypass + bottom toolbar | +2 testes | EM VALIDAÇÃO | -- |
-| **TUI-FIX-05** | Ctrl+V + xclip para colar imagens ([Image #N]) | +2 testes | EM VALIDAÇÃO | -- |
-| **TUI-FIX-06** | Mensagens de sandbox claras em PT-BR (erro colorido) | +1 teste | EM VALIDAÇÃO | -- |
-| **TUI-FIX-07** | Usabilidade geral: footer em toolbar, paste colapsado, /help categorizado, indicador de memória, /memory, /paste, /tools, /recall | +2 testes | EM VALIDAÇÃO | FIX-02, FIX-06 |
+| **TUI-FIX-01** | Banner único e limpo (sem duplicação, sem ASCII corrompido) | +1 teste | CONCLUIDA (VALIDATE-ONDA-21 2026-04-20) | -- |
+| **TUI-FIX-02** | Fim da resposta duplicada (streaming + render final) | +1 teste | CONCLUIDA (VALIDATE-ONDA-21 2026-04-20, ressalva ADR-002) | -- |
+| **TUI-FIX-03** | Popup de slash commands abrindo automaticamente | +1 teste | CONCLUIDA (VALIDATE-ONDA-21 2026-04-20) | -- |
+| **TUI-FIX-04** | Shift+Tab toggle bypass + bottom toolbar | +2 testes | CONCLUIDA (VALIDATE-ONDA-21 2026-04-20) | -- |
+| **TUI-FIX-05** | Ctrl+V + xclip para colar imagens ([Image #N]) | +2 testes | CONCLUIDA (VALIDATE-ONDA-21 2026-04-20) | -- |
+| **TUI-FIX-06** | Mensagens de sandbox claras em PT-BR (erro colorido) | +1 teste | CONCLUIDA (VALIDATE-ONDA-21 2026-04-20) | -- |
+| **TUI-FIX-07** | Usabilidade geral: footer em toolbar, paste colapsado, /help categorizado, indicador de memória, /memory, /paste, /tools, /recall | +2 testes | ABSORVIDA_POR_TUI-FIX-07A/B/C | FIX-02, FIX-06 |
 
 **Origem:** Validação visual da Onda 20 revelou 6 bugs (banner duplicado, ASCII corrompido, resposta duplicada, popup slash quebrado, ausência de bypass toggle, Ctrl+Shift+V inviável em xterm) + 1 sprint de usabilidade geral. Escopo fechado via screenshots do usuário em 2026-04-17.
 
@@ -283,7 +283,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 24e | **TUI-POPUP-META-01** | 2.8 Fixes Onda 20 | MÉDIA | CONCLUIDA (commit 94d7327) | -- |
 | 24f | **TUI-BOOT-LOG-01** | 2.8 Fixes Onda 20 | BAIXA | CONCLUIDA (commit 91e27f4) | -- |
 | 25 | **VALIDATE-ONDA-20** | 2.7 Validação | ALTA | CONCLUIDA (RELATORIO_VALIDACAO_ONDA_20.md) | BUG-PORT-PARSE-01, TUI-FIX-08, TUI-FIX-09, TUI-FIX-10, GAUNTLET-FIX-LOOP-SPLIT, AUTOTUNE-FIX-01, AUTOTUNE-FIX-02, TOOL-INVOKE-MEMORY-01, TUI-POPUP-META-01, TUI-BOOT-LOG-01 |
-| 26 | **VALIDATE-ONDA-21** | 2.7 Validação | ALTA | PENDENTE | VALIDATE-ONDA-20 |
+| 26 | **VALIDATE-ONDA-21** | 2.7 Validação | ALTA | CONCLUIDA (RELATORIO_VALIDACAO_ONDA_21.md) | VALIDATE-ONDA-20 |
 | 27 | **OBSERVABILITY-01** | 2.9 Integração | ALTA | PENDENTE | VALIDATE-ONDA-21 |
 | 28 | **DOC-CONSOLIDATE-01** | 2.9 Integração | MÉDIA | PENDENTE | -- |
 | 29 | **UX-DESIGN-01** | 3 Design | CRÍTICA | PENDENTE | AUDIT-FIX-03 |
