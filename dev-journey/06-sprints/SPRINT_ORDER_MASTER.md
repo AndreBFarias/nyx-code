@@ -25,17 +25,13 @@ Port status: `dev-journey/PORT_STATUS.md`.
 
 ---
 
-## Inventário: Nyx Python (pós-limpeza PROD 2026-04-09)
+## Inventário
 
-| Componente | Nyx (atual) | Nota |
-|-----------|------------|------|
-| Tools | 34 | Todas funcionais |
-| Commands | 47 | Todos funcionais (27 stubs cloud removidos) |
-| Services | 10 | Todos funcionais (11 stubs cloud removidos) |
-| Testes | 135 | Gauntlet atualizado para testar funcionalidade real |
+> **Fonte única:** `dev-journey/08-templates/PROJECT_SNAPSHOT.md` §Contagens. Verificação executável: `python scripts/sync.py` imprime `inventario: tools=N, commands_unicos=M, services=S` na primeira linha. Em 2026-04-21 (pós INVENTORY-SYNC-01): **28 tools · 52 commands únicos · 9 services · 24 ADRs · 135+ testes no Gauntlet**.
 
-**Nota:** Port 1:1 do OpenClaude abandonado. Foco em funcionalidade local-first.
-Features cloud/enterprise (voice, mobile, chrome, plugins, rate-limit, etc) não se aplicam.
+**Nota histórica:**
+- **2026-04-09 (limpeza PROD):** removidos 27 command-stubs cloud e 11 service-stubs cloud. Port 1:1 do OpenClaude abandonado. Foco em funcionalidade local-first; features cloud/enterprise (voice, mobile, chrome, plugins, rate-limit, etc) não se aplicam.
+- **2026-04-21 (INVENTORY-SYNC-01):** contagens antes divergiam em 3 documentos (34/47/10 vs 30/54/9 vs realidade 28/52/9). Normalizado apontando para `PROJECT_SNAPSHOT.md` como fonte única.
 
 ---
 

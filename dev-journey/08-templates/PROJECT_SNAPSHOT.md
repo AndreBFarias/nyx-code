@@ -23,17 +23,20 @@ Fonte única de portas/URLs: `nyx/config/defaults.py` (ADR-AUDIT-FIX-03).
 
 ---
 
-## Contagens (verificadas em 2026-04-21, pós UX-BUG-01)
+## Contagens (verificadas em 2026-04-21, pós INVENTORY-SYNC-01)
+
+Fonte de verdade executável: `python scripts/sync.py` imprime
+`inventario: tools=N, commands_unicos=M, services=S` na primeira linha.
 
 | Categoria | Quantidade | Como verificar |
 |----------|------------|----------------|
-| Tools no registry | 30 | `find nyx/agent/tools -maxdepth 1 -name "*.py" ! -name "__init__.py" \| wc -l` |
-| Commands (slash) | 54 | `grep -rn "@nyx_command" nyx/agent/commands/ \| wc -l` |
-| Services | 9 | `find nyx/agent/services -maxdepth 1 -name "*.py" ! -name "__init__.py" \| wc -l` |
+| Tools no registry | 28 | `find nyx/agent/tools -maxdepth 1 -name '*.py' ! -name '__init__.py' ! -name 'base.py' ! -name 'registry.py' \| wc -l` |
+| Commands únicos (sem aliases) | 52 | `python -c "from nyx.agent.commands._registry import list_commands; print(len(list_commands()))"` (fonte runtime — cobre decorators multilinha; grep estático `@nyx_command\(name=` subestima em 1) |
+| Services | 9 | `find nyx/agent/services -maxdepth 1 -name '*.py' ! -name '__init__.py' \| wc -l` |
 | ADRs vigentes | 24 (ADR-023 e ADR-024 já criados na Onda 22) | `ls dev-journey/03-decisions/ADR_*.md \| wc -l` |
 | Testes no Gauntlet | 135 + crescendo por sprint | `./run.sh --gauntlet --only rapido` |
-| Sprints concluídas | 133 | `ls dev-journey/06-sprints/concluidos/*.md \| wc -l` |
-| Sprints pendentes | 22 (Onda 22 restante — próxima: ERROR-MSG-01) | `ls dev-journey/06-sprints/producao/*.md \| wc -l` |
+| Sprints concluídas | 138 | `ls dev-journey/06-sprints/concluidos/*.md \| wc -l` |
+| Sprints pendentes | 21 (20 PENDENTE + CTX-04 DEFERIDA) | `ls dev-journey/06-sprints/producao/*.md \| wc -l` |
 
 ---
 
@@ -62,9 +65,9 @@ Fonte única de portas/URLs: `nyx/config/defaults.py` (ADR-AUDIT-FIX-03).
 | `nyx/cli.py` | REPL, banner, toolbar, keybindings. `print()` permitido aqui. |
 | `nyx/agent/output.py` | render layer. `print()` permitido aqui (ADR-024). |
 | `nyx/agent/loop/` | AgentLoop, iteração, constantes, tipos. |
-| `nyx/agent/commands/` | 47 commands split em arquivos por categoria. |
-| `nyx/agent/tools/` | 34 tools registradas. |
-| `nyx/agent/services/` | 10 services (memory, summary, logging, vision, etc). |
+| `nyx/agent/commands/` | 52 commands únicos (sem aliases) split em arquivos por categoria. |
+| `nyx/agent/tools/` | 28 tools registradas. |
+| `nyx/agent/services/` | 9 services (memory, summary, logging, vision, etc). |
 | `nyx/themes/` | ThemeManager + `design_tokens.py` (pós UX-DESIGN-01). |
 | `nyx/providers/` | clientes HTTP (ollama, vision). |
 | `nyx/config/` | defaults, settings (NyxSettings). |

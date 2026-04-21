@@ -81,6 +81,85 @@ def _grep_files(pattern: str, files: list[Path], ignore_paths: list[str] | None 
     return results
 
 
+def _count_tools() -> int:
+    """Conta arquivos de tool (exclui __init__/base/registry)."""
+    tools_dir = PROJECT_ROOT / "nyx" / "agent" / "tools"
+    if not tools_dir.exists():
+        return 0
+    excluded = {"__init__", "base", "registry"}
+    return sum(
+        1
+        for f in tools_dir.glob("*.py")
+        if f.stem not in excluded and not f.stem.startswith("__")
+    )
+
+
+def _count_commands_unicos() -> int:
+    """Conta commands únicos registrados no registry (fonte de verdade runtime).
+
+    Usa `list_commands()` do registro — cobre decorators multilinha e é
+    robusto a variações de sintaxe. Fallback para contagem estática via
+    regex se o import falhar.
+    """
+    try:
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "from nyx.agent.commands._registry import list_commands; "
+                "print(len(list_commands()))",
+            ],
+            capture_output=True,
+            text=True,
+            cwd=str(PROJECT_ROOT),
+            timeout=15,
+        )
+        if result.returncode == 0:
+            return int(result.stdout.strip())
+    except Exception:
+        pass
+    cmd_dir = PROJECT_ROOT / "nyx" / "agent" / "commands"
+    if not cmd_dir.exists():
+        return 0
+    count = 0
+    regex = re.compile(r"@nyx_command\s*\(")
+    for path in cmd_dir.rglob("*.py"):
+        try:
+            content = path.read_text(encoding="utf-8", errors="ignore")
+            count += len(regex.findall(content))
+        except Exception:
+            continue
+    return count
+
+
+def _count_services() -> int:
+    """Conta arquivos de service (exclui __init__)."""
+    services_dir = PROJECT_ROOT / "nyx" / "agent" / "services"
+    if not services_dir.exists():
+        return 0
+    return sum(
+        1
+        for f in services_dir.glob("*.py")
+        if f.stem != "__init__" and not f.stem.startswith("__")
+    )
+
+
+def print_inventory() -> tuple[int, int, int]:
+    """Imprime e retorna o trio canônico de contagens (tools, commands, services).
+
+    Saída parseável em uma linha:
+        inventario: tools=N, commands_unicos=M, services=S
+    """
+    tools = _count_tools()
+    commands_unicos = _count_commands_unicos()
+    services = _count_services()
+    print(
+        f"inventario: tools={tools}, "
+        f"commands_unicos={commands_unicos}, services={services}"
+    )
+    return tools, commands_unicos, services
+
+
 class SyncChecker:
     """Executa todas as verificações de consistência."""
 
@@ -92,6 +171,7 @@ class SyncChecker:
 
     def run(self) -> int:
         """Executa todas as verificações. Retorna 0 se OK, 1 se erros."""
+        print_inventory()
         self._check_openclaude_refs()
         self._check_color_vars()
         self._check_anonymity()
