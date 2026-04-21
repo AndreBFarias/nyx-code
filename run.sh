@@ -30,6 +30,11 @@ log_ok()   { echo -e "  ${GREEN}[nyx]${NC} $1"; }
 log_warn() { echo -e "  ${ORANGE}[nyx]${NC} $1"; }
 log_err()  { echo -e "  ${RED}[nyx]${NC} $1"; }
 
+# Mensagens de fase de boot (pré-TUI) vão só pro arquivo logs/boot.log.
+# Warnings e erros permanecem em stdout via log_warn/log_err.
+mkdir -p "$SCRIPT_DIR/logs" 2>/dev/null
+log_boot() { echo "$(date +%H:%M:%S) [nyx] $1" >> "$SCRIPT_DIR/logs/boot.log"; }
+
 # ─── CARREGAR .env ────────────────────────────────────────
 if [ -f "$SCRIPT_DIR/.env" ]; then
     set -a
@@ -167,13 +172,13 @@ kill_existing_ollama() {
     # Matar processos ollama serve órfãos do Nyx-Code
     pkill -f "$OLLAMA_BIN serve" 2>/dev/null || true
 
-    log_nyx "Limpando cache..."
+    log_boot "Limpando cache..."
     sleep 1
 }
 
 # ─── INICIAR OLLAMA ──────────────────────────────────────
 start_ollama() {
-    log_nyx "Iniciando Ollama na porta $NYX_OLLAMA_PORT..."
+    log_boot "Iniciando Ollama na porta $NYX_OLLAMA_PORT..."
     mkdir -p "$SCRIPT_DIR/logs"
 
     "$OLLAMA_BIN" serve >> "$SCRIPT_DIR/logs/ollama.log" 2>&1 &
@@ -190,7 +195,7 @@ start_ollama() {
         fi
     done
 
-    log_ok "Ollama pronto (PID: $OLLAMA_PID, ${elapsed}s)"
+    log_boot "Ollama pronto (PID: $OLLAMA_PID, ${elapsed}s)"
 }
 
 # ─── PARAR OLLAMA ─────────────────────────────────────────
@@ -221,13 +226,13 @@ check_model() {
         fi
         log_ok "$MODEL baixado"
     else
-        log_ok "Modelo: $MODEL"
+        log_boot "Modelo: $MODEL"
     fi
 }
 
 # ─── WARMUP DO MODELO ────────────────────────────────────
 warmup_model() {
-    log_nyx "Aquecendo modelo $MODEL..."
+    log_boot "Aquecendo modelo $MODEL..."
     local response
     response=$(curl -sf --max-time "$WARMUP_TIMEOUT" \
         "http://${NYX_OLLAMA_HOST}:${NYX_OLLAMA_PORT}/v1/chat/completions" \
@@ -235,11 +240,11 @@ warmup_model() {
         -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":3}" 2>&1)
 
     if echo "$response" | grep -q '"choices"'; then
-        log_ok "Modelo aquecido e pronto"
+        log_boot "Modelo aquecido e pronto"
     else
         log_warn "Warmup retornou resposta inesperada (modelo pode estar lento na primeira inferência)"
         if [ "$DEBUG" -eq 1 ]; then
-            log_nyx "Resposta: $response"
+            log_boot "Resposta: $response"
         fi
     fi
 }
@@ -247,7 +252,7 @@ warmup_model() {
 # ─── AUTO-TUNE DE GPU ────────────────────────────────────
 auto_tune_gpu() {
     if [ "${NYX_AUTO_TUNE:-1}" != "1" ]; then
-        log_nyx "Auto-tune desativado (NYX_AUTO_TUNE=${NYX_AUTO_TUNE:-1}). Usando NYX_NUM_GPU=${NYX_NUM_GPU:-12}"
+        log_boot "Auto-tune desativado (NYX_AUTO_TUNE=${NYX_AUTO_TUNE:-1}). Usando NYX_NUM_GPU=${NYX_NUM_GPU:-12}"
         return 0
     fi
     if [ ! -x "$SCRIPT_DIR/venv/bin/python" ]; then
@@ -258,7 +263,7 @@ auto_tune_gpu() {
     if [[ "$tuned" =~ ^[0-9]+$ ]]; then
         NYX_NUM_GPU="$tuned"
         export NYX_NUM_GPU
-        log_ok "Auto-tune: num_gpu=$NYX_NUM_GPU para $MODEL"
+        log_boot "Auto-tune: num_gpu=$NYX_NUM_GPU para $MODEL"
     else
         log_warn "Auto-tune retornou valor inválido ('$tuned'). Mantendo NYX_NUM_GPU=${NYX_NUM_GPU:-12}"
     fi
@@ -271,17 +276,17 @@ configure_vram() {
     fi
 
     local vram_max="${NYX_VRAM_MAX:-2.5}"
-    log_nyx "Modelo 7b detectado. Limite VRAM: ${vram_max}GB"
+    log_boot "Modelo 7b detectado. Limite VRAM: ${vram_max}GB"
 
     if command -v nvidia-smi &> /dev/null; then
         local vram_total
         vram_total=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | head -1)
         if [ -n "$vram_total" ]; then
-            log_nyx "GPU: ${vram_total}MiB VRAM total"
+            log_boot "GPU: ${vram_total}MiB VRAM total"
         fi
     fi
 
-    log_nyx "num_gpu=${NYX_NUM_GPU:-18} (calibrado pelo auto-tune ou .env)"
+    log_boot "num_gpu=${NYX_NUM_GPU:-18} (calibrado pelo auto-tune ou .env)"
 }
 
 # ─── BANNER ───────────────────────────────────────────────
@@ -345,12 +350,12 @@ export OPENAI_TIMEOUT=300000
 # ANTHROPIC_API_KEY vem do .env (necessária para auth da TUI)
 
 # ─── PRE-CARREGAR MODELO COM NUM_GPU LIMITADO ────────────
-log_nyx "Pré-carregando modelo (num_gpu=$NYX_NUM_GPU)..."
+log_boot "Pré-carregando modelo (num_gpu=$NYX_NUM_GPU)..."
 if curl -sf --max-time 120 "http://${NYX_OLLAMA_HOST}:${NYX_OLLAMA_PORT}/api/chat" \
     -H "Content-Type: application/json" \
     -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"stream\":false,\"think\":false,\"options\":{\"num_gpu\":$NYX_NUM_GPU,\"num_ctx\":4096}}" \
     > /dev/null 2>&1; then
-    log_ok "Modelo pré-carregado"
+    log_boot "Modelo pré-carregado"
 else
     log_warn "Pré-carga falhou (modelo será carregado na primeira requisição)"
 fi
@@ -362,7 +367,7 @@ if ! kill -0 "$OLLAMA_PID" 2>/dev/null; then
 fi
 
 # ─── INICIAR PROXY (think=false para tool calling) ───────
-log_nyx "Iniciando proxy na porta $NYX_PROXY_PORT..."
+log_boot "Iniciando proxy na porta $NYX_PROXY_PORT..."
 "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/nyx/proxy.py" \
     --port "$NYX_PROXY_PORT" \
     --ollama-port "$NYX_OLLAMA_PORT" \
@@ -372,7 +377,7 @@ PROXY_PID=$!
 sleep 2
 
 if curl -sf "http://127.0.0.1:${NYX_PROXY_PORT}/v1/models" > /dev/null 2>&1; then
-    log_ok "Proxy pronto (PID: $PROXY_PID)"
+    log_boot "Proxy pronto (PID: $PROXY_PID)"
 else
     log_err "Proxy não iniciou. Verifique logs/proxy.log"
     exit 1
@@ -409,7 +414,7 @@ if [ "$GAUNTLET" -eq 1 ]; then
 fi
 
 # ─── INICIAR NYX CLI (Python) ─────────────────────────────
-log_nyx "Iniciando Nyx CLI..."
+log_boot "Iniciando Nyx CLI..."
 "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/nyx/cli.py"
 EXIT_CODE=$?
 
