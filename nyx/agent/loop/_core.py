@@ -28,7 +28,7 @@ from nyx.agent.models import (
 )
 from nyx.agent.parser import ActionParser
 from nyx.agent.permissions import PermissionChecker
-from nyx.agent.prompt import build_guide_md_context, build_system_prompt
+from nyx.agent.prompt import build_guide_md_context, build_system_prompt, build_system_prompt_compact
 from nyx.agent.repomap import RepoMap
 from nyx.agent.services.diagnostics import DiagnosticTracking
 from nyx.agent.services.logging_service import get_logger
@@ -151,7 +151,12 @@ class AgentLoop(_IterationMixin):
         }
 
     def _rebuild_system_prompt(self) -> None:
-        """Reconstrói system prompt com placeholders dinâmicos atuais."""
+        """Reconstrói system prompt com placeholders dinâmicos atuais.
+
+        Gera duas variantes (PERF-INFERENCE-01):
+        - self._system_prompt: completo (tools + memoria + repomap + summary).
+        - self._system_prompt_compact: curto (~200 tokens) p/ turnos sem tools.
+        """
         repo_map = ""
         try:
             touched = set(self._session._files_modified) | set(self._session._files_read)
@@ -175,6 +180,7 @@ class AgentLoop(_IterationMixin):
         if self._guide_ctx:
             prompt += self._guide_ctx
         self._system_prompt = prompt
+        self._system_prompt_compact = build_system_prompt_compact(self._project_root)
 
     async def run(self, user_input: str) -> SessionStatus:
         """Executa o ciclo completo para um input do usuário."""

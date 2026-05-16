@@ -32,8 +32,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger("nyx.proxy")
 
+from nyx.agent.intent import classify as _classify_intent  # noqa: E402
 from nyx.config.defaults import NUM_CTX as _DEFAULT_NUM_CTX  # noqa: E402
 from nyx.config.defaults import NUM_GPU_3B as _DEFAULT_NUM_GPU  # noqa: E402
+from nyx.config.defaults import NUM_PREDICT_CHAT as _NUM_PREDICT_CHAT  # noqa: E402
+from nyx.config.defaults import NUM_PREDICT_TOOL as _NUM_PREDICT_TOOL  # noqa: E402
+from nyx.config.defaults import OLLAMA_KEEP_ALIVE as _KEEP_ALIVE  # noqa: E402
 from nyx.config.defaults import OLLAMA_PORT as _DEFAULT_OLLAMA_PORT  # noqa: E402
 from nyx.config.defaults import OLLAMA_URL as _DEFAULT_OLLAMA_URL  # noqa: E402
 from nyx.config.defaults import PROXY_PORT as _DEFAULT_PROXY_PORT  # noqa: E402
@@ -94,18 +98,42 @@ def _normalize_messages(messages: list) -> list:
     return result
 
 
+def _last_user_text(messages: list) -> str:
+    """Retorna o conteúdo do último turno role=user. '' se não houver."""
+    for msg in reversed(messages):
+        if msg.get("role") == "user":
+            content = msg.get("content", "")
+            if isinstance(content, str):
+                return content
+            return _normalize_content(content)
+    return ""
+
+
 def openai_to_ollama(body: dict) -> dict:
     """Converte request OpenAI -> Ollama nativa.
 
-    think=true quando há tools (qwen3 precisa pensar para gerar tool_calls).
-    think=false quando é chat puro (economiza tokens).
+    Gating por intent (PERF-INFERENCE-01):
+    - intent=saudacao/chat: tools=[]; think=false; num_predict=NUM_PREDICT_CHAT.
+    - intent=tool-needed: mantém tools do request; think=true; num_predict=NUM_PREDICT_TOOL.
+    - intent=comando: idêntico a chat (proxy não trata /command, mas o caso é raro
+      pois CLI intercepta antes do payload).
     """
+    messages = _normalize_messages(body.get("messages", []))
+    last_user = _last_user_text(messages)
+    intent = _classify_intent(last_user)
+
     has_tools = bool(body.get("tools"))
+    # Suprime tools quando intent não precisa.
+    if intent in ("saudacao", "chat", "comando") and has_tools:
+        logger.info("intent=%s -> tools suprimidos (%d)", intent, len(body["tools"]))
+        has_tools = False
+
     result: dict = {
         "model": body.get("model", "qwen3:4b"),
-        "messages": _normalize_messages(body.get("messages", [])),
+        "messages": messages,
         "think": has_tools,
         "stream": False,
+        "keep_alive": _KEEP_ALIVE,
         "options": {
             "num_gpu": NUM_GPU,
             "num_ctx": NUM_CTX,
@@ -113,10 +141,12 @@ def openai_to_ollama(body: dict) -> dict:
     }
     if has_tools:
         result["tools"] = body["tools"]
-    if not has_tools:
-        result["options"]["num_predict"] = 1024
+        result["options"]["num_predict"] = _NUM_PREDICT_TOOL
+    else:
+        result["options"]["num_predict"] = _NUM_PREDICT_CHAT
     if body.get("temperature") is not None:
         result["options"]["temperature"] = body["temperature"]
+    # max_tokens explícito do request sobrescreve heurística.
     max_tok = body.get("max_tokens") or body.get("max_completion_tokens")
     if max_tok:
         result["options"]["num_predict"] = max_tok
@@ -124,11 +154,26 @@ def openai_to_ollama(body: dict) -> dict:
 
 
 THINK_PATTERN = re.compile(r"<think>.*?</think>\s*", re.DOTALL)
+# Qwen3 thinking 2507 com think=false às vezes emite raciocínio sem a tag
+# de abertura, fechando com </think>\n\n. Captura tudo até o primeiro </think>.
+THINK_PARTIAL = re.compile(r"^.*?</think>\s*", re.DOTALL)
 
 
 def _strip_think(text: str) -> str:
-    """Remove blocos <think>...</think> da resposta."""
-    return THINK_PATTERN.sub("", text).strip()
+    """Remove blocos <think>...</think> da resposta.
+
+    Cobre 3 formatos:
+    1. <think>...</think> bem-formado.
+    2. ...</think> (qwen3 com think=false emite raciocínio sem abrir tag).
+    3. Sem tag (nada a remover).
+    """
+    if not text:
+        return ""
+    out = THINK_PATTERN.sub("", text)
+    # Se ainda restou um </think> órfão, descarta tudo antes dele.
+    if "</think>" in out:
+        out = THINK_PARTIAL.sub("", out, count=1)
+    return out.strip()
 
 
 def ollama_to_openai(data: dict, model: str) -> dict:

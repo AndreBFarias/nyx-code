@@ -323,7 +323,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 110 | **UX-LOOP-VISIBILITY-01** | 23.4 Gamedesigner | MÉDIA | PENDENTE | UX-BUG-02B |
 | 111 | **UX-CLAUDE-PARITY-01** | 23.4 Gamedesigner | ALTA | PENDENTE | UX-BUG-02B, UX-LOOP-VISIBILITY-01 |
 | 112 | **UX-LIFECYCLE-01** | 23.1 Estabilização | ALTA | PENDENTE | BOOT-VRAM-GUARD-01, TUI-SHUTDOWN-SILENT-01 |
-| 113 | **PERF-INFERENCE-01** | 23.0 Performance (NOVA FASE 1) | CRÍTICA | PENDENTE | -- |
+| 113 | **PERF-INFERENCE-01** | 23.0 Performance (NOVA FASE 1) | CRÍTICA | CONCLUIDA | -- |
 | 114 | **MCP-SERVER-01** | 23.5 Feature parity Claude Code | ALTA | PENDENTE | PERF-INFERENCE-01 |
 | 115 | **PLUGINS-01** | 23.5 Feature parity Claude Code | MÉDIA | PENDENTE | MCP-SERVER-01 |
 | 116 | **OUTPUT-STYLES-01** | 23.5 Feature parity Claude Code | MÉDIA | PENDENTE | PERF-INFERENCE-01 |

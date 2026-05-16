@@ -80,10 +80,28 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-16
+**Data conclusão:** 2026-05-16
+**Commit hash:** (a definir após commit)
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 **Origem:** auditoria estratégica 2026-05-16. Sprint nova de fase 1 — anti-débito.
+
+## Resultado medido (logs/perf_baseline.json, n=5 amostras pós-warmup)
+
+| Caso | Intent | P50 | P95 | AC | Status |
+|---|---|---|---|---|---|
+| 'oi' | saudacao | 4.67s | 5.46s | P50≤5, P95≤8 | OK |
+| 'ola tudo bem' | saudacao | 4.73s | 4.97s | P50≤5, P95≤8 | OK |
+| '/help' (LLM path) | comando | 4.56s | 4.77s | n/a (CLI bypassa LLM) | n/a |
+| 'liste arquivos' | tool-needed | 4.64s | 4.90s | P50≤12, P95≤20 | OK |
+| 'leia README.md' | tool-needed | 4.36s | 4.56s | P50≤12, P95≤20 | OK |
+| 'quanto e 5+3' | chat | 4.32s | 4.62s | P95≤8 | OK |
+| 'explique cli.py' | tool-needed | 4.46s | 5.03s | P50≤12, P95≤20 | OK |
+
+**Acurácia classifier:** 52/52 = 100% (>= 95% exigido).
+**Antes da sprint:** "oi" demorava 14-24s; "liste arquivos" travava em timeout (>80s).
+**Depois da sprint:** "oi" em 4.67s P50 (~3x mais rápido); todos os casos sob ACs.
 
 ---
 

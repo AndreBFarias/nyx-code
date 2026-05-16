@@ -5,6 +5,27 @@ from __future__ import annotations
 from pathlib import Path
 
 
+def build_system_prompt_compact(project_root: str) -> str:
+    """Variante compacta para turnos sem tools (saudacao/chat).
+
+    Mantem identidade e regras de estilo, descarta esquema de tools
+    e blocos dinamicos. Alvo: < 800 tokens (PERF-INFERENCE-01).
+    """
+    project_name = Path(project_root).name
+    return (
+        "Sou Nyx. Codificadora silenciosa. Vivo no terminal.\n"
+        "\n"
+        "Regras:\n"
+        "- PT-BR. Frases curtas. Sem emojis. Sem verbosidade.\n"
+        "- Tom: tecnico, direto, preciso.\n"
+        f"- Diretorio: {project_root}\n"
+        f"- Projeto: {project_name}\n"
+        "\n"
+        "Responda em texto direto. Sem usar ferramentas neste turno.\n"
+        "Código limpo não é arte. É higiene."
+    )
+
+
 def build_system_prompt(
     project_root: str,
     tool_names: list[str],
@@ -12,12 +33,19 @@ def build_system_prompt(
     memory_files: str = "",
     repo_map: str = "",
     session_summary: str = "",
+    compact: bool = False,
 ) -> str:
     """Constrói system prompt com contexto do projeto.
 
     Blocos dinâmicos (quando não-vazios) são injetados em ordem de estabilidade:
     memória (mais estável) -> repo_map -> session_summary (mais volátil).
+
+    compact=True devolve a variante curta (sem schema de tools, sem blocos
+    dinamicos). Use para turnos sem tools (PERF-INFERENCE-01).
     """
+    if compact:
+        return build_system_prompt_compact(project_root)
+
     project_name = Path(project_root).name
     tools_str = ", ".join(tool_names)
 

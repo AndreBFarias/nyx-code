@@ -24,5 +24,14 @@ OLLAMA_START_TIMEOUT: int = 30
 NUM_GPU_7B: int = 18
 NUM_GPU_3B: int = -1
 
+# Orcamento de tokens de saida por categoria de turno (PERF-INFERENCE-01).
+# Em CPU-bound (RTX 3050 4GB com 25/37 layers em RAM) o modelo gera ~16 tok/s,
+# entao cada token de "thinking" inutil custa caro. Cap agressivo p/ chat.
+NUM_PREDICT_CHAT: int = 80
+NUM_PREDICT_TOOL: int = 512
+# Manter modelo carregado em VRAM entre chamadas evita o load_duration de
+# ~7s que ocorre no cold start.
+OLLAMA_KEEP_ALIVE: str = "30m"
+
 
 # "A simplicidade é a sofisticação suprema." -- Leonardo da Vinci

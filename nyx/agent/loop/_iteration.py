@@ -13,6 +13,7 @@ from typing import Any
 
 import httpx
 
+from nyx.agent.intent import classify as _classify_intent
 from nyx.agent.loop._constants import ACTION_TO_TOOL, CORE_TOOLS, LLM_TIMEOUT, TOOL_KEYWORDS, _remap_params
 from nyx.agent.models import (
     ActionType,
@@ -235,8 +236,21 @@ class _IterationMixin:
         - Iteração 2+: apenas últimas 4 mensagens (user + tool_call + result + resposta)
         - Compactação se budget > 40%
         """
-        messages = [{"role": "system", "content": self._system_prompt}]
         history_msgs = self._session.to_messages()
+
+        # Seleção de tools precisa do user real, não do system_prompt;
+        # passamos apenas history para a heurística.
+        _probe = list(history_msgs)
+        selected_tools = self._select_tools_for_context(_probe)
+
+        # System prompt compacto quando não há tools: economiza ~1.5k tokens
+        # de input por turno (PERF-INFERENCE-01).
+        if not selected_tools and getattr(self, "_system_prompt_compact", None):
+            system_content = self._system_prompt_compact
+        else:
+            system_content = self._system_prompt
+
+        messages = [{"role": "system", "content": system_content}]
 
         if len(history_msgs) > 4:
             messages.extend(history_msgs[-4:])
@@ -250,7 +264,6 @@ class _IterationMixin:
         else:
             messages.extend(history_msgs)
 
-        selected_tools = self._select_tools_for_context(messages)
         payload: dict[str, Any] = {
             "model": self._model,
             "messages": messages,
@@ -355,7 +368,29 @@ class _IterationMixin:
         return False
 
     def _select_tools_for_context(self, messages: list[dict]) -> list[dict]:
-        """Seleciona tools relevantes baseado no contexto da conversa."""
+        """Seleciona tools relevantes baseado no contexto.
+
+        Gating agressivo (PERF-INFERENCE-01):
+        - intent do último user = saudacao/chat -> retorna [].
+        - intent = comando -> retorna [] (slash sai antes do LLM em fluxo normal).
+        - intent = tool-needed -> CORE_TOOLS + ativadas por keyword, cap em 5.
+
+        Tools já usadas anteriormente na sessão permanecem ativadas para
+        continuidade (ex: leu README, agora pergunta sobre conteúdo).
+        """
+        last_user = ""
+        for msg in reversed(messages):
+            if msg.get("role") == "user":
+                content = msg.get("content", "")
+                if isinstance(content, str):
+                    last_user = content
+                break
+        intent = _classify_intent(last_user)
+
+        if intent in ("saudacao", "chat", "comando"):
+            logger.info("[loop] intent=%s -> tools=[]", intent)
+            return []
+
         text_parts: list[str] = []
         for msg in messages[-4:]:
             if msg.get("role") == "system":
@@ -384,7 +419,14 @@ class _IterationMixin:
         all_defs = self._tools.tool_defs
         selected = [td for td in all_defs if td["function"]["name"] in selected_names]
 
-        logger.info("[loop] tools selecionadas: %d/%d", len(selected), len(all_defs))
+        # Cap em 5 tools por turno: VRAM-limitada, schemas inflam input.
+        # Prioridade: CORE primeiro (preserva read/write/edit/run/etc).
+        if len(selected) > 5:
+            core_ordered = [td for td in selected if td["function"]["name"] in CORE_TOOLS]
+            extras = [td for td in selected if td["function"]["name"] not in CORE_TOOLS]
+            selected = (core_ordered + extras)[:5]
+
+        logger.info("[loop] tools selecionadas: %d/%d (intent=%s)", len(selected), len(all_defs), intent)
         return selected
 
 
