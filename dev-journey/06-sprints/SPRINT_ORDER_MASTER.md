@@ -323,6 +323,36 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 110 | **UX-LOOP-VISIBILITY-01** | 23.4 Gamedesigner | MÉDIA | PENDENTE | UX-BUG-02B |
 | 111 | **UX-CLAUDE-PARITY-01** | 23.4 Gamedesigner | ALTA | PENDENTE | UX-BUG-02B, UX-LOOP-VISIBILITY-01 |
 | 112 | **UX-LIFECYCLE-01** | 23.1 Estabilização | ALTA | PENDENTE | BOOT-VRAM-GUARD-01, TUI-SHUTDOWN-SILENT-01 |
+| 113 | **PERF-INFERENCE-01** | 23.0 Performance (NOVA FASE 1) | CRÍTICA | PENDENTE | -- |
+| 114 | **MCP-SERVER-01** | 23.5 Feature parity Claude Code | ALTA | PENDENTE | PERF-INFERENCE-01 |
+| 115 | **PLUGINS-01** | 23.5 Feature parity Claude Code | MÉDIA | PENDENTE | MCP-SERVER-01 |
+| 116 | **OUTPUT-STYLES-01** | 23.5 Feature parity Claude Code | MÉDIA | PENDENTE | PERF-INFERENCE-01 |
+| 117 | **HOOKS-DYNAMIC-01** | 23.5 Feature parity Claude Code | MÉDIA | PENDENTE | PERF-INFERENCE-01 |
+
+---
+
+## Roadmap por FASES (auditoria estratégica 2026-05-16)
+
+Reorganização proposta priorizando meta v1.0 "Claude Code offline e opensource". A coluna **FASE** define ordem de execução; sprints dentro da mesma FASE podem rodar em paralelo se não dependem entre si.
+
+| FASE | Tema | Sprints |
+|---|---|---|
+| **1** | Performance (resgate de UX — bloqueia tudo) | PERF-INFERENCE-01 (CRÍTICA), UX-LIFECYCLE-01 (ALTA) |
+| **2** | Base estável | BOOT-VRAM-GUARD-01, PROXY-NUMGPU-RUNTIME-01, UX-BUG-02C, UX-BUG-03, TUI-SHUTDOWN-SILENT-01, SECRET-MIGRATE-01 |
+| **3** | UX paridade Claude Code | UX-CLAUDE-PARITY-01, UX-LOOP-01, UX-AGENCY-01, UX-PROGRESSION-01, UX-LOOP-VISIBILITY-01 |
+| **4** | Features parity Claude Code | MCP-SERVER-01, PLUGINS-01, OUTPUT-STYLES-01, HOOKS-DYNAMIC-01 |
+| **5** | Sessões + Visão + Onboarding | SESSION-RESUME-01, VISION-01, VISION-02, VISION-03, ONBOARDING-01, HELP-EXAMPLES-01, UX-EXTRA-01 |
+| **6** | SBOM (observabilidade) | SBOM-REGISTRY-01, SBOM-REGISTRY-02, SBOM-REGISTRY-03 |
+| **7** | Cockpit (extensão além Claude Code — opcional v1.0) | COCKPIT-01..05, UX-COCKPIT-EXPERIENCE-01 |
+| **8** | Release v1.0 | DEPLOY-01A, DEPLOY-01B, DEPLOY-02, VALIDATE-FINAL-01 |
+
+**Notas:**
+- FASE 1 é gate binário: sem `oi` respondendo em <5s, qualquer outra UX é teatro.
+- FASE 4 cobre os 4 gaps reais vs Claude Code identificados na auditoria (MCP, plugins, output-styles, hooks dinâmicos). Sem essas 4, "Claude Code offline" é meta-mentira.
+- FASE 7 (Cockpit) é diferencial além do Claude Code; pode ser adiado para pós-v1.0 sem perda de paridade.
+- 38 sprints PENDENTES totais (33 atuais + 5 novas desta auditoria).
+
+
 
 **Bloco 0 (Auditoria):** 1 sprint — relatório externo independente com 12 findings.
 
