@@ -1,195 +1,28 @@
 {
-  "timestamp": "2026-04-21T19:24:26.892057",
+  "timestamp": "2026-05-16T00:18:54.319771",
   "model": "qwen3:4b",
-  "phases_done": [
-    "infra",
-    "proxy",
-    "visual"
-  ],
+  "phases_done": [],
   "results": [
     {
-      "feature_id": "I-01",
-      "name": "Ollama respondendo",
-      "phase": "infra",
-      "passed": true,
-      "elapsed_s": 0.02,
-      "tokens": 0,
-      "details": "",
-      "error": ""
-    },
-    {
-      "feature_id": "I-03",
-      "name": "Versão Ollama",
-      "phase": "infra",
-      "passed": true,
-      "elapsed_s": 0.02,
-      "tokens": 0,
-      "details": "0.13.5",
-      "error": ""
-    },
-    {
-      "feature_id": "I-05",
-      "name": "Warmup do modelo",
-      "phase": "infra",
-      "passed": true,
-      "elapsed_s": 22.04,
-      "tokens": 218,
-      "details": "",
-      "error": ""
-    },
-    {
-      "feature_id": "I-09",
-      "name": "Modelo qwen3:4b presente",
-      "phase": "infra",
+      "feature_id": "P7C-01",
+      "name": "NyxCompleter inicializa",
+      "phase": "p7_completion",
       "passed": true,
       "elapsed_s": 0.05,
       "tokens": 0,
-      "details": "['qwen3:4b', 'nyx-4b:latest', 'qwen2.5-coder:7b', 'qwen2.5-coder:3b']",
-      "error": ""
-    },
-    {
-      "feature_id": "I-11",
-      "name": "Proxy respondendo",
-      "phase": "infra",
-      "passed": true,
-      "elapsed_s": 0.03,
-      "tokens": 0,
-      "details": "4 modelos",
-      "error": ""
-    },
-    {
-      "feature_id": "P-01",
-      "name": "Request via proxy",
-      "phase": "proxy",
-      "passed": true,
-      "elapsed_s": 17.83,
-      "tokens": 272,
-      "details": "Okay, the user wants me to just say \"proxy ok\". Let me check",
-      "error": ""
-    },
-    {
-      "feature_id": "P-02",
-      "name": "think=false injetado",
-      "phase": "proxy",
-      "passed": true,
-      "elapsed_s": 0,
-      "tokens": 0,
-      "details": "sem <think>",
-      "error": ""
-    },
-    {
-      "feature_id": "P-04",
-      "name": "Content array normalizado",
-      "phase": "proxy",
-      "passed": true,
-      "elapsed_s": 12.12,
-      "tokens": 197,
       "details": "",
       "error": ""
     },
     {
-      "feature_id": "P-05",
-      "name": "Formato OpenAI correto",
-      "phase": "proxy",
+      "feature_id": "P7C-02",
+      "name": "create_completer lista commands",
+      "phase": "p7_completion",
       "passed": true,
-      "elapsed_s": 49.48,
+      "elapsed_s": 0.0,
       "tokens": 0,
-      "details": "choices=True usage=True message=True",
-      "error": ""
-    },
-    {
-      "feature_id": "P-06",
-      "name": "Listagem /v1/models",
-      "phase": "proxy",
-      "passed": true,
-      "elapsed_s": 0.05,
-      "tokens": 0,
-      "details": "4 modelos",
-      "error": ""
-    },
-    {
-      "feature_id": "P-07",
-      "name": "tool_calls propagam",
-      "phase": "proxy",
-      "passed": true,
-      "elapsed_s": 9.16,
-      "tokens": 286,
-      "details": "['{\"file_path\": \"README.md\"}']",
-      "error": ""
-    },
-    {
-      "feature_id": "V-05",
-      "name": "7 temas carregam",
-      "phase": "visual",
-      "passed": true,
-      "elapsed_s": 0,
-      "tokens": 0,
-      "details": "7 temas",
-      "error": ""
-    },
-    {
-      "feature_id": "V-06",
-      "name": "Fallback Dracula",
-      "phase": "visual",
-      "passed": true,
-      "elapsed_s": 0,
-      "tokens": 0,
-      "details": "",
-      "error": ""
-    },
-    {
-      "feature_id": "V-07",
-      "name": "Hex -> ANSI 24-bit",
-      "phase": "visual",
-      "passed": true,
-      "elapsed_s": 0,
-      "tokens": 0,
-      "details": "",
-      "error": ""
-    },
-    {
-      "feature_id": "C-01",
-      "name": ".env existe",
-      "phase": "config",
-      "passed": true,
-      "elapsed_s": 0,
-      "tokens": 0,
-      "details": "",
-      "error": ""
-    },
-    {
-      "feature_id": "C-02",
-      "name": "NyxSettings carrega",
-      "phase": "config",
-      "passed": true,
-      "elapsed_s": 0,
-      "tokens": 0,
-      "details": "port=11435 model=qwen3:4b",
-      "error": ""
-    },
-    {
-      "feature_id": "C-03",
-      "name": "settings.json dark+pt-BR",
-      "phase": "config",
-      "passed": true,
-      "elapsed_s": 0,
-      "tokens": 0,
-      "details": "theme=dark lang=pt-BR",
-      "error": ""
-    },
-    {
-      "feature_id": "C-04",
-      "name": "GUIDE.md contém Nyx",
-      "phase": "config",
-      "passed": true,
-      "elapsed_s": 0,
-      "tokens": 0,
-      "details": "",
+      "details": "commands=52",
       "error": ""
     }
   ],
-  "kpis": {
-    "warmup_s": 22.0,
-    "gauntlet_total_s": 111.0
-  }
+  "kpis": {}
 }
