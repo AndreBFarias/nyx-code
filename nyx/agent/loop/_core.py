@@ -86,8 +86,7 @@ class AgentLoop(_IterationMixin):
         self._streaming = streaming
         self._tool_durations: dict[str, list[float]] = {}
         self._model_state: str = "cold"
-        if self._on_model_state is not None:
-            self._on_model_state("cold")
+        self._emit_state("cold")
 
         self._parser = ActionParser()
         self._budget = ContextBudget()
@@ -126,6 +125,20 @@ class AgentLoop(_IterationMixin):
         self._tool_names = [t["function"]["name"] for t in self._tools.tool_defs]
         self._guide_ctx = build_guide_md_context(project_root)
         self._rebuild_system_prompt()
+
+    def _emit_state(self, state: str) -> None:
+        """Atualiza estado interno e notifica observadores (UX-BUG-02B).
+
+        Observabilidade não pode derrubar o loop: callback envolto em try/except
+        com log de warning (gambiarra #17 — silent except — explicitamente coberta).
+        """
+        self._model_state = state
+        if self._on_model_state is None:
+            return
+        try:
+            self._on_model_state(state)
+        except Exception as exc:  # noqa: BLE001 -- callback do usuário não deve derrubar loop
+            logger.warning("on_model_state raised: %s", exc)
 
     def session_state(self) -> dict:
         """Métricas da sessão corrente para /debug session (OBSERVABILITY-01)."""
@@ -170,9 +183,8 @@ class AgentLoop(_IterationMixin):
         self._consecutive_skips = 0
         self._has_results = False
 
-        if self._model_state != "warm" and self._on_model_state is not None:
-            self._model_state = "warming"
-            self._on_model_state("warming")
+        if self._model_state != "warm":
+            self._emit_state("warming")
 
         for i in range(self._max_iterations):
             self._session.iteration = i + 1
@@ -191,10 +203,10 @@ class AgentLoop(_IterationMixin):
                     self._on_compaction(level, tokens_removed, pct_before, pct_after)
 
             response = await self._call_llm()
-            if "error" not in response and self._model_state != "warm" and self._on_model_state is not None:
-                self._model_state = "warm"
-                self._on_model_state("warm")
+            if "error" not in response and self._model_state != "warm":
+                self._emit_state("warm")
             if "error" in response:
+                self._emit_state("cold")
                 error_msg = response["error"]
                 self._diagnostics.record_error("llm", error_msg[:200])
                 if (

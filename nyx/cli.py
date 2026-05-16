@@ -65,6 +65,11 @@ BOLD = ANSI_BOLD
 NC = ANSI_RESET
 
 
+# Glifos do estado do modelo (UX-BUG-02B).
+# Círculos da faixa Geometric Shapes (U+25CB/D0/CF) — não são emoji.
+_STATE_GLYPHS = {"cold": "○", "warming": "◐", "warm": "●"}
+
+
 from nyx.agent.banner import build_banner as _build_banner  # noqa: E402
 from nyx.agent.output import make_ask_permission as _make_ask_permission  # noqa: E402
 from nyx.agent.output import print_error as _print_error  # noqa: E402
@@ -196,8 +201,8 @@ async def run_repl(streaming: bool = True) -> int:
             Schema de secções (separadas por ' · '):
               [ctx]                     -- ctx X% (Ntok/Mtok) ou ctx X%
               [modelo · iter · lidos · modif]
+              [model_state]             -- ○ cold | ◐ warming | ● warm (UX-BUG-02B)
               [bypass]                  -- ON: fundo roxo; OFF: dica muted
-              [<extensões futuras>]     -- UX-BUG-02B adicionará warm/cold aqui
 
             Contrato: cada secção é um FormattedText fragment. Extensões
             anexam seus fragments ao final de `parts`, sem sobrescrever.
@@ -219,6 +224,10 @@ async def run_repl(streaming: bool = True) -> int:
 
             meta = f" · {model} · iter {iter_n} · lidos {reads} · modif {mods}"
             parts.append((f"fg:{NYX_MUTED}", meta))
+
+            model_state = app_state.get("model_state", "cold")
+            glyph = _STATE_GLYPHS.get(model_state, _STATE_GLYPHS["cold"])
+            parts.append((f"fg:{NYX_MUTED}", f" · {glyph} {model_state}"))
 
             if app_state.get("bypass"):
                 parts.append(("", "  "))
@@ -268,7 +277,8 @@ async def run_repl(streaming: bool = True) -> int:
 
     spinner_state: dict[str, object | None] = {"active": None}
     turn_state: dict[str, str] = {"streamed_text": "", "token_buffer": ""}
-    app_state: dict[str, bool] = {"bypass": False}
+    # app_state: bool para flags, str para estados ("model_state": cold/warming/warm — UX-BUG-02B).
+    app_state: dict[str, object] = {"bypass": False, "model_state": "cold"}
     image_counter: dict[str, int] = {"n": 0}
     image_map: dict[int, str] = {}
     tool_timers: dict[str, float] = {}
@@ -343,6 +353,15 @@ async def run_repl(streaming: bool = True) -> int:
 
     from nyx.agent.commands._observability import on_model_state_log
 
+    def on_model_state(state: str) -> None:
+        """Consumidor visual de transições cold/warming/warm (UX-BUG-02B).
+
+        Grava em app_state para que _bottom_toolbar leia no próximo render.
+        Mantém o log de debug do stub anterior intacto para auditoria.
+        """
+        app_state["model_state"] = state
+        on_model_state_log(state)
+
     agent = AgentLoop(
         project_root=project_root,
         proxy_url=proxy_url,
@@ -352,7 +371,7 @@ async def run_repl(streaming: bool = True) -> int:
         on_tool_result=on_tool_result,
         on_permission=_make_ask_permission(app_state),
         on_compaction=on_compaction,
-        on_model_state=on_model_state_log,
+        on_model_state=on_model_state,
         streaming=streaming,
         settings=settings,
     )

@@ -298,7 +298,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 41 | **COMPLETER-ARGS-01** | 5 Bugs | MÉDIA | CONCLUIDA | UX-BUG-01 |
 | 42 | **UX-BUG-02** | 5 Bugs | ALTA | ABSORVIDA_POR_UX-BUG-02A, UX-BUG-02B, UX-BUG-02C (decisão de escopo 2026-04-19) | UX-BUG-01 |
 | 43 | **UX-BUG-02A** | 5 Bugs | ALTA | CONCLUIDA | UX-BUG-01 |
-| 44 | **UX-BUG-02B** | 5 Bugs | ALTA | PENDENTE | UX-BUG-02A, OBSERVABILITY-01 |
+| 44 | **UX-BUG-02B** | 5 Bugs | ALTA | CONCLUIDA | UX-BUG-02A, OBSERVABILITY-01 |
 | 45 | **UX-BUG-02C** | 5 Bugs | ALTA | PENDENTE | UX-BUG-02A |
 | 46 | **UX-BUG-03** | 5 Bugs | ALTA | PENDENTE | UX-LAYOUT-03 |
 | 47 | **VISION-01** | 6 Visão | ALTA | PENDENTE | UX-BUG-03, ADR-022-DOC |
@@ -320,6 +320,9 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 63 | **BANNER-TOOLS-COUNT-01** | 2.10 Higiene | MÉDIA | CONCLUIDA | INVENTORY-SYNC-01 |
 | 64 | **TAG-KEY-ACCENT-01** | 2.10 Higiene | BAIXA | CONCLUIDA | -- |
 | 65 | **STATUS-FILTER-HARDEN-01** | 2.10 Higiene | MÉDIA | CONCLUIDA | PRODUCAO-CLEANUP-01 |
+| 110 | **UX-LOOP-VISIBILITY-01** | 23.4 Gamedesigner | MÉDIA | PENDENTE | UX-BUG-02B |
+| 111 | **UX-CLAUDE-PARITY-01** | 23.4 Gamedesigner | ALTA | PENDENTE | UX-BUG-02B, UX-LOOP-VISIBILITY-01 |
+| 112 | **UX-LIFECYCLE-01** | 23.1 Estabilização | ALTA | PENDENTE | BOOT-VRAM-GUARD-01, TUI-SHUTDOWN-SILENT-01 |
 
 **Bloco 0 (Auditoria):** 1 sprint — relatório externo independente com 12 findings.
 
