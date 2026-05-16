@@ -297,7 +297,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 40 | **ERROR-MSG-01** | 5 Bugs | ALTA | CONCLUIDA (commit 70ed36a) | UX-DESIGN-01 |
 | 41 | **COMPLETER-ARGS-01** | 5 Bugs | MÉDIA | CONCLUIDA | UX-BUG-01 |
 | 42 | **UX-BUG-02** | 5 Bugs | ALTA | ABSORVIDA_POR_UX-BUG-02A, UX-BUG-02B, UX-BUG-02C (decisão de escopo 2026-04-19) | UX-BUG-01 |
-| 43 | **UX-BUG-02A** | 5 Bugs | ALTA | PENDENTE | UX-BUG-01 |
+| 43 | **UX-BUG-02A** | 5 Bugs | ALTA | CONCLUIDA | UX-BUG-01 |
 | 44 | **UX-BUG-02B** | 5 Bugs | ALTA | PENDENTE | UX-BUG-02A, OBSERVABILITY-01 |
 | 45 | **UX-BUG-02C** | 5 Bugs | ALTA | PENDENTE | UX-BUG-02A |
 | 46 | **UX-BUG-03** | 5 Bugs | ALTA | PENDENTE | UX-LAYOUT-03 |

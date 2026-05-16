@@ -52,8 +52,10 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-04-19
+**Data conclusão:** 2026-05-15
+**Hash:** (preenchido após commit)
 **Origem:** divisão de UX-BUG-02 em três sprints (diagnóstico, estado cold/warm, fix do race).
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 
