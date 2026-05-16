@@ -112,7 +112,7 @@ Cada arquivo tem `Status: ABSORVIDA_POR_...` no topo. O `SPRINT_ORDER_MASTER.md`
 
 ### Origem
 
-Commit `3e29a4f` prometia "limpa duplicatas em producao/" e de fato removeu alguns, mas deixou estes 4 por descuido. Protocolo anti-débito (CLAUDE.md §9.7) exige resolver inline ou materializar — materializamos aqui.
+Commit `3e29a4f` prometia "limpa duplicatas em producao/" e de fato removeu alguns, mas deixou estes 4 por descuido. Protocolo anti-débito (GUIDE.md §9.7) exige resolver inline ou materializar — materializamos aqui.
 
 ---
 

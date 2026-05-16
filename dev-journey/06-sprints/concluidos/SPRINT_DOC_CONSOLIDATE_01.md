@@ -18,14 +18,14 @@ sprint:
       reason: "Remover seção duplicada 'Catálogo de 20 gambiarras' e substituir por link para GAMBIARRAS_POR_SPRINT.md"
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md
       reason: "Receber seção nova 'Catálogo Universal de Gambiarras (20 padrões)' migrada do TEMPLATE_V2"
-    - path: /home/andrefarias/Desenvolvimento/Nyx-Code/CLAUDE.md
+    - path: /home/andrefarias/Desenvolvimento/Nyx-Code/GUIDE.md
       reason: "Substituir seção Anti-burla por link para GAMBIARRAS_POR_SPRINT.md; substituir 'próxima sprint' por link para GSD.md"
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/scripts/update_next_sprint.py
       reason: "Injetar trecho da seção GAMBIARRAS do sprint atual dentro do EXECUTAR_SPRINT.md (recorte inline por ID)"
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/scripts/sprint_invariants.sh
       reason: "Corrigir header: linha 4 diz '12 checks' mas são 13"
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/GSD.md
-      reason: "Padronizar seção 'Fluxo completo de uma sprint' com 10 passos canônicos; CLAUDE.md passa a linkar pra cá"
+      reason: "Padronizar seção 'Fluxo completo de uma sprint' com 10 passos canônicos; GUIDE.md passa a linkar pra cá"
 
   creates:
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/08-templates/PROJECT_SNAPSHOT.md
@@ -34,14 +34,14 @@ sprint:
   removes: []
 
   n_to_n_pairs:
-    - descricao: "Catálogo de 20 gambiarras aparece hoje em TEMPLATE_V2.md e é referenciado em CLAUDE.md/GAMBIARRAS; migrar para fonte única em GAMBIARRAS_POR_SPRINT.md e linkar nos outros"
+    - descricao: "Catálogo de 20 gambiarras aparece hoje em TEMPLATE_V2.md e é referenciado em GUIDE.md/GAMBIARRAS; migrar para fonte única em GAMBIARRAS_POR_SPRINT.md e linkar nos outros"
       paths:
         - /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/08-templates/SPRINT_TEMPLATE_V2.md
         - /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md
-        - /home/andrefarias/Desenvolvimento/Nyx-Code/CLAUDE.md
-    - descricao: "Fluxo de 10 passos (próxima sprint) aparece em CLAUDE.md e GSD.md; canonizar em GSD e linkar no CLAUDE.md"
+        - /home/andrefarias/Desenvolvimento/Nyx-Code/GUIDE.md
+    - descricao: "Fluxo de 10 passos (próxima sprint) aparece em GUIDE.md e GSD.md; canonizar em GSD e linkar no GUIDE.md"
       paths:
-        - /home/andrefarias/Desenvolvimento/Nyx-Code/CLAUDE.md
+        - /home/andrefarias/Desenvolvimento/Nyx-Code/GUIDE.md
         - /home/andrefarias/Desenvolvimento/Nyx-Code/GSD.md
 
   forbidden:
@@ -59,15 +59,15 @@ sprint:
     - cmd: "bash scripts/sprint_invariants.sh"
       timeout: 60
       deve_passar: "header diz '13 checks' (corrigido)"
-    - cmd: "wc -l CLAUDE.md GSD.md dev-journey/08-templates/SPRINT_TEMPLATE_V2.md"
+    - cmd: "wc -l GUIDE.md GSD.md dev-journey/08-templates/SPRINT_TEMPLATE_V2.md"
       timeout: 5
       deve_passar: "soma líquida reduzida (evidência de desduplicação)"
 
   acceptance_criteria:
     - "GAMBIARRAS_POR_SPRINT.md tem nova seção 'Catálogo Universal de Gambiarras (20 padrões)' com o conteúdo migrado literal"
     - "SPRINT_TEMPLATE_V2.md não tem mais o catálogo inline — só link"
-    - "CLAUDE.md seção Anti-burla reduzida a link + 2 linhas de contexto"
-    - "CLAUDE.md seção 'próxima sprint' reduzida a link para GSD.md"
+    - "GUIDE.md seção Anti-burla reduzida a link + 2 linhas de contexto"
+    - "GUIDE.md seção 'próxima sprint' reduzida a link para GSD.md"
     - "scripts/update_next_sprint.py injeta recorte de gambiarras específicas no EXECUTAR_SPRINT.md"
     - "scripts/sprint_invariants.sh header corrigido de '12 checks' para '13 checks'"
     - "PROJECT_SNAPSHOT.md criado e referenciado por TEMPLATE_V2"
@@ -94,10 +94,10 @@ sprint:
 >
 > **Estado do sistema na data da sprint:**
 > - Python 3.10+, Onda 22 em execução, 24 ADRs vigentes.
-> - Documentação espalhada: catálogo de gambiarras está em SPRINT_TEMPLATE_V2.md **e** GAMBIARRAS_POR_SPRINT.md; fluxo de 10 passos está em CLAUDE.md **e** GSD.md (ligeiramente diferentes).
+> - Documentação espalhada: catálogo de gambiarras está em SPRINT_TEMPLATE_V2.md **e** GAMBIARRAS_POR_SPRINT.md; fluxo de 10 passos está em GUIDE.md **e** GSD.md (ligeiramente diferentes).
 > - `scripts/update_next_sprint.py` atualiza `EXECUTAR_SPRINT.md` com o ID da próxima PENDENTE, mas não injeta contexto específico de gambiarras.
 > - `scripts/sprint_invariants.sh` tem 13 checks (check #13 `./run.sh --smoke` adicionado em BOOT-FIX-01), mas o header ainda diz "12 checks".
-> - IA executora típica hoje precisa ler ~1000 linhas antes de codar: CLAUDE.md (250) + SPRINT_TEMPLATE_V2.md (300) + GAMBIARRAS_POR_SPRINT.md (150) + arquivo da sprint (300).
+> - IA executora típica hoje precisa ler ~1000 linhas antes de codar: GUIDE.md (250) + SPRINT_TEMPLATE_V2.md (300) + GAMBIARRAS_POR_SPRINT.md (150) + arquivo da sprint (300).
 
 ---
 
@@ -106,14 +106,14 @@ sprint:
 Duplicação de protocolo aumenta erro humano e tempo de contexto para IA executora:
 
 - Quando o catálogo de 20 gambiarras é atualizado em um dos dois arquivos e não no outro, regras divergem.
-- Fluxo de 10 passos está escrito com pequenas variações em CLAUDE.md e GSD.md — IA lê o primeiro que encontra.
+- Fluxo de 10 passos está escrito com pequenas variações em GUIDE.md e GSD.md — IA lê o primeiro que encontra.
 - Header desatualizado de `sprint_invariants.sh` induz IA a pensar que check #13 é "extra" quando é canônico.
 - EXECUTAR_SPRINT.md hoje é um prompt genérico — não traz o recorte de gambiarras específicas daquela sprint, forçando IA a abrir GAMBIARRAS_POR_SPRINT.md e ir caçar a seção do ID.
 
 ### Sintoma observável
 
 ```bash
-$ wc -l CLAUDE.md dev-journey/08-templates/SPRINT_TEMPLATE_V2.md dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md GSD.md
+$ wc -l GUIDE.md dev-journey/08-templates/SPRINT_TEMPLATE_V2.md dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md GSD.md
 # soma atual > 1000 linhas com redundância significativa
 
 $ grep -n "12 checks" scripts/sprint_invariants.sh
@@ -200,7 +200,7 @@ Fonte canônica: `dev-journey/08-templates/PROJECT_SNAPSHOT.md`.
 Para cada sprint, colar aqui apenas os ADRs relevantes para o escopo. Não duplicar contagens, portas e versões — elas mudam e ficam obsoletas.
 ```
 
-### `/home/andrefarias/Desenvolvimento/Nyx-Code/CLAUDE.md`
+### `/home/andrefarias/Desenvolvimento/Nyx-Code/GUIDE.md`
 
 Seção "Anti-burla" (hoje ~20 linhas inline) vira:
 
@@ -229,7 +229,7 @@ Resumo: ler SPRINT_ORDER_MASTER, identificar próxima PENDENTE, ler arquivo da s
 
 ### `/home/andrefarias/Desenvolvimento/Nyx-Code/GSD.md`
 
-Canonizar seção "Fluxo completo de uma sprint" com os **10 passos** canônicos (unificando o que está em CLAUDE.md e GSD.md hoje):
+Canonizar seção "Fluxo completo de uma sprint" com os **10 passos** canônicos (unificando o que está em GUIDE.md e GSD.md hoje):
 
 ```markdown
 ## Fluxo completo de uma sprint
@@ -337,7 +337,7 @@ Soma de linhas dos docs tocados: REDUZ (medir antes e depois)
 ```bash
 # PASSO 1 — snapshot ANTES
 bash scripts/sprint_invariants.sh > /tmp/inv_before.txt 2>&1
-wc -l CLAUDE.md GSD.md dev-journey/08-templates/SPRINT_TEMPLATE_V2.md dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md > /tmp/lines_before.txt
+wc -l GUIDE.md GSD.md dev-journey/08-templates/SPRINT_TEMPLATE_V2.md dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md > /tmp/lines_before.txt
 
 # PASSO 2 — implementar migrações
 
@@ -350,7 +350,7 @@ head -5 scripts/sprint_invariants.sh | grep "13 checks"
 
 # PASSO 5 — snapshot DEPOIS
 bash scripts/sprint_invariants.sh > /tmp/inv_after.txt 2>&1
-wc -l CLAUDE.md GSD.md dev-journey/08-templates/SPRINT_TEMPLATE_V2.md dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md dev-journey/08-templates/PROJECT_SNAPSHOT.md > /tmp/lines_after.txt
+wc -l GUIDE.md GSD.md dev-journey/08-templates/SPRINT_TEMPLATE_V2.md dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md dev-journey/08-templates/PROJECT_SNAPSHOT.md > /tmp/lines_after.txt
 diff /tmp/lines_before.txt /tmp/lines_after.txt
 
 # PASSO 6 — smoke
@@ -363,8 +363,8 @@ diff /tmp/lines_before.txt /tmp/lines_after.txt
 
 - [ ] GAMBIARRAS_POR_SPRINT.md tem seção "Catálogo Universal de Gambiarras (20 padrões)"
 - [ ] SPRINT_TEMPLATE_V2.md não tem catálogo inline — só link
-- [ ] CLAUDE.md seção Anti-burla tem no máximo 10 linhas (link + 3 regras resumo)
-- [ ] CLAUDE.md seção "próxima sprint" tem no máximo 5 linhas (link + 1 resumo)
+- [ ] GUIDE.md seção Anti-burla tem no máximo 10 linhas (link + 3 regras resumo)
+- [ ] GUIDE.md seção "próxima sprint" tem no máximo 5 linhas (link + 1 resumo)
 - [ ] GSD.md tem seção "Fluxo completo de uma sprint" com os 10 passos canônicos
 - [ ] scripts/update_next_sprint.py injeta recorte em EXECUTAR_SPRINT.md sob marcador
 - [ ] scripts/sprint_invariants.sh header diz "13 checks"
@@ -392,7 +392,7 @@ diff /tmp/lines_before.txt /tmp/lines_after.txt
 1. **Apagar antes de migrar.** Deletar seção em TEMPLATE_V2 e só depois pensar em colocar em GAMBIARRAS. Proibido — migrar primeiro, verificar, depois remover.
 2. **Link quebrado.** Substituir seção por link `GAMBIARRAS_POR_SPRINT.md` sem o anchor da seção. Resultado: usuário pousa no topo e precisa caçar. Proibido — usar anchor: `GAMBIARRAS_POR_SPRINT.md#catálogo-universal-de-gambiarras-20-padrões`.
 3. **PROJECT_SNAPSHOT.md "preenchido depois".** Arquivo criado vazio com "TODO preencher". Proibido — dados reais na criação.
-4. **Contagens preguiçosas.** Copiar "34 tools, 47 comandos" do CLAUDE.md sem verificar. Proibido — rodar `ls nyx/tools/*.py | wc -l` e similares, colar no proof-of-work.
+4. **Contagens preguiçosas.** Copiar "34 tools, 47 comandos" do GUIDE.md sem verificar. Proibido — rodar `ls nyx/tools/*.py | wc -l` e similares, colar no proof-of-work.
 5. **Regenerar EXECUTAR_SPRINT.md sem ler antes.** Script que sobrescreve perdendo customização manual. Proibido — ler, regenerar, diff, aplicar.
 6. **Header do sprint_invariants.sh "quase certo".** Manter "12" e adicionar comentário "+1 recente". Proibido — atualizar para "13" definitivo.
 7. **Fluxo de 10 passos renumerado sem sincronizar referências.** Se GSD tem 10 passos e outro doc fala "passo 5", quebrar referência. Proibido — grep por "passo N" no repo depois de reordenar.
@@ -425,8 +425,8 @@ grep "Catálogo Universal de Gambiarras" dev-journey/08-templates/GAMBIARRAS_POR
 # 2. Conferir link no template
 grep "Fonte canônica" dev-journey/08-templates/SPRINT_TEMPLATE_V2.md
 
-# 3. Conferir CLAUDE.md enxugado
-wc -l CLAUDE.md    # menor que antes
+# 3. Conferir GUIDE.md enxugado
+wc -l GUIDE.md    # menor que antes
 
 # 4. Conferir header
 head -5 scripts/sprint_invariants.sh    # "13 checks"
@@ -453,7 +453,7 @@ ls dev-journey/06-sprints/producao/SPRINT_DOC_CONSOLIDATE_01.md      # NÃO exis
 | Injeção no EXECUTAR_SPRINT duplica conteúdo a cada run | Marcador `<!-- GAMBIARRAS_INJECT -->` e `<!-- /GAMBIARRAS_INJECT -->` delimitam região substituível |
 | Dados em PROJECT_SNAPSHOT.md envelhecem rápido | Adicionar nota "regerado a cada sprint de manutenção"; gerador automático é trabalho futuro |
 | Sprint anterior referencia "12 checks" em relatório antigo | Não editar relatórios passados — só docs vivos |
-| Fluxo de 10 passos em GSD divergir do que CLAUDE.md referencia | Depois da migração, grep "próxima sprint" em todo o repo para pegar menções órfãs |
+| Fluxo de 10 passos em GSD divergir do que GUIDE.md referencia | Depois da migração, grep "próxima sprint" em todo o repo para pegar menções órfãs |
 | Injeção de bloco grande polui EXECUTAR_SPRINT.md | Limitar recorte a ~50 linhas; se seção maior, cortar e colocar nota "ver GAMBIARRAS_POR_SPRINT.md seção <ID>" |
 
 ---

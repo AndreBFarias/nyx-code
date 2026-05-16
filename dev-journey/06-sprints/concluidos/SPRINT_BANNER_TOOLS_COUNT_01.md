@@ -20,7 +20,7 @@ sprint:
       reason: "print_inventory() usa count filesystem (28); trocar para runtime (35 via ToolRegistry.tool_count). sync.py hoje contradiz o banner — precisa ser a fonte única."
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/08-templates/PROJECT_SNAPSHOT.md
       reason: "Tabela Contagens diz 28 tools com comando filesystem; trocar por comando runtime (python -c 'from nyx...') que retorna o mesmo número que o banner do REPL exibe."
-    - path: /home/andrefarias/Desenvolvimento/Nyx-Code/CLAUDE.md
+    - path: /home/andrefarias/Desenvolvimento/Nyx-Code/GUIDE.md
       reason: "Resumo de contagens diz '28 tools'; sincronizar com runtime após reconciliação."
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/SPRINT_ORDER_MASTER.md
       reason: "Nota histórica do Inventário cita '28 tools'; atualizar para o valor runtime correto."
@@ -28,14 +28,14 @@ sprint:
   removes: []
 
   n_to_n_pairs:
-    - descricao: "Contagem de tools aparece em: ToolRegistry runtime, banner do REPL, _build_banner, toolbar, protocolo headless (pong/ping), scripts/sync.py print_inventory, PROJECT_SNAPSHOT, CLAUDE.md, SPRINT_ORDER_MASTER. Todos precisam reportar o mesmo número."
+    - descricao: "Contagem de tools aparece em: ToolRegistry runtime, banner do REPL, _build_banner, toolbar, protocolo headless (pong/ping), scripts/sync.py print_inventory, PROJECT_SNAPSHOT, GUIDE.md, SPRINT_ORDER_MASTER. Todos precisam reportar o mesmo número."
       paths:
         - /home/andrefarias/Desenvolvimento/Nyx-Code/nyx/agent/tools/registry.py
         - /home/andrefarias/Desenvolvimento/Nyx-Code/nyx/cli.py
         - /home/andrefarias/Desenvolvimento/Nyx-Code/nyx/agent/banner.py
         - /home/andrefarias/Desenvolvimento/Nyx-Code/scripts/sync.py
         - /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/08-templates/PROJECT_SNAPSHOT.md
-        - /home/andrefarias/Desenvolvimento/Nyx-Code/CLAUDE.md
+        - /home/andrefarias/Desenvolvimento/Nyx-Code/GUIDE.md
         - /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/SPRINT_ORDER_MASTER.md
 
   forbidden:
@@ -58,7 +58,7 @@ sprint:
     - cmd: "bash scripts/sprint_invariants.sh"
       timeout: 60
       deve_passar: "13/13 PASS"
-    - cmd: "grep -E 'tools *= *[0-9]|^\\| Tools' CLAUDE.md dev-journey/08-templates/PROJECT_SNAPSHOT.md dev-journey/06-sprints/SPRINT_ORDER_MASTER.md"
+    - cmd: "grep -E 'tools *= *[0-9]|^\\| Tools' GUIDE.md dev-journey/08-templates/PROJECT_SNAPSHOT.md dev-journey/06-sprints/SPRINT_ORDER_MASTER.md"
       timeout: 5
       deve_passar: "todos os 3 arquivos mostram o MESMO N"
 
@@ -67,7 +67,7 @@ sprint:
     - "Fonte única canônica de contagem é runtime: python -c 'from nyx.agent.tools.registry import ToolRegistry; print(ToolRegistry(\".\").tool_count)'"
     - "PROJECT_SNAPSHOT.md §Contagens atualizado com comando runtime (não filesystem) ao lado de 'Tools'"
     - "scripts/sync.py print_inventory() usa ToolRegistry().tool_count (não find filesystem)"
-    - "CLAUDE.md §Estado atual resumo atualizado com N runtime"
+    - "GUIDE.md §Estado atual resumo atualizado com N runtime"
     - "SPRINT_ORDER_MASTER.md nota histórica preserva a evolução: '34 → 30 → 28 (filesystem, INVENTORY-SYNC-01 incompleta) → N (runtime, BANNER-TOOLS-COUNT-01 definitivo)'"
     - "Banner do REPL (cli.py:360, agent.tools_count) continua mostrando o mesmo número que o sync report"
     - "Protocolo headless (cli.py:765,774) também reporta o mesmo N — n-para-n fechado"
@@ -89,7 +89,7 @@ sprint:
 > **ADRs relevantes:**
 >
 > - ADR-013 Integração Obrigatória: fonte de verdade para componentes registrados é o registry runtime, não o filesystem.
-> - Meta-regra #1 (CLAUDE.md global §9): Sincronização N-para-N — se um valor existe em N lugares, atualizar TODOS ou nenhum. INVENTORY-SYNC-01 concluiu parcialmente; esta sprint fecha a divergência.
+> - Meta-regra #1 (GUIDE.md global §9): Sincronização N-para-N — se um valor existe em N lugares, atualizar TODOS ou nenhum. INVENTORY-SYNC-01 concluiu parcialmente; esta sprint fecha a divergência.
 > - Meta-regra #6: Evidência empírica > hipótese. Quando `ToolRegistry.tool_count` runtime diz 35 e `find` no filesystem diz 28, a verdade não é média — é escolher a autoridade semântica correta. Registry (runtime) governa o que o REPL mostra e o que as chamadas tools resolvem.
 >
 > **Estado do sistema (verificado 2026-04-21 pós TUI-CLEANUP-01):**
@@ -155,7 +155,7 @@ Verdade: **ToolRegistry runtime é a autoridade** — é o que o LLM recebe em `
    ```
    Preservar `commands_unicos` e `services` como estão (ambos já runtime-based ou equivalentes).
 3. **Atualizar `PROJECT_SNAPSHOT.md`** trocando o comando `find nyx/agent/tools ...` pelo comando Python runtime. Atualizar o valor.
-4. **Atualizar `CLAUDE.md`** resumo com novo N.
+4. **Atualizar `GUIDE.md`** resumo com novo N.
 5. **Atualizar `SPRINT_ORDER_MASTER.md`** nota histórica preservando evolução completa.
 6. **Validar** que banner (cli.py:360) e headless (cli.py:765,774) reportam o mesmo N.
 
@@ -203,7 +203,7 @@ def _count_tools() -> int:
 
 Onde `<N>` é o valor real obtido após a investigação (provavelmente 35; confirmar).
 
-### `/home/andrefarias/Desenvolvimento/Nyx-Code/CLAUDE.md`
+### `/home/andrefarias/Desenvolvimento/Nyx-Code/GUIDE.md`
 
 **Antes:** linha de resumo cita "28 tools".
 **Depois:** trocar por `<N> tools (runtime)` + data nova.
@@ -223,7 +223,7 @@ Onde `<N>` é o valor real obtido após a investigação (provavelmente 35; conf
 
 ```
 + 0 arquivos criados
-~ 4 arquivos modificados (sync.py, PROJECT_SNAPSHOT.md, CLAUDE.md, SPRINT_ORDER_MASTER.md)
+~ 4 arquivos modificados (sync.py, PROJECT_SNAPSHOT.md, GUIDE.md, SPRINT_ORDER_MASTER.md)
 - 0 arquivos removidos
 + ~20 linhas líquidas (maior parte docs)
 ```
@@ -280,7 +280,7 @@ bash scripts/sprint_invariants.sh | tail -5
 - A investigação da origem das extras é **obrigatória** — não basta trocar o número. O commit precisa explicar o porquê.
 - Se descobrir que tool dinâmica foi registrada por engano ou se há bug real no registry: **não fix inline** — registrar como sprint nova (ex: TOOL-REGISTRY-AUDIT-01) e manter o número runtime correto para esta sprint.
 - Não altere lógica de registro. Só troca a fonte de count em sync/docs.
-- `CLAUDE.md` linhas 104, 110 (arquitetura ASCII) ainda citam "34 tools" e "47 commands" — atualizar também para o mesmo N (achado colateral herdado do validador da INVENTORY-SYNC-01).
+- `GUIDE.md` linhas 104, 110 (arquitetura ASCII) ainda citam "34 tools" e "47 commands" — atualizar também para o mesmo N (achado colateral herdado do validador da INVENTORY-SYNC-01).
 
 ---
 
@@ -294,7 +294,7 @@ Ver `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §"Catálogo Universal".
 2. **Deletar as tools extras** para fazer filesystem bater. Fonte de verdade é runtime.
 3. **Manter duas fontes** ("filesystem=28 + runtime=35, use o que quiser"). Uma fonte, uma verdade.
 4. **Pular a investigação da origem.** O commit deve explicar de onde vêm as extras. Caso contrário, a próxima auditoria repete o achado.
-5. **Alterar CLAUDE.md linhas 104/110 sem N-para-N em banner.py**. Banner é fonte runtime via `agent.tools_count` → não há N-para-N aqui, é só doc ASCII fora do escopo da sprint. Resolver **inline** como Edit-pronto no mesmo commit se o número é trivial, ou anotar.
+5. **Alterar GUIDE.md linhas 104/110 sem N-para-N em banner.py**. Banner é fonte runtime via `agent.tools_count` → não há N-para-N aqui, é só doc ASCII fora do escopo da sprint. Resolver **inline** como Edit-pronto no mesmo commit se o número é trivial, ou anotar.
 
 ---
 

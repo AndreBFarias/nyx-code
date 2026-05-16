@@ -320,7 +320,7 @@ python scripts/audit_error_messages.py
 
 - Não marcar concluída sem rodar cada cenário manual listado (traceback real de Ollama desligado, comando inválido com match, tool com path inexistente).
 - Não "afrouxar" o script de auditoria para evitar falhas — se falhou, é porque a tradução está incompleta.
-- Não envolver TUDO em `try/except Exception` para não ter que traduzir — causa silenciamento (CLAUDE.md §3).
+- Não envolver TUDO em `try/except Exception` para não ter que traduzir — causa silenciamento (GUIDE.md §3).
 - Se descobrir que uma mensagem vem de lib externa impossível de interceptar: registrar em `riscos` + nova sprint, não deixar passar.
 
 ---

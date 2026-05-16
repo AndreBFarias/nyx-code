@@ -14,7 +14,7 @@ O projeto deve ser documentado de forma que uma nova conversa com IA (ou novo de
 
 | Documento | Local | Propósito |
 |-----------|-------|-----------|
-| `CLAUDE.md` | raiz | Instruções para IA: identidade, convenções, arquitetura |
+| `GUIDE.md` | raiz | Instruções para IA: identidade, convenções, arquitetura |
 | `README.md` | raiz | Visão geral: o que é, como rodar, estrutura |
 | `SPRINT_ORDER_MASTER.md` | `dev-journey/06-sprints/` | Ordem de execução, estado de cada sprint |
 | `PORT_STATUS.md` | `dev-journey/` | Mapeamento 1:1 OpenClaude -> Nyx (o que existe, o que falta) |
@@ -23,13 +23,13 @@ O projeto deve ser documentado de forma que uma nova conversa com IA (ou novo de
 
 ## Regras
 
-1. **CLAUDE.md** é a fonte primária -- qualquer IA lê isso primeiro
+1. **GUIDE.md** é a fonte primária -- qualquer IA lê isso primeiro
 2. **PORT_STATUS.md** mapeia CADA item do OpenClaude com status
 3. **SPRINT_ORDER_MASTER** mostra exatamente o que fazer em seguida
 4. Sprint MDs individuais têm spec YAML machine-readable
 5. Atualizar docs junto com código (mesma sprint, mesmo commit)
 
-## O que deve estar no CLAUDE.md
+## O que deve estar no GUIDE.md
 
 - Identidade do Nyx
 - Arquitetura (Ollama -> Proxy -> Agent)

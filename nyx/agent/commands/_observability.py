@@ -1,6 +1,6 @@
 """Handlers de sentinelas de observabilidade (OBSERVABILITY-01).
 
-Extraído de cli.py para manter-lo abaixo de 800 linhas (CLAUDE.md §6).
+Extraído de cli.py para manter-lo abaixo de 800 linhas (GUIDE.md §6).
 
 Cada função recebe o que precisa (agent ou project_root) e retorna a
 string pronta para impressão. O cli.py apenas roteia a sentinela.

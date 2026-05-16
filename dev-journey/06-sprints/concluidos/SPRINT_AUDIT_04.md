@@ -69,7 +69,7 @@ sprint:
 
 ## Problema / Contexto
 
-A regra anti-burla do CLAUDE.md diz: "Nunca except vazio -- todo except deve ter logger.error() ou raise. except: pass e proibido."
+A regra anti-burla do GUIDE.md diz: "Nunca except vazio -- todo except deve ter logger.error() ou raise. except: pass e proibido."
 
 A auditoria encontrou 20+ locais com `except Exception:` (sem `as e`) seguidos de `pass`, `return False`, `return []` ou `continue`. Nenhum loga o erro. Isso viola a regra e dificulta debugging.
 

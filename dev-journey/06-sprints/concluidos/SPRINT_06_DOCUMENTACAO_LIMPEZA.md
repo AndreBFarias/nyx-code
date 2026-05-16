@@ -73,7 +73,7 @@ Garantir que está limpo:
 
 ## 6.6 Atualizar install.sh
 
-- Criar CLAUDE.md automaticamente
+- Criar GUIDE.md automaticamente
 - Criar .claude/settings.json
 - Mensagens estilo Nyx
 - Citação de filósofo no fim

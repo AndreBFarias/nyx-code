@@ -295,7 +295,7 @@ diff /tmp/inv_before.txt /tmp/inv_after.txt
 
 1. **Lista fixa de modelos.** `return ["qwen3:4b", "llama3:8b"]` sem puxar do `ollama list`. Proibido — fonte canônica é o runtime do Ollama.
 2. **Subprocess síncrono sem timeout.** `subprocess.run(["ollama", "list"])` sem `timeout=N`. Proibido — bloqueia prompt.
-3. **Shell-out via `ls`.** `subprocess.run(["ls", "logs/sessions"])` em vez de `Path.glob("*.json")`. Proibido — CLAUDE.md §Código.
+3. **Shell-out via `ls`.** `subprocess.run(["ls", "logs/sessions"])` em vez de `Path.glob("*.json")`. Proibido — GUIDE.md §Código.
 4. **Cache infinito.** `self._models_cache = models` sem timestamp. Proibido — modelos novos nunca aparecem.
 5. **Silent except.** `try: subprocess.run(...) except: return []`. Proibido — precisa `logger.warning` descrevendo o fallback.
 6. **Sobrescrever autocomplete de nome.** Mudança no loop principal de `get_completions` que regride o fix de UX-BUG-01. Proibido — testar o caso `/mod` + Tab depois da mudança.

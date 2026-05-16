@@ -788,13 +788,13 @@ class NyxGauntlet:
             self._add("C-03", "settings.json dark+pt-BR", "config", False, 0, error="Arquivo não existe")
 
         # C-04
-        claude_md = PROJECT_ROOT / "CLAUDE.md"
-        if claude_md.exists():
-            content = claude_md.read_text(encoding="utf-8")
+        guide_md = PROJECT_ROOT / "GUIDE.md"
+        if guide_md.exists():
+            content = guide_md.read_text(encoding="utf-8")
             has_nyx = "Nyx" in content
-            self._add("C-04", "CLAUDE.md contém Nyx", "config", has_nyx, 0)
+            self._add("C-04", "GUIDE.md contém Nyx", "config", has_nyx, 0)
         else:
-            self._add("C-04", "CLAUDE.md contém Nyx", "config", False, 0, error="Arquivo não existe")
+            self._add("C-04", "GUIDE.md contém Nyx", "config", False, 0, error="Arquivo não existe")
 
     # ═══════════════════════════════════════════════════════════════════
     # FASE: RESILIÊNCIA (2 testes)

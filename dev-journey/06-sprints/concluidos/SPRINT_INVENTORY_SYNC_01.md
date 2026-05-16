@@ -5,7 +5,7 @@
 ```yaml
 sprint:
   id: INVENTORY-SYNC-01
-  title: "Normalizar contagens reais de tools/commands/services em CLAUDE.md, PROJECT_SNAPSHOT.md e SPRINT_ORDER_MASTER.md"
+  title: "Normalizar contagens reais de tools/commands/services em GUIDE.md, PROJECT_SNAPSHOT.md e SPRINT_ORDER_MASTER.md"
   onda: 22
   bloco: 2.10 Higiene
   prioridade: MÉDIA
@@ -14,7 +14,7 @@ sprint:
   desbloqueia: []
 
   touches:
-    - path: /home/andrefarias/Desenvolvimento/Nyx-Code/CLAUDE.md
+    - path: /home/andrefarias/Desenvolvimento/Nyx-Code/GUIDE.md
       reason: "Tabela 'Estado atual' afirma 34 tools, 47 commands, 10 services. Contagem real é diferente — viola meta-regra #1 (sincronização N-para-N)."
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/08-templates/PROJECT_SNAPSHOT.md
       reason: "Seção 'Contagens (verificadas em 2026-04-21, pós UX-BUG-01)' afirma 30 tools, 54 commands, 9 services — parcialmente correto (services ok; tools inflada; commands infla aliases)."
@@ -28,7 +28,7 @@ sprint:
   n_to_n_pairs:
     - descricao: "Contagens de inventário vivem em 3+ documentos mais o script sync.py. O comando canônico e o número devem concordar em todos."
       paths:
-        - /home/andrefarias/Desenvolvimento/Nyx-Code/CLAUDE.md
+        - /home/andrefarias/Desenvolvimento/Nyx-Code/GUIDE.md
         - /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/08-templates/PROJECT_SNAPSHOT.md
         - /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/SPRINT_ORDER_MASTER.md
         - /home/andrefarias/Desenvolvimento/Nyx-Code/scripts/sync.py
@@ -47,7 +47,7 @@ sprint:
     - cmd: "bash scripts/sprint_invariants.sh"
       timeout: 60
       deve_passar: "13/13 PASS"
-    - cmd: "grep -E 'Tools.*Commands.*Services|tools.*commands.*services' CLAUDE.md dev-journey/08-templates/PROJECT_SNAPSHOT.md dev-journey/06-sprints/SPRINT_ORDER_MASTER.md"
+    - cmd: "grep -E 'Tools.*Commands.*Services|tools.*commands.*services' GUIDE.md dev-journey/08-templates/PROJECT_SNAPSHOT.md dev-journey/06-sprints/SPRINT_ORDER_MASTER.md"
       timeout: 5
       deve_passar: "os 3 arquivos exibem o MESMO trio (N,M,S)"
 
@@ -56,7 +56,7 @@ sprint:
     - "Tools = número de arquivos .py em nyx/agent/tools/ excluindo __init__.py, base.py e registry.py"
     - "Commands = (a) contagem de decorators @nyx_command únicos (dedup por name); (b) contagem total incluindo aliases — ambos reportados explicitamente"
     - "Services = arquivos .py em nyx/agent/services/ excluindo __init__.py"
-    - "CLAUDE.md Estado atual refletindo os números reais + data"
+    - "GUIDE.md Estado atual refletindo os números reais + data"
     - "PROJECT_SNAPSHOT.md seção Contagens com comando literal ao lado de cada número"
     - "SPRINT_ORDER_MASTER.md Inventário atualizado (ou marca a seção como DEPRECATED, apontando PROJECT_SNAPSHOT como fonte única)"
     - "scripts/sync.py imprime as contagens em formato parseável"
@@ -76,8 +76,8 @@ sprint:
 > **ADRs relevantes:**
 >
 > - ADR-013 Integração Obrigatória: contagens devem refletir o estado do registry (qualquer divergência = bug).
-> - ADR-015 Documentação para continuidade: uma IA nova lendo CLAUDE.md não pode encontrar número conflitante em PROJECT_SNAPSHOT.
-> - Meta-regra #1 (CLAUDE.md global §9): "Sincronização N-para-N — se um valor existe em N lugares, atualizar TODOS ou nenhum."
+> - ADR-015 Documentação para continuidade: uma IA nova lendo GUIDE.md não pode encontrar número conflitante em PROJECT_SNAPSHOT.
+> - Meta-regra #1 (GUIDE.md global §9): "Sincronização N-para-N — se um valor existe em N lugares, atualizar TODOS ou nenhum."
 >
 > **Estado real verificado em 2026-04-21 (auditoria desta sessão):**
 >
@@ -99,15 +99,15 @@ sprint:
 > |---|---|---|---|
 > | Realidade | 28 | 47 únicos | 9 |
 > | `PROJECT_SNAPSHOT.md:30-32` | 30 | 54 | 9 |
-> | `CLAUDE.md` projeto + `SPRINT_ORDER_MASTER.md:32-34` | 34 | 47 | 10 |
+> | `GUIDE.md` projeto + `SPRINT_ORDER_MASTER.md:32-34` | 34 | 47 | 10 |
 
 ---
 
 ## Problema
 
-Três documentos de onboarding afirmam três contagens diferentes de tools/commands/services. Uma IA executora lendo `EXECUTAR_SPRINT.md` + `CLAUDE.md` chega a uma conclusão; lendo `PROJECT_SNAPSHOT.md` chega a outra; rodando o script real, a uma terceira. Esta divergência:
+Três documentos de onboarding afirmam três contagens diferentes de tools/commands/services. Uma IA executora lendo `EXECUTAR_SPRINT.md` + `GUIDE.md` chega a uma conclusão; lendo `PROJECT_SNAPSHOT.md` chega a outra; rodando o script real, a uma terceira. Esta divergência:
 
-1. **Viola a meta-regra #1** do protocolo universal (CLAUDE.md global).
+1. **Viola a meta-regra #1** do protocolo universal (GUIDE.md global).
 2. **Engana o validador** — se o validador precisa confirmar "todos os 34 tools estão no registry", ele pode reprovar uma sprint legítima ou aprovar um estado quebrado.
 3. **Invalida critérios de aceite históricos** — sprints passadas diziam "testes vão de 135 para 202" mas se a base está errada, a projeção está errada.
 4. **Documento `PROJECT_SNAPSHOT.md` (auto-gerado pela DOC-CONSOLIDATE-01)** deveria ser fonte única — mas hoje conta aliases como commands distintos.
@@ -120,7 +120,7 @@ Três documentos de onboarding afirmam três contagens diferentes de tools/comma
 2. **Executar** e registrar números exatos na data da sprint.
 3. **Atualizar** 3 documentos com tabela unificada + linha "comando de verificação" ao lado.
 4. **Hardenizar** `scripts/sync.py` para imprimir o trio em formato parseável e falhar se qualquer dos 3 docs divergir.
-5. **Declarar** explicitamente: `PROJECT_SNAPSHOT.md` é a fonte-mãe; CLAUDE.md e SPRINT_ORDER_MASTER apontam para ele ("ver PROJECT_SNAPSHOT para contagens atuais") ao invés de duplicar.
+5. **Declarar** explicitamente: `PROJECT_SNAPSHOT.md` é a fonte-mãe; GUIDE.md e SPRINT_ORDER_MASTER apontam para ele ("ver PROJECT_SNAPSHOT para contagens atuais") ao invés de duplicar.
 
 ---
 
@@ -164,7 +164,7 @@ e compara com os números congelados em cada doc (via regex), falhando se diverg
 - Commands usa `grep -rhE "@nyx_command\(name="` para contar decorators por linha de definição — sem contar aliases, que moram em parâmetro do decorator.
 - Contagens atualizadas para refletir pós-PRODUCAO-CLEANUP-01 (137 concluídas / 18 pendentes).
 
-### `/home/andrefarias/Desenvolvimento/Nyx-Code/CLAUDE.md` (projeto)
+### `/home/andrefarias/Desenvolvimento/Nyx-Code/GUIDE.md` (projeto)
 
 **Antes (seção "Estado atual"):**
 ```markdown
@@ -178,7 +178,7 @@ e compara com os números congelados em cada doc (via regex), falhando se diverg
 
 **Depois:**
 ```markdown
-> **Contagens:** ver `dev-journey/08-templates/PROJECT_SNAPSHOT.md` §Contagens (auto-gerado pelo DOC-CONSOLIDATE-01). Este CLAUDE.md não duplica números para evitar divergência. Estado em 2026-04-21: 28 tools · 47 commands · 9 services · 24 ADRs.
+> **Contagens:** ver `dev-journey/08-templates/PROJECT_SNAPSHOT.md` §Contagens (auto-gerado pelo DOC-CONSOLIDATE-01). Este GUIDE.md não duplica números para evitar divergência. Estado em 2026-04-21: 28 tools · 47 commands · 9 services · 24 ADRs.
 ```
 
 **Mudanças:**
@@ -217,7 +217,7 @@ e compara com os números congelados em cada doc (via regex), falhando se diverg
 
 ```
 + 0 arquivos criados
-~ 4 arquivos modificados (CLAUDE.md, PROJECT_SNAPSHOT.md, SPRINT_ORDER_MASTER.md, scripts/sync.py)
+~ 4 arquivos modificados (GUIDE.md, PROJECT_SNAPSHOT.md, SPRINT_ORDER_MASTER.md, scripts/sync.py)
 - 0 arquivos removidos
 + ~40 linhas líquidas (docs) / ~30 linhas em sync.py
 ```
@@ -240,7 +240,7 @@ echo "tools=$TOOLS commands=$CMDS services=$SRVS adrs=$ADRS concluidas=$CONCLUID
 
 # 2. Conferir que os 3 docs concordam (após edits)
 grep -E '28 tools|47 commands|9 services' \
-    CLAUDE.md \
+    GUIDE.md \
     dev-journey/08-templates/PROJECT_SNAPSHOT.md \
     dev-journey/06-sprints/SPRINT_ORDER_MASTER.md
 
@@ -258,7 +258,7 @@ bash scripts/sprint_invariants.sh | tail -5
 - [ ] Comandos do passo 1 executados AO VIVO — colar output no relatório
 - [ ] Os 3 documentos mostram exatamente o mesmo trio (28/47/9)
 - [ ] `PROJECT_SNAPSHOT.md` mostra comando literal ao lado de cada contagem
-- [ ] `CLAUDE.md` e `SPRINT_ORDER_MASTER.md` apontam para `PROJECT_SNAPSHOT.md` ao invés de duplicar números
+- [ ] `GUIDE.md` e `SPRINT_ORDER_MASTER.md` apontam para `PROJECT_SNAPSHOT.md` ao invés de duplicar números
 - [ ] `scripts/sync.py` imprime `inventario: tools=N, commands_unicos=M, services=S` em uma única linha
 - [ ] Se algum doc divergir do script: exit code != 0 (teste artificial aceito)
 - [ ] `sprint_invariants.sh` 13/13 (FAIL_AFTER <= FAIL_BEFORE)
@@ -272,7 +272,7 @@ bash scripts/sprint_invariants.sh | tail -5
 - Nenhuma contagem pode vir de memória — todo número tem comando bash que o produz.
 - Se `grep '@nyx_command'` retornar 47 mas o usuário lembra de 54: reportar a divergência, **não ajustar a lembrança**.
 - Se `scripts/sync.py` já existir com estrutura diferente do proposto: preservar API pública, apenas adicionar `print_inventory()`.
-- Não apagar a tabela inteira de CLAUDE.md e SPRINT_ORDER_MASTER — reduzir a resumo de uma linha com data.
+- Não apagar a tabela inteira de GUIDE.md e SPRINT_ORDER_MASTER — reduzir a resumo de uma linha com data.
 
 ---
 
@@ -320,7 +320,7 @@ python scripts/sync.py
 # esperado: linha única "inventario: tools=28, commands_unicos=47, services=9"
 
 grep -HE 'tools=28|28 tools|28 · 47|47 commands|9 services' \
-    CLAUDE.md \
+    GUIDE.md \
     dev-journey/08-templates/PROJECT_SNAPSHOT.md \
     dev-journey/06-sprints/SPRINT_ORDER_MASTER.md
 # esperado: pelo menos 1 match em cada arquivo

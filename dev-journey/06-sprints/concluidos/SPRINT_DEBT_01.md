@@ -56,7 +56,7 @@ sprint:
 
 ## Contexto
 
-- Limite de 800 linhas (CLAUDE.md). `loop.py` tem 739 — próximo do estouro.
+- Limite de 800 linhas (GUIDE.md). `loop.py` tem 739 — próximo do estouro.
 - Responsabilidades misturadas: inicialização do agent, loop de iteração, parse de actions, integração com tools, compactação, sumarização.
 
 ## Problema

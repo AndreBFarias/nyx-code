@@ -3,7 +3,7 @@
 **Versão:** v1.0 (2026-04-19)
 **Público-alvo:** a IA (ou humano) que revisa sprints entregues por outra IA executora.
 **Relação com outros documentos:**
-- `CLAUDE.md` → regras invioláveis do projeto (código, commit, fluxo).
+- `GUIDE.md` → regras invioláveis do projeto (código, commit, fluxo).
 - `GSD.md` → fluxo humano de abrir nova session e delegar uma sprint.
 - `EXECUTAR_SPRINT.md` → prompt pronto para colar na executora.
 - `SPRINT_TEMPLATE_V2.md` → formato obrigatório de cada sprint.
@@ -180,7 +180,7 @@ Exceção à regra de §1: sprints de **docs** (tipo `Docs` no yaml, ex: ADR-021
 
 - Lê o arquivo novo criado (ADR ou consolidação).
 - Confere que Status: ACEITO (ou o que a sprint exigir).
-- Confere que CLAUDE.md / outros índices foram atualizados.
+- Confere que GUIDE.md / outros índices foram atualizados.
 - Confere padrão PT-BR, zero emoji, zero IA.
 - Aprova com base no conteúdo, não em gauntlet.
 

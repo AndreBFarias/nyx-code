@@ -146,7 +146,7 @@ ok "7. limite de 800 linhas removido (split por coesão)"
 BAD_TODO=$(grep -rn -E '#\s*(TODO|FIXME|XXX|HACK)\b' nyx/ --include='*.py' 2>/dev/null |
            grep -v '# noqa: TODO-ok' || true)
 if [ -n "$BAD_TODO" ]; then
-    fail "8. TODO/FIXME/XXX/HACK inline (CLAUDE.md anti-burla)" "${BAD_TODO}"
+    fail "8. TODO/FIXME/XXX/HACK inline (GUIDE.md anti-burla)" "${BAD_TODO}"
 else
     ok "8. zero TODO/FIXME/XXX/HACK"
 fi

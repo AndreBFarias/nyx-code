@@ -240,7 +240,7 @@ def build_prompt(sprint_id: str, remaining: int) -> str:
 Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/{fname}.
 
 Modelo obrigatório: claude-opus-4-7 (sem subagentes).
-Protocolo obrigatório (CLAUDE.md seção "próxima sprint" + workflow anti-gambiarra):
+Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambiarra):
 
 1. Leia o arquivo da sprint inteiro.
 2. Leia a seção correspondente em dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md.

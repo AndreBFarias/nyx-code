@@ -24,7 +24,7 @@ sprint:
       reason: "Importar tokens; substituir ACCENT/PRIMARY/DIM locais por design_tokens; trocar emoji ⚡ por glifo do sistema"
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/nyx/themes/__init__.py
       reason: "ThemeManager passa a derivar de design_tokens quando entidade=nyx (fonte única)"
-    - path: /home/andrefarias/Desenvolvimento/Nyx-Code/CLAUDE.md
+    - path: /home/andrefarias/Desenvolvimento/Nyx-Code/GUIDE.md
       reason: "Lista de ADRs vai a 25; menciona design_tokens como fonte única"
 
   forbidden:
@@ -44,7 +44,7 @@ sprint:
   acceptance_criteria:
     - "Arquivo nyx/themes/design_tokens.py existe com constantes listadas abaixo"
     - "ADR-023 criado e marcado ACEITO"
-    - "CLAUDE.md atualizado (lista ADRs + contagem)"
+    - "GUIDE.md atualizado (lista ADRs + contagem)"
     - "Zero hex (#RRGGBB) em código Python fora de design_tokens.py e themes/constants.py"
     - "Zero emoji (⚡) em código — substituído pelo glifo BULLETS['bypass']"
     - "ThemeManager.get_ansi_colors('nyx') retorna cores derivadas de design_tokens"
@@ -347,7 +347,7 @@ def get_ansi_colors(self, entity_id: str | None = None) -> dict[str, str]:
     ...
 ```
 
-### CLAUDE.md — atualizar
+### GUIDE.md — atualizar
 
 - Tabela ADRs: adicionar `| 023 | Design System (paleta D) |`
 - Contagem: `ADRs | 25 | --` (após ADR-024 de AUDIT-FIX-06)
@@ -361,7 +361,7 @@ def get_ansi_colors(self, entity_id: str | None = None) -> dict[str, str]:
 ~ nyx/cli.py: -3 linhas, +~5 linhas (import + glifo novo)
 ~ nyx/agent/output.py: -20 linhas, +~10 linhas (consolidação)
 ~ nyx/themes/__init__.py: +15 linhas
-~ CLAUDE.md: +2 linhas
+~ GUIDE.md: +2 linhas
 ```
 
 ## Comando de verificação
@@ -409,7 +409,7 @@ print('ThemeManager OK')
 
 - [ ] `nyx/themes/design_tokens.py` existe e importável
 - [ ] ADR-023 criado (Status: ACEITO)
-- [ ] CLAUDE.md tabela de ADRs até 25
+- [ ] GUIDE.md tabela de ADRs até 25
 - [ ] `grep #[0-9A-Fa-f]{6}` em `nyx/*.py` retorna vazio (exceto `design_tokens.py` e `themes/constants.py`)
 - [ ] `grep ⚡ nyx/*.py` retorna vazio
 - [ ] `cli.py` e `output.py` importam de `design_tokens`

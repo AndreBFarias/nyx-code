@@ -58,7 +58,7 @@ sprint:
 
 ## Contexto do projeto (snapshot)
 
-> - CLAUDE.md: zero `# noqa` / `# type: ignore` indiscriminados.
+> - GUIDE.md: zero `# noqa` / `# type: ignore` indiscriminados.
 > - Relatório do Bloco 2 da Onda 22 (linhas 146-154): 3 erros ruff pré-existentes, não tocados por `scope atômico`.
 > - `sprint_invariants.sh` check #10 (`ruff reclama`) está FAIL por causa destes.
 

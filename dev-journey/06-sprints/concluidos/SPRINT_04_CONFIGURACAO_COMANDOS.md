@@ -119,9 +119,9 @@ Para cada um, registrar:
 
 ### Fase 2: Configuração base
 
-1. Criar `CLAUDE.md` na raiz com identidade Nyx + regras PT-BR
+1. Criar `GUIDE.md` na raiz com identidade Nyx + regras PT-BR
 2. Criar `.claude/settings.json` com defaults otimizados
-3. Atualizar `run.sh` para não usar `--bare` (para carregar CLAUDE.md e commands)
+3. Atualizar `run.sh` para não usar `--bare` (para carregar GUIDE.md e commands)
    mas resolver o problema de autenticação de outra forma
 4. Atualizar `install.sh` para criar configs automaticamente
 
@@ -135,7 +135,7 @@ Para cada command que não funciona:
 
 ### Fase 4: PT-BR completo
 
-- `CLAUDE.md` em PT-BR
+- `GUIDE.md` em PT-BR
 - System prompt em PT-BR (já feito)
 - `/config` > Language: PT-BR
 - Tips e mensagens: verificar se respeitam o idioma
@@ -160,8 +160,8 @@ Para cada command que não funciona:
 
 ## Arquivos a criar/modificar
 
-- `CLAUDE.md` -- identidade Nyx + regras PT-BR
+- `GUIDE.md` -- identidade Nyx + regras PT-BR
 - `.claude/settings.json` -- settings pré-configurados
 - `run.sh` -- resolver autenticação sem --bare
-- `install.sh` -- criar CLAUDE.md e settings
+- `install.sh` -- criar GUIDE.md e settings
 - `.env` / `.env.example` -- defaults atualizados

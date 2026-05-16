@@ -28,7 +28,7 @@ from nyx.agent.models import (
 )
 from nyx.agent.parser import ActionParser
 from nyx.agent.permissions import PermissionChecker
-from nyx.agent.prompt import build_claude_md_context, build_system_prompt
+from nyx.agent.prompt import build_guide_md_context, build_system_prompt
 from nyx.agent.repomap import RepoMap
 from nyx.agent.services.diagnostics import DiagnosticTracking
 from nyx.agent.services.logging_service import get_logger
@@ -124,7 +124,7 @@ class AgentLoop(_IterationMixin):
         self._tools.hooks.register_post(_on_post_tool)
 
         self._tool_names = [t["function"]["name"] for t in self._tools.tool_defs]
-        self._claude_ctx = build_claude_md_context(project_root)
+        self._guide_ctx = build_guide_md_context(project_root)
         self._rebuild_system_prompt()
 
     def session_state(self) -> dict:
@@ -159,8 +159,8 @@ class AgentLoop(_IterationMixin):
             repo_map=repo_map,
             session_summary=summary,
         )
-        if self._claude_ctx:
-            prompt += self._claude_ctx
+        if self._guide_ctx:
+            prompt += self._guide_ctx
         self._system_prompt = prompt
 
     async def run(self, user_input: str) -> SessionStatus:

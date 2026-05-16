@@ -361,6 +361,61 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 
 ---
 
+<!-- MANUAL_OVERRIDE_ONDA_23_START -->
+
+### Bloco ONDA-23: Cockpit + SBOM + Gamedesigner (filosofia de experiência)
+
+**Origem:** auditoria + brainstorm do usuário em 2026-05-15. Plano: `~/.claude/plans/venv-andrefarias-nitro-5-desenvolviment-declarative-spark.md`. Onda 23 paralela à Onda 22 (não bloqueia VALIDATE-FINAL-01). 15 sprints novas em 4 blocos.
+
+**Decisões fechadas (2026-05-15):**
+- D1 Ordem paralelo: track Onda 22 segue normal; track Onda 23 começa em paralelo.
+- D2 Stack Cockpit = FastAPI + WebSocket + xterm.js, bind 127.0.0.1:11437.
+- D3 MVP Cockpit completo (paineis + REPL embedded + gauntlet por feature + evidência + control API).
+- D4 Pilar gamedesigner = **filosofia de experiência única** (juicing/flow/agency/feedback/tutorial-sem-tutorial/onboarding-onda/progression/microcopy/identidade), não estética. Paleta D do ADR-023 serve a essa filosofia.
+- D5 Princípio operacional: write-through (sem UPS — cada decisão grava antes de prosseguir).
+
+**Bugs novos detectados e formalizados nesta onda** (não cobertos pelas 16 sprints pendentes da Onda 22):
+- BOOT-VRAM-GUARD-01 (ALTA): OOM-killer mata Ollama em pré-carga em low-VRAM.
+- PROXY-NUMGPU-RUNTIME-01 (MÉDIA): `NUM_GPU` módulo-global; sem re-tune proativo.
+- TUI-SHUTDOWN-SILENT-01 (BAIXA): "Morto" do bash vaza no terminal por SIGKILL em filho `&`.
+- SECRET-MIGRATE-01 (BAIXA): `ANTHROPIC_API_KEY` em `.env` (mitigado por .gitignore; mover para `~/.config/nyx/secrets`).
+
+| # | Sprint | Bloco | Prioridade | Status | Depende de |
+|---|--------|-------|------------|--------|------------|
+| 99 | **GUIDE-RENAME-FINISH-01** | 23.0 Recuperação | ALTA | CONCLUIDA | -- |
+| 100 | **BOOT-VRAM-GUARD-01** | 23.1 Estabilização | ALTA | PENDENTE | -- |
+| 101 | **PROXY-NUMGPU-RUNTIME-01** | 23.1 Estabilização | MÉDIA | PENDENTE | BOOT-VRAM-GUARD-01 |
+| 102 | **TUI-SHUTDOWN-SILENT-01** | 23.1 Estabilização | BAIXA | PENDENTE | -- |
+| 103 | **SECRET-MIGRATE-01** | 23.1 Estabilização | BAIXA | PENDENTE | -- |
+| 104 | **SBOM-REGISTRY-01** | 23.2 SBOM | ALTA | PENDENTE | -- |
+| 105 | **SBOM-REGISTRY-02** | 23.2 SBOM | ALTA | PENDENTE | SBOM-REGISTRY-01 |
+| 106 | **SBOM-REGISTRY-03** | 23.2 SBOM | MÉDIA | PENDENTE | SBOM-REGISTRY-02 |
+| 107 | **COCKPIT-01** | 23.3 Cockpit | ALTA | PENDENTE | BOOT-VRAM-GUARD-01, SBOM-REGISTRY-02 |
+| 108 | **COCKPIT-02** | 23.3 Cockpit | ALTA | PENDENTE | COCKPIT-01 |
+| 109 | **COCKPIT-03** | 23.3 Cockpit | ALTA | PENDENTE | COCKPIT-02 |
+| 110 | **COCKPIT-04** | 23.3 Cockpit | MÉDIA | PENDENTE | COCKPIT-03 |
+| 111 | **COCKPIT-05** | 23.3 Cockpit | MÉDIA | PENDENTE | COCKPIT-04 |
+| 112 | **UX-LOOP-01** | 23.4 Gamedesigner | ALTA | PENDENTE | ADR-023 |
+| 113 | **UX-AGENCY-01** | 23.4 Gamedesigner | ALTA | PENDENTE | UX-LOOP-01 |
+| 114 | **UX-PROGRESSION-01** | 23.4 Gamedesigner | MÉDIA | PENDENTE | UX-LOOP-01 |
+| 115 | **UX-COCKPIT-EXPERIENCE-01** | 23.4 Gamedesigner | MÉDIA | PENDENTE | COCKPIT-03, UX-LOOP-01, UX-AGENCY-01 |
+
+**Bloco 23.0 (Recuperação de débito, 2026-05-15):** 1 sprint — GUIDE-RENAME-FINISH-01 fecha trabalho não-commitado deixado por sessão IA anterior (rename CLAUDE.md → GUIDE.md, ~45 arquivos com modificações prontas + 2 funções com nome legado em prompt.py e update_docs.py). Origem: freezy.
+
+**Bloco 23.1 (Estabilização cirúrgica):** 4 sprints. Resolve achados de runtime observados em 2026-05-15 ao rodar `./run.sh`. Pré-requisito de COCKPIT (Cockpit precisa boot confiável).
+
+**Bloco 23.2 (SBOM Registry vivo):** 3 sprints. Estende `FEATURE_MAP.md` para `REGISTRY.yaml` machine-readable; Gauntlet alimenta com status/evidência/timestamp; features sem teste viram sprint stub. Hoje 18/62 cobertas; meta <10 sem teste.
+
+**Bloco 23.3 (Web Cockpit):** 5 sprints. Servidor local FastAPI em :11437 com REPL embedded via PTY, dashboard de features, captura de evidência e control API. Permite Claude pilotar via Chrome MCP.
+
+**Bloco 23.4 (Pilar gamedesigner — filosofia):** 4 sprints. Materializa 4 princípios canônicos como ADRs (025 Loop, 026 Agência, 027 Progressão & Identidade) aplicados ao loop Nyx; sprint final garante coerência TUI↔Web. **Após UX-LOOP-01, toda sprint Onda 22 e Onda 23 passa a ter critério de aceite "princípios do ADR-025 aplicados".**
+
+**Status: PENDENTE.** Specs serão criadas em `producao/` na sequência da Semana 1 do plano. Promoção para PENDENTE só após review.
+
+<!-- MANUAL_OVERRIDE_ONDA_23_END -->
+
+---
+
 ## Ordem de Execução
 
 ```
@@ -413,6 +468,14 @@ Onda 22 (Redesign Total UX + Visão + Deploy) -- EM EXECUÇÃO:
   Bloco 7: DEPLOY-01 -> DEPLOY-02
   Bloco 8: UX-EXTRA-01 (opcional se sobrar tempo)
   [CHECKPOINT final: demo interativa com install.sh em VM limpa + ícone no launcher]
+
+Onda 23 (Cockpit + SBOM + Gamedesigner) -- PARALELA A ONDA 22 (2026-05-15):
+  Bloco 23.1 (Estabilização): BOOT-VRAM-GUARD-01 (ALTA), TUI-SHUTDOWN-SILENT-01 (BAIXA) [paralelos] -> PROXY-NUMGPU-RUNTIME-01 (MÉDIA), SECRET-MIGRATE-01 (BAIXA) [paralelos]
+  Bloco 23.2 (SBOM): SBOM-REGISTRY-01 (ALTA) -> SBOM-REGISTRY-02 (ALTA) -> SBOM-REGISTRY-03 (MÉDIA)
+  Bloco 23.3 (Cockpit): COCKPIT-01 (ALTA) -> COCKPIT-02 (ALTA) -> COCKPIT-03 (ALTA) -> COCKPIT-04 (MÉDIA) -> COCKPIT-05 (MÉDIA)
+  Bloco 23.4 (Gamedesigner - filosofia): UX-LOOP-01 (ALTA, ADR-025) -> UX-AGENCY-01 (ALTA, ADR-026) [paralelo] -> UX-PROGRESSION-01 (MÉDIA, ADR-027) -> UX-COCKPIT-EXPERIENCE-01 (MÉDIA)
+  [Após UX-LOOP-01: critério "ADR-025 aplicado" vira invariante em toda sprint Onda 22 e 23]
+  [Integração: VALIDATE-FINAL-01 ganha critério extra "Cockpit demonstrado via Chrome MCP screenshot"]
 ```
 
 **REGRA: Onda 10 (INFRA) é pré-requisito para TODAS as ondas seguintes.**

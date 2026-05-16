@@ -40,7 +40,7 @@ sprint:
 - `get_status()` -- git status formatado
 - `get_diff()` -- git diff dos arquivos modificados
 
-**Ajustes:** trocar imports, formato de commit PT-BR (CLAUDE.md).
+**Ajustes:** trocar imports, formato de commit PT-BR (GUIDE.md).
 
 ### 2. `nyx/agent/persistence.py` (Luna: persistence.py)
 

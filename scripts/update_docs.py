@@ -2,7 +2,7 @@
 """Atualiza docs automaticamente com base no estado real do código.
 
 Lê ToolRegistry, commands, services, gauntlet, ADRs e sprints.
-Atualiza CLAUDE.md, README.md e PORT_STATUS.md com números reais.
+Atualiza GUIDE.md, README.md e PORT_STATUS.md com números reais.
 
 Uso:
     python scripts/update_docs.py          # Atualiza tudo
@@ -126,11 +126,11 @@ def _update_section(content: str, marker_start: str, marker_end: str, new_conten
     return content
 
 
-def update_claude_md(
+def update_guide_md(
     tools: int, commands: int, services: int, tests: int, adrs: int, sprints: dict[str, int], check: bool
 ) -> bool:
-    """Atualiza CLAUDE.md com números reais."""
-    path = PROJECT_ROOT / "CLAUDE.md"
+    """Atualiza GUIDE.md com números reais."""
+    path = PROJECT_ROOT / "GUIDE.md"
     if not path.exists():
         return False
 
@@ -164,9 +164,9 @@ def update_claude_md(
     changed = content != original
     if changed and not check:
         path.write_text(content, encoding="utf-8")
-        logger.info("CLAUDE.md atualizado")
+        logger.info("GUIDE.md atualizado")
     elif changed:
-        logger.info("CLAUDE.md precisa de atualização")
+        logger.info("GUIDE.md precisa de atualização")
 
     return changed
 
@@ -276,8 +276,8 @@ def main() -> None:
     print()
 
     changes = []
-    if update_claude_md(tools, commands, services, tests, adrs, sprints, args.check):
-        changes.append("CLAUDE.md")
+    if update_guide_md(tools, commands, services, tests, adrs, sprints, args.check):
+        changes.append("GUIDE.md")
     if update_readme(tools, commands, services, tests, args.check):
         changes.append("README.md")
     if update_port_status(tools, commands, services, args.check):

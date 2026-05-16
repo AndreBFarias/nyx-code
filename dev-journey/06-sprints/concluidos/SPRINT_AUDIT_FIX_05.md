@@ -69,7 +69,7 @@ sprint:
 
 ## Contexto
 
-- ADR limite 800 linhas por arquivo (CLAUDE.md). `commands.py` está com **919 linhas** (finding A-01).
+- ADR limite 800 linhas por arquivo (GUIDE.md). `commands.py` está com **919 linhas** (finding A-01).
 - 47+ commands registrados via decorador `@nyx_command`.
 - Consumidores: `nyx/cli.py` (chama `handle_command`), `nyx/agent/completer.py` (chama `list_commands`).
 

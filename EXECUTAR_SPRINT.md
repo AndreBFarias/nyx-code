@@ -2,7 +2,7 @@
 
 > **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
 > Copie o bloco abaixo e cole em uma session nova de Claude Opus 4.7.
-> Restam **16** sprints PENDENTE(S) na fila.
+> Restam **32** sprints PENDENTE(S) na fila.
 
 ---
 
@@ -12,7 +12,7 @@
 Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_COMPLETER_ARGS_01.md.
 
 Modelo obrigatório: claude-opus-4-7 (sem subagentes).
-Protocolo obrigatório (CLAUDE.md seção "próxima sprint" + workflow anti-gambiarra):
+Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambiarra):
 
 1. Leia o arquivo da sprint inteiro.
 2. Leia a seção correspondente em dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md.

@@ -43,7 +43,7 @@ sprint:
 
 ## Contexto
 
-- CLAUDE.md exige "Logging rotacionado obrigatório".
+- GUIDE.md exige "Logging rotacionado obrigatório".
 - `nyx/agent/services/logging_service.py` define `InternalLogging()` (chamado em `cli.py`).
 - Outros módulos usam `logging.getLogger(...)` diretamente, confiando que `cli.py` já inicializou. Isso quebra quando o módulo é importado fora do REPL (ex.: script, teste, Gauntlet standalone).
 

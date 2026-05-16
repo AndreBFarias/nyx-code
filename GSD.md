@@ -91,7 +91,7 @@ Ler também:
 
 **Se qualquer passo falhar:** sprint fica **BLOQUEADA** com motivo de 1 linha; pode virar sprint nova (regra "nenhum débito para trás").
 
-*Este fluxo é citado por `CLAUDE.md §próxima sprint` e `EXECUTAR_SPRINT.md §Prompt`. Atualizar aqui, não duplicar.*
+*Este fluxo é citado por `GUIDE.md §próxima sprint` e `EXECUTAR_SPRINT.md §Prompt`. Atualizar aqui, não duplicar.*
 
 ---
 
@@ -111,7 +111,7 @@ Ler também:
 | Ordem exata de execução | `dev-journey/06-sprints/SPRINT_ORDER_MASTER.md` |
 | Detalhe da sprint | `dev-journey/06-sprints/producao/SPRINT_<ID>.md` |
 | Como NÃO ser enganado | `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` |
-| Regras universais | `CLAUDE.md` |
+| Regras universais | `GUIDE.md` |
 | Decisões arquiteturais | `dev-journey/03-decisions/ADR_*.md` |
 | Auditoria mais recente | `dev-journey/07-reports/AUDIT_EXT_2026_04_18.md` |
 

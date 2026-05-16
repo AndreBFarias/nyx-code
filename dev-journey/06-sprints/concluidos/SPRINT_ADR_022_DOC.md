@@ -16,7 +16,7 @@ sprint:
       reason: "ADR referenciado em SPRINT_ORDER_MASTER.md (Onda 22 D1) nunca foi criado como arquivo"
 
   touches:
-    - path: /home/andrefarias/Desenvolvimento/Nyx-Code/CLAUDE.md
+    - path: /home/andrefarias/Desenvolvimento/Nyx-Code/GUIDE.md
       reason: "Tabela de ADRs vigentes adiciona 022 entre 021 e 023"
 
   removes: []
@@ -29,13 +29,13 @@ sprint:
   tests:
     - cmd: "test -f dev-journey/03-decisions/ADR_022_VISION_MOONDREAM_CPU.md"
       deve_passar: true
-    - cmd: "grep -c '^| 022 |' CLAUDE.md"
+    - cmd: "grep -c '^| 022 |' GUIDE.md"
       esperado: ">= 1"
 
   acceptance_criteria:
     - "Arquivo ADR_022 existe com estrutura canônica"
     - "Status: ACEITO"
-    - "CLAUDE.md atualizado com linha 022"
+    - "GUIDE.md atualizado com linha 022"
     - "ADR inclui consumo de RAM/VRAM medido ou estimado para a máquina-alvo (RTX 3050 4GB)"
     - "Compara com ao menos 1 alternativa (llava / llama-cpp vision) e justifica"
 ```
@@ -88,7 +88,7 @@ Criar `ADR_022_VISION_MOONDREAM_CPU.md` explicando:
 
 Seguir estrutura do ADR-024 como modelo. Seções: Contexto, Decisão, Consequências (+/-), Alternativas, Referências, citação final.
 
-### `/home/andrefarias/Desenvolvimento/Nyx-Code/CLAUDE.md`
+### `/home/andrefarias/Desenvolvimento/Nyx-Code/GUIDE.md`
 
 Adicionar:
 ```
@@ -102,7 +102,7 @@ Adicionar:
 ```bash
 test -f dev-journey/03-decisions/ADR_022_VISION_MOONDREAM_CPU.md && echo OK
 grep '^\*\*Status:\*\* ACEITO' dev-journey/03-decisions/ADR_022_VISION_MOONDREAM_CPU.md
-grep -c '^| 022 |' CLAUDE.md
+grep -c '^| 022 |' GUIDE.md
 ```
 
 ---
@@ -112,7 +112,7 @@ grep -c '^| 022 |' CLAUDE.md
 - [ ] Arquivo criado com Status ACEITO
 - [ ] Número concreto de RAM ou VRAM para a decisão
 - [ ] Ao menos 1 alternativa comparada e rejeitada
-- [ ] CLAUDE.md atualizado
+- [ ] GUIDE.md atualizado
 - [ ] Citação de filósofo
 - [ ] Commit `docs: cria ADR-022 sobre visão via moondream CPU`
 

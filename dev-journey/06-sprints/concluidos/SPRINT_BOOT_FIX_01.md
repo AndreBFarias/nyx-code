@@ -36,7 +36,7 @@ sprint:
     - "Fixar outros bugs encontrados durante auditoria inline — materializar como arquivo de sprint em producao/ + linha no master (ver seção 'Protocolo de achados colaterais')"
     - "Fazer smoke rodar Ollama/proxy — derrota o propósito (rápido, determinístico)"
     - "Implementar --smoke via env var ou arquivo de lock — flag argparse, puro"
-    - "Emitir 'boot ok' via logger.info — deve ser `print(\"boot ok\")` no cli.py (permitido por ADR-024 + CLAUDE.md para cli.py)"
+    - "Emitir 'boot ok' via logger.info — deve ser `print(\"boot ok\")` no cli.py (permitido por ADR-024 + GUIDE.md para cli.py)"
     - "Mudar o texto 'boot ok' para qualquer outra coisa — check do invariante é grep literal"
     - "Adicionar emoji em qualquer lugar"
     - "Menção a Claude/GPT/Anthropic em código/commits"
@@ -203,7 +203,7 @@ if args.smoke:
     sys.exit(0)
 ```
 
-**Justificativa do print:** ADR-024 + CLAUDE.md § "Nunca print()" autorizam `print()` em `nyx/cli.py` (e só lá + `output.py`). `boot ok` é literal; `logger.info` não serve porque stdout é o canal que o invariante vai grepar.
+**Justificativa do print:** ADR-024 + GUIDE.md § "Nunca print()" autorizam `print()` em `nyx/cli.py` (e só lá + `output.py`). `boot ok` é literal; `logger.info` não serve porque stdout é o canal que o invariante vai grepar.
 
 ---
 

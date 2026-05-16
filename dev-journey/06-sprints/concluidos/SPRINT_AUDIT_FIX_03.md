@@ -56,7 +56,7 @@ sprint:
 
 ## Contexto
 
-Meta-regra N-para-N (CLAUDE.md inviolável): "Se um valor existe em N lugares, atualizar TODOS ou nenhum". Ports `11435` e `11436` aparecem em 15+ pontos (cli, proxy, providers, loop, commands). `config/defaults.py` tem `OLLAMA_PORT=11435` mas ninguém importa.
+Meta-regra N-para-N (GUIDE.md inviolável): "Se um valor existe em N lugares, atualizar TODOS ou nenhum". Ports `11435` e `11436` aparecem em 15+ pontos (cli, proxy, providers, loop, commands). `config/defaults.py` tem `OLLAMA_PORT=11435` mas ninguém importa.
 
 ## Problema
 

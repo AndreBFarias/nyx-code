@@ -16,7 +16,7 @@ sprint:
   touches:
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/SPRINT_ORDER_MASTER.md
       reason: "Marcar Onda 22 como release ready e adicionar linha de aceite final"
-    - path: /home/andrefarias/Desenvolvimento/Nyx-Code/CLAUDE.md
+    - path: /home/andrefarias/Desenvolvimento/Nyx-Code/GUIDE.md
       reason: "Adicionar seção 'v1.0 critérios de aceite' com os 30 itens de paridade e gate de gauntlet 100%"
 
   creates:
@@ -28,9 +28,9 @@ sprint:
   removes: []
 
   n_to_n_pairs:
-    - descricao: "Critério de release v1.0 aparece em CLAUDE.md, SPRINT_ORDER_MASTER.md e no relatório; precisam bater"
+    - descricao: "Critério de release v1.0 aparece em GUIDE.md, SPRINT_ORDER_MASTER.md e no relatório; precisam bater"
       paths:
-        - /home/andrefarias/Desenvolvimento/Nyx-Code/CLAUDE.md
+        - /home/andrefarias/Desenvolvimento/Nyx-Code/GUIDE.md
         - /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/SPRINT_ORDER_MASTER.md
         - /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/07-reports/RELATORIO_VALIDATE_FINAL_01.md
 
@@ -216,7 +216,7 @@ Novo arquivo. Seções obrigatórias:
 
 Novo arquivo com a tabela dos 30 itens acima.
 
-### `/home/andrefarias/Desenvolvimento/Nyx-Code/CLAUDE.md`
+### `/home/andrefarias/Desenvolvimento/Nyx-Code/GUIDE.md`
 
 Adicionar seção nova após "Regras invioláveis":
 
@@ -242,7 +242,7 @@ Adicionar linha final na narrativa da Onda 22 indicando "release ready após VAL
 
 ```
 + 2 arquivos criados (relatório + checklist paridade)
-~ 2 arquivos modificados (CLAUDE.md, SPRINT_ORDER_MASTER.md)
+~ 2 arquivos modificados (GUIDE.md, SPRINT_ORDER_MASTER.md)
 - 0 arquivos removidos
 + ~400 linhas líquidas (a maior parte no relatório)
 ```
@@ -287,7 +287,7 @@ diff /tmp/inv_before.txt /tmp/inv_after.txt
 - [ ] Output do install em VM Ubuntu 22.04 colado no relatório
 - [ ] Gauntlet 100% com output bruto
 - [ ] Screenshots em assets/validate_final/ numerados 01..30
-- [ ] CLAUDE.md tem seção "v1.0 — critérios de aceite"
+- [ ] GUIDE.md tem seção "v1.0 — critérios de aceite"
 - [ ] SPRINT_ORDER_MASTER.md marca release ready
 - [ ] FAIL_AFTER <= FAIL_BEFORE no sprint_invariants
 - [ ] Commit `docs: VALIDATE-FINAL-01 conclui auditoria de release v1.0`

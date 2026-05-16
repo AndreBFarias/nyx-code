@@ -68,7 +68,7 @@ sprint:
 
 ## Problema / Contexto
 
-A meta-regra "Sincronizacao N-para-N" (CLAUDE.md regra 9.1) diz: "Se um valor existe em N lugares, atualizar TODOS ou nenhum." A auditoria encontrou 3 violacoes:
+A meta-regra "Sincronizacao N-para-N" (GUIDE.md regra 9.1) diz: "Se um valor existe em N lugares, atualizar TODOS ou nenhum." A auditoria encontrou 3 violacoes:
 
 1. **Versao**: `pyproject.toml` diz `1.1.1`, `cli.py` diz `1.2.0`, `commands.py` diz `v1.2.0`
 2. **NUM_CTX**: `defaults.py` = 16384, `proxy.py` = 4096, `run.sh` = 4096

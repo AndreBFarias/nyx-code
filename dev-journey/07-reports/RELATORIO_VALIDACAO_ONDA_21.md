@@ -106,7 +106,7 @@ Screenshot `/tmp/nyx_validate_onda20/banner_20260420T201623.png` mostra footer c
 - `nyx/agent/commands/core.py:118` → `cmd_paste` registrado (comando auxiliar).
 
 ### Precondições de runtime
-- `command -v xclip` disponível no ambiente (confirmado por `which xclip` = `/usr/bin/xclip` em CLAUDE.md seção Capacidades Visuais).
+- `command -v xclip` disponível no ambiente (confirmado por `which xclip` = `/usr/bin/xclip` em GUIDE.md seção Capacidades Visuais).
 
 ### Critério
 - [OK] Key binding presente

@@ -74,12 +74,12 @@ Se só respondeu em texto: não precisa done().
 Código limpo não é arte. É higiene."""
 
 
-def build_claude_md_context(project_root: str) -> str:
-    """Carrega CLAUDE.md se existir (compacto para manter contexto leve)."""
-    claude_md = Path(project_root) / "CLAUDE.md"
-    if claude_md.exists():
-        content = claude_md.read_text(encoding="utf-8", errors="replace")
-        return f"\n[CLAUDE.md]\n{content[:800]}\n"
+def build_guide_md_context(project_root: str) -> str:
+    """Carrega GUIDE.md se existir (compacto para manter contexto leve)."""
+    guide_md = Path(project_root) / "GUIDE.md"
+    if guide_md.exists():
+        content = guide_md.read_text(encoding="utf-8", errors="replace")
+        return f"\n[GUIDE.md]\n{content[:800]}\n"
     return ""
 
 

@@ -102,7 +102,7 @@ if [ -n "$STAGED_ALL" ]; then
 
     for file in $STAGED_ALL; do
         case "$file" in
-            CLAUDE.md|.claude/*|reference/*|dev-journey/09-legacy/*|scripts/sync.py|scripts/hooks/*) continue ;;
+            GUIDE.md|.claude/*|reference/*|dev-journey/09-legacy/*|scripts/sync.py|scripts/hooks/*) continue ;;
         esac
 
         if [ -f "$PROJECT_ROOT/$file" ]; then
@@ -216,7 +216,7 @@ if "$PYTHON" "$PROJECT_ROOT/scripts/update_docs.py" --check >/dev/null 2>&1; the
     _ok "Docs atualizados"
 else
     "$PYTHON" "$PROJECT_ROOT/scripts/update_docs.py" 2>/dev/null
-    for doc in CLAUDE.md README.md dev-journey/PORT_STATUS.md; do
+    for doc in GUIDE.md README.md dev-journey/PORT_STATUS.md; do
         if [ -f "$PROJECT_ROOT/$doc" ]; then
             git add "$PROJECT_ROOT/$doc" 2>/dev/null || true
         fi

@@ -260,7 +260,7 @@ class SyncChecker:
                 "node_modules/",
                 "dev-journey/09-legacy/",
                 ".env",
-                "CLAUDE.md",
+                "GUIDE.md",
                 ".claude/",
             ],
         )
@@ -323,7 +323,7 @@ class SyncChecker:
             "nyx/agent/",
             "run.sh",
             "install.sh",
-            "CLAUDE.md",
+            "GUIDE.md",
             "README.md",
         ]
         missing = []

@@ -57,7 +57,7 @@ sprint:
 
 ## Contexto do projeto (snapshot)
 
-> - CLAUDE.md anti-burla: "Nunca except vazio — todo except deve ter logger.error() ou raise".
+> - GUIDE.md anti-burla: "Nunca except vazio — todo except deve ter logger.error() ou raise".
 > - AUDIT-FIX-04 fechou `cli.py:509-512` (sumarização async).
 > - AUDIT-FIX-07 fechou `ask_user.py:78`.
 > - Residual: invariante `#4` do `sprint_invariants.sh` aponta 3 lugares ainda em FAIL.

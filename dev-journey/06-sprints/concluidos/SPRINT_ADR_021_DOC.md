@@ -16,7 +16,7 @@ sprint:
       reason: "ADR referenciado por CTX-03 (RepoMap via AST) nunca foi criado como arquivo"
 
   touches:
-    - path: /home/andrefarias/Desenvolvimento/Nyx-Code/CLAUDE.md
+    - path: /home/andrefarias/Desenvolvimento/Nyx-Code/GUIDE.md
       reason: "Tabela de ADRs vigentes pula de 020 para 024 — corrigir inserindo 021"
 
   removes: []
@@ -31,13 +31,13 @@ sprint:
       deve_passar: true
     - cmd: "grep -E '^\\*\\*Status:\\*\\* ACEITO' dev-journey/03-decisions/ADR_021_OPTIONAL_DEPENDENCIES.md"
       deve_passar: true
-    - cmd: "grep -c '^| 021 |' CLAUDE.md"
+    - cmd: "grep -c '^| 021 |' GUIDE.md"
       esperado: ">= 1"
 
   acceptance_criteria:
     - "Arquivo ADR_021_OPTIONAL_DEPENDENCIES.md existe com estrutura canônica (Status/Contexto/Decisão/Consequências/Alternativas)"
     - "Status: ACEITO"
-    - "CLAUDE.md menciona ADR-021 na tabela de ADRs vigentes"
+    - "GUIDE.md menciona ADR-021 na tabela de ADRs vigentes"
     - "Citação de filósofo no final"
 ```
 
@@ -55,7 +55,7 @@ sprint:
 
 > - ADR-001 Local First; ADR-013 Integração Obrigatória; ADR-015 Documentação para continuidade.
 > - Sprint CTX-03 (`producao/SPRINT_CTX_03_REPOMAP.md`) referencia ADR-021 para justificar tree-sitter como dependência opcional.
-> - `CLAUDE.md` afirma "ADRs vigentes (24)" e lista até 020 + salta para 024; 021/022/023 mencionadas no cabeçalho sem arquivo.
+> - `GUIDE.md` afirma "ADRs vigentes (24)" e lista até 020 + salta para 024; 021/022/023 mencionadas no cabeçalho sem arquivo.
 > - ADR-023 será criada em UX-DESIGN-01; ADR-022 será criada em ADR-022-DOC. Esta sprint fecha a 021.
 
 ---
@@ -126,7 +126,7 @@ Negativas:
 *"Citação de filósofo em PT-BR." -- autor*
 ```
 
-### `/home/andrefarias/Desenvolvimento/Nyx-Code/CLAUDE.md`
+### `/home/andrefarias/Desenvolvimento/Nyx-Code/GUIDE.md`
 
 Adicionar linha na tabela de ADRs vigentes:
 ```
@@ -144,8 +144,8 @@ test -f dev-journey/03-decisions/ADR_021_OPTIONAL_DEPENDENCIES.md && echo OK
 # 2. Status ACEITO
 grep '^\*\*Status:\*\* ACEITO' dev-journey/03-decisions/ADR_021_OPTIONAL_DEPENDENCIES.md
 
-# 3. Referência em CLAUDE.md
-grep -c '^| 021 |' CLAUDE.md
+# 3. Referência em GUIDE.md
+grep -c '^| 021 |' GUIDE.md
 ```
 
 ---
@@ -154,7 +154,7 @@ grep -c '^| 021 |' CLAUDE.md
 
 - [ ] `ADR_021_OPTIONAL_DEPENDENCIES.md` criado com seções canônicas
 - [ ] Status: ACEITO
-- [ ] CLAUDE.md atualizado (linha 021 na tabela)
+- [ ] GUIDE.md atualizado (linha 021 na tabela)
 - [ ] Citação de filósofo no final do ADR
 - [ ] Commit `docs: cria ADR-021 sobre dependências opcionais`
 

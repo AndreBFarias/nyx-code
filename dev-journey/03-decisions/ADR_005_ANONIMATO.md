@@ -5,7 +5,7 @@ ACEITA (2026-04-04)
 
 ## Contexto
 
-Alinhamento com CLAUDE.md global. Nenhum arquivo ou commit deve
+Alinhamento com GUIDE.md global. Nenhum arquivo ou commit deve
 mencionar nomes de IAs (Claude, GPT, Gemini, Copilot, Anthropic, OpenAI).
 
 ## Decisão

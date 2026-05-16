@@ -52,7 +52,7 @@ sprint:
 
 Hoje a Nyx não se lembra de nada entre execuções do REPL além do histórico da sessão anterior. Convenções do dev ("uso pyenv 3.12", "sempre type hints", "commit message sem emoji") precisam ser re-explicadas toda vez.
 
-Claude Code resolve isso com `CLAUDE.md` (que já existe neste projeto, feito por dev). A ideia aqui é inverter: a Nyx escreve/atualiza memory files durante a conversa.
+Claude Code resolve isso com `GUIDE.md` (que já existe neste projeto, feito por dev). A ideia aqui é inverter: a Nyx escreve/atualiza memory files durante a conversa.
 
 Referência: sistema de memória do Claude Code descrito no system prompt (`~/.claude/projects/.../memory/`).
 

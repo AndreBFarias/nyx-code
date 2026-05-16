@@ -363,7 +363,7 @@ git diff HEAD~1 HEAD -- README.md
 | Versão Ollama muda formato de `ollama list` | Depender só de `grep -q 'nome:tag'`, não parse estruturado |
 | `curl` do Ollama falha por rede | Exit != 0 com mensagem; usuário pode reexecutar |
 | Scripts `scripts/setup_desktop_entry.py` ainda não existe (DEPLOY-02) | FASE 9 faz SKIP elegante se ausente |
-| IA escreve 500 linhas quando Luna tem 755 | Limite 800 linhas (CLAUDE.md §6); se ultrapassar, extrair helpers |
+| IA escreve 500 linhas quando Luna tem 755 | Limite 800 linhas (GUIDE.md §6); se ultrapassar, extrair helpers |
 
 ---
 

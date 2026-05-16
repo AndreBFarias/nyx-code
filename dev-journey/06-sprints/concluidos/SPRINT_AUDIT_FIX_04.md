@@ -34,7 +34,7 @@ sprint:
 
 ## Contexto
 
-CLAUDE.md inviolável: "Nunca except vazio — todo except deve ter `logger.error()` ou `raise`. `except: pass` é proibido."
+GUIDE.md inviolável: "Nunca except vazio — todo except deve ter `logger.error()` ou `raise`. `except: pass` é proibido."
 
 ## Problema
 

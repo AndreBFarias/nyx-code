@@ -31,7 +31,7 @@ Nyx-Code/
 ├── run.sh                   # Launcher principal (inicia tudo)
 ├── install.sh               # Instalação
 ├── uninstall.sh             # Desinstalação
-├── CLAUDE.md                # Instruções para agentes de IA
+├── GUIDE.md                # Instruções para agentes de IA
 ├── GAUNTLET_REPORT.md       # Resultado do último teste
 ├── nyx/                     # Código Python do agente
 │   ├── proxy.py             # Proxy HTTP (Ollama <-> /v1/chat)
@@ -104,7 +104,7 @@ O Gauntlet é o único mecanismo de teste (ADR-007). Zero testes unitários.
 
 1. **PT-BR** com acentuação correta (á, é, í, ó, ú, â, ê, ô, ã, õ, ç)
 2. **Zero emojis** em código, commits, docs, respostas
-3. **Zero menções a IA** em código ou commits (ver CLAUDE.md para detalhes)
+3. **Zero menções a IA** em código ou commits (ver GUIDE.md para detalhes)
 4. **Type hints** em todo Python
 5. **Logging** (nunca `print()`)
 6. **Paths relativos** via `Path` (nunca hardcoded)
@@ -125,7 +125,7 @@ O Gauntlet é o único mecanismo de teste (ADR-007). Zero testes unitários.
 
 ## Como contribuir
 
-1. Ler CLAUDE.md
+1. Ler GUIDE.md
 2. Ler este guia
 3. Rodar `python scripts/sync.py` para verificar estado
 4. Fazer alterações

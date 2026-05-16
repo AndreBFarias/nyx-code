@@ -24,7 +24,7 @@ sleep 3
 
 # --- TOOL: Read ---
 send_user "\n### TOOL_READ ###\n"
-send "use a tool Read para ler o arquivo CLAUDE.md\r"
+send "use a tool Read para ler o arquivo GUIDE.md\r"
 expect {
     -re "Nyx|agente|codigo|PT-BR" { send_user "\nREAD_OK\n" }
     -re "Error|error|fetch" { send_user "\nREAD_ERRO\n" }

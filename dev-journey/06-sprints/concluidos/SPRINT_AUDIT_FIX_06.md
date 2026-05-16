@@ -16,7 +16,7 @@ sprint:
       reason: "Oficializa exceção de print() para output.py e explica contrato"
 
   touches:
-    - path: /home/andrefarias/Desenvolvimento/Nyx-Code/CLAUDE.md
+    - path: /home/andrefarias/Desenvolvimento/Nyx-Code/GUIDE.md
       reason: "Atualizar seção anti-burla: print() permitido em cli.py E nyx/agent/output.py"
 
   forbidden:
@@ -29,8 +29,8 @@ sprint:
 
   acceptance_criteria:
     - "ADR-024 criado com status 'aceito' e data"
-    - "CLAUDE.md menciona explicitamente nyx/agent/output.py como exceção oficial"
-    - "Lista de ADRs no CLAUDE.md vai até ADR-024"
+    - "GUIDE.md menciona explicitamente nyx/agent/output.py como exceção oficial"
+    - "Lista de ADRs no GUIDE.md vai até ADR-024"
     - "Commit dedicado, sem mudança de código funcional"
 ```
 
@@ -44,7 +44,7 @@ sprint:
 ## Contexto
 
 - ADR-015 (Documentação para continuidade): toda decisão não-óbvia vira ADR.
-- CLAUDE.md seção Anti-burla: "Nunca print() — usar logging. `print()` é permitido APENAS no cli.py para output do REPL."
+- GUIDE.md seção Anti-burla: "Nunca print() — usar logging. `print()` é permitido APENAS no cli.py para output do REPL."
 - Finding A-02 do AUDIT-EXT-01: `nyx/agent/output.py` tem 10+ `print()`. É **camada de renderização UI** — não faz sentido forçar `logging` nela.
 
 ## Problema
@@ -60,7 +60,7 @@ Alternativas discutidas (AUDIT-EXT-01):
 ## Solução
 
 1. Criar ADR-024 descrevendo o papel da render layer e o contrato dela.
-2. Atualizar CLAUDE.md adicionando a exceção explícita.
+2. Atualizar GUIDE.md adicionando a exceção explícita.
 3. Nenhuma mudança de código produtivo.
 
 ## Arquivo a criar: ADR-024
@@ -78,7 +78,7 @@ Alternativas discutidas (AUDIT-EXT-01):
 
 ## Contexto
 
-A meta-regra do projeto (CLAUDE.md) proíbe `print()` fora de `nyx/cli.py`.
+A meta-regra do projeto (GUIDE.md) proíbe `print()` fora de `nyx/cli.py`.
 A auditoria externa (AUDIT-EXT-01) apontou 10+ `print()` em
 `nyx/agent/output.py`, o que tecnicamente viola a regra.
 
@@ -135,15 +135,15 @@ ActionResult**, não adicionar exceção.
 ## Referências
 
 - AUDIT-EXT-01 finding A-02.
-- CLAUDE.md seção "Anti-burla".
+- GUIDE.md seção "Anti-burla".
 - ADR-004 (Zero Emojis), ADR-006 (PT-BR).
 
 *"A exceção que não é nomeada vira regra na prática." -- anônimo*
 ```
 
-## Mudança em CLAUDE.md
+## Mudança em GUIDE.md
 
-Localizar no CLAUDE.md a linha:
+Localizar no GUIDE.md a linha:
 > - **Nunca print()** -- usar logging. `print()` é permitido APENAS no cli.py para output do REPL.
 
 Trocar por:
@@ -157,7 +157,7 @@ Também na tabela de ADRs (seção "ADRs vigentes"):
 
 ```
 + 1 arquivo criado (ADR_024_RENDER_LAYER.md)
-~ 1 arquivo modificado (CLAUDE.md, 2 trechos)
+~ 1 arquivo modificado (GUIDE.md, 2 trechos)
 ```
 
 ## Comando de verificação
@@ -165,16 +165,16 @@ Também na tabela de ADRs (seção "ADRs vigentes"):
 ```bash
 cd /home/andrefarias/Desenvolvimento/Nyx-Code
 test -s dev-journey/03-decisions/ADR_024_RENDER_LAYER.md && echo "ADR OK"
-grep -c "ADR-024\|output.py como render" CLAUDE.md
+grep -c "ADR-024\|output.py como render" GUIDE.md
 # esperado: >= 2 (menção na seção anti-burla + tabela ADRs)
 ```
 
 ## Critério binário
 
 - [ ] Arquivo `ADR_024_RENDER_LAYER.md` existe e tem Status=ACEITO
-- [ ] CLAUDE.md menciona `nyx/agent/output.py` como exceção
-- [ ] Tabela de ADRs no CLAUDE.md lista ADR-024
-- [ ] Contagem de ADRs no CLAUDE.md = 24
+- [ ] GUIDE.md menciona `nyx/agent/output.py` como exceção
+- [ ] Tabela de ADRs no GUIDE.md lista ADR-024
+- [ ] Contagem de ADRs no GUIDE.md = 24
 - [ ] Nenhum arquivo Python tocado
 - [ ] Commit: `docs: ADR-024 normaliza output.py como render layer`
 
@@ -182,14 +182,14 @@ grep -c "ADR-024\|output.py como render" CLAUDE.md
 
 **NÃO marque como concluída se:**
 - ADR ficou como "proposto" ou "rascunho" — deve ser "aceito".
-- CLAUDE.md não mencionar ADR-024 EM DOIS lugares (anti-burla + tabela).
+- GUIDE.md não mencionar ADR-024 EM DOIS lugares (anti-burla + tabela).
 - A IA aproveitou pra relaxar print() em outros arquivos além de output.py.
 
 ## Validação humana
 
 ```bash
 cat dev-journey/03-decisions/ADR_024_RENDER_LAYER.md | head -20
-grep "ADR-024\|render layer" CLAUDE.md
+grep "ADR-024\|render layer" GUIDE.md
 ```
 
 ---

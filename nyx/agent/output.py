@@ -438,7 +438,7 @@ def make_ask_permission(state: dict) -> "callable":
     """Factory do callback on_permission. Respeita state['bypass'].
 
     Extraído de cli.py para manter o arquivo abaixo de 800 linhas
-    (CLAUDE.md §6). Permanece aqui porque é render layer (ADR-024).
+    (GUIDE.md §6). Permanece aqui porque é render layer (ADR-024).
     """
     from nyx.themes.design_tokens import ANSI_BOLD
 

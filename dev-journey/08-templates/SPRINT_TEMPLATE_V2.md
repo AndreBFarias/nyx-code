@@ -180,7 +180,7 @@ python -m ruff check nyx/
 - [ ] Gauntlet `--only <fase>` passa 100%
 - [ ] `ruff` não reclama
 - [ ] Nenhuma violação de `forbidden[]`
-- [ ] `CLAUDE.md` + `SPRINT_ORDER_MASTER.md` atualizados marcando CONCLUIDA
+- [ ] `GUIDE.md` + `SPRINT_ORDER_MASTER.md` atualizados marcando CONCLUIDA
 - [ ] Sprint movida de `producao/` para `concluidos/`
 - [ ] Commit atômico criado com mensagem no padrão `tipo: descrição`
 

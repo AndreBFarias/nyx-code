@@ -64,10 +64,10 @@ from nyx.agent.commands import (
 **Commit:** `5528e63 docs: ADR-024 normaliza output.py como render layer`
 
 - Criado `dev-journey/03-decisions/ADR_024_RENDER_LAYER.md` (Status: ACEITO, 2026-04-18).
-- `CLAUDE.md`: regra do `print()` expandida para permitir em `nyx/cli.py` **e** `nyx/agent/output.py` (ADR-024). Tabela de ADRs passou de (20) para (24), adicionada linha `| 024 | Render Layer (print em output.py) |`.
+- `GUIDE.md`: regra do `print()` expandida para permitir em `nyx/cli.py` **e** `nyx/agent/output.py` (ADR-024). Tabela de ADRs passou de (20) para (24), adicionada linha `| 024 | Render Layer (print em output.py) |`.
 - Zero código Python tocado.
 
-**Observação:** a tabela ADRs vigentes agora pula de 020 para 024. A inconsistência é pre-existente (linha de header da CLAUDE.md já mencionava ADR-022/023 sem corpo criado). Mantido literalmente conforme spec -- não é escopo desta sprint criar 021/022/023.
+**Observação:** a tabela ADRs vigentes agora pula de 020 para 024. A inconsistência é pre-existente (linha de header da GUIDE.md já mencionava ADR-022/023 sem corpo criado). Mantido literalmente conforme spec -- não é escopo desta sprint criar 021/022/023.
 
 ### 2.3 AUDIT-FIX-07 -- ask_user retorna payload
 
@@ -181,9 +181,9 @@ Falso positivo do linter. Esses arquivos são gerados por `scripts/update_next_s
 
 `GAUNTLET_REPORT.md` hoje mostra `"REGRESSAO: Pass rate caiu: 100% -> 67%"`. Isso é artefato do baseline salvo quando gauntlet passou antes (17:58). Comparado com o estado atual (OOM), parece regressão. **Não é regressão de código**; é degradação de ambiente. O baseline será atualizado quando o gauntlet voltar a passar 100% em próxima janela com VRAM livre.
 
-### 3.7 Hash de ADR-024 no CLAUDE.md
+### 3.7 Hash de ADR-024 no GUIDE.md
 
-Ao atualizar `CLAUDE.md` na AUDIT-FIX-06, notei que a tabela de contagem de ADRs no componentes diz "24" mas a tabela de ADRs vigentes só ia até 020. Pula direto para 024 agora. ADR-021/022/023 não têm arquivo correspondente em `dev-journey/03-decisions/` -- são referências que serão materializadas em sprints futuras (VISION-01, UX-DESIGN-01 etc).
+Ao atualizar `GUIDE.md` na AUDIT-FIX-06, notei que a tabela de contagem de ADRs no componentes diz "24" mas a tabela de ADRs vigentes só ia até 020. Pula direto para 024 agora. ADR-021/022/023 não têm arquivo correspondente em `dev-journey/03-decisions/` -- são referências que serão materializadas em sprints futuras (VISION-01, UX-DESIGN-01 etc).
 
 ---
 
@@ -266,7 +266,7 @@ Pelo catálogo `GAMBIARRAS_POR_SPRINT.md`, esta sprint fecha invariantes #1 (emo
 
 - 3 erros ruff pré-existentes (`web_search.py`, `todo_write.py`, `analyze_tool.py`) -- considerar criar issue ou sprint de higienização.
 - FAIL #4 (except silencioso) remanescente em `nyx/agent/memory.py:130`, `nyx/agent/output.py:268`, `nyx/context/project.py:80`. AUDIT-FIX-07 fechou um (ask_user.py:78) mas não os outros. Criar sprint futura ou incluir em DEBT-04.
-- Tabela ADRs em `CLAUDE.md` pula de 020 para 024. Quando VISION e UX-DESIGN criarem 021/022/023, a tabela deve ser reordenada.
+- Tabela ADRs em `GUIDE.md` pula de 020 para 024. Quando VISION e UX-DESIGN criarem 021/022/023, a tabela deve ser reordenada.
 
 ---
 

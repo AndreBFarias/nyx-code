@@ -63,7 +63,7 @@ Nyx-Code/
 ├── install.sh                     # Instalação completa
 ├── uninstall.sh                   # Remoção limpa
 ├── main.py                        # Entry point Python (esqueleto)
-├── CLAUDE.md                      # Regras e identidade Nyx
+├── GUIDE.md                      # Regras e identidade Nyx
 ├── README.md                      # Documentação principal
 ├── .env.example                   # Template de configuração
 ├── pyproject.toml                 # Metadata Python

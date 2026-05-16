@@ -179,7 +179,7 @@
     },
     {
       "feature_id": "C-04",
-      "name": "CLAUDE.md contém Nyx",
+      "name": "GUIDE.md contém Nyx",
       "phase": "config",
       "passed": true,
       "elapsed_s": 0,

@@ -12,7 +12,7 @@
 
 - **6 sprints CONCLUIDA** (TUI-01/02/03, CTX-01/02/03).
 - **1 DEFERIDA** (CTX-04 — opcional por spec original).
-- **5 sprints-nova materializadas e concluídas** antes de fechar a Onda 20, pelo princípio ADR-009 "infra faz o modelo pequeno funcionar" e meta-regra CLAUDE.md §"Zero follow-up acumulado".
+- **5 sprints-nova materializadas e concluídas** antes de fechar a Onda 20, pelo princípio ADR-009 "infra faz o modelo pequeno funcionar" e meta-regra GUIDE.md §"Zero follow-up acumulado".
 
 ## 1. Rodada 1 (início) — achados
 

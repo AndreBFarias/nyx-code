@@ -98,9 +98,9 @@ Não descreva. Execute.
 Código limpo não é arte. É higiene.
 ```
 
-## 5.3 CLAUDE.md reescrito estilo Nyx
+## 5.3 GUIDE.md reescrito estilo Nyx
 
-Seguir o padrão do CLAUDE.md da Luna:
+Seguir o padrão do GUIDE.md da Luna:
 
 ```markdown
 # Nyx-Code
@@ -185,7 +185,7 @@ dev-journey/
 ## 5.6 install.sh atualizado
 
 - Mensagens no estilo Nyx
-- Criar CLAUDE.md automaticamente
+- Criar GUIDE.md automaticamente
 - Criar .claude/settings.json
 - Cores Dracula no banner de instalação
 
@@ -196,7 +196,7 @@ dev-journey/
 - [ ] Banner de boot com cores Dracula e estilo Nyx
 - [ ] Mensagens do run.sh em PT-BR, tom Nyx
 - [ ] System prompt gera respostas curtas, técnicas, sem emojis
-- [ ] CLAUDE.md segue convencões Luna (anti-burla, local-first, etc.)
+- [ ] GUIDE.md segue convencões Luna (anti-burla, local-first, etc.)
 - [ ] README.md reescrito com arquitetura e referência ao projeto Luna
 - [ ] Sprints reorganizadas (completas/ativa/backlog)
 - [ ] dev-journey/ com STYLE_GUIDE e ADR mínimos

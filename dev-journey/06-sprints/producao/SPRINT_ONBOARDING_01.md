@@ -512,7 +512,7 @@ ls dev-journey/06-sprints/concluidos/SPRINT_ONBOARDING_01.md
 | Usuário interrompe tutorial com Ctrl+C | Capturar KeyboardInterrupt, marcar `.first_run_done`, sair limpo |
 | config.toml com sintaxe inválida causa crash em settings | `_load_toml_if_exists` captura `tomllib.TOMLDecodeError` e usa defaults com mensagem de erro |
 | Backup .bak acumula sem limite | Rotação: manter apenas último .bak (sobrescrever) |
-| tomllib indisponível em Python <3.11 | CLAUDE.md especifica Python 3.10+; adicionar fallback com `tomli` se detectar <3.11 |
+| tomllib indisponível em Python <3.11 | GUIDE.md especifica Python 3.10+; adicionar fallback com `tomli` se detectar <3.11 |
 | Usuário pula tutorial e depois quer rever | Adicionar comando `/tutorial` que re-executa sem tocar `.first_run_done` (fora de escopo, anotar como débito) |
 
 ---

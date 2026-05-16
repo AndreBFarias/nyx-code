@@ -147,8 +147,8 @@ Invariante #5 do `sprint_invariants.sh` vigia regressão futura.
 
 - **ADR em rascunho:** `Status: proposto` ou ausente.
   - **Detectar:** `grep "Status:.*ACEITO" dev-journey/03-decisions/ADR_024_RENDER_LAYER.md`.
-- **CLAUDE.md intacto:** não menciona ADR-024.
-  - **Detectar:** `grep "ADR-024\|render layer" CLAUDE.md` deve ter >= 2 matches.
+- **GUIDE.md intacto:** não menciona ADR-024.
+  - **Detectar:** `grep "ADR-024\|render layer" GUIDE.md` deve ter >= 2 matches.
 
 ### AUDIT-FIX-07 (ask_user)
 
@@ -288,7 +288,7 @@ Invariante #5 do `sprint_invariants.sh` vigia regressão futura.
 - **Apagar antes de migrar.** Deletar seção em TEMPLATE_V2 e só depois pensar em colocar em GAMBIARRAS. Proibido — migrar primeiro, verificar, depois remover.
 - **Link quebrado.** Substituir seção por link `GAMBIARRAS_POR_SPRINT.md` sem o anchor. Resultado: usuário pousa no topo e precisa caçar. Proibido — usar anchor explícito com slug.
 - **PROJECT_SNAPSHOT.md "preenchido depois".** Arquivo criado vazio com "TODO preencher". Proibido — dados reais na criação.
-- **Contagens preguiçosas.** Copiar "34 tools, 47 comandos" do CLAUDE.md sem verificar. Proibido — rodar `find nyx/agent/tools -maxdepth 1 -name "*.py" ! -name "__init__.py" | wc -l` e similares.
+- **Contagens preguiçosas.** Copiar "34 tools, 47 comandos" do GUIDE.md sem verificar. Proibido — rodar `find nyx/agent/tools -maxdepth 1 -name "*.py" ! -name "__init__.py" | wc -l` e similares.
 - **Regenerar EXECUTAR_SPRINT.md sem ler antes.** Script que sobrescreve perdendo customização manual. Proibido — ler, regenerar, diff, aplicar.
 - **Header do sprint_invariants.sh "quase certo".** Manter "12" e adicionar comentário "+1 recente". Proibido — atualizar para "13" definitivo.
 - **Fluxo de 10 passos renumerado sem sincronizar referências.** Se GSD tem 10 passos e outro doc fala "passo 5", quebrar referência. Proibido — grep por "passo N" depois de reordenar.
@@ -334,7 +334,7 @@ Invariante #5 do `sprint_invariants.sh` vigia regressão futura.
 - **ADR Status: proposto** ou sem Status. Proibido: ACEITO exigido.
 - **Copiar ADR-001 e trocar título.** Proibido: cada ADR tem contexto próprio.
 - **Pular seção "Alternativas"** — obrigatória em todo ADR deste projeto.
-- **Não atualizar CLAUDE.md.** Detectar: `grep -c '^| 021 |' CLAUDE.md` deve ser >= 1.
+- **Não atualizar GUIDE.md.** Detectar: `grep -c '^| 021 |' GUIDE.md` deve ser >= 1.
 
 ### ADR-022-DOC (moondream CPU)
 

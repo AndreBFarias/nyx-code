@@ -6,7 +6,7 @@
 
 ## Contexto
 
-A meta-regra do projeto (CLAUDE.md) proíbe `print()` fora de `nyx/cli.py`.
+A meta-regra do projeto (GUIDE.md) proíbe `print()` fora de `nyx/cli.py`.
 A auditoria externa (AUDIT-EXT-01) apontou 10+ `print()` em
 `nyx/agent/output.py`, o que tecnicamente viola a regra.
 
@@ -63,7 +63,7 @@ ActionResult**, não adicionar exceção.
 ## Referências
 
 - AUDIT-EXT-01 finding A-02.
-- CLAUDE.md seção "Anti-burla".
+- GUIDE.md seção "Anti-burla".
 - ADR-004 (Zero Emojis), ADR-006 (PT-BR).
 
 *"A exceção que não é nomeada vira regra na prática." -- anônimo*

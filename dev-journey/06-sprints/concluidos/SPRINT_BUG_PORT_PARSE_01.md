@@ -195,7 +195,7 @@ Contrato canônico: **`NYX_OLLAMA_HOST` é host puro, `NYX_OLLAMA_PORT` é porta
        )
    ollama_host = raw_host
    ```
-   Justificativa: CLAUDE.md §3 "Error handling explicito (nunca silent failures)" + §9 "Filtros sem falso-positivo — todo regex/filtro DEVE ser testado contra inputs que NÃO devem casar".
+   Justificativa: GUIDE.md §3 "Error handling explicito (nunca silent failures)" + §9 "Filtros sem falso-positivo — todo regex/filtro DEVE ser testado contra inputs que NÃO devem casar".
 
 5. `nyx/agent/commands/system.py:34` — alinhar tipo do fallback:
    ```python
@@ -285,7 +285,7 @@ diff /tmp/inv_before.txt /tmp/inv_after.txt
 ## Gambiarras específicas
 
 1. **Strip da porta embutida.** `ollama_host.split(":")[0]` em settings.py. Proibido — mascara o bug no run.sh.
-2. **Fallback silencioso.** `try: int(port) except: port = 11435`. Proibido — CLAUDE.md §3.
+2. **Fallback silencioso.** `try: int(port) except: port = 11435`. Proibido — GUIDE.md §3.
 3. **Duplicação de truth source.** Criar `NYX_OLLAMA_HOST_ONLY`. Proibido — N-para-N vai multiplicar o problema.
 4. **Fixar só o sintoma em 1 arquivo.** Se só `settings.py` for editado e `run.sh:45` continuar concatenando host+porta, o bug reaparece na próxima vez que alguém ler `os.getenv("NYX_OLLAMA_HOST")` em outro ponto. Contrato canônico em **todos** os 4 arquivos ou nada.
 5. **Ignorar `commands/system.py:34`.** É inconsistência de tipo correlata (fallback URL vs env host) que vai virar bug futuro. Alinhar agora.
