@@ -83,7 +83,7 @@ sprint:
 **Status:** CONCLUIDA
 **Data criação:** 2026-05-16
 **Data conclusão:** 2026-05-16
-**Commit hash:** (a definir após commit)
+**Commit hash:** bdfecb9
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 **Origem:** auditoria estratégica 2026-05-16. Sprint nova de fase 1 — anti-débito.
 
