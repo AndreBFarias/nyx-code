@@ -66,7 +66,7 @@ sprint:
 **Status:** CONCLUIDA
 **Data criação:** 2026-04-19
 **Data conclusão:** 2026-05-16
-**Hash:** (a preencher pós-commit)
+**Hash:** 532f9ae
 **Origem:** divisão de UX-BUG-02. Esta sprint cobre apenas o indicador cold/warm (O-03 absorvido).
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 **Validação:** smoke `boot ok`; FAIL_AFTER=0=FAIL_BEFORE; ruff `All checks passed`; 13 invariants OK; validação visual via skill `validacao-visual` capturou 3 PNGs reais (cold/warming/warm) com sha256 registrados — toolbar exibiu `○ cold → ● warm` como esperado; `iter 0→1`, `ctx 1030→1033 tokens`. Gap descoberto na validação: `◐ warming` não aparece na toolbar entre Enter e resposta (prompt-toolkit fora de `prompt_async`); spinner `pensando...` cobre o gap. Achado colateral virou sprint UX-LOOP-VISIBILITY-01.
