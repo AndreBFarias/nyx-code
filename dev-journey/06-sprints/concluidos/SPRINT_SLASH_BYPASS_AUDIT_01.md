@@ -61,7 +61,7 @@ sprint:
 ---
 
 **Status:** CONCLUIDA
-**Hash:** PENDING
+**Hash:** 5eb0730
 **Data criação:** 2026-05-16
 **Data conclusão:** 2026-05-16
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
