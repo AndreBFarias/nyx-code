@@ -1,4 +1,4 @@
-# Executar próxima sprint — UX-BUG-02C
+# Executar próxima sprint — UX-BUG-03
 
 > **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
 > Copie o bloco abaixo e cole em uma session nova de Claude Opus 4.7.
@@ -9,7 +9,7 @@
 ## Prompt para colar na session
 
 ```
-Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_UX_BUG_02C.md.
+Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_UX_BUG_03.md.
 
 Modelo obrigatório: claude-opus-4-7 (sem subagentes).
 Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambiarra):
@@ -27,10 +27,10 @@ Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambi
 10. Após CONCLUIDA: commit atômico, move sprint file para concluidos/, roda `python scripts/update_next_sprint.py` para atualizar este arquivo.
 
 Se qualquer passo falhar, reporte:
-    [SPRINT UX-BUG-02C] BLOQUEADA: <motivo objetivo>
+    [SPRINT UX-BUG-03] BLOQUEADA: <motivo objetivo>
 
-ID desta sprint: UX-BUG-02C
-Arquivo: dev-journey/06-sprints/producao/SPRINT_UX_BUG_02C.md
+ID desta sprint: UX-BUG-03
+Arquivo: dev-journey/06-sprints/producao/SPRINT_UX_BUG_03.md
 ```
 
 ---
@@ -39,9 +39,16 @@ Arquivo: dev-journey/06-sprints/producao/SPRINT_UX_BUG_02C.md
 
 ## Gambiarras específicas (recorte auto-injetado)
 
-> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §UX-BUG-02C. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
+> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §UX-BUG-03. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
 
-(seção específica para UX-BUG-02C não encontrada em GAMBIARRAS_POR_SPRINT.md; ler catálogo universal e matriz geral)
+### UX-BUG-03 (perf)
+
+- **Mediu 1 run só:** primeiro run engana por cache cold.
+  - **Detectar:** script de medição precisa rodar 5x e imprimir mediana.
+- **`@lru_cache` em método com `self`:** nunca cacheia (unhashable).
+  - **Detectar:** verificar que `memory.index()` cacheia por atributo, não por lru_cache em método.
+- **Console singleton mas `Console(highlight=False)` ainda instanciado localmente:**
+  - **Detectar:** `grep -c "Console(highlight" nyx/agent/output.py` deve ser <= 1.
 
 <!-- /GAMBIARRAS_INJECT -->
 

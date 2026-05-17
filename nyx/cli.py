@@ -85,7 +85,10 @@ async def run_repl(streaming: bool = True) -> int:
 
     settings = load_settings()
 
-    cleanup_old_sessions()
+    # UX-BUG-02C: cleanup_old_sessions e renderização das entradas de memória
+    # saem do caminho síncrono pré-banner e viram task async pós-banner. O
+    # Analytics() segue síncrono porque o _session_start precisa marcar o
+    # início real da sessão (consumido por end_session ao sair).
     analytics = Analytics()
 
     try:
@@ -378,11 +381,40 @@ async def run_repl(streaming: bool = True) -> int:
 
     print(_build_banner(model, agent.tools_count, PROJECT_ROOT.name, settings=settings))
 
-    memory_entries = agent._memory.index() if hasattr(agent, "_memory") else []
-    if memory_entries:
-        names = ", ".join(e["file"] for e in memory_entries[:3])
-        suffix = f" (+{len(memory_entries) - 3})" if len(memory_entries) > 3 else ""
-        print(f"  {DIM}[memória: {len(memory_entries)} entradas] {names}{suffix}{NC}")
+    # UX-BUG-02C: warm-up pós-banner em task. Mantém a janela de cold-start
+    # ocupada com I/O em background, sem bloquear o caminho até prompt_async.
+    # cleanup_old_sessions e leitura de MEMORY.md são file I/O pequenos; o
+    # render visual das entradas de memória roda quando a task termina.
+    async def _warmup() -> None:
+        try:
+            cleanup_old_sessions()
+            memory_entries = agent._memory.index() if hasattr(agent, "_memory") else []
+            if memory_entries:
+                names = ", ".join(e["file"] for e in memory_entries[:3])
+                suffix = f" (+{len(memory_entries) - 3})" if len(memory_entries) > 3 else ""
+                print(f"  {DIM}[memória: {len(memory_entries)} entradas] {names}{suffix}{NC}")
+        except Exception as exc:  # noqa: BLE001 -- warm-up best-effort
+            logger.warning("warm-up pos-banner falhou: %s", exc)
+
+    asyncio.create_task(_warmup())
+
+    # UX-BUG-02C: drenar stdin antes do primeiro prompt_async em tty real.
+    # Descarta keystrokes que o usuário digitou durante o cold-start, evitando
+    # que prompt_toolkit os interprete fora de ordem ao trocar para raw mode.
+    # Em não-tty (CI/headless/pipe) o flush é noop e tratamos com fallback
+    # silencioso. Em tty real, falhas viram logger.warning (nunca silent pass).
+    if sys.stdin.isatty():
+        try:
+            import termios
+
+            try:
+                termios.tcflush(sys.stdin.fileno(), termios.TCIFLUSH)
+            except (termios.error, OSError) as exc:
+                logger.warning("termios.tcflush falhou: %s", exc)
+        except ImportError as exc:
+            # termios só existe em POSIX; em outras plataformas o drain
+            # de stdin é noop e seguimos sem ele.
+            logger.debug("termios indisponível (plataforma não-POSIX): %s", exc)
 
     session_start = time.time()
     total_iterations = 0
