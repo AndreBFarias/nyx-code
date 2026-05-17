@@ -248,11 +248,19 @@ start_ollama() {
 }
 
 # ─── PARAR OLLAMA ─────────────────────────────────────────
+# TUI-SHUTDOWN-SILENT-01: PID foi disowned no start_ollama, logo `wait` não
+# tem o filho na jobs table e retorna 127. Substituído por busy-loop curto
+# com kill -0 (poll de morte) — mesma semântica sem ruído de "not a child".
 stop_ollama() {
     if [ -n "$OLLAMA_PID" ] && kill -0 "$OLLAMA_PID" 2>/dev/null; then
         log_nyx "Parando Ollama (PID: $OLLAMA_PID)..."
         kill "$OLLAMA_PID" 2>/dev/null || true
-        wait "$OLLAMA_PID" 2>/dev/null || true
+        # Aguarda até 5s pela morte do processo (poll de 100ms).
+        local n=0
+        while kill -0 "$OLLAMA_PID" 2>/dev/null && [ "$n" -lt 50 ]; do
+            sleep 0.1
+            n=$((n + 1))
+        done
     fi
     # Garantir que não ficou nenhum processo do nosso Ollama
     pkill -f "$OLLAMA_BIN serve" 2>/dev/null || true
@@ -397,6 +405,8 @@ show_banner() {
 # UX-LIFECYCLE-01: cobre EXIT/SIGINT/SIGTERM/SIGHUP. Idempotente:
 # trap EXIT pode reentrar via sub-signals; chamadas a kill com PID
 # inexistente são silenciadas.
+# TUI-SHUTDOWN-SILENT-01: PIDs foram disowned, então não há report
+# implícito de "Morto" no stdout do shell pai. Cleanup permanece intacto.
 cleanup() {
     echo ""
     log_nyx "Desconectando..."

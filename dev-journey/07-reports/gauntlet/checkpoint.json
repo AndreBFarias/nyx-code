@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-17T02:09:52.675601",
+  "timestamp": "2026-05-17T02:17:59.581637",
   "model": "qwen2.5-coder:3b",
   "phases_done": [],
   "results": [
@@ -8,9 +8,9 @@
       "name": "Request via proxy",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 2.33,
-      "tokens": 47,
-      "details": "Sim, o proxy está funcionando corretamente.",
+      "elapsed_s": 1.98,
+      "tokens": 38,
+      "details": "Proxy ok",
       "error": ""
     },
     {
@@ -38,7 +38,7 @@
       "name": "Formato OpenAI correto",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 0.77,
+      "elapsed_s": 0.65,
       "tokens": 0,
       "details": "choices=True usage=True message=True",
       "error": ""
@@ -58,9 +58,9 @@
       "name": "tool_calls propagam",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 1.27,
-      "tokens": 188,
-      "details": "['{\"file_path\": \"./README.md\"}']",
+      "elapsed_s": 1.11,
+      "tokens": 184,
+      "details": "['{\"file_path\": \"/path/to/README.md\"}']",
       "error": ""
     }
   ],
