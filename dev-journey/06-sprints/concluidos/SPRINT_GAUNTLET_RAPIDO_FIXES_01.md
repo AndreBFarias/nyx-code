@@ -55,7 +55,7 @@ sprint:
 **Status:** CONCLUIDA
 **Data criação:** 2026-05-17
 **Data conclusão:** 2026-05-17
-**Commit hash:** <pendente -- registrar via chore após commit>
+**Commit hash:** ab3632c
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 **Origem:** achado colateral de SLASH-BYPASS-AUDIT-01
 
