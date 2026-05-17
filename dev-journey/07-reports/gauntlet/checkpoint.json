@@ -1,73 +1,58 @@
 {
-  "timestamp": "2026-05-17T02:40:42.518498",
+  "timestamp": "2026-05-17T03:19:56.124617",
   "model": "qwen2.5-coder:3b",
-  "phases_done": [
-    "p7_completion",
-    "p7_tui"
-  ],
+  "phases_done": [],
   "results": [
     {
-      "feature_id": "P7T-01",
-      "name": "prompt-toolkit importa ou fallback",
-      "phase": "p7_tui",
+      "feature_id": "IF-01",
+      "name": "Streaming importa",
+      "phase": "interface",
       "passed": true,
-      "elapsed_s": 0.04,
+      "elapsed_s": 0,
       "tokens": 0,
-      "details": "prompt-toolkit disponível",
+      "details": "chars=5",
       "error": ""
     },
     {
-      "feature_id": "P7T-02",
-      "name": "History path acessível",
-      "phase": "p7_tui",
+      "feature_id": "IF-02",
+      "name": "Output importa",
+      "phase": "interface",
       "passed": true,
-      "elapsed_s": 0.0,
+      "elapsed_s": 0,
       "tokens": 0,
-      "details": "/home/andrefarias/.nyx/history",
+      "details": "rich=True",
       "error": ""
     },
     {
-      "feature_id": "P7C-01",
-      "name": "NyxCompleter inicializa",
-      "phase": "p7_completion",
+      "feature_id": "IF-03",
+      "name": "Commands /help",
+      "phase": "interface",
       "passed": true,
-      "elapsed_s": 0.0,
+      "elapsed_s": 0,
       "tokens": 0,
-      "details": "",
+      "details": "len=711",
       "error": ""
     },
     {
-      "feature_id": "P7C-02",
-      "name": "create_completer lista commands",
-      "phase": "p7_completion",
+      "feature_id": "IF-04",
+      "name": "Commands /explain",
+      "phase": "interface",
       "passed": true,
-      "elapsed_s": 0.0,
+      "elapsed_s": 0,
       "tokens": 0,
-      "details": "commands=53",
+      "details": "Analise e explique o arquivo 'README.md'. Passos:\n1. Use rea",
       "error": ""
     },
     {
-      "feature_id": "P7V-01",
-      "name": "render_diff gera diff",
-      "phase": "p7_visual",
+      "feature_id": "IF-05",
+      "name": "Commands /plan",
+      "phase": "interface",
       "passed": true,
-      "elapsed_s": 0.0,
+      "elapsed_s": 0,
       "tokens": 0,
-      "details": "len=76",
-      "error": ""
-    },
-    {
-      "feature_id": "P7V-02",
-      "name": "nyx_spinner funciona",
-      "phase": "p7_visual",
-      "passed": true,
-      "elapsed_s": 0.0,
-      "tokens": 0,
-      "details": "",
+      "details": "Crie um plano de implementação para: feature X\nPassos:\n1. Us",
       "error": ""
     }
   ],
-  "kpis": {
-    "gauntlet_total_s": 0.1
-  }
+  "kpis": {}
 }

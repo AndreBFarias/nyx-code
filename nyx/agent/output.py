@@ -38,6 +38,37 @@ try:
 except ImportError:
     RICH_AVAILABLE = False
 
+# UX-BUG-03: Console singleton. Cache lazy do Console(highlight=False)
+# para evitar nova instância a cada render (render_user_input e streaming
+# eram call-sites quentes). Reset feito via _reset_console_cache() em
+# casos extremos (SIGWINCH futuro). Sem theme aqui: o RichOutput tem
+# seu próprio Console com theme Nyx; este singleton é o "padrão" sem
+# theme usado por call-sites neutros (render_user_input, streaming).
+_console_cache: "Console | None" = None
+
+
+def _get_console() -> "Console | None":
+    """Retorna Console singleton (highlight=False, sem theme) ou None.
+
+    Lazy: cria na primeira chamada e cacheia. Idempotente. Se Rich não
+    estiver disponível, retorna None — caller deve fallback para ANSI.
+    """
+    global _console_cache
+    if _console_cache is None and RICH_AVAILABLE:
+        _console_cache = Console(highlight=False)
+    return _console_cache
+
+
+def _reset_console_cache() -> None:
+    """Reset do cache do Console singleton.
+
+    Útil em testes e em handlers SIGWINCH (futuro ADR). Não é chamado
+    no path normal — o Console é leve depois de criado.
+    """
+    global _console_cache
+    _console_cache = None
+
+
 _DIFF_LINE_PATTERN = re.compile(r"^[+-@]")
 
 TAG_STYLES: dict[str, str] = {
@@ -529,7 +560,11 @@ def render_user_input(
         print()
         return
     try:
-        console = Console(highlight=False)
+        console = _get_console()
+        if console is None:
+            for line in display_text.splitlines() or [display_text]:
+                print(f"  {ANSI_ACCENT_FG}>{ANSI_RESET} {line}")
+            return
         console.print()
         console.print(
             Panel(

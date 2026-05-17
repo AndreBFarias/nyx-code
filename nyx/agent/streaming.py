@@ -81,11 +81,18 @@ def create_streaming_callback(write_func: Callable[[str], None] | None = None) -
 
 
 def create_rich_streaming_callback() -> StreamTokenCallback | None:
-    """Cria callback Rich se disponível."""
-    try:
-        from rich.console import Console
+    """Cria callback Rich se disponível.
 
-        console = Console(highlight=False)
+    UX-BUG-03: usa Console singleton (_get_console) ao invés de criar
+    uma instância nova a cada turn. Reduz alocação em call-site quente
+    (streaming de tokens).
+    """
+    try:
+        from nyx.agent.output import _get_console
+
+        console = _get_console()
+        if console is None:
+            return None
 
         def _on_token(token: str) -> None:
             console.print(token, end="", highlight=False)

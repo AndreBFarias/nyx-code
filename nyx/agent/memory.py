@@ -47,6 +47,10 @@ class NyxMemory:
         self._project_root = project_root
         self._slug = _slug_project(project_root)
         self._dir = MEMORY_ROOT / self._slug
+        # UX-BUG-03: cache lazy de index(). Invalidado em write() e
+        # _rebuild_index(). Segunda chamada de index() retorna a mesma
+        # lista sem re-ler MEMORY.md do disco.
+        self._index_cache: list[dict[str, str]] | None = None
 
     @property
     def directory(self) -> Path:
@@ -93,14 +97,24 @@ class NyxMemory:
         header = f"<!-- reason: {reason.strip()[:200]} -->\n"
         target.write_text(header + content.strip() + "\n", encoding="utf-8")
         self._rebuild_index()
+        # UX-BUG-03: invalida cache do index ao escrever nova memória.
+        self._index_cache = None
         logger.info("Memória gravada: %s", target)
         return target
 
     def index(self) -> list[dict[str, str]]:
-        """Lê MEMORY.md e devolve entradas como lista de dicts."""
+        """Lê MEMORY.md e devolve entradas como lista de dicts.
+
+        UX-BUG-03: cacheada. Segunda chamada é O(1) (retorna self._index_cache).
+        Invalidada em write() e em _rebuild_index() — ambos pontos onde o
+        arquivo MEMORY.md muda.
+        """
+        if self._index_cache is not None:
+            return self._index_cache
         idx = self._dir / INDEX_NAME
         if not idx.exists():
-            return []
+            self._index_cache = []
+            return self._index_cache
         entries: list[dict[str, str]] = []
         for line in idx.read_text(encoding="utf-8", errors="replace").splitlines():
             m = re.match(r"- \[(?P<file>[^\]]+)\]\((?P<href>[^)]+)\)(?: -- (?P<reason>.*))?$", line)
@@ -112,7 +126,8 @@ class NyxMemory:
                         "reason": m.group("reason") or "",
                     }
                 )
-        return entries
+        self._index_cache = entries
+        return self._index_cache
 
     def _rebuild_index(self) -> None:
         """Reescreve MEMORY.md baseado nos arquivos existentes."""
@@ -134,6 +149,8 @@ class NyxMemory:
                 entry += f" -- {reason}"
             lines.append(entry)
         (self._dir / INDEX_NAME).write_text("\n".join(lines) + "\n", encoding="utf-8")
+        # UX-BUG-03: invalida cache do index ao reescrever MEMORY.md.
+        self._index_cache = None
 
 
 # "A memória é a guardiã de todas as coisas." -- Cícero

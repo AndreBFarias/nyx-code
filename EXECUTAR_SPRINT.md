@@ -1,4 +1,4 @@
-# Executar próxima sprint — UX-BUG-03
+# Executar próxima sprint — VISION-01
 
 > **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
 > Copie o bloco abaixo e cole em uma session nova de Claude Opus 4.7.
@@ -9,7 +9,7 @@
 ## Prompt para colar na session
 
 ```
-Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_UX_BUG_03.md.
+Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_VISION_01.md.
 
 Modelo obrigatório: claude-opus-4-7 (sem subagentes).
 Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambiarra):
@@ -27,10 +27,10 @@ Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambi
 10. Após CONCLUIDA: commit atômico, move sprint file para concluidos/, roda `python scripts/update_next_sprint.py` para atualizar este arquivo.
 
 Se qualquer passo falhar, reporte:
-    [SPRINT UX-BUG-03] BLOQUEADA: <motivo objetivo>
+    [SPRINT VISION-01] BLOQUEADA: <motivo objetivo>
 
-ID desta sprint: UX-BUG-03
-Arquivo: dev-journey/06-sprints/producao/SPRINT_UX_BUG_03.md
+ID desta sprint: VISION-01
+Arquivo: dev-journey/06-sprints/producao/SPRINT_VISION_01.md
 ```
 
 ---
@@ -39,16 +39,16 @@ Arquivo: dev-journey/06-sprints/producao/SPRINT_UX_BUG_03.md
 
 ## Gambiarras específicas (recorte auto-injetado)
 
-> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §UX-BUG-03. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
+> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §VISION-01. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
 
-### UX-BUG-03 (perf)
+### VISION-01 (provider moondream)
 
-- **Mediu 1 run só:** primeiro run engana por cache cold.
-  - **Detectar:** script de medição precisa rodar 5x e imprimir mediana.
-- **`@lru_cache` em método com `self`:** nunca cacheia (unhashable).
-  - **Detectar:** verificar que `memory.index()` cacheia por atributo, não por lru_cache em método.
-- **Console singleton mas `Console(highlight=False)` ainda instanciado localmente:**
-  - **Detectar:** `grep -c "Console(highlight" nyx/agent/output.py` deve ser <= 1.
+- **Cache pré-populado com descrição genérica:** IA cria `~/.nyx/vision_cache/*.txt` com "imagem".
+  - **Detectar:** rm `~/.nyx/vision_cache/*` e rodar describe — deve popular cache novamente com descrição real variada.
+- **`is_available()` sempre True:** ignora ollama list.
+  - **Detectar:** parar Ollama (`pkill ollama`), chamar `is_available()` → deve retornar False.
+- **Fallback com string ambígua:** retorna `"OK"` quando moondream ausente.
+  - **Detectar:** `describe(path)` sem moondream → string contém "indisponível" ou "ausente".
 
 <!-- /GAMBIARRAS_INJECT -->
 

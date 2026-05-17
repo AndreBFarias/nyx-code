@@ -79,17 +79,17 @@ async def run_repl(streaming: bool = True) -> int:
     from nyx.agent.commands import handle_command
     from nyx.agent.context import render_context_bar
     from nyx.agent.loop import AgentLoop
-    from nyx.agent.persistence import cleanup_old_sessions, save_session
-    from nyx.agent.services.analytics import Analytics
+    from nyx.agent.persistence import save_session
     from nyx.config.settings import load_settings
 
     settings = load_settings()
 
-    # UX-BUG-02C: cleanup_old_sessions e renderização das entradas de memória
-    # saem do caminho síncrono pré-banner e viram task async pós-banner. O
-    # Analytics() segue síncrono porque o _session_start precisa marcar o
-    # início real da sessão (consumido por end_session ao sair).
-    analytics = Analytics()
+    # UX-BUG-03: Analytics() sai do caminho síncrono pré-banner. Mantemos
+    # referência mutável (analytics_ref[0]) para que o shutdown leia mesmo
+    # se a task de warm-up não tiver completado — neste caso end_session
+    # é best-effort: o _session_start já estará registrado quando a task
+    # criar o Analytics; se ainda não criou, o shutdown ignora.
+    analytics_ref: list[object | None] = [None]
 
     try:
         from nyx.agent.output import RichOutput
@@ -381,13 +381,17 @@ async def run_repl(streaming: bool = True) -> int:
 
     print(_build_banner(model, agent.tools_count, PROJECT_ROOT.name, settings=settings))
 
-    # UX-BUG-02C: warm-up pós-banner em task. Mantém a janela de cold-start
-    # ocupada com I/O em background, sem bloquear o caminho até prompt_async.
-    # cleanup_old_sessions e leitura de MEMORY.md são file I/O pequenos; o
-    # render visual das entradas de memória roda quando a task termina.
+    # UX-BUG-02C + UX-BUG-03: warm-up pós-banner em task. Inclui agora
+    # também Analytics() (que era síncrono pré-banner). cleanup_old_sessions
+    # e Analytics são file I/O pequenos; memory.index() é cacheado lazy
+    # (segunda chamada O(1)). render visual das entradas roda quando termina.
     async def _warmup() -> None:
         try:
+            from nyx.agent.persistence import cleanup_old_sessions
+            from nyx.agent.services.analytics import Analytics
+
             cleanup_old_sessions()
+            analytics_ref[0] = Analytics()
             memory_entries = agent._memory.index() if hasattr(agent, "_memory") else []
             if memory_entries:
                 names = ", ".join(e["file"] for e in memory_entries[:3])
@@ -396,7 +400,10 @@ async def run_repl(streaming: bool = True) -> int:
         except Exception as exc:  # noqa: BLE001 -- warm-up best-effort
             logger.warning("warm-up pos-banner falhou: %s", exc)
 
-    asyncio.create_task(_warmup())
+    warmup_task = asyncio.create_task(_warmup())
+    # UX-BUG-03: rastreamos summarize_task entre turns para cancelar a
+    # anterior se ainda não terminou (evita acúmulo) e incluir no shutdown.
+    summarize_task: "asyncio.Task | None" = None
 
     # UX-BUG-02C: drenar stdin antes do primeiro prompt_async em tty real.
     # Descarta keystrokes que o usuário digitou durante o cold-start, evitando
@@ -712,10 +719,16 @@ async def run_repl(streaming: bool = True) -> int:
 
             render_assistant_end()
 
+            # UX-BUG-03: cancelar summarize anterior se ainda não terminou
+            # antes de criar nova. Evita acúmulo de tasks pendentes em
+            # conversas longas.
+            if summarize_task is not None and not summarize_task.done():
+                summarize_task.cancel()
             try:
-                asyncio.create_task(agent.maybe_summarize())
+                summarize_task = asyncio.create_task(agent.maybe_summarize())
             except RuntimeError as exc:
                 logger.warning("sumarização adiada (loop indisponível): %s", exc)
+                summarize_task = None
 
         except KeyboardInterrupt:
             _stop_spinner()
@@ -737,7 +750,35 @@ async def run_repl(streaming: bool = True) -> int:
     else:
         print(f"\n  {ACCENT}[sessão]{NC} {session_summary}\n")
 
-    analytics.end_session()
+    # UX-BUG-03: shutdown ordenado.
+    # 1) Cancela todas as tasks pendentes (exceto a corrente). Inclui:
+    #    warmup_task (se ainda não terminou), summarize_task (última),
+    #    qualquer task spawnada por handlers via run_in_terminal etc.
+    # 2) Aguarda finalização com gather(return_exceptions=True) para
+    #    drenar CancelledError sem propagar. Timeout curto via wait_for
+    #    para não travar o shutdown se uma task ignorar cancelamento.
+    # 3) end_session() só se Analytics() já foi criado pela warmup task.
+    pending = [
+        t for t in asyncio.all_tasks()
+        if t is not asyncio.current_task() and not t.done()
+    ]
+    for task in pending:
+        task.cancel()
+    if pending:
+        try:
+            await asyncio.wait_for(
+                asyncio.gather(*pending, return_exceptions=True),
+                timeout=2.0,
+            )
+        except asyncio.TimeoutError:
+            logger.warning("shutdown: %d task(s) ignoraram cancel em 2s", len(pending))
+
+    analytics = analytics_ref[0]
+    if analytics is not None:
+        try:
+            analytics.end_session()
+        except Exception as exc:  # noqa: BLE001 -- shutdown best-effort
+            logger.warning("Analytics.end_session falhou: %s", exc)
 
     project_name = PROJECT_ROOT.name
     saved = save_session(agent.session, project_name)
