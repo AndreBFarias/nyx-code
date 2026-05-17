@@ -68,6 +68,17 @@ def cmd_rewind(args: str, _root: str) -> str:
 
 
 @nyx_command(
+    name="edit",
+    description="Edita o último input antes de reenviar (UX-EXTRA-01)",
+    aliases=["e"],
+    category="sessão",
+    examples=["/edit", "/e"],
+)
+def cmd_edit(_args: str, _root: str) -> str:
+    return "__edit_last__"
+
+
+@nyx_command(
     name="resume",
     description="Retoma sessão (sem arg = última, /resume list, /resume <prefixo>)",
     category="sessão",

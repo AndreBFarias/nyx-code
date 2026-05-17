@@ -242,6 +242,21 @@ async def run_repl(
             if text:
                 run_in_terminal(lambda: _render_expanded(text, expanded=True))
 
+        @kb.add("c-up")
+        def _recall_last_input(event: object) -> None:
+            """UX-EXTRA-01: Ctrl+Up carrega último input no buffer (editável)."""
+            buf = event.current_buffer  # type: ignore[attr-defined]
+            last = last_input_state.get("text", "")
+            if not last:
+                from prompt_toolkit.application import run_in_terminal
+
+                run_in_terminal(lambda: print(f"  {DIM}Nenhum input anterior{NC}"))
+                return
+            if buf.document.text.strip():
+                return
+            buf.text = last
+            buf.cursor_position = len(last)
+
         @kb.add("enter")
         def _submit(event: object) -> None:
             buf = event.current_buffer  # type: ignore[attr-defined]
@@ -570,7 +585,11 @@ async def run_repl(
             app_state["mods"] = agent.session.files_modified_count
             prompt_str = f"{ACCENT}{BOLD}nyx>{NC} "
             if prompt_session:
-                user_input = (await prompt_session.prompt_async(ANSI(prompt_str))).strip()
+                # UX-EXTRA-01: prefill via /edit pré-popula próximo prompt_async.
+                prefill = str(app_state.pop("prefill", "") or "")
+                user_input = (
+                    await prompt_session.prompt_async(ANSI(prompt_str), default=prefill)
+                ).strip()
             else:
                 user_input = input(prompt_str).strip()
         except EOFError:
@@ -688,6 +707,19 @@ async def run_repl(
                         f"Nenhuma sessão única casa com '{prefix}'.",
                         hint="Use /resume list para ver todas, depois /resume <prefixo único>.",
                     )
+                continue
+
+            if result == "__edit_last__":
+                # UX-EXTRA-01: pré-popula próximo prompt_async via app_state["prefill"].
+                last = last_input_state.get("text", "")
+                if not last:
+                    _print_error(
+                        "Nenhum input anterior para editar.",
+                        hint="Envie uma mensagem antes de usar /edit.",
+                    )
+                    continue
+                app_state["prefill"] = last
+                print(f"  {DIM}último input prefillado no próximo prompt; edite e Enter.{NC}")
                 continue
 
             if result == "__config_setup__":

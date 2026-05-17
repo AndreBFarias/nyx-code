@@ -1,4 +1,4 @@
-# Executar próxima sprint — UX-EXTRA-01
+# Executar próxima sprint — VALIDATE-FINAL-01
 
 > **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
 > Copie o bloco abaixo e cole em uma session nova de Claude Opus 4.7.
@@ -9,7 +9,7 @@
 ## Prompt para colar na session
 
 ```
-Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_UX_EXTRA_01.md.
+Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_VALIDATE_FINAL_01.md.
 
 Modelo obrigatório: claude-opus-4-7 (sem subagentes).
 Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambiarra):
@@ -27,10 +27,10 @@ Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambi
 10. Após CONCLUIDA: commit atômico, move sprint file para concluidos/, roda `python scripts/update_next_sprint.py` para atualizar este arquivo.
 
 Se qualquer passo falhar, reporte:
-    [SPRINT UX-EXTRA-01] BLOQUEADA: <motivo objetivo>
+    [SPRINT VALIDATE-FINAL-01] BLOQUEADA: <motivo objetivo>
 
-ID desta sprint: UX-EXTRA-01
-Arquivo: dev-journey/06-sprints/producao/SPRINT_UX_EXTRA_01.md
+ID desta sprint: VALIDATE-FINAL-01
+Arquivo: dev-journey/06-sprints/producao/SPRINT_VALIDATE_FINAL_01.md
 ```
 
 ---
@@ -39,14 +39,9 @@ Arquivo: dev-journey/06-sprints/producao/SPRINT_UX_EXTRA_01.md
 
 ## Gambiarras específicas (recorte auto-injetado)
 
-> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §UX-EXTRA-01. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
+> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §VALIDATE-FINAL-01. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
 
-### UX-EXTRA-01 (editar último input)
-
-- **Ctrl+Up insere literal `\x1b[1;5A`:** keybinding não capturou.
-  - **Detectar:** pexpect: envia Ctrl+Up, buffer deve ter conteúdo anterior, não escape sequence.
-- **`/edit` retorna placeholder sem prefill:**
-  - **Detectar:** teste: digitar `oi`, enviar; digitar `/edit`; prompt seguinte deve pré-popular `oi`.
+(seção específica para VALIDATE-FINAL-01 não encontrada em GAMBIARRAS_POR_SPRINT.md; ler catálogo universal e matriz geral)
 
 <!-- /GAMBIARRAS_INJECT -->
 
