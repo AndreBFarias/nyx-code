@@ -199,22 +199,43 @@ else
     fail "13. ./run.sh --smoke (boot integrity)" "exit=${SMOKE_RC}, stdout=${SMOKE_HEAD}"
 fi
 
-# 14. Glifos canônicos preservados (defesa anti-sanitizer global, INFRA-SANITIZER-FIX-01)
-#     Geometric Shapes U+25CB, U+25D0, U+25CF são Unicode genéricos
-#     permitidos pelo ADR-004 (NÃO são emoji). Carga útil de UX-BUG-02B + UX-LAYOUT-01.
-GLYPH_FAIL=""
-if ! grep -qF '_STATE_GLYPHS = {"cold": "○", "warming": "◐", "warm": "●"}' nyx/cli.py 2>/dev/null; then
-    GLYPH_FAIL="nyx/cli.py: _STATE_GLYPHS sem glifos canônicos"
-fi
-if ! grep -qF '"tool": "●"' nyx/themes/design_tokens.py 2>/dev/null \
-   || ! grep -qF '"ready": "●"' nyx/themes/design_tokens.py 2>/dev/null \
-   || ! grep -qF '"working": "○"' nyx/themes/design_tokens.py 2>/dev/null; then
-    GLYPH_FAIL="${GLYPH_FAIL:+$GLYPH_FAIL; }nyx/themes/design_tokens.py: BULLETS sem glifos canônicos"
-fi
+# 14. Glifos canônicos preservados (defesa anti-sanitizer, INFRA-SANITIZER-FIX-01/02)
+#     Geometric Shapes U+25CB (○), U+25D0 (◐), U+25CF (●) são Unicode genéricos
+#     permitidos pelo ADR-004 (NÃO são emoji). Carga útil de UX-BUG-02B + UX-LAYOUT-01
+#     + UX-LOOP-VISIBILITY-01.
+#
+#     Checagem via Python por contagem de codepoint (imune a strip textual).
+#     INFRA-SANITIZER-FIX-02: substitui grep -F literal por count() de codepoints,
+#     porque sanitizer pode remover só os bytes UTF-8 deixando aspas vazias
+#     que ainda passam pelo grep textual mas perdem os caracteres.
+GLYPH_FAIL=$(python3 - <<'PY'
+from pathlib import Path
+fails = []
+cli = Path("nyx/cli.py").read_text(encoding="utf-8")
+if cli.count("○") < 1 or cli.count("◐") < 1 or cli.count("●") < 1:
+    fails.append(
+        f"nyx/cli.py: codepoints insuficientes "
+        f"(cb={cli.count('○')}, d0={cli.count('◐')}, cf={cli.count('●')})"
+    )
+dt = Path("nyx/themes/design_tokens.py").read_text(encoding="utf-8")
+if dt.count("●") < 4 or dt.count("○") < 1:
+    fails.append(
+        f"nyx/themes/design_tokens.py: BULLETS sem glifos "
+        f"(cf={dt.count('●')}, cb={dt.count('○')})"
+    )
+out = Path("nyx/agent/output.py").read_text(encoding="utf-8")
+if out.count("◐") < 1:
+    fails.append(
+        f"nyx/agent/output.py: build_warming_label sem glifo ◐ "
+        f"(d0={out.count('◐')})"
+    )
+print("; ".join(fails))
+PY
+)
 if [ -n "$GLYPH_FAIL" ]; then
     fail "14. glifos canônicos preservados (anti-sanitizer)" "${GLYPH_FAIL}"
 else
-    ok "14. glifos canônicos preservados (UX-BUG-02B + UX-LAYOUT-01)"
+    ok "14. glifos canônicos preservados (UX-BUG-02B + UX-LAYOUT-01 + UX-LOOP-VISIBILITY-01)"
 fi
 
 section "Resumo"
