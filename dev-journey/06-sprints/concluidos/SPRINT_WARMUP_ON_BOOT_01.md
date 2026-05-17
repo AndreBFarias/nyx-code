@@ -62,7 +62,7 @@ sprint:
 **Status:** CONCLUIDA
 **Data criação:** 2026-05-16
 **Data conclusão:** 2026-05-17
-**Commit:** (a registrar pós-commit)
+**Commit:** e0f7836 (`feat(WARMUP-ON-BOOT-01): warmup duplo no boot reduz cold start`)
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 **Origem:** achado colateral de PERF-INFERENCE-01
 
