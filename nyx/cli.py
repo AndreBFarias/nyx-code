@@ -969,7 +969,12 @@ async def run_repl(
     project_name = PROJECT_ROOT.name
     saved = save_session(agent.session, project_name)
     if saved:
-        print(f"  {DIM}Sessão salva: {saved.name}{NC}")
+        # DEPLOY-02 absorve O-04: feedback verde + path + dica /resume.
+        from nyx.themes.design_tokens import ANSI_SUCCESS_FG
+
+        print(f"\n  {ANSI_SUCCESS_FG}● sessão salva{ANSI_RESET}")
+        print(f"  {DIM}  {saved.resolve()}{NC}")
+        print(f"  {DIM}  use /resume na próxima abertura para retomar{NC}")
 
     await agent.close()
     return 0
