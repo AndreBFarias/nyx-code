@@ -231,22 +231,65 @@ check_model() {
 }
 
 # ─── WARMUP DO MODELO ────────────────────────────────────
+# Duas chamadas em série via proxy para cobrir cold start de pesos + path
+# com tools. Reduz primeira chamada da sessão de ~22s (cold) para <= 8s (P95).
+# Em low-VRAM (<1500 MiB livre) faz só a saudação curta com log de warning.
+# Pré-condição: proxy precisa estar pronto (NYX_PROXY_PORT respondendo).
 warmup_model() {
-    log_boot "Aquecendo modelo $MODEL..."
-    local response
-    response=$(curl -sf --max-time "$WARMUP_TIMEOUT" \
-        "http://${NYX_OLLAMA_HOST}:${NYX_OLLAMA_PORT}/v1/chat/completions" \
-        -H "Content-Type: application/json" \
-        -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":3}" 2>&1)
+    local started
+    started=$(date +%s)
+    log_ok "Aquecendo modelo $MODEL..."
+    log_boot "Aquecendo modelo $MODEL (warmup duplo via proxy)..."
 
-    if echo "$response" | grep -q '"choices"'; then
-        log_boot "Modelo aquecido e pronto"
-    else
-        log_warn "Warmup retornou resposta inesperada (modelo pode estar lento na primeira inferência)"
-        if [ "$DEBUG" -eq 1 ]; then
-            log_boot "Resposta: $response"
+    # Detecta VRAM livre se nvidia-smi disponível
+    local vram_free_mib=99999
+    if command -v nvidia-smi &> /dev/null; then
+        local raw
+        raw=$(nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits 2>/dev/null | head -1)
+        if [[ "$raw" =~ ^[0-9]+$ ]]; then
+            vram_free_mib="$raw"
         fi
     fi
+
+    # Warmup 1: saudação curta via proxy (exercita o path de chat puro)
+    local r1
+    r1=$(curl -sf --max-time 30 \
+        "http://127.0.0.1:${NYX_PROXY_PORT}/v1/chat/completions" \
+        -H "Content-Type: application/json" \
+        -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"oi\"}],\"max_tokens\":5}" 2>&1)
+
+    if ! echo "$r1" | grep -q '"choices"'; then
+        log_warn "Warmup 1 (saudação) retornou resposta inesperada"
+        if [ "$DEBUG" -eq 1 ]; then
+            log_boot "Warmup 1 resposta: $r1"
+        fi
+    fi
+
+    # Low-VRAM guard: pula warmup 2 (tool-like) para evitar OOM em GPU apertada
+    if [ "$vram_free_mib" -lt 1500 ]; then
+        log_warn "VRAM livre ${vram_free_mib} MiB < 1500; pulando warmup com tools (low-VRAM)"
+        log_boot "Modelo aquecido (modo low-VRAM, $(($(date +%s) - started))s)"
+        log_ok "Modelo aquecido (modo low-VRAM)"
+        return 0
+    fi
+
+    # Warmup 2: tool-like via proxy (exercita path com tools no proxy + Ollama)
+    local r2
+    r2=$(curl -sf --max-time 30 \
+        "http://127.0.0.1:${NYX_PROXY_PORT}/v1/chat/completions" \
+        -H "Content-Type: application/json" \
+        -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"leia README\"}],\"max_tokens\":20,\"tools\":[{\"type\":\"function\",\"function\":{\"name\":\"Read\",\"description\":\"Le arquivo\",\"parameters\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"}},\"required\":[\"path\"]}}}]}" 2>&1)
+
+    if ! echo "$r2" | grep -q '"choices"'; then
+        log_warn "Warmup 2 (tool-like) retornou resposta inesperada"
+        if [ "$DEBUG" -eq 1 ]; then
+            log_boot "Warmup 2 resposta: $r2"
+        fi
+    fi
+
+    local elapsed=$(($(date +%s) - started))
+    log_boot "Modelo aquecido (warmup duplo, ${elapsed}s)"
+    log_ok "Modelo aquecido (${elapsed}s)"
 }
 
 # ─── AUTO-TUNE DE GPU ────────────────────────────────────
@@ -381,6 +424,13 @@ if curl -sf "http://127.0.0.1:${NYX_PROXY_PORT}/v1/models" > /dev/null 2>&1; the
 else
     log_err "Proxy não iniciou. Verifique logs/proxy.log"
     exit 1
+fi
+
+# Warmup duplo via proxy (chamada curta + chamada com tools).
+# Reduz cold start da primeira mensagem do usuário de ~22s para <= 8s.
+# Pulado em modo gauntlet (próprio gauntlet exercita as fases) e --smoke.
+if [ "$GAUNTLET" -eq 0 ]; then
+    warmup_model
 fi
 
 NYX_SYSTEM_PROMPT="Sou Nyx. Codificadora. Vivo no terminal.

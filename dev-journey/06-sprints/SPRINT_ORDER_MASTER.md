@@ -330,9 +330,10 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 117 | **HOOKS-DYNAMIC-01** | 23.5 Feature parity Claude Code | MÉDIA | PENDENTE | PERF-INFERENCE-01 |
 | 118 | **LANG-ENFORCE-01** | 23.0 Performance | ALTA | CONCLUIDA (lang_pt_br_rate=100% com qwen2.5-coder:3b) | PERF-INFERENCE-01, MODEL-SWAP-01 |
 | 119 | **SLASH-BYPASS-AUDIT-01** | 23.0 Performance | MÉDIA | CONCLUIDA (5/5 /commands com latência <500ms; fase slash_bypass nova no Gauntlet) | PERF-INFERENCE-01 |
-| 120 | **WARMUP-ON-BOOT-01** | 23.0 Performance | MÉDIA | PENDENTE | PERF-INFERENCE-01 |
+| 120 | **WARMUP-ON-BOOT-01** | 23.0 Performance | MÉDIA | CONCLUIDA (warmup duplo via proxy adiciona ~3s ao boot; cold call P95 <=8s validada com 0.634s) | PERF-INFERENCE-01 |
 | 121 | **MODEL-SWAP-01** | 23.0 Performance | ALTA | CONCLUIDA (ADR-031: qwen2.5-coder:3b padrão; score 96.8) | -- |
 | 122 | **GAUNTLET-RAPIDO-FIXES-01** | 23.0 Performance | ALTA | CONCLUIDA (18/18 100% rapido; fix P-07 think gating + parser content-JSON; fix C-03 settings.json criado; fix C-04 GUIDE.md -> GSD.md) | -- |
+| 123 | **LANG-PROMPT-ACENT-01** | 23.0 Performance | BAIXA | PENDENTE | LANG-ENFORCE-01 |
 
 ---
 
@@ -355,7 +356,7 @@ Reorganização proposta priorizando meta v1.0 "Claude Code offline e opensource
 - FASE 1 é gate binário: sem `oi` respondendo em <5s, qualquer outra UX é teatro.
 - FASE 4 cobre os 4 gaps reais vs Claude Code identificados na auditoria (MCP, plugins, output-styles, hooks dinâmicos). Sem essas 4, "Claude Code offline" é meta-mentira.
 - FASE 7 (Cockpit) é diferencial além do Claude Code; pode ser adiado para pós-v1.0 sem perda de paridade.
-- 38 sprints PENDENTES totais (33 atuais + 5 novas desta auditoria).
+- 38 sprints PENDENTES totais (WARMUP-ON-BOOT-01 CONCLUIDA; LANG-PROMPT-ACENT-01 nova como achado colateral).
 
 
 

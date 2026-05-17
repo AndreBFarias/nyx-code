@@ -59,10 +59,27 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-16
+**Data conclusão:** 2026-05-17
+**Commit:** (a registrar pós-commit)
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 **Origem:** achado colateral de PERF-INFERENCE-01
+
+## Métricas
+
+- Warmup duplo no boot: ~3s (margem 80% vs. 15s limite)
+- Cold call após warmup: 0.634s (margem 92% vs. 8s SLA)
+- Gauntlet rápido: 18/18 (100%) em 5.7s (sem regressão)
+- VRAM: 64 MiB livre baseline → 1176 MiB modelo carregado (qwen2.5-coder:3b)
+- Low-VRAM guard: ativa quando memory.free < 1500 MiB; pula warmup 2 com log_warn
+
+## Notas de execução
+
+- `warmup_model()` em `run.sh` reescrita: 2 chamadas via proxy (saudação + tool-like).
+- Chamada explícita após proxy iniciar; pulada em modo `--gauntlet`.
+- Flag `--measure-cold` adicionada em `scripts/gauntlet/fixtures/perf_inference.py`; grava `logs/perf_cold.json`.
+- 1 sprint anti-débito derivada: **LANG-PROMPT-ACENT-01** (acentuação no `NYX_SYSTEM_PROMPT`).
 
 ---
 

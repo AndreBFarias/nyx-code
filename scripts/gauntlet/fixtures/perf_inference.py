@@ -200,6 +200,51 @@ def medir_acuracia() -> dict:
     }
 
 
+def medir_cold(model: str) -> dict:
+    """Mede a PRIMEIRA chamada de sessão fresca (WARMUP-ON-BOOT-01).
+
+    Exige que warmup_model já tenha rodado (proxy em pé, modelo aquecido).
+    Faz 1 chamada (n=1) cronometrada e classifica como cold ou warm conforme
+    o SLA <=8s. Grava resultado em logs/perf_cold.json.
+    """
+    prompt = "oi"
+    t = time.monotonic()
+    error = None
+    elapsed = None
+    content = ""
+    try:
+        r = httpx.post(
+            f"{PROXY_BASE}/v1/chat/completions",
+            json={"model": model, "messages": [{"role": "user", "content": prompt}]},
+            timeout=120.0,
+        )
+        elapsed = time.monotonic() - t
+        if r.status_code != 200:
+            error = f"http={r.status_code}"
+        else:
+            try:
+                payload = r.json()
+                content = (payload["choices"][0]["message"].get("content") or "")[:200]
+            except Exception as e:
+                error = f"parse: {type(e).__name__}"
+    except Exception as e:
+        elapsed = time.monotonic() - t
+        error = f"{type(e).__name__}: {str(e)[:60]}"
+
+    sla_s = 8.0
+    out = {
+        "prompt": prompt,
+        "model": model,
+        "elapsed_s": round(elapsed, 3) if elapsed is not None else None,
+        "sla_s": sla_s,
+        "passed_sla": (elapsed is not None and elapsed <= sla_s and error is None),
+        "content_preview": content,
+        "error": error,
+        "timestamp": int(time.time()),
+    }
+    return out
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--baseline", action="store_true", help="Grava resultado em logs/perf_baseline.json")
@@ -211,7 +256,40 @@ def main() -> int:
         action="store_true",
         help="Captura o content das respostas e calcula lang_pt_br_rate (LANG-ENFORCE-01).",
     )
+    parser.add_argument(
+        "--measure-cold",
+        action="store_true",
+        help="Mede primeira chamada de sessao apos warmup_model (WARMUP-ON-BOOT-01). "  # noqa-acento
+        "Grava em logs/perf_cold.json; SLA <= 8s.",
+    )
     args = parser.parse_args()
+
+    # --measure-cold curto-circuita: roda 1 chamada e grava resultado.
+    if args.measure_cold:
+        print(f"[perf-cold] aguardando proxy em {PROXY_BASE}/health ...", flush=True)
+        if not wait_proxy(60.0):
+            print("[err] proxy não respondeu em 60s; abandone.", file=sys.stderr)
+            return 2
+        print(f"[perf-cold] medindo primeira chamada (modelo={args.model})...", flush=True)
+        result = medir_cold(args.model)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+
+        log_dir = _PROJECT_ROOT / "logs"
+        log_dir.mkdir(exist_ok=True)
+        cold_path = log_dir / "perf_cold.json"
+        cold_path.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
+        print(f"\n[ok] perf_cold gravado em {cold_path}")
+
+        if result["passed_sla"]:
+            print(f"[ok] SLA OK: {result['elapsed_s']}s <= {result['sla_s']}s")
+            return 0
+        else:
+            print(
+                f"[fail] SLA quebrado: elapsed={result['elapsed_s']}s "
+                f"sla={result['sla_s']}s error={result['error']}",
+                file=sys.stderr,
+            )
+            return 1
 
     out: dict = {
         "model": args.model,
