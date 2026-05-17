@@ -365,6 +365,23 @@ Invariante #5 do `sprint_invariants.sh` vigia regressão futura.
 - **BLOQUEADA sem sprint nova.** Proibido.
 - **xclip ausente virar "CONCLUIDA".** Detectar: `command -v xclip` é pré-check; se faltar, BLOQUEADA com motivo.
 
+### INFRA-SANITIZER-FIX-01 (restaurar glifos canônicos)
+
+**Bypass típicos:**
+
+- Tentar "consertar" via `sed`/`awk` em vez de `git checkout HEAD --` (restauração precisa ser bit-exact).
+- Modificar `~/.config/zsh/scripts/universal-sanitizer.py` (escopo externo, proibido).
+- Adicionar dependência (codespell, pre-commit) para "resolver" o problema.
+- Criar ferramenta de sanitização própria no projeto (duplica responsabilidade).
+- Modificar critérios de aceite do spec para "fazer caber" se grep retornar valor diferente.
+
+**Comandos de detecção:**
+
+- `git diff --name-only ~/.config/zsh/scripts/universal-sanitizer.py 2>/dev/null` deve retornar vazio.
+- `grep -rE 'pre-commit|codespell|black|isort' nyx/ requirements*.txt pyproject.toml 2>/dev/null` antes/depois — diff zero.
+
+**Invariantes fechados:** #14 (novo).
+
 ---
 
 ## Lições do freelancer

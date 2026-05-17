@@ -69,6 +69,7 @@ BOX_CHARS = {
     "tjoin": "┬", "bjoin": "┴", "ljoin": "├", "rjoin": "┤", "cross": "┼",
 }
 
+# NÃO remover círculos abaixo via sanitizer global: ADR-004 exceção (Geometric Shapes Unicode); invariante #14 protege.
 BULLETS = {
     "tool": "●",         # círculo cheio -- tool em execução/concluída
     "tool_ok": "●",

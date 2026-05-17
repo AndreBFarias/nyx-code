@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Sprint Invariants -- proof-of-work de cada sprint da Onda 22+.
 #
-# Roda 13 checks que detectam as gambiarras mais comuns. Exit 0 = todos
+# Roda 14 checks que detectam as gambiarras mais comuns. Exit 0 = todos
 # invariantes preservados. Exit != 0 = sprint NÃO pode ser marcada concluída.
 # Check #13 (./run.sh --smoke) foi adicionado em 2026-04-19 via BOOT-FIX-01.
+# Check #14 (glifos canônicos) foi adicionado em 2026-05-17 via INFRA-SANITIZER-FIX-01.
 #
 # Uso:
 #   bash scripts/sprint_invariants.sh          # modo humano
@@ -196,6 +197,24 @@ if [ $SMOKE_RC -eq 0 ] && echo "$SMOKE_OUT" | grep -qx "boot ok"; then
 else
     SMOKE_HEAD=$(echo "$SMOKE_OUT" | head -3 | tr '\n' '|')
     fail "13. ./run.sh --smoke (boot integrity)" "exit=${SMOKE_RC}, stdout=${SMOKE_HEAD}"
+fi
+
+# 14. Glifos canônicos preservados (defesa anti-sanitizer global, INFRA-SANITIZER-FIX-01)
+#     Geometric Shapes U+25CB, U+25D0, U+25CF são Unicode genéricos
+#     permitidos pelo ADR-004 (NÃO são emoji). Carga útil de UX-BUG-02B + UX-LAYOUT-01.
+GLYPH_FAIL=""
+if ! grep -qF '_STATE_GLYPHS = {"cold": "○", "warming": "◐", "warm": "●"}' nyx/cli.py 2>/dev/null; then
+    GLYPH_FAIL="nyx/cli.py: _STATE_GLYPHS sem glifos canônicos"
+fi
+if ! grep -qF '"tool": "●"' nyx/themes/design_tokens.py 2>/dev/null \
+   || ! grep -qF '"ready": "●"' nyx/themes/design_tokens.py 2>/dev/null \
+   || ! grep -qF '"working": "○"' nyx/themes/design_tokens.py 2>/dev/null; then
+    GLYPH_FAIL="${GLYPH_FAIL:+$GLYPH_FAIL; }nyx/themes/design_tokens.py: BULLETS sem glifos canônicos"
+fi
+if [ -n "$GLYPH_FAIL" ]; then
+    fail "14. glifos canônicos preservados (anti-sanitizer)" "${GLYPH_FAIL}"
+else
+    ok "14. glifos canônicos preservados (UX-BUG-02B + UX-LAYOUT-01)"
 fi
 
 section "Resumo"
