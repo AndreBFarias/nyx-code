@@ -66,7 +66,7 @@ sprint:
 **Status:** CONCLUIDA
 **Data criação:** 2026-05-15
 **Data conclusão:** 2026-05-17
-**Hash:** (a preencher pós-commit)
+**Hash:** 95da808
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 **Resultado:** run.sh carrega .env primeiro + ~/.config/nyx/secrets depois (precedência secrets). install.sh seção 7a cria diretório 700 + arquivo secrets 600 com template. .env.example documenta onde guardar key. Backward compat: smoke passa sem secrets file. Gauntlet rapido 18/18.
 
