@@ -1,15 +1,15 @@
-# Executar próxima sprint — VISION-01
+# Executar próxima sprint — VISION-02
 
 > **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
 > Copie o bloco abaixo e cole em uma session nova de Claude Opus 4.7.
-> Restam **34** sprints PENDENTE(S) na fila.
+> Restam **33** sprints PENDENTE(S) na fila.
 
 ---
 
 ## Prompt para colar na session
 
 ```
-Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_VISION_01.md.
+Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_VISION_02.md.
 
 Modelo obrigatório: claude-opus-4-7 (sem subagentes).
 Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambiarra):
@@ -27,10 +27,10 @@ Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambi
 10. Após CONCLUIDA: commit atômico, move sprint file para concluidos/, roda `python scripts/update_next_sprint.py` para atualizar este arquivo.
 
 Se qualquer passo falhar, reporte:
-    [SPRINT VISION-01] BLOQUEADA: <motivo objetivo>
+    [SPRINT VISION-02] BLOQUEADA: <motivo objetivo>
 
-ID desta sprint: VISION-01
-Arquivo: dev-journey/06-sprints/producao/SPRINT_VISION_01.md
+ID desta sprint: VISION-02
+Arquivo: dev-journey/06-sprints/producao/SPRINT_VISION_02.md
 ```
 
 ---
@@ -39,16 +39,16 @@ Arquivo: dev-journey/06-sprints/producao/SPRINT_VISION_01.md
 
 ## Gambiarras específicas (recorte auto-injetado)
 
-> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §VISION-01. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
+> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §VISION-02. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
 
-### VISION-01 (provider moondream)
+### VISION-02 (pipeline [Image #N])
 
-- **Cache pré-populado com descrição genérica:** IA cria `~/.nyx/vision_cache/*.txt` com "imagem".
-  - **Detectar:** rm `~/.nyx/vision_cache/*` e rodar describe — deve popular cache novamente com descrição real variada.
-- **`is_available()` sempre True:** ignora ollama list.
-  - **Detectar:** parar Ollama (`pkill ollama`), chamar `is_available()` → deve retornar False.
-- **Fallback com string ambígua:** retorna `"OK"` quando moondream ausente.
-  - **Detectar:** `describe(path)` sem moondream → string contém "indisponível" ou "ausente".
+- **`_expand_images` retorna texto fixo:**
+  - **Detectar:** 2 imagens diferentes → descrições inline diferentes no output.
+- **Regex não captura `[Image #10]` (2 dígitos):**
+  - **Detectar:** teste com map `{10: "path"}`.
+- **image_map não persiste entre turnos:** usuário cola imagem, envia turno 1, turno 2 `/vision 1` não acha.
+  - **Detectar:** `ls ~/.nyx/image_index.json` deve existir após colar imagem.
 
 <!-- /GAMBIARRAS_INJECT -->
 

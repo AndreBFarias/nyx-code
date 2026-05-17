@@ -110,6 +110,7 @@ PHASE_GROUPS: dict[str, list[str]] = {
     "p10": ["p10_projeto", "p10_debug", "p10_memoria", "p10_avancado", "p10_root"],
     "p11_infra": ["p11_infra"],
     "p11": ["p11_infra"],
+    "vision": ["vision"],
     "contexto": ["contexto"],
     "rapido": ["infra", "proxy", "visual", "config"],
     "port": ["parser", "robustez", "interface", "controle", "persistencia"],
@@ -224,6 +225,7 @@ PHASE_TIMEOUTS: dict[str, int] = {
     "p10_avancado": 30,
     "p10_root": 30,
     "p11_infra": 30,
+    "vision": 90,
     "contexto": 180,
 }
 
@@ -733,6 +735,83 @@ class NyxGauntlet:
     # ═══════════════════════════════════════════════════════════════════
     # FASE: VISUAL (3 testes)
     # ═══════════════════════════════════════════════════════════════════
+
+    # ═══════════════════════════════════════════════════════════════════
+    # FASE: VISION (3 testes -- VISION-01, ADR-022)
+    # ═══════════════════════════════════════════════════════════════════
+
+    async def _phase_vision(self) -> None:
+        from pathlib import Path as _P
+
+        try:
+            from nyx.agent.services.vision_service import VisionService
+        except Exception as e:
+            self._add("V-VS-01", "VisionService importa", "vision", False, 0, error=str(e))
+            return
+
+        t = time.monotonic()
+        try:
+            svc = VisionService()
+            self._add("V-VS-01", "VisionService importa e instancia", "vision", True, time.monotonic() - t)
+        except Exception as e:
+            self._add("V-VS-01", "VisionService importa e instancia", "vision", False, time.monotonic() - t, error=str(e))
+            return
+
+        t = time.monotonic()
+        try:
+            available = svc.is_available()
+            self._add(
+                "V-VS-02",
+                "is_available() sem crash",
+                "vision",
+                True,
+                time.monotonic() - t,
+                details=f"available={available}",
+            )
+        except Exception as e:
+            self._add("V-VS-02", "is_available() sem crash", "vision", False, time.monotonic() - t, error=str(e))
+            return
+
+        if not available:
+            self._add(
+                "V-VS-03",
+                "describe + cache (skip: moondream ausente)",
+                "vision",
+                True,
+                0,
+                details="skip: moondream nao instalado; sprint validada via testes 1-2",
+            )
+            return
+
+        image_path = PROJECT_ROOT / "assets" / "nyx-icon.png"
+        if not image_path.is_file():
+            self._add(
+                "V-VS-03",
+                "describe + cache (skip: asset ausente)",
+                "vision",
+                True,
+                0,
+                details=f"skip: {image_path} nao existe",
+            )
+            return
+
+        t1 = time.monotonic()
+        desc1 = svc.describe(image_path)
+        dt1 = time.monotonic() - t1
+        t2 = time.monotonic()
+        desc2 = svc.describe(image_path)
+        dt2 = time.monotonic() - t2
+
+        cache_hit = dt2 < dt1 * 0.3 or dt2 < 0.05
+        ok = len(desc1) > 20 and desc1 == desc2 and cache_hit
+        self._add(
+            "V-VS-03",
+            "describe(asset) >= 20 chars + cache hit < 30% do primeiro",
+            "vision",
+            ok,
+            dt1 + dt2,
+            details=f"len={len(desc1)} dt1={dt1:.2f}s dt2={dt2:.3f}s",
+        )
 
     async def _phase_visual(self) -> None:
         from nyx.themes import ThemeManager

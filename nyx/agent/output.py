@@ -337,6 +337,32 @@ def nyx_spinner(message: "str | Callable[[], str]" = "pensando...") -> NyxSpinne
     return NyxSpinner(message)
 
 
+def render_progress_bar(label: str, current: int, total: int, width: int = 30) -> None:
+    """Imprime barra de progresso discreta (VISION-01, absorve O-01).
+
+    Formato: '  ████████░░░░░░░░░░░░░░░░░░░░░░  42% label'.
+
+    Idempotente no mesmo line via ``\\r\\x1b[2K``; chamar
+    :func:`render_progress_end` quando terminar para pular linha.
+    """
+    from nyx.themes.design_tokens import ANSI_ACCENT_FG, ANSI_MUTED_FG, ANSI_RESET
+
+    pct = 0.0 if total <= 0 else min(current / total, 1.0)
+    filled = int(pct * width)
+    bar = "█" * filled + "░" * (width - filled)
+    sys.stdout.write(
+        f"\r\x1b[2K  {ANSI_ACCENT_FG}{bar}{ANSI_RESET} {int(pct * 100):3d}% "
+        f"{ANSI_MUTED_FG}{label}{ANSI_RESET}"
+    )
+    sys.stdout.flush()
+
+
+def render_progress_end() -> None:
+    """Termina a barra de progresso com nova linha (VISION-01)."""
+    sys.stdout.write("\n")
+    sys.stdout.flush()
+
+
 def build_warming_label(model_state: str, started_monotonic: float) -> str:
     """Constrói label contextual do spinner durante request (UX-LOOP-VISIBILITY-01).
 

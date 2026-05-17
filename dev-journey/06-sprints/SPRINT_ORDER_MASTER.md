@@ -301,7 +301,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 44 | **UX-BUG-02B** | 5 Bugs | ALTA | CONCLUIDA | UX-BUG-02A, OBSERVABILITY-01 |
 | 45 | **UX-BUG-02C** | 5 Bugs | ALTA | PENDENTE | UX-BUG-02A |
 | 46 | **UX-BUG-03** | 5 Bugs | ALTA | PENDENTE | UX-LAYOUT-03 |
-| 47 | **VISION-01** | 6 Visão | ALTA | PENDENTE | UX-BUG-03, ADR-022-DOC |
+| 47 | **VISION-01** | 6 Visão | ALTA | CONCLUIDA (ADR-022 ACEITO; VisionClient + VisionService + cache sha256; describe end-to-end 17.4s; cache hit 0.001s; gauntlet vision 3/3; render_progress_bar absorveu O-01) | UX-BUG-03, ADR-022-DOC |
 | 48 | **VISION-02** | 6 Visão | ALTA | PENDENTE | VISION-01 |
 | 49 | **VISION-03** | 6 Visão | ALTA | PENDENTE | VISION-02 |
 | 50 | **SESSION-RESUME-01** | 6b Sessões | MÉDIA | PENDENTE | CTX-02 |
