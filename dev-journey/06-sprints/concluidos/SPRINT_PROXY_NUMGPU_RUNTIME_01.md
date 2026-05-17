@@ -59,9 +59,12 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-15
+**Data conclusão:** 2026-05-17
+**Hash:** 0ad8e6e
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
+**Resultado:** NUM_GPU removido como módulo-global; GET /admin/tune (loopback-only) re-tune via detect_gpu.py; slash /tune em commands/system.py mostra resultado em PT-BR. Fail-safe OOM preservado. Gauntlet proxy 6/6 + rapido 18/18.
 
 ---
 
