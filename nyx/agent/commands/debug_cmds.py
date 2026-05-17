@@ -1,8 +1,44 @@
-"""Comandos debug/análise -- insights, advisor, security-review, ctx-viz, tasks, skills."""
+"""Comandos debug/análise -- insights, advisor, security-review, ctx-viz, tasks, skills, vision."""
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from nyx.agent.commands._registry import nyx_command
+
+_IMAGE_INDEX_PATH = Path.home() / ".nyx" / "image_index.json"
+
+
+@nyx_command(name="vision", description="Mostra descrição da imagem N (ex.: /vision 1)", category="contexto")
+def cmd_vision(args: str, _project_root: str) -> str:
+    """Retorna descrição cacheada da imagem N (VISION-02).
+
+    Lê o índice persistido em ~/.nyx/image_index.json (alimentado por
+    Ctrl+V em cli.py). Usa VisionService.describe() para garantir o cache
+    sha256.
+    """
+    from nyx.agent.services.vision_service import VisionService
+
+    n_raw = args.strip()
+    if not n_raw.isdigit():
+        return "Uso: /vision <numero>. Ex.: /vision 1"
+    n = int(n_raw)
+    if not _IMAGE_INDEX_PATH.exists():
+        return "Nenhuma imagem registrada na sessão. Use Ctrl+V para colar uma imagem."
+    try:
+        idx = json.loads(_IMAGE_INDEX_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return f"Falha ao ler índice de imagens: {exc}"
+    path_str = idx.get(str(n))
+    if not path_str:
+        return f"Imagem #{n} não encontrada no índice ({len(idx)} registrada(s))."
+    path = Path(path_str)
+    if not path.is_file():
+        return f"Imagem #{n}: arquivo {path_str} não existe mais."
+    svc = VisionService()
+    desc = svc.describe(path)
+    return f"  [imagem #{n}] {desc}\n  path: {path_str}"
 
 
 @nyx_command(name="insights", description="Insights do projeto", category="root")

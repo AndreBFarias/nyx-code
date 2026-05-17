@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-17T20:16:40.736798",
+  "timestamp": "2026-05-17T20:21:01.363683",
   "model": "qwen2.5-coder:3b",
   "phases_done": [],
   "results": [
@@ -18,7 +18,7 @@
       "name": "is_available() sem crash",
       "phase": "vision",
       "passed": true,
-      "elapsed_s": 0.06,
+      "elapsed_s": 0.05,
       "tokens": 0,
       "details": "available=False",
       "error": ""

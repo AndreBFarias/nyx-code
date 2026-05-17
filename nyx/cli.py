@@ -76,6 +76,80 @@ from nyx.agent.output import make_ask_permission as _make_ask_permission  # noqa
 from nyx.agent.output import print_error as _print_error  # noqa: E402
 
 
+_IMAGE_INDEX_PATH = Path.home() / ".nyx" / "image_index.json"
+
+
+def _persist_image_index(image_map: dict[int, str]) -> None:
+    """Persiste image_map em ~/.nyx/image_index.json (VISION-02).
+
+    Permite que /vision N consulte mesmo depois de o usuário avançar
+    em outros turns na sessão.
+    """
+    import json as _json
+
+    try:
+        _IMAGE_INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _IMAGE_INDEX_PATH.write_text(
+            _json.dumps({str(k): v for k, v in image_map.items()}),
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        import logging as _log
+
+        _log.getLogger("nyx.cli").warning("image_index persist falhou: %s", exc)
+
+
+def _shorten_description(desc: str, max_chars: int = 200) -> str:
+    """Trunca descrição em duas primeiras frases ou max_chars (VISION-02)."""
+    if len(desc) <= max_chars:
+        return desc
+    sentences = desc.split(". ")
+    acc = ""
+    for s in sentences[:2]:
+        if len(acc) + len(s) > max_chars:
+            break
+        acc += s + ". "
+    return (acc.strip() or desc[:max_chars]) + "…"
+
+
+def _expand_images(
+    user_input: str,
+    image_map: dict[int, str],
+    vision: "VisionService | None" = None,
+) -> str:
+    """Substitui `[Image #N]` pela descrição da imagem em image_map (VISION-02).
+
+    Usa VisionService cache; se moondream ausente, retorna sentinela
+    "[Imagem #N: visao indisponivel]" para não bloquear o fluxo.
+    """
+    import re
+
+    from nyx.agent.services.vision_service import VisionService
+
+    if not image_map:
+        return user_input
+
+    svc = vision if vision is not None else VisionService()
+
+    def _repl(match: re.Match[str]) -> str:
+        n = int(match.group(1))
+        path_str = image_map.get(n)
+        if not path_str:
+            return f"[Imagem #{n}: referência inválida]"
+        path = Path(path_str)
+        if not path.is_file():
+            return f"[Imagem #{n}: arquivo não encontrado]"
+        desc = svc.describe(path)
+        short = _shorten_description(desc)
+        return f"[Imagem #{n}: {short}]"
+
+    return re.sub(r"\[Image #(\d+)\]", _repl, user_input)
+
+
+if TYPE_CHECKING:
+    from nyx.agent.services.vision_service import VisionService
+
+
 async def run_repl(streaming: bool = True) -> int:
     from nyx.agent.commands import handle_command
     from nyx.agent.context import render_context_bar
@@ -192,6 +266,7 @@ async def run_repl(streaming: bool = True) -> int:
                 image_counter["n"] += 1
                 n = image_counter["n"]
                 image_map[n] = str(img_path)
+                _persist_image_index(image_map)
                 buf.insert_text(f"[Image #{n}]")
                 run_in_terminal(lambda: print(f"  {DIM}⇲ Image #{n} salva em {img_path}{NC}"))
                 return
@@ -452,6 +527,10 @@ async def run_repl(streaming: bool = True) -> int:
             continue
 
         if not user_input.startswith("/"):
+            # VISION-02: expande [Image #N] pela descrição da imagem antes do
+            # render e do envio ao agent.run (ambos veem o texto já enriquecido).
+            if image_map and "[Image #" in user_input:
+                user_input = _expand_images(user_input, image_map)
             last_input_state["text"] = user_input
             render_user_input(user_input)
 

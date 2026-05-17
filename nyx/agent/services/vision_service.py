@@ -56,6 +56,18 @@ class VisionService:
             logger.warning("vision: descrição falhou (%s)", e)
             return f"[Imagem: erro ao descrever ({type(e).__name__})]"
 
+    def describe_many(
+        self,
+        paths: list[Path],
+        prompt: str = "Describe this image in detail.",
+    ) -> list[str]:
+        """Descreve múltiplas imagens sequencialmente (VISION-02).
+
+        Paralelizar não acelera: moondream é CPU-bound e satura núcleos.
+        Cache torna chamadas repetidas instantâneas.
+        """
+        return [self.describe(p, prompt) for p in paths]
+
     @staticmethod
     def _digest(path: Path, prompt: str) -> str:
         h = hashlib.sha256()

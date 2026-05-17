@@ -1,15 +1,15 @@
-# Executar próxima sprint — VISION-02
+# Executar próxima sprint — VISION-03
 
 > **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
 > Copie o bloco abaixo e cole em uma session nova de Claude Opus 4.7.
-> Restam **33** sprints PENDENTE(S) na fila.
+> Restam **32** sprints PENDENTE(S) na fila.
 
 ---
 
 ## Prompt para colar na session
 
 ```
-Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_VISION_02.md.
+Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_VISION_03.md.
 
 Modelo obrigatório: claude-opus-4-7 (sem subagentes).
 Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambiarra):
@@ -27,10 +27,10 @@ Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambi
 10. Após CONCLUIDA: commit atômico, move sprint file para concluidos/, roda `python scripts/update_next_sprint.py` para atualizar este arquivo.
 
 Se qualquer passo falhar, reporte:
-    [SPRINT VISION-02] BLOQUEADA: <motivo objetivo>
+    [SPRINT VISION-03] BLOQUEADA: <motivo objetivo>
 
-ID desta sprint: VISION-02
-Arquivo: dev-journey/06-sprints/producao/SPRINT_VISION_02.md
+ID desta sprint: VISION-03
+Arquivo: dev-journey/06-sprints/producao/SPRINT_VISION_03.md
 ```
 
 ---
@@ -39,16 +39,14 @@ Arquivo: dev-journey/06-sprints/producao/SPRINT_VISION_02.md
 
 ## Gambiarras específicas (recorte auto-injetado)
 
-> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §VISION-02. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
+> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §VISION-03. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
 
-### VISION-02 (pipeline [Image #N])
+### VISION-03 (VRAM estável)
 
-- **`_expand_images` retorna texto fixo:**
-  - **Detectar:** 2 imagens diferentes → descrições inline diferentes no output.
-- **Regex não captura `[Image #10]` (2 dígitos):**
-  - **Detectar:** teste com map `{10: "path"}`.
-- **image_map não persiste entre turnos:** usuário cola imagem, envia turno 1, turno 2 `/vision 1` não acha.
-  - **Detectar:** `ls ~/.nyx/image_index.json` deve existir após colar imagem.
+- **Script `verify_vram.sh` só ecoa `[OK]`:**
+  - **Detectar:** ler o script e verificar que há `nvidia-smi` + comparação numérica real.
+- **`num_gpu=0` no código mas IA esqueceu de colocar em `options`:**
+  - **Detectar:** `grep -A5 "options" nyx/providers/vision_client.py | grep "num_gpu.*0"`.
 
 <!-- /GAMBIARRAS_INJECT -->
 
