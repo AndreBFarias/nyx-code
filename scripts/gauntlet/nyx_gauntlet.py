@@ -58,6 +58,7 @@ PHASE_GROUPS: dict[str, list[str]] = {
     "parser": ["parser"],
     "robustez": ["robustez"],
     "interface": ["interface"],
+    "slash_bypass": ["slash_bypass"],
     "controle": ["controle"],
     "persistencia": ["persistencia"],
     "e2e": ["e2e"],
@@ -125,6 +126,7 @@ PHASE_GROUPS: dict[str, list[str]] = {
         "parser",
         "robustez",
         "interface",
+        "slash_bypass",
         "controle",
         "persistencia",
         "e2e",
@@ -181,6 +183,7 @@ PHASE_TIMEOUTS: dict[str, int] = {
     "parser": 30,
     "robustez": 30,
     "interface": 30,
+    "slash_bypass": 30,
     "controle": 30,
     "persistencia": 30,
     "e2e": 60,
@@ -1088,6 +1091,43 @@ class NyxGauntlet:
         plan = handle_command("/plan feature X", str(PROJECT_ROOT))
         has_list = "list_files" in (plan or "")
         self._add("IF-05", "Commands /plan", "interface", has_list, 0, details=(plan or "")[:60])
+
+    # ═══════════════════════════════════════════════════════════════════
+    # FASE: SLASH_BYPASS (5 testes -- SLASH-BYPASS-AUDIT-01)
+    # Confirma que /commands são interceptados em cli.py:417 ANTES do LLM.
+    # Audit: nyx/cli.py linha 417 contém `if user_input.startswith("/"):`
+    # seguido de `handle_command(...)`. handle_command vive em
+    # nyx/agent/commands/_dispatcher.py:36 e retorna string ou sentinela
+    # sem nenhuma chamada ao proxy/Ollama. Esta fase mede latência
+    # em chamada direta para garantir que NÃO há regressão futura
+    # (algum /command sendo enviado ao LLM erroneamente).
+    # ═══════════════════════════════════════════════════════════════════
+
+    async def _phase_slash_bypass(self) -> None:
+        from nyx.agent.commands import handle_command
+
+        cases = [
+            ("SB-01", "/help"),
+            ("SB-02", "/memory"),
+            ("SB-03", "/tools"),
+            ("SB-04", "/quit"),
+            ("SB-05", "/theme"),
+        ]
+        for fid, cmd in cases:
+            t0 = time.monotonic()
+            try:
+                result = handle_command(cmd, str(PROJECT_ROOT))
+            except Exception as exc:
+                dt = time.monotonic() - t0
+                self._add(fid, f"slash bypass {cmd}", "slash_bypass", False, dt, error=str(exc)[:200])
+                continue
+            dt = time.monotonic() - t0
+            is_str = isinstance(result, str) and len(result) > 0
+            not_error = is_str and not result.startswith("__error__")
+            fast = dt < 0.5
+            ok = is_str and not_error and fast
+            details = f"latencia={dt * 1000:.0f}ms, len={len(result or '')}"
+            self._add(fid, f"slash bypass {cmd}", "slash_bypass", ok, dt, details=details)
 
     # ═══════════════════════════════════════════════════════════════════
     # FASE: ROBUSTEZ (6 testes -- P1-B)

@@ -60,10 +60,28 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
+**Hash:** PENDING
 **Data criação:** 2026-05-16
+**Data conclusão:** 2026-05-16
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 **Origem:** achado colateral de PERF-INFERENCE-01
+
+## Resultado do audit
+
+Bypass confirmado em `nyx/cli.py:417` -- branch `if user_input.startswith("/"):` chama `handle_command()` (em `nyx/agent/commands/_dispatcher.py:36`) que retorna string ou sentinela (`__quit__`, `__clear__`, etc.) sem qualquer chamada ao proxy/Ollama. Bug colateral: nenhum -- todos os 5 `/commands` testados respeitam o bypass.
+
+Fase nova `slash_bypass` em `scripts/gauntlet/nyx_gauntlet.py` mede latência direta de:
+
+| Feature | Comando | Latência | len(result) |
+|---------|---------|----------|-------------|
+| SB-01 | /help | 0 ms | 711 |
+| SB-02 | /memory | 2 ms | 99 |
+| SB-03 | /tools | 17 ms | 3154 |
+| SB-04 | /quit | 0 ms | 8 |
+| SB-05 | /theme | 2 ms | 487 |
+
+Todos < 500 ms (critério do spec). Gauntlet `slash_bypass` 5/5 OK.
 
 ---
 
