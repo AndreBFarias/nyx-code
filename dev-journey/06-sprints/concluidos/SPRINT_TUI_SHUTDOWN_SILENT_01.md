@@ -53,7 +53,7 @@ sprint:
 **Status:** CONCLUIDA
 **Data criação:** 2026-05-15
 **Data conclusão:** 2026-05-17
-**Hash:** (a preencher pós-commit)
+**Hash:** 6707fe4
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 **Resultado:** disown já aplicado por UX-LIFECYCLE-01/BOOT-VRAM-GUARD-01. Sprint endurece `stop_ollama` substituindo `wait` por poll com `kill -0` (5s timeout) — evita ruído "not a child" pós-disown. Smoke duplo: 0 "Morto" no stdout (validado em 2 runs).
 
