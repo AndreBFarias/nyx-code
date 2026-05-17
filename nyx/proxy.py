@@ -43,6 +43,7 @@ from nyx.config.defaults import OLLAMA_KEEP_ALIVE as _KEEP_ALIVE  # noqa: E402
 from nyx.config.defaults import OLLAMA_PORT as _DEFAULT_OLLAMA_PORT  # noqa: E402
 from nyx.config.defaults import OLLAMA_URL as _DEFAULT_OLLAMA_URL  # noqa: E402
 from nyx.config.defaults import PROXY_PORT as _DEFAULT_PROXY_PORT  # noqa: E402
+from nyx.config.defaults import model_supports_thinking as _model_supports_thinking  # noqa: E402
 
 OLLAMA_URL = _DEFAULT_OLLAMA_URL
 NUM_GPU = _DEFAULT_NUM_GPU
@@ -119,7 +120,8 @@ def openai_to_ollama(body: dict) -> tuple[dict, str]:
 
     Gating por intent (PERF-INFERENCE-01):
     - intent=saudacao/chat: tools=[]; think=false; num_predict=NUM_PREDICT_CHAT.
-    - intent=tool-needed: mantém tools do request; think=true; num_predict=NUM_PREDICT_TOOL.
+    - intent=tool-needed: mantém tools do request; think condicionado ao modelo
+      (qwen3 aceita; qwen2.5-coder rejeita com HTTP 400); num_predict=NUM_PREDICT_TOOL.
     - intent=comando: idêntico a chat (proxy não trata /command, mas o caso é raro
       pois CLI intercepta antes do payload).
     """
@@ -133,10 +135,16 @@ def openai_to_ollama(body: dict) -> tuple[dict, str]:
         logger.info("intent=%s -> tools suprimidos (%d)", intent, len(body["tools"]))
         has_tools = False
 
+    # GAUNTLET-RAPIDO-FIXES-01 (P-07): think=true so quando o modelo suporta.
+    # Modelos sem chain-of-thought nativa (qwen2.5-coder, llama3.x) retornam
+    # HTTP 400 "does not support thinking" se receberem think=true.
+    model_name = body.get("model", _DEFAULT_MODEL)
+    use_thinking = has_tools and _model_supports_thinking(model_name)
+
     result: dict = {
-        "model": body.get("model", _DEFAULT_MODEL),
+        "model": model_name,
         "messages": messages,
-        "think": has_tools,
+        "think": use_thinking,
         "stream": False,
         "keep_alive": _KEEP_ALIVE,
         "options": {
@@ -181,8 +189,67 @@ def _strip_think(text: str) -> str:
     return out.strip()
 
 
-def ollama_to_openai(data: dict, model: str) -> dict:
-    """Converte resposta Ollama nativa -> formato OpenAI."""
+_CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*", re.IGNORECASE)
+
+
+def _extract_tool_call_from_content(text: str) -> dict | None:
+    """Detecta tool_call emitido como JSON dentro do content.
+
+    Modelos como qwen2.5-coder:3b não expõem `tool_calls` nativo do Ollama;
+    emitem o tool_call como JSON dentro do content, geralmente envolvido em
+    code fences. GAUNTLET-RAPIDO-FIXES-01 (P-07): normaliza para que clientes
+    OpenAI-compativel recebam o formato esperado.
+
+    Aceita formatos:
+        ```json
+        {"name": "Read", "arguments": {"file_path": "README.md"}}
+        ```
+        {"name": "Read", "arguments": {...}}
+        {"tool": "Read", "args": {...}}
+
+    Retorna {"name": str, "arguments": str_json} ou None.
+    """
+    if not text:
+        return None
+    stripped = _CODE_FENCE_PATTERN.sub("", text).strip().rstrip("`").strip()
+    start = stripped.find("{")
+    if start == -1:
+        return None
+    candidate = stripped[start:]
+    depth = 0
+    data = None
+    for i, ch in enumerate(candidate):
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                try:
+                    data = json.loads(candidate[: i + 1])
+                    break
+                except json.JSONDecodeError:
+                    continue
+    if not isinstance(data, dict):
+        return None
+    name = data.get("name") or data.get("tool") or data.get("function") or ""
+    args = data.get("arguments") or data.get("args") or data.get("parameters") or {}
+    if not name or not isinstance(name, str):
+        return None
+    if isinstance(args, dict):
+        args_json = json.dumps(args, ensure_ascii=False)
+    elif isinstance(args, str):
+        args_json = args
+    else:
+        return None
+    return {"name": name, "arguments": args_json}
+
+
+def ollama_to_openai(data: dict, model: str, has_tools_request: bool = False) -> dict:
+    """Converte resposta Ollama nativa -> formato OpenAI.
+
+    Se `has_tools_request` e o modelo emitiu JSON tool_call no content (formato
+    não-nativo), promove para tool_calls OpenAI (GAUNTLET-RAPIDO-FIXES-01 P-07).
+    """
     msg = data.get("message", {})
     content = _strip_think(msg.get("content", ""))
     choice: dict = {
@@ -194,6 +261,12 @@ def ollama_to_openai(data: dict, model: str) -> dict:
         "finish_reason": "stop",
     }
     tool_calls = msg.get("tool_calls")
+    # Fallback: quando o request tinha tools mas o modelo emitiu JSON inline.
+    if not tool_calls and has_tools_request and content:
+        extracted = _extract_tool_call_from_content(content)
+        if extracted:
+            tool_calls = [{"function": extracted}]
+            logger.info("tool_call extraido do content (formato JSON inline)")
     if tool_calls:
         oai_tc = []
         for i, tc in enumerate(tool_calls):
@@ -274,7 +347,8 @@ async def handle_chat(request: web.Request) -> web.StreamResponse:
 
     logger.info("Ollama raw keys: %s", list(data.get("message", {}).keys()))
     logger.info("Ollama tool_calls: %s", data.get("message", {}).get("tool_calls", "NONE"))
-    result = ollama_to_openai(data, model)
+    has_tools_request = bool(body.get("tools"))
+    result = ollama_to_openai(data, model, has_tools_request=has_tools_request)
 
     # LANG-ENFORCE-01: guardrail de idioma em respostas conversacionais.
     # Cobre saudacao/chat/comando (qwen2.5-coder:3b frequentemente responde

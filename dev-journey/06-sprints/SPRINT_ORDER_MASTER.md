@@ -332,7 +332,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 119 | **SLASH-BYPASS-AUDIT-01** | 23.0 Performance | MÉDIA | CONCLUIDA (5/5 /commands com latência <500ms; fase slash_bypass nova no Gauntlet) | PERF-INFERENCE-01 |
 | 120 | **WARMUP-ON-BOOT-01** | 23.0 Performance | MÉDIA | PENDENTE | PERF-INFERENCE-01 |
 | 121 | **MODEL-SWAP-01** | 23.0 Performance | ALTA | CONCLUIDA (ADR-031: qwen2.5-coder:3b padrão; score 96.8) | -- |
-| 122 | **GAUNTLET-RAPIDO-FIXES-01** | 23.0 Performance | ALTA | PENDENTE | -- |
+| 122 | **GAUNTLET-RAPIDO-FIXES-01** | 23.0 Performance | ALTA | CONCLUIDA (18/18 100% rapido; fix P-07 think gating + parser content-JSON; fix C-03 settings.json criado; fix C-04 GUIDE.md -> GSD.md) | -- |
 
 ---
 

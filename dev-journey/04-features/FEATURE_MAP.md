@@ -90,7 +90,7 @@
 | C-01 | .env carregado pelo run.sh | run.sh | Variáveis sobrescrevem defaults |
 | C-02 | NyxSettings carrega .env + CLI args | config/settings.py | Prioridade: CLI > .env > defaults |
 | C-03 | .claude/settings.json respeita tema dark | .claude/ | theme=dark, language=pt-BR |
-| C-04 | GUIDE.md carregado pela TUI | GUIDE.md | Identidade Nyx aplicada |
+| C-04 | GSD.md guia canônico do projeto | GSD.md | Identidade Nyx aplicada |
 
 ## 8. Resiliência
 

@@ -773,31 +773,37 @@ class NyxGauntlet:
         except Exception as e:
             self._add("C-02", "NyxSettings carrega", "config", False, 0, error=str(e))
 
-        # C-03
-        settings_path = PROJECT_ROOT / ".claude" / "settings.json"
-        if settings_path.exists():
-            data = json.loads(settings_path.read_text(encoding="utf-8"))
+        # C-03: preferências padrão (theme=dark, language=pt-BR) em arquivo
+        # versionado dentro do pacote nyx/config/, não em .claude/ (anonimato).
+        # GAUNTLET-RAPIDO-FIXES-01: substitui .claude/settings.json (gitignored)
+        # por nyx/config/preferences.json (versionado, defaults canônicos).
+        prefs_path = PROJECT_ROOT / "nyx" / "config" / "preferences.json"
+        if prefs_path.exists():
+            data = json.loads(prefs_path.read_text(encoding="utf-8"))
             prefs = data.get("preferences", {})
             ok = prefs.get("theme") == "dark" and prefs.get("language") == "pt-BR"
             self._add(
                 "C-03",
-                "settings.json dark+pt-BR",
+                "preferences.json dark+pt-BR",
                 "config",
                 ok,
                 0,
                 details=f"theme={prefs.get('theme')} lang={prefs.get('language')}",
             )
         else:
-            self._add("C-03", "settings.json dark+pt-BR", "config", False, 0, error="Arquivo não existe")
+            self._add("C-03", "preferences.json dark+pt-BR", "config", False, 0, error="Arquivo não existe")
 
         # C-04
-        guide_md = PROJECT_ROOT / "GUIDE.md"
+        # GSD.md (Getting Shit Done) e o guia canonico do projeto e e rastreado.
+        # GUIDE.md original era symlink local (gitignore'd) -- nao validavel em CI.
+        # GAUNTLET-RAPIDO-FIXES-01: troca GUIDE.md por GSD.md.
+        guide_md = PROJECT_ROOT / "GSD.md"
         if guide_md.exists():
             content = guide_md.read_text(encoding="utf-8")
             has_nyx = "Nyx" in content
-            self._add("C-04", "GUIDE.md contém Nyx", "config", has_nyx, 0)
+            self._add("C-04", "GSD.md contém Nyx", "config", has_nyx, 0)
         else:
-            self._add("C-04", "GUIDE.md contém Nyx", "config", False, 0, error="Arquivo não existe")
+            self._add("C-04", "GSD.md contém Nyx", "config", False, 0, error="Arquivo não existe")
 
     # ═══════════════════════════════════════════════════════════════════
     # FASE: RESILIÊNCIA (2 testes)

@@ -13,6 +13,21 @@ OLLAMA_URL: str = f"http://{OLLAMA_HOST}:{OLLAMA_PORT}"
 PROXY_URL: str = f"http://{OLLAMA_HOST}:{PROXY_PORT}"
 PROXY_V1_URL: str = f"{PROXY_URL}/v1"
 DEFAULT_MODEL: str = "qwen2.5-coder:3b"
+
+# Modelos Ollama que suportam o parametro `think` (chain-of-thought nativa).
+# Qwen3 com sufixo *-thinking aceita. qwen2.5-coder, llama3.x e similares
+# rejeitam com HTTP 400 "does not support thinking" se o proxy enviar think=true.
+# GAUNTLET-RAPIDO-FIXES-01 (P-07): centraliza a decisao aqui (N-para-N).
+MODELS_SUPPORTING_THINKING: tuple[str, ...] = (
+    "qwen3",
+)
+
+
+def model_supports_thinking(model: str) -> bool:
+    """Retorna True se o modelo aceita o parametro `think` do Ollama."""
+    name = (model or "").lower()
+    return any(prefix in name for prefix in MODELS_SUPPORTING_THINKING)
+
 VRAM_MAX_GB: float = 2.5
 MAX_ITERATIONS: int = 50
 TEMPERATURE: float = 0.3
