@@ -2,6 +2,14 @@
 
 from __future__ import annotations
 
+import os
+
+# PID file para single-instance (UX-LIFECYCLE-01).
+# Fonte única consumida por run.sh + nyx.agent.services.lifecycle.
+# Override via env var `NYX_PID_FILE` (test isolation, multi-projeto).
+# Default em /tmp por convenção POSIX para lock files de processo único.
+NYX_PID_FILE: str = os.environ.get("NYX_PID_FILE", "/tmp/nyx.pid")  # noqa: abs-path
+
 OLLAMA_PORT: int = 11435
 PROXY_PORT: int = 11436
 # Contrato dual:

@@ -76,10 +76,53 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-16
+**Data conclusão:** 2026-05-17
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 **Origem:** pedido explícito do usuário em 2026-05-16, durante validação visual de UX-BUG-02B. Anti-débito.
+
+## Resultado
+
+- Lock file em `/tmp/nyx.pid` (fonte única `NYX_PID_FILE` em `nyx/config/defaults.py`).
+- `acquire_lock` em `run.sh` detecta stale lock + mata anterior gracefully (SIGTERM 5s → SIGKILL) + kill em árvore (`pgrep -P`) para evitar órfãos reparented.
+- `cleanup` expandido: SIGHUP adicionado ao trap; remoção idempotente do lock só se PID corresponde.
+- `nyx/agent/services/lifecycle.py` (NOVO, 179 linhas): classe `Lifecycle` com `acquire/release/vram_check/register_cleanup`. Cobertura graceful em falha de `nvidia-smi`.
+- `nyx/proxy.py`: endpoint `POST /admin/shutdown` (bind 127.0.0.1 + check `request.remote in ("127.0.0.1","::1")`). Responde 200 antes de auto-SIGTERM no PID do proxy (graceful flush).
+- `nyx/cli.py`: comando `/quit` (aliases `/q`, `/exit`) faz POST `/admin/shutdown` best-effort antes de break do REPL.
+- `nyx/agent/loop/_iteration.py`: VRAM check pré-`_call_llm` em cold start (flag `_vram_checked` idempotente). Threshold 800 MiB; graceful em ausência de nvidia-smi.
+
+### Testes manuais
+
+1. `./run.sh --smoke && ./run.sh --smoke` → 0 órfãos (smoke não levanta Ollama).
+2. `./run.sh` → prompt → `/quit` → "Desconectando..." → 0 órfãos, lock removido, VRAM 64/3706.
+3. Single-instance: instância 1 ativa; instância 2 inicia → mata 1 via SIGTERM (sobreviveu → SIGKILL na árvore) → 0 órfãos pós ciclo completo.
+4. `curl -X POST http://127.0.0.1:11436/admin/shutdown` → `{"status":"shutting_down"}` → proxy morre em <1s → cleanup do `run.sh` em cascata.
+
+### Aritmética
+
+- `run.sh`: +61 linhas (acquire_lock + cleanup expandido + trap SIGHUP).
+- `nyx/cli.py`: +10 linhas (POST shutdown best-effort em `/quit`).
+- `nyx/proxy.py`: +33 linhas (handler shutdown + imports asyncio/os/signal).
+- `nyx/agent/loop/_iteration.py`: +20 linhas (VRAM check guardado por `_vram_checked`).
+- `nyx/agent/loop/_core.py`: +4 linhas (flag `_vram_checked = False`).
+- `nyx/config/defaults.py`: +8 linhas (NYX_PID_FILE + import os).
+- `nyx/agent/services/lifecycle.py`: +179 linhas (arquivo novo).
+- Total líquido: +315 linhas.
+
+### Não-regressão
+
+- `bash scripts/sprint_invariants.sh` → FAIL_AFTER = 0 (= FAIL_BEFORE).
+- `./run.sh --smoke` → boot ok.
+- `./run.sh --gauntlet --only rapido` → 18/18 (100%) em 11s.
+
+### Observação sobre dependências
+
+A sprint declarava `dependencias: [BOOT-VRAM-GUARD-01, TUI-SHUTDOWN-SILENT-01]` mas ambas estavam PENDENTES no momento da execução. Foi executada por pedido explícito do usuário (2026-05-16) e **substitui parcialmente** o escopo das deps:
+- BOOT-VRAM-GUARD-01: o `vram_check` adicionado em `_iteration.py` cobre o caso runtime; pré-carga do `run.sh` continua sob escopo daquela sprint.
+- TUI-SHUTDOWN-SILENT-01: o cleanup robusto reduz mensagens "Morto" mas não elimina via `disown`/`set +m`.
+
+Ambas as sprints permanecem PENDENTES para fechar pontas finas.
 
 ---
 

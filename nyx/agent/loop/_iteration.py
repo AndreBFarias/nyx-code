@@ -236,6 +236,26 @@ class _IterationMixin:
         - Iteração 2+: apenas últimas 4 mensagens (user + tool_call + result + resposta)
         - Compactação se budget > 40%
         """
+        # UX-LIFECYCLE-01: VRAM check pré-inferência em cold start.
+        # Só roda uma vez por sessão. Em CPU mode (_OOM_DEGRADED pelo proxy)
+        # ou sem nvidia-smi, retorna ok=True silenciosamente.
+        if not getattr(self, "_vram_checked", False):
+            self._vram_checked = True
+            from nyx.agent.services.lifecycle import Lifecycle
+
+            ok, free_mib = Lifecycle().vram_check()
+            if not ok:
+                logger.warning("[loop] VRAM insuficiente: %d MiB livres", free_mib)
+                return {
+                    "error": (
+                        f"VRAM insuficiente ({free_mib} MiB livres). "
+                        "Feche outros processos GPU ou rode em CPU com NYX_NUM_GPU=0."
+                    ),
+                    "error_detail": f"vram_free={free_mib}MiB threshold=800MiB",
+                }
+            if free_mib >= 0:
+                logger.info("[loop] VRAM OK: %d MiB livres", free_mib)
+
         history_msgs = self._session.to_messages()
 
         # Seleção de tools precisa do user real, não do system_prompt;

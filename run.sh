@@ -51,6 +51,9 @@ WARMUP_TIMEOUT=90
 NYX_OLLAMA_PORT="${NYX_OLLAMA_PORT:-11435}"
 NYX_OLLAMA_HOST="${NYX_OLLAMA_HOST:-127.0.0.1}"
 NYX_PROXY_PORT="${NYX_PROXY_PORT:-11436}"
+# UX-LIFECYCLE-01: lock file de single-instance. Fonte única vem do
+# defaults.py via env var. Sem fallback divergente — mesmo path.
+NYX_PID_FILE="${NYX_PID_FILE:-/tmp/nyx.pid}"
 
 # ─── PARSE FLAGS ──────────────────────────────────────────
 MODEL="${NYX_MODEL:-qwen2.5-coder:3b}"
@@ -141,6 +144,48 @@ validate() {
     if [ "$errors" -gt 0 ]; then
         exit 1
     fi
+}
+
+# ─── SINGLE-INSTANCE LOCK ────────────────────────────────
+# UX-LIFECYCLE-01: garante única instância de run.sh.
+# Lock vivo (PID respondendo) é morto via SIGTERM com timeout 5s,
+# SIGKILL fallback se sobreviver. Lock stale (PID morto) é sobrescrito.
+#
+# Bash em `wait $CHILD` ou aguardando exec de filho não roda trap até
+# o filho retornar — então também encerramos a árvore de descendentes
+# diretamente (Ollama + proxy + cli.py) para garantir cleanup completo.
+acquire_lock() {
+    if [ -f "$NYX_PID_FILE" ]; then
+        local OLD_PID
+        OLD_PID=$(cat "$NYX_PID_FILE" 2>/dev/null)
+        if [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null; then
+            log_nyx "Matando instância anterior (PID $OLD_PID)..."
+            kill -TERM "$OLD_PID" 2>/dev/null || true
+            # Encerra descendentes diretamente em paralelo ao trap do shell pai.
+            local OLD_DESC
+            OLD_DESC=$(pgrep -P "$OLD_PID" 2>/dev/null || true)
+            if [ -n "$OLD_DESC" ]; then
+                kill -TERM $OLD_DESC 2>/dev/null || true
+            fi
+            for i in 1 2 3 4 5; do
+                kill -0 "$OLD_PID" 2>/dev/null || break
+                sleep 1
+            done
+            if kill -0 "$OLD_PID" 2>/dev/null; then
+                log_warn "PID $OLD_PID sobreviveu SIGTERM, enviando SIGKILL"
+                # SIGKILL também na árvore para evitar órfãos reparented ao init.
+                local OLD_DESC2
+                OLD_DESC2=$(pgrep -P "$OLD_PID" 2>/dev/null || true)
+                if [ -n "$OLD_DESC2" ]; then
+                    kill -KILL $OLD_DESC2 2>/dev/null || true
+                fi
+                kill -KILL "$OLD_PID" 2>/dev/null || true
+            fi
+        elif [ -n "$OLD_PID" ]; then
+            log_boot "Lock stale (PID $OLD_PID morto), sobrescrevendo"
+        fi
+    fi
+    echo "$$" > "$NYX_PID_FILE"
 }
 
 # ─── PARAR OLLAMA EXISTENTE ──────────────────────────────
@@ -345,25 +390,41 @@ show_banner() {
 }
 
 # ─── CLEANUP ──────────────────────────────────────────────
+# UX-LIFECYCLE-01: cobre EXIT/SIGINT/SIGTERM/SIGHUP. Idempotente:
+# trap EXIT pode reentrar via sub-signals; chamadas a kill com PID
+# inexistente são silenciadas.
 cleanup() {
     echo ""
     log_nyx "Desconectando..."
     # Parar proxy
     if [ -n "${PROXY_PID:-}" ] && kill -0 "$PROXY_PID" 2>/dev/null; then
-        kill "$PROXY_PID" 2>/dev/null
+        kill "$PROXY_PID" 2>/dev/null || true
     fi
     pkill -f "nyx/proxy.py" 2>/dev/null || true
     stop_ollama
+    # Remove lock só se ainda for nosso (PID dentro == $$).
+    if [ -f "$NYX_PID_FILE" ]; then
+        local LOCK_PID
+        LOCK_PID=$(cat "$NYX_PID_FILE" 2>/dev/null)
+        if [ "$LOCK_PID" = "$$" ] || [ -z "$LOCK_PID" ]; then
+            rm -f "$NYX_PID_FILE" 2>/dev/null || true
+        fi
+    fi
     log_ok "Fim."
 }
 
-trap cleanup EXIT SIGINT SIGTERM
+trap cleanup EXIT SIGINT SIGTERM SIGHUP
 
 # ═══════════════════════════════════════════════════════════
 # EXECUÇÃO PRINCIPAL
 # ═══════════════════════════════════════════════════════════
 
 validate
+
+# UX-LIFECYCLE-01: lock antes de qualquer side effect.
+# Mata instância anterior gracefully; instância anterior limpa seu Ollama
+# via trap cleanup, então kill_existing_ollama abaixo só limpa órfãos.
+acquire_lock
 
 # ─── AUTO-ATUALIZAR EXECUTAR_SPRINT.md ───────────────────
 # Não-bloqueante. Lê SPRINT_ORDER_MASTER.md, detecta próxima PENDENTE,

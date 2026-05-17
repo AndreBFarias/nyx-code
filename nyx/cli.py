@@ -420,6 +420,16 @@ async def run_repl(streaming: bool = True) -> int:
                 continue
 
             if result == "__quit__":
+                # UX-LIFECYCLE-01: shutdown explícito do proxy via loopback.
+                # Resposta volta antes do auto-SIGTERM do proxy, então usamos
+                # timeout curto e ignoramos falhas (run.sh trap cobre o resto).
+                try:
+                    import httpx as _httpx_quit
+
+                    async with _httpx_quit.AsyncClient(timeout=2.0) as _qs:
+                        await _qs.post(f"{proxy_url}/admin/shutdown")
+                except Exception as _exc:  # noqa: BLE001 -- shutdown best-effort
+                    logger.debug("admin/shutdown best-effort falhou: %s", _exc)
                 break
 
             if result == "__clear__":

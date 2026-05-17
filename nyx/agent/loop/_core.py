@@ -87,6 +87,10 @@ class AgentLoop(_IterationMixin):
         self._streaming = streaming
         self._tool_durations: dict[str, list[float]] = {}
         self._model_state: str = "cold"
+        # UX-LIFECYCLE-01: VRAM check pré-inferência é executado apenas uma vez
+        # por sessão (cold start). Mudanças de VRAM mid-session são raras e cobertas
+        # pelo OOM degradation do proxy.
+        self._vram_checked: bool = False
         self._emit_state("cold")
 
         self._parser = ActionParser()

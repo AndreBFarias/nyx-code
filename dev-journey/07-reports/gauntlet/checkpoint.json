@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-17T00:49:16.712874",
+  "timestamp": "2026-05-17T01:35:39.806218",
   "model": "qwen2.5-coder:3b",
   "phases_done": [
     "infra",
@@ -32,8 +32,8 @@
       "name": "Warmup do modelo",
       "phase": "infra",
       "passed": true,
-      "elapsed_s": 3.18,
-      "tokens": 90,
+      "elapsed_s": 5.4,
+      "tokens": 148,
       "details": "",
       "error": ""
     },
@@ -42,7 +42,7 @@
       "name": "Modelo qwen2.5-coder:3b presente",
       "phase": "infra",
       "passed": true,
-      "elapsed_s": 0.03,
+      "elapsed_s": 0.02,
       "tokens": 0,
       "details": "['qwen3:4b', 'nyx-4b:latest', 'qwen2.5-coder:7b', 'qwen2.5-coder:3b']",
       "error": ""
@@ -62,9 +62,9 @@
       "name": "Request via proxy",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 0.44,
-      "tokens": 41,
-      "details": "Ok, proxy funciona.",
+      "elapsed_s": 0.32,
+      "tokens": 38,
+      "details": "Proxy OK",
       "error": ""
     },
     {
@@ -82,8 +82,8 @@
       "name": "Content array normalizado",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 0.28,
-      "tokens": 38,
+      "elapsed_s": 3.24,
+      "tokens": 115,
       "details": "",
       "error": ""
     },
@@ -92,7 +92,7 @@
       "name": "Formato OpenAI correto",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 0.62,
+      "elapsed_s": 0.59,
       "tokens": 0,
       "details": "choices=True usage=True message=True",
       "error": ""
@@ -112,8 +112,8 @@
       "name": "tool_calls propagam",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 0.98,
-      "tokens": 180,
+      "elapsed_s": 1.28,
+      "tokens": 188,
       "details": "['{\"file_path\": \"README.md\"}']",
       "error": ""
     },
@@ -189,7 +189,7 @@
     }
   ],
   "kpis": {
-    "warmup_s": 3.2,
-    "gauntlet_total_s": 5.7
+    "warmup_s": 5.4,
+    "gauntlet_total_s": 11.1
   }
 }

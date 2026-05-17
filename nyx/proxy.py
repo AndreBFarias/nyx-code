@@ -9,9 +9,12 @@ Usa aiohttp (já no sistema) em vez de FastAPI para ser leve.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import os
 import re
+import signal
 import sys
 import time
 import uuid
@@ -431,6 +434,35 @@ async def handle_health(request: web.Request) -> web.Response:
     return web.json_response({"status": status, "ollama": ollama_ok, "proxy": True})
 
 
+# UX-LIFECYCLE-01: endpoint de shutdown gracioso. Aceita apenas loopback
+# (127.0.0.1 / ::1). Responde 200 antes de derrubar o loop para que o
+# cliente receba confirmação. Útil para o CLI sinalizar fim de sessão
+# sem depender exclusivamente de SIGTERM do shell wrapper.
+_LOOPBACK_HOSTS: tuple[str, ...] = ("127.0.0.1", "::1")
+
+
+async def _delayed_shutdown(delay_s: float = 0.5) -> None:
+    """Aguarda resposta sair e envia SIGTERM ao próprio processo."""
+    await asyncio.sleep(delay_s)
+    logger.info("shutdown executando SIGTERM no PID=%d", os.getpid())
+    try:
+        os.kill(os.getpid(), signal.SIGTERM)
+    except OSError as exc:
+        logger.warning("falha ao auto-SIGTERM: %s", exc)
+        sys.exit(0)
+
+
+async def handle_shutdown(request: web.Request) -> web.Response:
+    """Encerra o proxy graciosamente. Rejeita não-loopback com HTTP 403."""
+    remote = request.remote or ""
+    if remote not in _LOOPBACK_HOSTS:
+        logger.warning("shutdown rejeitado: remote=%s não-loopback", remote)
+        return web.json_response({"error": "loopback only"}, status=403)
+    logger.info("shutdown solicitado via /admin/shutdown (remote=%s)", remote)
+    asyncio.create_task(_delayed_shutdown())
+    return web.json_response({"status": "shutting_down"})
+
+
 async def _on_startup(app: web.Application) -> None:
     app["http_session"] = ClientSession(timeout=ClientTimeout(total=600))
     logger.info("Sessão HTTP criada")
@@ -465,6 +497,7 @@ def main():
     app.router.add_get("/v1/models", handle_models)
     app.router.add_get("/v1/models/{model_id}", handle_model)
     app.router.add_get("/health", handle_health)
+    app.router.add_post("/admin/shutdown", handle_shutdown)
     web.run_app(app, host="127.0.0.1", port=args.port, print=None)
 
 
