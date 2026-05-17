@@ -52,6 +52,12 @@ class VisionClient:
                 r.raise_for_status()
                 data = r.json()
                 return (data.get("response") or "").strip()
+        except httpx.TimeoutException as e:
+            logger.warning(
+                "vision: timeout após %ds (CPU sobrecarregada ou modelo travado)",
+                self._timeout,
+            )
+            raise TimeoutError(f"moondream não respondeu em {self._timeout}s") from e
         except httpx.HTTPError as e:
             logger.warning("vision: falha HTTP (%s)", e)
             raise

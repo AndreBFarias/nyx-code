@@ -20,6 +20,7 @@ CACHE_DIR = Path.home() / ".nyx" / "vision_cache"
 class VisionService:
     def __init__(self, client: VisionClient | None = None) -> None:
         self._client = client or VisionClient()
+        self._logged_cpu = False
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
     def is_available(self) -> bool:
@@ -34,6 +35,9 @@ class VisionService:
 
         Se moondream não disponível, retorna string-sentinela
         '[Imagem: visão indisponível — rode `./install.sh --vision`]'.
+
+        VISION-03: loga "moondream em CPU puro" na primeira chamada
+        (rastreabilidade ADR-022) e trata TimeoutError com sentinela curta.
         """
         if not image_path.is_file():
             return f"[Imagem: arquivo não encontrado ({image_path})]"
@@ -47,11 +51,17 @@ class VisionService:
         if not self.is_available():
             return "[Imagem: visão indisponível — rode `./install.sh --vision`]"
 
+        if not self._logged_cpu:
+            logger.info("moondream em CPU puro (num_gpu=0) — ver ADR-022")
+            self._logged_cpu = True
+
         try:
             desc = self._client.describe_image(image_path, prompt).strip()
             if desc:
                 cache_file.write_text(desc, encoding="utf-8")
             return desc or "[Imagem: descrição vazia]"
+        except TimeoutError:
+            return "[Imagem: timeout — descrição demorou demais]"
         except Exception as e:  # noqa: BLE001 -- VisionClient pode levantar tipos diversos
             logger.warning("vision: descrição falhou (%s)", e)
             return f"[Imagem: erro ao descrever ({type(e).__name__})]"
