@@ -10,6 +10,10 @@ from __future__ import annotations
 import os
 import re
 import sys
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 from nyx.agent.services.logging_service import get_logger
 from nyx.themes.design_tokens import (
@@ -260,11 +264,16 @@ class NyxSpinner:
     feita uma vez no start via _spinner_frames() (leitura de LC_ALL+LANG).
     Ao parar, emite ``\\r\\x1b[2K`` para limpar a linha antes que on_token
     escreva. Idempotente: ``stop()`` duplicado é no-op.
+
+    UX-LOOP-VISIBILITY-01: ``message`` aceita também ``Callable[[], str]``;
+    quando callable, o thread daemon resolve a cada frame, permitindo label
+    contextual (estado warming/warm, duração crescente) sem invadir o
+    prompt-toolkit.
     """
 
     FRAME_INTERVAL_S = 0.08
 
-    def __init__(self, message: str = "pensando...") -> None:
+    def __init__(self, message: "str | Callable[[], str]" = "pensando...") -> None:
         import threading
 
         self._message = message
@@ -278,12 +287,22 @@ class NyxSpinner:
 
         frames = _spinner_frames()
 
+        def _resolve_message() -> str:
+            msg = self._message
+            if callable(msg):
+                try:
+                    return msg()
+                except Exception:  # noqa: BLE001 -- spinner não pode quebrar render
+                    return "pensando..."
+            return msg
+
         def _loop() -> None:
             idx = 0
             while not self._stop_evt.is_set():
                 frame = frames[idx % len(frames)]
+                label = _resolve_message()
                 sys.stdout.write(
-                    f"\r  {ANSI_ACCENT_FG}{frame}{ANSI_RESET}  {ANSI_DIM}{self._message}{ANSI_RESET}"
+                    f"\r\x1b[2K  {ANSI_ACCENT_FG}{frame}{ANSI_RESET}  {ANSI_DIM}{label}{ANSI_RESET}"
                 )
                 sys.stdout.flush()
                 idx += 1
@@ -310,9 +329,34 @@ class NyxSpinner:
         sys.stdout.flush()
 
 
-def nyx_spinner(message: str = "pensando...") -> NyxSpinner:
-    """Cria spinner Braille para uso como context manager."""
+def nyx_spinner(message: "str | Callable[[], str]" = "pensando...") -> NyxSpinner:
+    """Cria spinner Braille para uso como context manager.
+
+    UX-LOOP-VISIBILITY-01: aceita callable para label dinâmico.
+    """
     return NyxSpinner(message)
+
+
+def build_warming_label(model_state: str, started_monotonic: float) -> str:
+    """Constrói label contextual do spinner durante request (UX-LOOP-VISIBILITY-01).
+
+    Lógica por janela de duração, baseada em ADR-025 §"Tempos de feedback":
+      0-3s:   "◐ aquecendo modelo..."     (warming explícito, glifo ◐)
+      3-10s:  "pensando..."                (cold→warm, mid-flight)
+      10s+:   "pensando... (Ns)"           (cronômetro discreto)
+
+    Se o estado é "warm" ou "cold", encurta para "pensando...".
+
+    Glifo ◐ (U+25D0) protegido pelo invariante #14 (sprint_invariants.sh).
+    """
+    import time
+
+    elapsed = time.monotonic() - started_monotonic
+    if model_state == "warming" and elapsed < 3.0:
+        return "◐ aquecendo modelo..."
+    if elapsed < 10.0:
+        return "pensando..."
+    return f"pensando... ({int(elapsed)}s)"
 
 
 PRIMARY_ARG_KEYS = ("file_path", "pattern", "path", "command", "url", "query")

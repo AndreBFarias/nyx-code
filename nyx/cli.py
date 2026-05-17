@@ -268,6 +268,7 @@ async def run_repl(streaming: bool = True) -> int:
     model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", settings.model))
 
     from nyx.agent.output import (
+        build_warming_label,
         format_args_preview,
         is_tool_error,
         nyx_spinner,
@@ -679,7 +680,18 @@ async def run_repl(streaming: bool = True) -> int:
         try:
             turn_state["streamed_text"] = ""
             turn_state["token_buffer"] = ""
-            spinner = nyx_spinner("pensando...")
+            # UX-LOOP-VISIBILITY-01: label dinâmico do spinner reflete o
+            # estado do modelo (warming/warm) lido de app_state e a duração
+            # decorrida desde o Enter. Usuário vê "◐ aquecendo modelo..."
+            # nos primeiros 3s quando model_state=="warming", depois transita
+            # para "pensando..." e cronômetro discreto.
+            request_started = time.monotonic()
+            spinner = nyx_spinner(
+                lambda: build_warming_label(
+                    str(app_state.get("model_state", "cold")),
+                    request_started,
+                )
+            )
             spinner.__enter__()
             spinner_state["active"] = spinner
             render_assistant_start()
