@@ -309,7 +309,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 52 | **DEPLOY-01A** | 7 Deploy | ALTA | CONCLUIDA (install.sh 230L; 10 fases [N/10]; 5 flags --no-vision/no-kitty/dev/dry-run/no-prompt; detect_pkg_manager apt-get/dnf/pacman/zypper; idempotente 2 runs diff vazio; dry-run 0 escritas; smoke import nyx.agent.loop OK) | VISION-03 |
 | 53 | **DEPLOY-01B** | 7 Deploy | ALTA | CONCLUIDA (fase Gauntlet install em Docker ubuntu:22.04 real ADR-010; D-02 rc=0 em 61.5s com NYX_INSTALL_SKIP_PULL=1; README ## Instalação rápida com 5 flags e 4 distros; install.sh ganhou guard minimo NYX_INSTALL_SKIP_PULL) | DEPLOY-01A |
 | 54 | **DEPLOY-02** | 7 Deploy | ALTA | PENDENTE | DEPLOY-01B |
-| 55 | **ONBOARDING-01** | 7b Onboarding | MÉDIA | PENDENTE | SESSION-RESUME-01, HELP-EXAMPLES-01 |
+| 55 | **ONBOARDING-01** | 7b Onboarding | MÉDIA | CONCLUIDA (onboarding.py com 5 steps + timeout 60s SIGALRM + auto-skip em pipe; --skip-onboarding flag; /config setup wizard interativo grava ~/.nyx/config.toml com backup atomico; settings.py precedencia env > toml > defaults) | SESSION-RESUME-01, HELP-EXAMPLES-01 |
 | 56 | **HELP-EXAMPLES-01** | 8 Extra | BAIXA | PENDENTE | UX-BUG-01 |
 | 57 | **UX-EXTRA-01** | 8 Extra | BAIXA | PENDENTE | UX-BUG-01 |
 | 58 | **VALIDATE-FINAL-01** | 9 Release | CRÍTICA | PENDENTE | UX-EXTRA-01, DEPLOY-02, ONBOARDING-01, VISION-03, DOC-CONSOLIDATE-01 |

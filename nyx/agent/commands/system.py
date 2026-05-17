@@ -31,9 +31,12 @@ from nyx.config.defaults import (
 logger = get_logger("nyx.commands")
 
 
-@nyx_command(name="config", description="Mostra ou edita configuração", category="sistema")
+@nyx_command(name="config", description="Mostra ou edita configuração (use /config setup para wizard)", category="sistema")
 def cmd_config(args: str, project_root: str) -> str:
     args = args.strip()
+    if args == "setup":
+        # ONBOARDING-01: handler interativo em cli.py grava ~/.nyx/config.toml.
+        return "__config_setup__"
     if not args:
         proxy = os.environ.get("OPENAI_BASE_URL", _PROXY_V1_URL)
         model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", _DEFAULT_MODEL))
@@ -45,7 +48,8 @@ def cmd_config(args: str, project_root: str) -> str:
             f"    modelo: {model}\n"
             f"    proxy: {proxy}\n"
             f"    ollama: {ollama}\n"
-            f"    projeto: {project_root}"
+            f"    projeto: {project_root}\n"
+            "    Use /config setup para gerar ~/.nyx/config.toml interativamente."
         )
     parts = args.split(" ", 1)
     if len(parts) == 1:

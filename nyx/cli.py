@@ -690,6 +690,45 @@ async def run_repl(
                     )
                 continue
 
+            if result == "__config_setup__":
+                # ONBOARDING-01: wizard interativo grava ~/.nyx/config.toml.
+                config_path = Path.home() / ".nyx" / "config.toml"
+                config_path.parent.mkdir(parents=True, exist_ok=True)
+                if config_path.exists():
+                    backup = config_path.with_suffix(".toml.bak")
+                    backup.write_bytes(config_path.read_bytes())
+                    print(f"  {DIM}backup salvo em {backup}{NC}")
+                try:
+                    from nyx.config.defaults import DEFAULT_MODEL as _DM
+
+                    modelo = input(f"  modelo preferido [{_DM}]: ").strip() or _DM
+                    tema = input("  tema [paleta_d]: ").strip() or "paleta_d"
+                    bypass = input(
+                        "  bypass default (cauteloso/moderado/ousado) [cauteloso]: "
+                    ).strip() or "cauteloso"
+                    ctx_raw = input("  limite de contexto em turnos [40]: ").strip() or "40"
+                    try:
+                        ctx_limit = int(ctx_raw)
+                    except ValueError:
+                        print(f"  {DIM}valor inválido, usando 40{NC}")
+                        ctx_limit = 40
+                except (EOFError, KeyboardInterrupt):
+                    print(f"\n  {DIM}/config setup cancelado{NC}")
+                    continue
+
+                content = (
+                    "# Configuração Nyx gerada via /config setup (ONBOARDING-01)\n"
+                    f'modelo = "{modelo}"\n'
+                    f'tema = "{tema}"\n'
+                    f'bypass = "{bypass}"\n'
+                    f"ctx_limit = {ctx_limit}\n"
+                )
+                tmp = config_path.with_suffix(".toml.tmp")
+                tmp.write_text(content, encoding="utf-8")
+                tmp.replace(config_path)
+                print(f"  {ACCENT}[ok]{NC} configuração salva em {config_path}")
+                continue
+
             if result == "__session_index__":
                 # SESSION-RESUME-01: /resume list
                 from nyx.agent.persistence import load_index
@@ -1167,6 +1206,11 @@ def main() -> None:
         action="store_true",
         help="Suprime o prompt 'Retomar última sessão?' no boot.",
     )
+    parser.add_argument(
+        "--skip-onboarding",
+        action="store_true",
+        help="Pula tutorial de primeiro uso (ONBOARDING-01).",
+    )
     args = parser.parse_args()
 
     if args.smoke:
@@ -1176,6 +1220,18 @@ def main() -> None:
     if args.headless:
         sys.exit(asyncio.run(run_headless()))
     else:
+        # ONBOARDING-01: tutorial de primeiro uso antes do REPL.
+        from nyx.agent.onboarding import (
+            mark_done as _mark_onboarding_done,
+            run_first_time_tutorial,
+            should_run_tutorial,
+        )
+
+        if should_run_tutorial(args.skip_onboarding):
+            run_first_time_tutorial()
+        elif args.skip_onboarding:
+            _mark_onboarding_done()
+
         sys.exit(
             asyncio.run(
                 run_repl(

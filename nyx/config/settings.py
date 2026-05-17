@@ -48,17 +48,45 @@ class NyxSettings:
         return defaults.NUM_GPU_3B
 
 
+def _load_toml_overrides() -> dict[str, Any]:
+    """ONBOARDING-01: lê ~/.nyx/config.toml se existir. Vazio em <3.11 ou erro."""
+    import sys
+
+    if sys.version_info < (3, 11):
+        return {}
+    try:
+        import tomllib
+    except ImportError:
+        return {}
+    path = Path.home() / ".nyx" / "config.toml"
+    if not path.exists():
+        return {}
+    try:
+        with path.open("rb") as f:
+            return tomllib.load(f)
+    except Exception:  # noqa: BLE001 -- toml mal-formado não deve quebrar boot
+        return {}
+
+
 def load_settings(args: Any = None) -> NyxSettings:
-    """Carrega configurações do .env + argumentos CLI."""
+    """Carrega configurações: env > ~/.nyx/config.toml > defaults (ONBOARDING-01)."""
     project_root = Path(__file__).resolve().parent.parent.parent
     env_path = project_root / ".env"
 
     if env_path.exists():
         load_dotenv(env_path)
 
-    model = defaults.DEFAULT_MODEL
-    port = int(os.getenv("NYX_OLLAMA_PORT", str(defaults.OLLAMA_PORT)))
-    proxy_port = int(os.getenv("NYX_PROXY_PORT", str(defaults.PROXY_PORT)))
+    toml_cfg = _load_toml_overrides()
+
+    model = os.getenv("NYX_MODEL") or toml_cfg.get("modelo") or defaults.DEFAULT_MODEL
+    port_env = os.getenv("NYX_OLLAMA_PORT")
+    port = int(port_env) if port_env else int(toml_cfg.get("ollama_port") or defaults.OLLAMA_PORT)
+    proxy_port_env = os.getenv("NYX_PROXY_PORT")
+    proxy_port = (
+        int(proxy_port_env)
+        if proxy_port_env
+        else int(toml_cfg.get("proxy_port") or defaults.PROXY_PORT)
+    )
     debug = os.getenv("NYX_DEBUG", "0") == "1"
     headless = False
 
