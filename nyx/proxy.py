@@ -33,6 +33,8 @@ logging.basicConfig(
 logger = logging.getLogger("nyx.proxy")
 
 from nyx.agent.intent import classify as _classify_intent  # noqa: E402
+from nyx.agent.lang_check import is_pt_br as _is_pt_br  # noqa: E402
+from nyx.config.defaults import DEFAULT_MODEL as _DEFAULT_MODEL  # noqa: E402
 from nyx.config.defaults import NUM_CTX as _DEFAULT_NUM_CTX  # noqa: E402
 from nyx.config.defaults import NUM_GPU_3B as _DEFAULT_NUM_GPU  # noqa: E402
 from nyx.config.defaults import NUM_PREDICT_CHAT as _NUM_PREDICT_CHAT  # noqa: E402
@@ -109,8 +111,11 @@ def _last_user_text(messages: list) -> str:
     return ""
 
 
-def openai_to_ollama(body: dict) -> dict:
+def openai_to_ollama(body: dict) -> tuple[dict, str]:
     """Converte request OpenAI -> Ollama nativa.
+
+    Retorna tupla (body_ollama, intent) para que o caller decida se aplica
+    guardrail de idioma (LANG-ENFORCE-01).
 
     Gating por intent (PERF-INFERENCE-01):
     - intent=saudacao/chat: tools=[]; think=false; num_predict=NUM_PREDICT_CHAT.
@@ -129,7 +134,7 @@ def openai_to_ollama(body: dict) -> dict:
         has_tools = False
 
     result: dict = {
-        "model": body.get("model", "qwen3:4b"),
+        "model": body.get("model", _DEFAULT_MODEL),
         "messages": messages,
         "think": has_tools,
         "stream": False,
@@ -150,7 +155,7 @@ def openai_to_ollama(body: dict) -> dict:
     max_tok = body.get("max_tokens") or body.get("max_completion_tokens")
     if max_tok:
         result["options"]["num_predict"] = max_tok
-    return result
+    return result, intent
 
 
 THINK_PATTERN = re.compile(r"<think>.*?</think>\s*", re.DOTALL)
@@ -232,11 +237,11 @@ async def handle_chat(request: web.Request) -> web.StreamResponse:
     global _OOM_DEGRADED, NUM_GPU
 
     body = await request.json()
-    model = body.get("model", "qwen3:4b")
-    ollama_body = openai_to_ollama(body)
+    model = body.get("model", _DEFAULT_MODEL)
+    ollama_body, intent = openai_to_ollama(body)
 
     n_tools = len(body.get("tools", []))
-    logger.info("-> model=%s tools=%d", model, n_tools)
+    logger.info("-> model=%s tools=%d intent=%s", model, n_tools, intent)
 
     session = await _get_session(request.app)
     async with session.post(f"{OLLAMA_URL}/api/chat", json=ollama_body) as ollama_resp:
@@ -270,6 +275,42 @@ async def handle_chat(request: web.Request) -> web.StreamResponse:
     logger.info("Ollama raw keys: %s", list(data.get("message", {}).keys()))
     logger.info("Ollama tool_calls: %s", data.get("message", {}).get("tool_calls", "NONE"))
     result = ollama_to_openai(data, model)
+
+    # LANG-ENFORCE-01: guardrail de idioma em respostas conversacionais.
+    # Se intent é saudacao/chat, modelo respondeu em inglês e não tem tool_calls,
+    # faz UM retry com hint reforçado. Cap em 1 para não explodir P50.
+    if intent in ("saudacao", "chat"):
+        choice_msg = result["choices"][0]["message"]
+        content = choice_msg.get("content", "")
+        has_tc = bool(choice_msg.get("tool_calls"))
+        if content and not has_tc and not _is_pt_br(content):
+            logger.warning("LANG: resposta em ingles detectada (intent=%s); retry 1x com hint", intent)
+            retry_body = dict(ollama_body)
+            retry_messages = list(ollama_body.get("messages", []))
+            retry_messages.append({"role": "assistant", "content": content})
+            retry_messages.append(
+                {
+                    "role": "user",
+                    "content": (
+                        "Responda em português brasileiro. "
+                        "Sua resposta anterior estava em inglês; refaça em português."
+                    ),
+                }
+            )
+            retry_body["messages"] = retry_messages
+            async with session.post(f"{OLLAMA_URL}/api/chat", json=retry_body) as lang_resp:
+                if lang_resp.status == 200:
+                    lang_data = await lang_resp.json()
+                    lang_result = ollama_to_openai(lang_data, model)
+                    lang_content = lang_result["choices"][0]["message"].get("content", "")
+                    if lang_content and _is_pt_br(lang_content):
+                        logger.info("LANG: retry recuperou PT-BR")
+                        result = lang_result
+                    else:
+                        logger.info("LANG: retry insistiu em ingles; passa adiante")
+                else:
+                    logger.warning("LANG: retry HTTP %d; passa adiante", lang_resp.status)
+
     tc = result["choices"][0]["message"].get("tool_calls")
     if tc:
         logger.info("<- tool_calls: %s", [t["function"]["name"] for t in tc])

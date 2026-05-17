@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-16T20:09:51.868448",
+  "timestamp": "2026-05-16T20:55:19.166931",
   "model": "qwen3:4b",
   "phases_done": [
     "infra",
@@ -32,8 +32,8 @@
       "name": "Warmup do modelo",
       "phase": "infra",
       "passed": true,
-      "elapsed_s": 6.96,
-      "tokens": 91,
+      "elapsed_s": 16.51,
+      "tokens": 207,
       "details": "",
       "error": ""
     },
@@ -42,7 +42,7 @@
       "name": "Modelo qwen3:4b presente",
       "phase": "infra",
       "passed": true,
-      "elapsed_s": 0.04,
+      "elapsed_s": 0.05,
       "tokens": 0,
       "details": "['qwen3:4b', 'nyx-4b:latest', 'qwen2.5-coder:7b', 'qwen2.5-coder:3b']",
       "error": ""
@@ -52,7 +52,7 @@
       "name": "Proxy respondendo",
       "phase": "infra",
       "passed": true,
-      "elapsed_s": 0.03,
+      "elapsed_s": 0.02,
       "tokens": 0,
       "details": "4 modelos",
       "error": ""
@@ -62,7 +62,7 @@
       "name": "Request via proxy",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 4.42,
+      "elapsed_s": 9.28,
       "tokens": 96,
       "details": "Okay, the user wants me to just say \"proxy ok\". Let me check",
       "error": ""
@@ -82,7 +82,7 @@
       "name": "Content array normalizado",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 4.37,
+      "elapsed_s": 10.02,
       "tokens": 96,
       "details": "",
       "error": ""
@@ -92,7 +92,7 @@
       "name": "Formato OpenAI correto",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 4.32,
+      "elapsed_s": 5.44,
       "tokens": 0,
       "details": "choices=True usage=True message=True",
       "error": ""
@@ -102,7 +102,7 @@
       "name": "Listagem /v1/models",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 0.04,
+      "elapsed_s": 0.05,
       "tokens": 0,
       "details": "4 modelos",
       "error": ""
@@ -112,8 +112,8 @@
       "name": "tool_calls propagam",
       "phase": "proxy",
       "passed": true,
-      "elapsed_s": 15.66,
-      "tokens": 416,
+      "elapsed_s": 7.36,
+      "tokens": 259,
       "details": "['{\"file_path\": \"README.md\"}']",
       "error": ""
     },
@@ -189,7 +189,7 @@
     }
   ],
   "kpis": {
-    "warmup_s": 7.0,
-    "gauntlet_total_s": 36.0
+    "warmup_s": 16.5,
+    "gauntlet_total_s": 48.9
   }
 }

@@ -182,8 +182,8 @@ def update_readme(tools: int, commands: int, services: int, tests: int, check: b
 
     replacements = [
         (
-            r"Roda qwen3:4b via Ollama com \d+ tools, \d+ commands, \d+ services",
-            f"Roda qwen3:4b via Ollama com {tools} tools, {commands} commands, {services} services",
+            r"Roda qwen\S+ via Ollama com \d+ tools, \d+ commands, \d+ services",
+            f"Roda qwen2.5-coder:3b via Ollama com {tools} tools, {commands} commands, {services} services",
         ),
         (r"Tools \| 40 \| \d+ \| \d+%", f"Tools | 40 | {tools} | {tools * 100 // 40}%"),
         (r"Commands \| 98 \| \d+ \| \d+%", f"Commands | 98 | {commands} | {commands * 100 // 98}%"),

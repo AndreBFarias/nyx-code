@@ -53,7 +53,7 @@ NYX_OLLAMA_HOST="${NYX_OLLAMA_HOST:-127.0.0.1}"
 NYX_PROXY_PORT="${NYX_PROXY_PORT:-11436}"
 
 # ─── PARSE FLAGS ──────────────────────────────────────────
-MODEL="${NYX_MODEL:-qwen3:4b}"
+MODEL="${NYX_MODEL:-qwen2.5-coder:3b}"
 DEBUG=0
 HEADLESS=0
 GAUNTLET=0

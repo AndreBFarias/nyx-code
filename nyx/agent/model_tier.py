@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from nyx.agent.services.logging_service import get_logger
+from nyx.config.defaults import DEFAULT_MODEL as _DEFAULT_MODEL
 
 logger = get_logger("nyx.tier")
 
@@ -68,7 +69,7 @@ def detect_hardware_profile() -> tuple[HardwareProfile, str, int]:
         return HardwareProfile.COMPACT, "CPU-only", 0
 
 
-def get_model_tier(model: str = "qwen3:4b") -> ModelTier:
+def get_model_tier(model: str = _DEFAULT_MODEL) -> ModelTier:
     """Retorna tier baseado no hardware detectado."""
     profile, gpu_name, vram_mib = detect_hardware_profile()
 

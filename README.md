@@ -4,7 +4,7 @@
 
 Agente de código local. 100% offline.
 
-Roda qwen3:4b via Ollama com 34 tools funcionais, 47 commands, 10 services.
+Roda qwen2.5-coder:3b via Ollama com 34 tools funcionais, 47 commands, 10 services.
 Projeto standalone, otimizado para RTX 3050 4GB.
 
 ## Arquitetura
@@ -13,7 +13,7 @@ Projeto standalone, otimizado para RTX 3050 4GB.
 Usuário
   |
   v
-run.sh ─────> Ollama (:11435) ──> GPU (num_gpu=12, qwen3:4b)
+run.sh ─────> Ollama (:11435) ──> GPU (num_gpu=12, qwen2.5-coder:3b)
   |
   +────────> Proxy (:11436)
   |           - /v1/chat/completions -> /api/chat
@@ -34,7 +34,7 @@ run.sh ─────> Ollama (:11435) ──> GPU (num_gpu=12, qwen3:4b)
 
 ```bash
 ./install.sh          # Ollama, venv, modelos (~8GB)
-./run.sh              # Inicia com qwen3:4b
+./run.sh              # Inicia com qwen2.5-coder:3b (default, ADR-031)
 ./run.sh --7b         # qwen2.5-coder:7b
 ./run.sh --debug      # Logs detalhados
 ./run.sh --gauntlet   # Validação completa

@@ -37,6 +37,7 @@ from nyx.agent.session import CodeSession
 from nyx.agent.streaming import StreamingCollector
 from nyx.agent.summarizer import SessionSummarizer
 from nyx.agent.tools.registry import ToolRegistry
+from nyx.config.defaults import DEFAULT_MODEL as _DEFAULT_MODEL
 from nyx.config.defaults import MAX_ITERATIONS as MAX_ITERATIONS_DEFAULT
 from nyx.config.defaults import PROXY_URL as _DEFAULT_PROXY_URL
 
@@ -51,7 +52,7 @@ class AgentLoop(_IterationMixin):
         self,
         project_root: str,
         proxy_url: str = _DEFAULT_PROXY_URL,
-        model: str = "qwen3:4b",
+        model: str = _DEFAULT_MODEL,
         max_iterations: int = MAX_ITERATIONS_DEFAULT,
         on_token: Any = None,
         on_tool: Any = None,
@@ -65,7 +66,7 @@ class AgentLoop(_IterationMixin):
         if settings is not None:
             if proxy_url == _DEFAULT_PROXY_URL:
                 proxy_url = settings.proxy_url
-            if model == "qwen3:4b":
+            if model == _DEFAULT_MODEL:
                 model = settings.model
             if max_iterations == MAX_ITERATIONS_DEFAULT:
                 max_iterations = settings.max_iterations

@@ -27,6 +27,7 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 from nyx.agent.intent import classify  # noqa: E402
+from nyx.agent.lang_check import is_pt_br  # noqa: E402
 from nyx.config.defaults import PROXY_V1_URL  # noqa: E402
 
 
@@ -121,10 +122,18 @@ def wait_proxy(timeout: float = 60.0) -> bool:
     return False
 
 
-def medir(prompt: str, model: str, n: int) -> dict:
-    """Mede n requests sequenciais para prompt. Retorna p50/p95/min/max."""
+def medir(prompt: str, model: str, n: int, capture_lang: bool = False) -> dict:
+    """Mede n requests sequenciais para prompt. Retorna p50/p95/min/max.
+
+    Se capture_lang=True, tambem retorna por amostra se a resposta saiu em
+    portugues (lang_pt_br_rate) e guarda a primeira resposta literal
+    (last_content) para auditoria humana.
+    """
     times: list[float] = []
     errors: list[str] = []
+    pt_br_hits = 0
+    pt_br_total = 0
+    last_content = ""
     for _ in range(n):
         t = time.monotonic()
         try:
@@ -138,13 +147,25 @@ def medir(prompt: str, model: str, n: int) -> dict:
                 errors.append(f"http={r.status_code}")
                 continue
             times.append(dur)
+            if capture_lang:
+                try:
+                    payload = r.json()
+                    content = payload["choices"][0]["message"].get("content", "") or ""
+                    if content:
+                        pt_br_total += 1
+                        if is_pt_br(content):
+                            pt_br_hits += 1
+                        if not last_content:
+                            last_content = content
+                except Exception as e:
+                    errors.append(f"lang_parse: {type(e).__name__}")
         except Exception as e:
             errors.append(f"{type(e).__name__}: {str(e)[:40]}")
 
     if not times:
         return {"p50": None, "p95": None, "n_ok": 0, "errors": errors}
 
-    return {
+    out = {
         "p50": round(statistics.median(times), 3),
         "p95": round(max(times), 3) if len(times) < 20 else round(statistics.quantiles(times, n=20)[18], 3),
         "min": round(min(times), 3),
@@ -152,6 +173,12 @@ def medir(prompt: str, model: str, n: int) -> dict:
         "n_ok": len(times),
         "errors": errors,
     }
+    if capture_lang:
+        out["lang_pt_br_hits"] = pt_br_hits
+        out["lang_pt_br_total"] = pt_br_total
+        out["lang_pt_br_rate"] = round(pt_br_hits / pt_br_total, 4) if pt_br_total else None
+        out["last_content"] = last_content[:200]
+    return out
 
 
 def medir_acuracia() -> dict:
@@ -179,6 +206,11 @@ def main() -> int:
     parser.add_argument("--n", type=int, default=3, help="Amostras por caso (default 3 -- VRAM 4GB e lenta)")
     parser.add_argument("--model", default="qwen3:4b")
     parser.add_argument("--skip-proxy", action="store_true", help="So roda acuracia (sem chamar LLM)")
+    parser.add_argument(
+        "--check-lang",
+        action="store_true",
+        help="Captura o content das respostas e calcula lang_pt_br_rate (LANG-ENFORCE-01).",
+    )
     args = parser.parse_args()
 
     out: dict = {
@@ -204,25 +236,43 @@ def main() -> int:
         print("[err] proxy não respondeu em 60s; abandone.", file=sys.stderr)
         return 2
 
-    print(f"[perf] medindo {len(CASOS)} casos x {args.n} amostras...", flush=True)
+    print(
+        f"[perf] medindo {len(CASOS)} casos x {args.n} amostras"
+        f"{' (check-lang)' if args.check_lang else ''}...",
+        flush=True,
+    )
     cases_out: dict = {}
+    lang_total_hits = 0
+    lang_total_runs = 0
     for prompt, intent_esperado in CASOS:
         print(f"  -> {prompt!r:50} intent={intent_esperado}", end=" ", flush=True)
-        m = medir(prompt, args.model, args.n)
+        m = medir(prompt, args.model, args.n, capture_lang=args.check_lang)
         m["intent_esperado"] = intent_esperado
         m["intent_real"] = classify(prompt)
         cases_out[prompt] = m
+        if args.check_lang and m.get("lang_pt_br_total"):
+            lang_total_hits += m.get("lang_pt_br_hits", 0)
+            lang_total_runs += m.get("lang_pt_br_total", 0)
         if m["p50"] is not None:
-            print(f"p50={m['p50']}s p95={m['p95']}s n_ok={m['n_ok']}")
+            lang_str = ""
+            if args.check_lang and m.get("lang_pt_br_rate") is not None:
+                lang_str = f" lang={m['lang_pt_br_rate']}"
+            print(f"p50={m['p50']}s p95={m['p95']}s n_ok={m['n_ok']}{lang_str}")
         else:
             print(f"FALHOU: {m['errors']}")
 
     out["casos"] = cases_out
+    if args.check_lang:
+        out["lang_pt_br_rate"] = (
+            round(lang_total_hits / lang_total_runs, 4) if lang_total_runs else None
+        )
+        out["lang_pt_br_hits"] = lang_total_hits
+        out["lang_pt_br_total"] = lang_total_runs
 
     print()
     print(json.dumps(out, indent=2, ensure_ascii=False))
 
-    if args.baseline:
+    if args.baseline or args.check_lang:
         log_dir = _PROJECT_ROOT / "logs"
         log_dir.mkdir(exist_ok=True)
         baseline_path = log_dir / "perf_baseline.json"

@@ -10,6 +10,9 @@ from pathlib import Path
 from nyx.agent.commands._registry import nyx_command
 from nyx.agent.services.logging_service import get_logger
 from nyx.config.defaults import (
+    DEFAULT_MODEL as _DEFAULT_MODEL,
+)
+from nyx.config.defaults import (
     OLLAMA_HOST as _OLLAMA_HOST,
 )
 from nyx.config.defaults import (
@@ -33,7 +36,7 @@ def cmd_config(args: str, project_root: str) -> str:
     args = args.strip()
     if not args:
         proxy = os.environ.get("OPENAI_BASE_URL", _PROXY_V1_URL)
-        model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", "qwen3:4b"))
+        model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", _DEFAULT_MODEL))
         ollama_host = os.environ.get("NYX_OLLAMA_HOST", _OLLAMA_HOST)
         ollama_port = os.environ.get("NYX_OLLAMA_PORT", str(_OLLAMA_PORT))
         ollama = f"http://{ollama_host}:{ollama_port}"
@@ -124,7 +127,7 @@ def cmd_doctor(_args: str, project_root: str) -> str:
 def cmd_version(_args: str, _root: str) -> str:
     from nyx.__version__ import __version__
 
-    model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", "qwen3:4b"))
+    model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", _DEFAULT_MODEL))
     proxy = os.environ.get("OPENAI_BASE_URL", _PROXY_V1_URL)
     return (
         f"  Nyx v{__version__}\n"
@@ -138,7 +141,7 @@ def cmd_version(_args: str, _root: str) -> str:
 @nyx_command(name="model", description="Mostra ou troca o modelo", aliases=["m"], category="sistema")
 def cmd_model(model_name: str, _root: str) -> str:
     if not model_name.strip():
-        current = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", "qwen3:4b"))
+        current = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", _DEFAULT_MODEL))
         return f"  Modelo atual: {current}\n  Use /model <nome> para trocar."
     return f"__model__{model_name.strip()}"
 

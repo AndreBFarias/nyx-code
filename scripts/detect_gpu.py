@@ -57,7 +57,7 @@ MODEL_TABLE: dict[str, dict[str, int]] = {
     "qwen2.5-coder:7b": {"total_layers": 28, "mb_per_layer": 230},
 }
 
-DEFAULT_MODEL = "qwen3:4b"
+DEFAULT_MODEL = "qwen2.5-coder:3b"
 
 # Cap por VRAM total (ADR-003 + ADR-009). A heurística por VRAM livre é otimista
 # em hardware pequeno porque ignora overhead dinâmico do KV cache, buffers do

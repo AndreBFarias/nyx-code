@@ -328,10 +328,10 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 115 | **PLUGINS-01** | 23.5 Feature parity Claude Code | MÉDIA | PENDENTE | MCP-SERVER-01 |
 | 116 | **OUTPUT-STYLES-01** | 23.5 Feature parity Claude Code | MÉDIA | PENDENTE | PERF-INFERENCE-01 |
 | 117 | **HOOKS-DYNAMIC-01** | 23.5 Feature parity Claude Code | MÉDIA | PENDENTE | PERF-INFERENCE-01 |
-| 118 | **LANG-ENFORCE-01** | 23.0 Performance | ALTA | BLOQUEADA (Qwen3-Thinking-2507 incompatível; aguarda MODEL-SWAP-01) | PERF-INFERENCE-01, MODEL-SWAP-01 |
+| 118 | **LANG-ENFORCE-01** | 23.0 Performance | ALTA | PENDENTE (destravada por MODEL-SWAP-01; reavaliação com qwen2.5-coder:3b) | PERF-INFERENCE-01, MODEL-SWAP-01 |
 | 119 | **SLASH-BYPASS-AUDIT-01** | 23.0 Performance | MÉDIA | PENDENTE | PERF-INFERENCE-01 |
 | 120 | **WARMUP-ON-BOOT-01** | 23.0 Performance | MÉDIA | PENDENTE | PERF-INFERENCE-01 |
-| 121 | **MODEL-SWAP-01** | 23.0 Performance | ALTA | PENDENTE | -- |
+| 121 | **MODEL-SWAP-01** | 23.0 Performance | ALTA | CONCLUIDA (ADR-031: qwen2.5-coder:3b padrão; score 96.8) | -- |
 
 ---
 

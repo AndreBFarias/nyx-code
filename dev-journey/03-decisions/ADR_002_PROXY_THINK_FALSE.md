@@ -54,3 +54,19 @@ NYX_NUM_CTX=4096
 Arquivo: `nyx/proxy.py`
 Iniciado automaticamente pelo `run.sh`
 Parado automaticamente no cleanup (trap EXIT)
+
+## Adendo 2026-05-16 (ADR-031)
+
+`think` adaptativo descrito acima só funciona em modelos cujo `Modelfile`
+suporta o campo `think` (qwen3:* e família). Modelos non-thinking
+(qwen2.5-coder:*, qwen2.5:*, llama3.2:*) **retornam HTTP 400 do Ollama**
+quando recebem `think=true`. Erro literal observado em testes:
+`"qwen2.5-coder:3b" does not support thinking`.
+
+A partir de ADR-031, o modelo padrão é `qwen2.5-coder:3b` (non-thinking).
+O proxy continua válido mas, na prática, sempre envia `think=false` para
+o default. Mantemos a heurística think adaptativa para suportar
+`./run.sh --4b` (qwen3:4b legacy).
+
+Helper canônico para detectar suporte a thinking:
+`scripts/gauntlet/fixtures/model_compare.py:supports_thinking()`.

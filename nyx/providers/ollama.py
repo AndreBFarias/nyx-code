@@ -7,6 +7,7 @@ from typing import Any
 import httpx
 
 from nyx.agent.services.logging_service import get_logger
+from nyx.config.defaults import DEFAULT_MODEL as _DEFAULT_MODEL
 from nyx.config.defaults import PROXY_URL as _DEFAULT_PROXY_URL
 from nyx.providers.base import ProviderError
 
@@ -23,7 +24,7 @@ class OllamaProvider:
         self._timeout = timeout
 
     async def chat(
-        self, messages: list[dict], model: str = "qwen3:4b", tools: list[dict] | None = None, stream: bool = False
+        self, messages: list[dict], model: str = _DEFAULT_MODEL, tools: list[dict] | None = None, stream: bool = False
     ) -> dict[str, Any]:
         """Envia request de chat. Retorna resposta formatada."""
         payload: dict[str, Any] = {

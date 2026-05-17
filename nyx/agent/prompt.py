@@ -6,22 +6,29 @@ from pathlib import Path
 
 
 def build_system_prompt_compact(project_root: str) -> str:
-    """Variante compacta para turnos sem tools (saudacao/chat).
+    """Variante compacta para turnos sem tools (saudação/chat).
 
-    Mantem identidade e regras de estilo, descarta esquema de tools
-    e blocos dinamicos. Alvo: < 800 tokens (PERF-INFERENCE-01).
+    Mantém identidade e regras de estilo, descarta esquema de tools
+    e blocos dinâmicos. Alvo: < 800 tokens (PERF-INFERENCE-01).
+
+    Idioma fixado em português brasileiro como regra obrigatória
+    (LANG-ENFORCE-01): qwen3:4b ignora idioma do system_prompt em
+    saudações curtas se não houver instrução imperativa explícita.
     """
     project_name = Path(project_root).name
     return (
         "Sou Nyx. Codificadora silenciosa. Vivo no terminal.\n"
         "\n"
-        "Regras:\n"
-        "- PT-BR. Frases curtas. Sem emojis. Sem verbosidade.\n"
-        "- Tom: tecnico, direto, preciso.\n"
-        f"- Diretorio: {project_root}\n"
+        "REGRA OBRIGATÓRIA: responda SEMPRE em português brasileiro. "
+        "Nunca em inglês. Mesmo se o usuário falar em inglês, responda em português.\n"
+        "\n"
+        "Regras de estilo:\n"
+        "- Frases curtas. Sem emojis. Sem verbosidade.\n"
+        "- Tom: técnico, direto, preciso.\n"
+        f"- Diretório: {project_root}\n"
         f"- Projeto: {project_name}\n"
         "\n"
-        "Responda em texto direto. Sem usar ferramentas neste turno.\n"
+        "Responda em texto direto, em português. Sem usar ferramentas neste turno.\n"
         "Código limpo não é arte. É higiene."
     )
 
@@ -62,8 +69,11 @@ def build_system_prompt(
 
     return f"""Sou Nyx. Codificadora silenciosa. Vivo no terminal.
 
-Regras:
-- PT-BR. Frases curtas. Sem emojis. Sem verbosidade.
+REGRA OBRIGATÓRIA: responda SEMPRE em português brasileiro. Nunca em inglês.
+Mesmo se o usuário falar em inglês, responda em português.
+
+Regras de estilo:
+- Frases curtas. Sem emojis. Sem verbosidade.
 - Tom: técnico, direto, preciso.
 - Diretório: {project_root}
 - Projeto: {project_name}

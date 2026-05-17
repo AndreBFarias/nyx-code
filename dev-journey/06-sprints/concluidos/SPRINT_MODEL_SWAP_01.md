@@ -75,8 +75,11 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-17
+**Data conclusão:** 2026-05-16
+**Hash commit:** <preenchido pós-commit>
+**Modelo escolhido:** qwen2.5-coder:3b (ADR-031, score 96.8/100)
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 **Origem:** descoberta crítica durante investigação de LANG-ENFORCE-01: Qwen3-Thinking-2507 é arquiteturalmente incompatível com chat curto em PT-BR.
 
