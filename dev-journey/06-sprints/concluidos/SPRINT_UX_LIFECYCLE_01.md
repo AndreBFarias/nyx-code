@@ -79,6 +79,7 @@ sprint:
 **Status:** CONCLUIDA
 **Data criação:** 2026-05-16
 **Data conclusão:** 2026-05-17
+**Commit:** 81fec24
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 **Origem:** pedido explícito do usuário em 2026-05-16, durante validação visual de UX-BUG-02B. Anti-débito.
 
