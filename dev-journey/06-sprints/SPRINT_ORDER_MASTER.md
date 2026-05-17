@@ -307,7 +307,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 50 | **SESSION-RESUME-01** | 6b Sessões | MÉDIA | CONCLUIDA (index.json v1 com _atomic_write; load_session_by_id por prefixo; /resume com args (list/prefixo); --resume/--no-resume-prompt em main; maybe_offer_resume TTL 48h + threshold 3 turnos + isatty guard; migrate_sessions.py idempotente; gauntlet sessao 3/3) | CTX-02 |
 | 51 | **DEPLOY-01** | 7 Deploy | ALTA | ABSORVIDA_POR_DEPLOY-01A, DEPLOY-01B (decisão de escopo 2026-04-19) | VISION-03 |
 | 52 | **DEPLOY-01A** | 7 Deploy | ALTA | CONCLUIDA (install.sh 230L; 10 fases [N/10]; 5 flags --no-vision/no-kitty/dev/dry-run/no-prompt; detect_pkg_manager apt-get/dnf/pacman/zypper; idempotente 2 runs diff vazio; dry-run 0 escritas; smoke import nyx.agent.loop OK) | VISION-03 |
-| 53 | **DEPLOY-01B** | 7 Deploy | ALTA | PENDENTE | DEPLOY-01A |
+| 53 | **DEPLOY-01B** | 7 Deploy | ALTA | CONCLUIDA (fase Gauntlet install em Docker ubuntu:22.04 real ADR-010; D-02 rc=0 em 61.5s com NYX_INSTALL_SKIP_PULL=1; README ## Instalação rápida com 5 flags e 4 distros; install.sh ganhou guard minimo NYX_INSTALL_SKIP_PULL) | DEPLOY-01A |
 | 54 | **DEPLOY-02** | 7 Deploy | ALTA | PENDENTE | DEPLOY-01B |
 | 55 | **ONBOARDING-01** | 7b Onboarding | MÉDIA | PENDENTE | SESSION-RESUME-01, HELP-EXAMPLES-01 |
 | 56 | **HELP-EXAMPLES-01** | 8 Extra | BAIXA | PENDENTE | UX-BUG-01 |

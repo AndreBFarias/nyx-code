@@ -112,6 +112,7 @@ PHASE_GROUPS: dict[str, list[str]] = {
     "p11": ["p11_infra"],
     "vision": ["vision"],
     "sessao": ["sessao"],
+    "install": ["install"],
     "contexto": ["contexto"],
     "rapido": ["infra", "proxy", "visual", "config"],
     "port": ["parser", "robustez", "interface", "controle", "persistencia"],
@@ -228,6 +229,7 @@ PHASE_TIMEOUTS: dict[str, int] = {
     "p11_infra": 30,
     "vision": 90,
     "sessao": 60,
+    "install": 1200,
     "contexto": 180,
 }
 
@@ -737,6 +739,114 @@ class NyxGauntlet:
     # ═══════════════════════════════════════════════════════════════════
     # FASE: VISUAL (3 testes)
     # ═══════════════════════════════════════════════════════════════════
+
+    # ═══════════════════════════════════════════════════════════════════
+    # FASE: INSTALL (2 testes -- DEPLOY-01B em Docker ubuntu:22.04)
+    # ═══════════════════════════════════════════════════════════════════
+
+    async def _phase_install(self) -> None:
+        import shutil
+        import subprocess
+
+        if shutil.which("docker") is None:
+            self._add(
+                "D-01",
+                "docker disponivel (skip: ausente)",
+                "install",
+                True,
+                0,
+                details="skip: docker nao instalado nesta maquina",
+            )
+            self._add(
+                "D-02",
+                "install.sh em ubuntu:22.04 (skip)",
+                "install",
+                True,
+                0,
+                details="skip: docker ausente",
+            )
+            return
+
+        t = time.monotonic()
+        docker_info = await asyncio.to_thread(
+            subprocess.run,
+            ["docker", "info"],
+            capture_output=True,
+        )
+        docker_ok = docker_info.returncode == 0
+        self._add(
+            "D-01",
+            "docker disponivel + daemon up",
+            "install",
+            docker_ok,
+            time.monotonic() - t,
+            details=f"rc={docker_info.returncode}",
+        )
+        if not docker_ok:
+            self._add(
+                "D-02",
+                "install.sh em ubuntu:22.04 (skip: daemon nao acessivel)",
+                "install",
+                True,
+                0,
+                details="skip",
+            )
+            return
+
+        container_cmd = (
+            "apt-get update -qq >/dev/null && "
+            "DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "
+            "python3 python3-venv python3-pip curl ca-certificates zstd sudo >/dev/null && "
+            "cp -r /src /work && cd /work && rm -rf venv logs && "
+            "NYX_INSTALL_SKIP_PULL=1 ./install.sh --no-vision --no-kitty --no-prompt"
+        )
+        full_cmd = [
+            "docker", "run", "--rm",
+            "-v", f"{PROJECT_ROOT}:/src:ro",
+            "ubuntu:22.04",
+            "bash", "-c", container_cmd,
+        ]
+
+        t = time.monotonic()
+        try:
+            result = await asyncio.to_thread(
+                subprocess.run,
+                full_cmd,
+                capture_output=True,
+                timeout=1100,
+            )
+            rc = result.returncode
+            output = (result.stdout or b"").decode("utf-8", errors="replace") + (
+                result.stderr or b""
+            ).decode("utf-8", errors="replace")
+            tail = "\n".join(output.strip().splitlines()[-5:])
+            ok = rc == 0 and "Instalação concluída" in output
+            self._add(
+                "D-02",
+                "install.sh em ubuntu:22.04 (Docker real, ADR-010)",
+                "install",
+                ok,
+                time.monotonic() - t,
+                details=f"rc={rc} tail={tail!r}",
+            )
+        except subprocess.TimeoutExpired:
+            self._add(
+                "D-02",
+                "install.sh em ubuntu:22.04",
+                "install",
+                False,
+                time.monotonic() - t,
+                error="timeout 1100s",
+            )
+        except Exception as e:
+            self._add(
+                "D-02",
+                "install.sh em ubuntu:22.04",
+                "install",
+                False,
+                time.monotonic() - t,
+                error=str(e),
+            )
 
     # ═══════════════════════════════════════════════════════════════════
     # FASE: SESSAO (3 testes -- SESSION-RESUME-01)

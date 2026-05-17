@@ -210,7 +210,11 @@ fi
 # ===========================================================
 print_step 4 "Modelo padrão ($DEFAULT_MODEL)"
 
-if have_cmd ollama && ollama list 2>/dev/null | awk '{print $1}' | grep -q "^${DEFAULT_MODEL}$"; then
+# DEPLOY-01B: NYX_INSTALL_SKIP_PULL=1 pula FASES 4 e 5 quando o ambiente
+# nao tem `ollama serve` rodando (ex.: container Docker no Gauntlet).
+if [ "${NYX_INSTALL_SKIP_PULL:-0}" = "1" ]; then
+    print_skip "NYX_INSTALL_SKIP_PULL=1 -- pull pulado"
+elif have_cmd ollama && ollama list 2>/dev/null | awk '{print $1}' | grep -q "^${DEFAULT_MODEL}$"; then
     print_skip "$DEFAULT_MODEL já baixado"
 elif ! have_cmd ollama; then
     print_warn "ollama ausente -- pull pulado (rodar novamente após FASE 3)"
@@ -224,7 +228,9 @@ fi
 # ===========================================================
 print_step 5 "Modelo de visão ($VISION_MODEL)"
 
-if [ $NO_VISION -eq 1 ]; then
+if [ "${NYX_INSTALL_SKIP_PULL:-0}" = "1" ]; then
+    print_skip "NYX_INSTALL_SKIP_PULL=1 -- pull pulado"
+elif [ $NO_VISION -eq 1 ]; then
     print_skip "--no-vision passado"
 elif have_cmd ollama && ollama list 2>/dev/null | awk '{print $1}' | grep -q "^${VISION_MODEL}"; then
     print_skip "$VISION_MODEL já baixado"

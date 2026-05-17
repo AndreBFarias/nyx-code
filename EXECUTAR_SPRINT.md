@@ -1,15 +1,15 @@
-# Executar próxima sprint — DEPLOY-01B
+# Executar próxima sprint — DEPLOY-02
 
 > **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
 > Copie o bloco abaixo e cole em uma session nova de Claude Opus 4.7.
-> Restam **29** sprints PENDENTE(S) na fila.
+> Restam **28** sprints PENDENTE(S) na fila.
 
 ---
 
 ## Prompt para colar na session
 
 ```
-Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_DEPLOY_01B.md.
+Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_DEPLOY_02.md.
 
 Modelo obrigatório: claude-opus-4-7 (sem subagentes).
 Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambiarra):
@@ -27,10 +27,10 @@ Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambi
 10. Após CONCLUIDA: commit atômico, move sprint file para concluidos/, roda `python scripts/update_next_sprint.py` para atualizar este arquivo.
 
 Se qualquer passo falhar, reporte:
-    [SPRINT DEPLOY-01B] BLOQUEADA: <motivo objetivo>
+    [SPRINT DEPLOY-02] BLOQUEADA: <motivo objetivo>
 
-ID desta sprint: DEPLOY-01B
-Arquivo: dev-journey/06-sprints/producao/SPRINT_DEPLOY_01B.md
+ID desta sprint: DEPLOY-02
+Arquivo: dev-journey/06-sprints/producao/SPRINT_DEPLOY_02.md
 ```
 
 ---
@@ -39,9 +39,16 @@ Arquivo: dev-journey/06-sprints/producao/SPRINT_DEPLOY_01B.md
 
 ## Gambiarras específicas (recorte auto-injetado)
 
-> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §DEPLOY-01B. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
+> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §DEPLOY-02. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
 
-(seção específica para DEPLOY-01B não encontrada em GAMBIARRAS_POR_SPRINT.md; ler catálogo universal e matriz geral)
+### DEPLOY-02 (.desktop + ícone)
+
+- **`Exec=/home/andrefarias/...` hardcoded:** não funciona pra outro usuário.
+  - **Detectar:** `grep "Exec=" ~/.local/share/applications/nyx.desktop` — se `$HOME` ou caminho derivado de `Path(__file__).parent`, OK; se path fixo, FAIL.
+- **Icon=nyx mas arquivo `nyx.png` ausente:**
+  - **Detectar:** `test -f ~/.local/share/icons/hicolor/256x256/apps/nyx.png`.
+- **`--dry-run` ainda escreve:**
+  - **Detectar:** rodar `--dry-run` e conferir que `~/.local/share/applications/nyx.desktop` **não** foi criado/modificado (comparar mtime).
 
 <!-- /GAMBIARRAS_INJECT -->
 

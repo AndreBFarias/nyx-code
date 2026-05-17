@@ -7,6 +7,28 @@ Agente de código local. 100% offline.
 Roda qwen2.5-coder:3b via Ollama com 34 tools funcionais, 47 commands, 10 services.
 Projeto standalone, otimizado para RTX 3050 4GB.
 
+## Instalação rápida
+
+```bash
+git clone <este-repo> Nyx-Code
+cd Nyx-Code
+./install.sh                  # instalação completa idempotente
+./install.sh --no-vision      # sem moondream (pula descrição de imagens)
+./install.sh --no-kitty       # não pergunta sobre kitty terminal
+./install.sh --dev            # inclui requirements-dev.txt
+./install.sh --dry-run        # mostra o que faria, sem executar
+./run.sh                      # sobe o agente local
+```
+
+**Distros suportadas pelo `detect_pkg_manager`:**
+
+- Ubuntu/Debian (`apt-get`) — automatizado via fase Gauntlet `install` em Docker `ubuntu:22.04`
+- Fedora/RHEL (`dnf`) — manual
+- Arch (`pacman`) — manual
+- openSUSE (`zypper`) — manual
+
+`install.sh` é idempotente: rodar duas vezes produz a mesma saída (cada fase faz SKIP se já aplicada). Veja `./install.sh --help` para a lista completa das 10 fases.
+
 ## Arquitetura
 
 ```
