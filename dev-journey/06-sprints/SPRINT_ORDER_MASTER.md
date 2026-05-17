@@ -321,7 +321,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 64 | **TAG-KEY-ACCENT-01** | 2.10 Higiene | BAIXA | CONCLUIDA | -- |
 | 65 | **STATUS-FILTER-HARDEN-01** | 2.10 Higiene | MÉDIA | CONCLUIDA | PRODUCAO-CLEANUP-01 |
 | 110 | **UX-LOOP-VISIBILITY-01** | 23.4 Gamedesigner | MÉDIA | CONCLUIDA (Estratégia A: spinner com Callable[[], str]; build_warming_label janelas 0-3s/3-10s/10s+; glifo ◐ em "aquecendo modelo..."; smoke ok + invariantes 14/14 + gauntlet rapido 18/18) | UX-BUG-02B |
-| 111 | **UX-CLAUDE-PARITY-01** | 23.4 Gamedesigner | ALTA | PENDENTE | UX-BUG-02B, UX-LOOP-VISIBILITY-01 |
+| 111 | **UX-CLAUDE-PARITY-01** | 23.4 Gamedesigner | ALTA | CONCLUIDA (ADR-029; banner 9->3 linhas mantendo paleta D + glifos; toolbar separator . substituido por pipes; bypass off com prefix triangulo duplo paridade estrutural; identidade Nyx preservada) | UX-BUG-02B, UX-LOOP-VISIBILITY-01 |
 | 112 | **UX-LIFECYCLE-01** | 23.1 Estabilização | ALTA | CONCLUIDA (lock file + cleanup robusto SIGINT/TERM/HUP + /admin/shutdown loopback + VRAM check pré-inferência; gauntlet rápido 18/18 em 11s) | BOOT-VRAM-GUARD-01, TUI-SHUTDOWN-SILENT-01 |
 | 113 | **PERF-INFERENCE-01** | 23.0 Performance (NOVA FASE 1) | CRÍTICA | CONCLUIDA | -- |
 | 114 | **MCP-SERVER-01** | 23.5 Feature parity Claude Code | ALTA | PENDENTE | PERF-INFERENCE-01 |

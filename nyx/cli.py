@@ -353,21 +353,23 @@ async def run_repl(
                 ctx_label += f" ({total_tok}/{max_tok}tok)"
             parts.append((f"fg:{NYX_ACCENT}", ctx_label))
 
-            meta = f" · {model} · iter {iter_n} · lidos {reads} · modif {mods}"
+            # UX-CLAUDE-PARITY-01 (ADR-029): pipes ' | ' como separator
+            # estrutural (paridade com CLI de referencia), preservando paleta e glifos.
+            meta = f"  |  {model}  |  iter {iter_n}  |  lidos {reads}  |  modif {mods}"
             parts.append((f"fg:{NYX_MUTED}", meta))
 
             model_state = app_state.get("model_state", "cold")
             glyph = _STATE_GLYPHS.get(model_state, _STATE_GLYPHS["cold"])
-            parts.append((f"fg:{NYX_MUTED}", f" · {glyph} {model_state}"))
+            parts.append((f"fg:{NYX_MUTED}", f"  |  {glyph} {model_state}"))
 
             if app_state.get("bypass"):
                 parts.append(("", "  "))
                 parts.append((
                     f"bg:{NYX_PURPLE_DIM} fg:{NYX_PRIMARY} bold",
-                    f" {BULLETS['bypass_on']} bypass ON ",
+                    f" {BULLETS['bypass_on']} bypass ON (shift+tab) ",
                 ))
             else:
-                parts.append((f"fg:{NYX_MUTED}", f"   {BULLETS['bypass_off']} shift+tab: bypass"))
+                parts.append((f"fg:{NYX_MUTED}", "   ▸▸ shift+tab: bypass"))
             return FormattedText(parts)
 
         import shutil as _sh

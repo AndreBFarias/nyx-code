@@ -123,51 +123,29 @@ def _build_wide(
     h: str,
     v: str,
 ) -> str:
-    """Banner completo para cols >= 80."""
-    largura_total = min(cols - 2, 78)
-    interior = largura_total - 2
+    """Banner compacto da CLI de referência (UX-CLAUDE-PARITY-01, ADR-029).
 
-    title_left = f" Nyx · v{NYX_VERSION} "
-    title_right = " 100% offline "
-    padding = interior - len(title_left) - len(title_right) - 2
-    if padding < 2:
-        padding = 2
-    topo = f"  {accent}{tl}{h}{title_left}{h * padding}{title_right}{h}{tr}{nc}"
-
-    def linha(payload: str) -> str:
-        raw_len = len(payload)
-        pad_right = interior - raw_len - 2
-        if pad_right < 0:
-            pad_right = 0
-        return f"  {accent}{v}{nc} {payload}{' ' * pad_right} {accent}{v}{nc}"
-
-    col_labels = f"   modelo    {model:<18s}   tools    {tools_count}"
-    col_projeto = f"   projeto   {project:<18s}   visão    moondream (cold)"
-    col_rede = f"   rede      {ports_line}"
+    Reduz a caixa anterior de 9 linhas para 3 linhas de informação +
+    1 linha em branco no topo/rodapé, totalizando 5 linhas. Identidade
+    Nyx preservada (turquesa+roxo, glifo, microcopy PT-BR).
+    """
     mem_str = (
         f"{memory_count} entradas" if memory_count is not None else "ativa"
     )
-    col_memoria = f"   memória   {mem_str}"
+    # Linha 1: Logo + versão + offline pin alinhado à direita.
+    title = f"{accent}Nyx{nc} {dim}v{NYX_VERSION}{nc}"
+    right_tag = f"{muted}100% offline{nc}"
+    pad = max(2, cols - len(f"Nyx v{NYX_VERSION}") - len("100% offline") - 4)
+    linha_logo = f"  {title}{' ' * pad}{right_tag}"
+    # Linha 2: contexto operacional.
+    linha_ctx = (
+        f"  {muted}{model}  |  {project}  |  {ports_line}  |  "
+        f"tools {tools_count}  |  memória {mem_str}{nc}"
+    )
+    # Linha 3: rodapé com atalhos.
+    linha_hint = f"  {dim}/help para comandos  ·  Ctrl+D para sair{nc}"
 
-    vazia = linha("")
-    rodape_txt = " /help para comandos · Ctrl+D para sair "
-    rodape_pad = interior - len(rodape_txt) - 2
-    if rodape_pad < 2:
-        rodape_pad = 2
-    base = f"  {accent}{bl}{h}{muted}{rodape_txt}{accent}{h * rodape_pad}{h}{br}{nc}"
-
-    return "\n".join([
-        "",
-        topo,
-        vazia,
-        linha(col_labels),
-        linha(col_projeto),
-        linha(col_rede),
-        linha(col_memoria),
-        vazia,
-        base,
-        "",
-    ])
+    return "\n".join(["", linha_logo, linha_ctx, linha_hint, ""])
 
 
 # "A forma segue a função." -- Louis Sullivan
