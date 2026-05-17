@@ -68,8 +68,10 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-15
+**Data conclusão:** 2026-05-17
+**Commit:** 436d1e7
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 
 ---
