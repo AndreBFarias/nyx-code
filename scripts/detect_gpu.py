@@ -51,6 +51,11 @@ logger = logging.getLogger("nyx.gpu_tune")
 
 RESERVED_MB = 1024
 
+# Threshold (MiB) abaixo do qual a pré-carga é considerada arriscada.
+# Em low-VRAM, calc_num_gpu_strict retorna 0 sinalizando skip da pré-carga.
+# Fonte única do threshold; run.sh consulta este script, não duplica.
+LOW_VRAM_THRESHOLD_MB = 1536  # 1.5 GiB
+
 MODEL_TABLE: dict[str, dict[str, int]] = {
     "qwen3:4b": {"total_layers": 40, "mb_per_layer": 115},
     "qwen2.5-coder:3b": {"total_layers": 36, "mb_per_layer": 85},
@@ -134,7 +139,7 @@ def detect_gpu() -> dict[str, object]:
     return info
 
 
-def calc_num_gpu(model: str, vram_free_mb: int, vram_total_mb: int = 0) -> int:
+def _resolve_entry(model: str) -> dict[str, int]:
     entry = MODEL_TABLE.get(model)
     if entry is None:
         for known in MODEL_TABLE:
@@ -143,11 +148,40 @@ def calc_num_gpu(model: str, vram_free_mb: int, vram_total_mb: int = 0) -> int:
                 break
     if entry is None:
         entry = MODEL_TABLE[DEFAULT_MODEL]
+    return entry
+
+
+def calc_num_gpu(model: str, vram_free_mb: int, vram_total_mb: int = 0) -> int:
+    entry = _resolve_entry(model)
 
     usable = vram_free_mb - RESERVED_MB
     if usable <= 0:
         return 0
 
+    layers = usable // entry["mb_per_layer"]
+    num_gpu = max(0, min(entry["total_layers"], int(layers)))
+    return apply_vram_cap(num_gpu, vram_total_mb)
+
+
+def calc_num_gpu_strict(model: str, vram_free_mb: int, vram_total_mb: int = 0) -> int:
+    """Variante para pré-carga: reserva ampliada para overhead transitório.
+
+    Em low-VRAM (vram_free < LOW_VRAM_THRESHOLD_MB) retorna 0 explicitamente,
+    sinalizando ao caller que a pré-carga deve ser pulada — o modelo será
+    carregado na primeira requisição real (mais lento, mas sem OOM).
+
+    Acima do threshold, usa reserva = max(RESERVED_MB, 33% do livre) para
+    cobrir o pico transitório do mmap+kv-cache durante carga inicial. Sem
+    isso, a pré-carga pode pedir alguns MB acima do disponível e o
+    OOM-killer derruba o daemon.
+    """
+    if vram_free_mb < LOW_VRAM_THRESHOLD_MB:
+        return 0
+    entry = _resolve_entry(model)
+    reserved = max(RESERVED_MB, int(vram_free_mb * 0.33))
+    usable = vram_free_mb - reserved
+    if usable <= 0:
+        return 0
     layers = usable // entry["mb_per_layer"]
     num_gpu = max(0, min(entry["total_layers"], int(layers)))
     return apply_vram_cap(num_gpu, vram_total_mb)
@@ -253,20 +287,29 @@ def cmd_write_env(env_path: Path, model: str) -> int:
     return 0
 
 
-def cmd_for_model(model: str) -> int:
+def cmd_for_model(model: str, strict: bool = False) -> int:
     gpu = detect_gpu()
-    num_gpu = calc_num_gpu(
-        model,
-        int(gpu.get("vram_free_mb") or 0),
-        int(gpu.get("vram_total_mb") or 0),
-    )
-    logger.info(
-        "for-model %s: num_gpu=%s (vram_free=%sMB, gpu=%s)",
-        model,
-        num_gpu,
-        gpu.get("vram_free_mb"),
-        gpu.get("gpu_name"),
-    )
+    vram_free = int(gpu.get("vram_free_mb") or 0)
+    vram_total = int(gpu.get("vram_total_mb") or 0)
+    if strict:
+        num_gpu = calc_num_gpu_strict(model, vram_free, vram_total)
+        logger.info(
+            "for-model %s strict: num_gpu=%s (vram_free=%sMB, gpu=%s, threshold=%s)",
+            model,
+            num_gpu,
+            vram_free,
+            gpu.get("gpu_name"),
+            LOW_VRAM_THRESHOLD_MB,
+        )
+    else:
+        num_gpu = calc_num_gpu(model, vram_free, vram_total)
+        logger.info(
+            "for-model %s: num_gpu=%s (vram_free=%sMB, gpu=%s)",
+            model,
+            num_gpu,
+            vram_free,
+            gpu.get("gpu_name"),
+        )
     print(num_gpu)
     return 0
 
@@ -278,16 +321,24 @@ def main() -> int:
     parser.add_argument("--for-model", metavar="MODEL", help="imprime apenas num_gpu para o modelo")
     parser.add_argument("--env-path", default=str(PROJECT_ROOT / ".env"), help="caminho do .env")
     parser.add_argument("--model", default=DEFAULT_MODEL, help="modelo para --write-env")
+    parser.add_argument(
+        "--strict-low-vram",
+        action="store_true",
+        help="usa cálculo com reserva ampliada; retorna 0 em low-VRAM (skip pré-carga)",
+    )
     args = parser.parse_args()
 
     actions = [args.dry_run, args.write_env, bool(args.for_model)]
     if sum(1 for a in actions if a) != 1:
         parser.error("escolha exatamente um: --dry-run, --write-env, --for-model MODEL")
 
+    if args.strict_low_vram and not args.for_model:
+        parser.error("--strict-low-vram requer --for-model MODEL")
+
     if args.dry_run:
         return cmd_dry_run(args.for_model)
     if args.for_model:
-        return cmd_for_model(args.for_model)
+        return cmd_for_model(args.for_model, strict=args.strict_low_vram)
     return cmd_write_env(Path(args.env_path), args.model)
 
 

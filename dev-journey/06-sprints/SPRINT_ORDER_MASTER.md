@@ -422,7 +422,7 @@ Reorganização proposta priorizando meta v1.0 "Claude Code offline e opensource
 | # | Sprint | Bloco | Prioridade | Status | Depende de |
 |---|--------|-------|------------|--------|------------|
 | 99 | **GUIDE-RENAME-FINISH-01** | 23.0 Recuperação | ALTA | CONCLUIDA | -- |
-| 100 | **BOOT-VRAM-GUARD-01** | 23.1 Estabilização | ALTA | PENDENTE | -- |
+| 100 | **BOOT-VRAM-GUARD-01** | 23.1 Estabilização | ALTA | CONCLUIDA (re-tune VRAM live + disown nos background; smoke + gauntlet infra/rapido 100%) | -- |
 | 101 | **PROXY-NUMGPU-RUNTIME-01** | 23.1 Estabilização | MÉDIA | PENDENTE | BOOT-VRAM-GUARD-01 |
 | 102 | **TUI-SHUTDOWN-SILENT-01** | 23.1 Estabilização | BAIXA | PENDENTE | -- |
 | 103 | **SECRET-MIGRATE-01** | 23.1 Estabilização | BAIXA | PENDENTE | -- |

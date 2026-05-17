@@ -228,6 +228,10 @@ start_ollama() {
 
     "$OLLAMA_BIN" serve >> "$SCRIPT_DIR/logs/ollama.log" 2>&1 &
     OLLAMA_PID=$!
+    # disown: remove o background da jobs table. Se o OOM-killer matar
+    # Ollama durante a pré-carga, bash não vaza "Morto" no stdout do pai.
+    # `kill $PID` continua funcional; só `wait` e `kill 0` perdem o PID.
+    disown "$OLLAMA_PID" 2>/dev/null || true
 
     local elapsed=0
     while ! curl -sf "http://${NYX_OLLAMA_HOST}:${NYX_OLLAMA_PORT}/api/version" > /dev/null 2>&1; do
@@ -453,21 +457,47 @@ export OPENAI_MODEL="$MODEL"
 export OPENAI_TIMEOUT=300000
 # ANTHROPIC_API_KEY vem do .env (necessária para auth da TUI)
 
-# ─── PRE-CARREGAR MODELO COM NUM_GPU LIMITADO ────────────
-log_boot "Pré-carregando modelo (num_gpu=$NYX_NUM_GPU)..."
-if curl -sf --max-time 120 "http://${NYX_OLLAMA_HOST}:${NYX_OLLAMA_PORT}/api/chat" \
-    -H "Content-Type: application/json" \
-    -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"stream\":false,\"think\":false,\"options\":{\"num_gpu\":$NYX_NUM_GPU,\"num_ctx\":4096}}" \
-    > /dev/null 2>&1; then
-    log_boot "Modelo pré-carregado"
-else
-    log_warn "Pré-carga falhou (modelo será carregado na primeira requisição)"
+# ─── PRÉ-VERIFICAÇÃO VRAM LIVE (BOOT-VRAM-GUARD-01) ──────
+# VRAM livre pode mudar entre auto_tune_gpu (T0) e o momento da pré-carga
+# (T0 + alguns segundos): browser/DE consumindo VRAM, daemon de outra
+# sessão, etc. detect_gpu.py --strict-low-vram re-mede agora e usa reserva
+# ampliada. Retorna 0 em low-VRAM (<1.5 GiB) sinalizando skip seguro.
+SKIP_PRELOAD=0
+if [ -x "$SCRIPT_DIR/venv/bin/python" ]; then
+    log_boot "Pré-verificando VRAM..."
+    PRELOAD_NUM_GPU=$("$SCRIPT_DIR/venv/bin/python" \
+        "$SCRIPT_DIR/scripts/detect_gpu.py" \
+        --for-model "$MODEL" --strict-low-vram 2>/dev/null || echo "0")
+    if [[ ! "$PRELOAD_NUM_GPU" =~ ^[0-9]+$ ]]; then
+        PRELOAD_NUM_GPU=0
+    fi
+    if [ "$PRELOAD_NUM_GPU" = "0" ]; then
+        log_warn "VRAM insuficiente para pré-carga. Modelo carrega na 1ª requisição."
+        SKIP_PRELOAD=1
+    elif [ "$PRELOAD_NUM_GPU" != "$NYX_NUM_GPU" ]; then
+        log_boot "VRAM mudou: ajustando num_gpu de $NYX_NUM_GPU para $PRELOAD_NUM_GPU"
+        NYX_NUM_GPU="$PRELOAD_NUM_GPU"
+        export NYX_NUM_GPU
+    fi
 fi
 
-# Verificar se Ollama sobreviveu ao pre-load
-if ! kill -0 "$OLLAMA_PID" 2>/dev/null; then
-    log_warn "Ollama morreu durante pré-carga. Reiniciando..."
-    start_ollama
+# ─── PRE-CARREGAR MODELO COM NUM_GPU LIMITADO ────────────
+if [ "$SKIP_PRELOAD" -eq 0 ]; then
+    log_boot "Pré-carregando modelo (num_gpu=$NYX_NUM_GPU)..."
+    if curl -sf --max-time 120 "http://${NYX_OLLAMA_HOST}:${NYX_OLLAMA_PORT}/api/chat" \
+        -H "Content-Type: application/json" \
+        -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"stream\":false,\"think\":false,\"options\":{\"num_gpu\":$NYX_NUM_GPU,\"num_ctx\":4096}}" \
+        > /dev/null 2>&1; then
+        log_boot "Modelo pré-carregado"
+    else
+        log_warn "Pré-carga falhou (modelo será carregado na primeira requisição)"
+    fi
+
+    # Verificar se Ollama sobreviveu ao pre-load
+    if ! kill -0 "$OLLAMA_PID" 2>/dev/null; then
+        log_warn "Ollama morreu durante pré-carga. Reiniciando..."
+        start_ollama
+    fi
 fi
 
 # ─── INICIAR PROXY (think=false para tool calling) ───────
@@ -478,6 +508,9 @@ log_boot "Iniciando proxy na porta $NYX_PROXY_PORT..."
     --num-gpu "$NYX_NUM_GPU" \
     >> "$SCRIPT_DIR/logs/proxy.log" 2>&1 &
 PROXY_PID=$!
+# disown: idem ao start_ollama. Evita "Morto" no terminal se proxy
+# cair em background. Cleanup usa `kill $PROXY_PID` explicitamente.
+disown "$PROXY_PID" 2>/dev/null || true
 sleep 2
 
 if curl -sf "http://127.0.0.1:${NYX_PROXY_PORT}/v1/models" > /dev/null 2>&1; then

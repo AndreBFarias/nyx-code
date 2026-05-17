@@ -1,11 +1,7 @@
 {
-  "timestamp": "2026-05-17T01:35:39.806218",
+  "timestamp": "2026-05-17T01:58:39.061684",
   "model": "qwen2.5-coder:3b",
-  "phases_done": [
-    "infra",
-    "proxy",
-    "visual"
-  ],
+  "phases_done": [],
   "results": [
     {
       "feature_id": "I-01",
@@ -32,8 +28,8 @@
       "name": "Warmup do modelo",
       "phase": "infra",
       "passed": true,
-      "elapsed_s": 5.4,
-      "tokens": 148,
+      "elapsed_s": 4.26,
+      "tokens": 120,
       "details": "",
       "error": ""
     },
@@ -56,140 +52,9 @@
       "tokens": 0,
       "details": "4 modelos",
       "error": ""
-    },
-    {
-      "feature_id": "P-01",
-      "name": "Request via proxy",
-      "phase": "proxy",
-      "passed": true,
-      "elapsed_s": 0.32,
-      "tokens": 38,
-      "details": "Proxy OK",
-      "error": ""
-    },
-    {
-      "feature_id": "P-02",
-      "name": "think=false injetado",
-      "phase": "proxy",
-      "passed": true,
-      "elapsed_s": 0,
-      "tokens": 0,
-      "details": "sem <think>",
-      "error": ""
-    },
-    {
-      "feature_id": "P-04",
-      "name": "Content array normalizado",
-      "phase": "proxy",
-      "passed": true,
-      "elapsed_s": 3.24,
-      "tokens": 115,
-      "details": "",
-      "error": ""
-    },
-    {
-      "feature_id": "P-05",
-      "name": "Formato OpenAI correto",
-      "phase": "proxy",
-      "passed": true,
-      "elapsed_s": 0.59,
-      "tokens": 0,
-      "details": "choices=True usage=True message=True",
-      "error": ""
-    },
-    {
-      "feature_id": "P-06",
-      "name": "Listagem /v1/models",
-      "phase": "proxy",
-      "passed": true,
-      "elapsed_s": 0.02,
-      "tokens": 0,
-      "details": "4 modelos",
-      "error": ""
-    },
-    {
-      "feature_id": "P-07",
-      "name": "tool_calls propagam",
-      "phase": "proxy",
-      "passed": true,
-      "elapsed_s": 1.28,
-      "tokens": 188,
-      "details": "['{\"file_path\": \"README.md\"}']",
-      "error": ""
-    },
-    {
-      "feature_id": "V-05",
-      "name": "7 temas carregam",
-      "phase": "visual",
-      "passed": true,
-      "elapsed_s": 0,
-      "tokens": 0,
-      "details": "7 temas",
-      "error": ""
-    },
-    {
-      "feature_id": "V-06",
-      "name": "Fallback Dracula",
-      "phase": "visual",
-      "passed": true,
-      "elapsed_s": 0,
-      "tokens": 0,
-      "details": "",
-      "error": ""
-    },
-    {
-      "feature_id": "V-07",
-      "name": "Hex -> ANSI 24-bit",
-      "phase": "visual",
-      "passed": true,
-      "elapsed_s": 0,
-      "tokens": 0,
-      "details": "",
-      "error": ""
-    },
-    {
-      "feature_id": "C-01",
-      "name": ".env existe",
-      "phase": "config",
-      "passed": true,
-      "elapsed_s": 0,
-      "tokens": 0,
-      "details": "",
-      "error": ""
-    },
-    {
-      "feature_id": "C-02",
-      "name": "NyxSettings carrega",
-      "phase": "config",
-      "passed": true,
-      "elapsed_s": 0,
-      "tokens": 0,
-      "details": "port=11435 model=qwen2.5-coder:3b",
-      "error": ""
-    },
-    {
-      "feature_id": "C-03",
-      "name": "preferences.json dark+pt-BR",
-      "phase": "config",
-      "passed": true,
-      "elapsed_s": 0,
-      "tokens": 0,
-      "details": "theme=dark lang=pt-BR",
-      "error": ""
-    },
-    {
-      "feature_id": "C-04",
-      "name": "GSD.md contém Nyx",
-      "phase": "config",
-      "passed": true,
-      "elapsed_s": 0,
-      "tokens": 0,
-      "details": "",
-      "error": ""
     }
   ],
   "kpis": {
-    "warmup_s": 5.4,
-    "gauntlet_total_s": 11.1
+    "warmup_s": 4.3
   }
 }
