@@ -42,6 +42,17 @@ if [ -f "$SCRIPT_DIR/.env" ]; then
     set +a
 fi
 
+# ─── CARREGAR ~/.config/nyx/secrets (precedência sobre .env) ─
+# Padrão XDG: secrets em ~/.config/nyx/secrets chmod 600.
+# Carregado depois para sobrescrever valores do .env (precedência secrets).
+SECRETS_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/nyx/secrets"
+if [ -f "$SECRETS_FILE" ]; then
+    set -a
+    # shellcheck source=/dev/null
+    source "$SECRETS_FILE"
+    set +a
+fi
+
 # ─── TIMEOUTS ─────────────────────────────────────────────
 CURL_TIMEOUT="${NYX_CURL_TIMEOUT:-10}"
 OLLAMA_START_TIMEOUT="${NYX_OLLAMA_START_TIMEOUT:-30}"
@@ -125,7 +136,7 @@ OLLAMA_PID=""
 unset GEMINI_MODEL 2>/dev/null || true
 unset GEMINI_API_KEY 2>/dev/null || true
 unset DEEPSEEK_API_KEY 2>/dev/null || true
-# ANTHROPIC_API_KEY é mantida (necessária para auth da TUI, vem do .env)
+# ANTHROPIC_API_KEY é mantida (necessária para auth da TUI, vem de ~/.config/nyx/secrets ou .env)
 
 # ─── VALIDAÇÕES ───────────────────────────────────────────
 validate() {
@@ -465,7 +476,7 @@ export OPENAI_API_KEY=ollama
 export OPENAI_BASE_URL="http://127.0.0.1:${NYX_PROXY_PORT}/v1"
 export OPENAI_MODEL="$MODEL"
 export OPENAI_TIMEOUT=300000
-# ANTHROPIC_API_KEY vem do .env (necessária para auth da TUI)
+# ANTHROPIC_API_KEY vem de ~/.config/nyx/secrets (precedência) ou .env (necessária para auth da TUI)
 
 # ─── PRÉ-VERIFICAÇÃO VRAM LIVE (BOOT-VRAM-GUARD-01) ──────
 # VRAM livre pode mudar entre auto_tune_gpu (T0) e o momento da pré-carga

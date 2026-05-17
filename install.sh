@@ -229,6 +229,30 @@ else
     log_nyx ".env já existe, mantendo"
 fi
 
+# --- 7a. SECRETS XDG (~/.config/nyx/secrets) ---------------
+log_step "Configurando arquivo de secrets (XDG)"
+
+NYX_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/nyx"
+NYX_SECRETS_FILE="$NYX_CONFIG_DIR/secrets"
+
+mkdir -p "$NYX_CONFIG_DIR"
+chmod 700 "$NYX_CONFIG_DIR"
+
+if [ ! -f "$NYX_SECRETS_FILE" ]; then
+    cat > "$NYX_SECRETS_FILE" <<'SECRETS_EOF'
+# Nyx-Code secrets (chmod 600). Carregado por run.sh após .env (precedência).
+# Não commitar este arquivo. Edite valores reais aqui.
+#
+# Chave da TUI (necessária para autenticação local da CLI):
+# ANTHROPIC_API_KEY=sk-ant-...
+SECRETS_EOF
+    chmod 600 "$NYX_SECRETS_FILE"
+    log_ok "secrets criado em $NYX_SECRETS_FILE (chmod 600). Edite para colocar a chave."
+else
+    chmod 600 "$NYX_SECRETS_FILE"
+    log_nyx "secrets já existe em $NYX_SECRETS_FILE (chmod 600 reforçado)"
+fi
+
 # --- 7b. AUTO-TUNE DE GPU ---------------------------------
 log_step "Auto-tune de GPU"
 
