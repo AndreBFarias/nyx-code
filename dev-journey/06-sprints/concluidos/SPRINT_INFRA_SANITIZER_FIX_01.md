@@ -107,9 +107,12 @@ sprint:
 
 # Sprint INFRA-SANITIZER-FIX-01 — Restaurar glifos canônicos + invariante anti-sanitizer
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-17
+**Data conclusão:** 2026-05-17
+**Hash:** e16e61b
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
+**Resultado:** 23 arquivos versionados restaurados bit-exact via `git checkout HEAD --` antes de qualquer edição. Touches autorizados: scripts/sprint_invariants.sh (+19L líquidas, check #14 "glifos canônicos preservados"), nyx/cli.py (+1L comentário ADR-004), nyx/themes/design_tokens.py (+1L comentário ADR-004), SPRINT_ORDER_MASTER.md (linha 124 da sprint), GAMBIARRAS_POR_SPRINT.md (entrada anti-débito). Invariantes: PASS=13→14, FAIL=0→0. `./run.sh --smoke` retorna `boot ok` exit 0 em 0.14s. Aritmética: 213→232 linhas (meta < 243, margem 11). Sanitizer global em `~/.config/zsh/scripts/universal-sanitizer.py` intacto (escopo externo). Validador: APROVADO_COM_RESSALVAS — ressalva única (entrada em GAMBIARRAS_POR_SPRINT.md) absorvida no mesmo commit técnico.
 
 ---
 

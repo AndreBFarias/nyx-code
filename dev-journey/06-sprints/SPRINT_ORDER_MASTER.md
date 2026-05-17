@@ -333,7 +333,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 120 | **WARMUP-ON-BOOT-01** | 23.0 Performance | MÉDIA | CONCLUIDA (warmup duplo via proxy adiciona ~3s ao boot; cold call P95 <=8s validada com 0.634s) | PERF-INFERENCE-01 |
 | 121 | **MODEL-SWAP-01** | 23.0 Performance | ALTA | CONCLUIDA (ADR-031: qwen2.5-coder:3b padrão; score 96.8) | -- |
 | 122 | **GAUNTLET-RAPIDO-FIXES-01** | 23.0 Performance | ALTA | CONCLUIDA (18/18 100% rapido; fix P-07 think gating + parser content-JSON; fix C-03 settings.json criado; fix C-04 GUIDE.md -> GSD.md) | -- |
-| 124 | **INFRA-SANITIZER-FIX-01** | 23.0 Performance | MÉDIA | PENDENTE (anti-débito: restaurar glifos sanitizados; invariante #14) | -- |
+| 124 | **INFRA-SANITIZER-FIX-01** | 23.0 Performance | MÉDIA | CONCLUIDA (hash e16e61b; 23 arquivos restaurados bit-exact; invariante #14 ativo; PASS=14/FAIL=0) | -- |
 | 123 | **LANG-PROMPT-ACENT-01** | 23.0 Performance | BAIXA | PENDENTE | LANG-ENFORCE-01 |
 
 ---
