@@ -277,9 +277,11 @@ async def handle_chat(request: web.Request) -> web.StreamResponse:
     result = ollama_to_openai(data, model)
 
     # LANG-ENFORCE-01: guardrail de idioma em respostas conversacionais.
-    # Se intent é saudacao/chat, modelo respondeu em inglês e não tem tool_calls,
-    # faz UM retry com hint reforçado. Cap em 1 para não explodir P50.
-    if intent in ("saudacao", "chat"):
+    # Cobre saudacao/chat/comando (qwen2.5-coder:3b frequentemente responde
+    # /help em inglês). tool-needed fora do escopo: pode envolver tool_calls
+    # e o content é descartado pelo agent loop.
+    # Cap em 1 retry para não explodir P50.
+    if intent in ("saudacao", "chat", "comando"):
         choice_msg = result["choices"][0]["message"]
         content = choice_msg.get("content", "")
         has_tc = bool(choice_msg.get("tool_calls"))

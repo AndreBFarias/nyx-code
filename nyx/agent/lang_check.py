@@ -43,8 +43,13 @@ _PT_BR_PATTERN = re.compile(  # noqa-acento
     re.IGNORECASE,
 )
 
+# Marcadores de idiomas não-PT (inglês + italiano + espanhol + francês).
+# qwen2.5-coder:3b ocasionalmente responde em italiano para perguntas
+# matemáticas ("La somma di 5 + 3 è 8") ou espanhol em frases tecnicas;
+# tratar tudo como "não-PT-BR" e disparar retry.
 _EN_PATTERN = re.compile(
     r"\b("
+    # inglês
     r"the|is|are|am|was|were|be|been|being|"
     r"hello|hi|hey|today|"
     r"help|how|what|when|where|why|which|"
@@ -53,13 +58,25 @@ _EN_PATTERN = re.compile(
     r"with|without|about|"
     r"please|thank|thanks|"
     r"here|there|"
-    r"file|directory|folder|project"
+    r"file|directory|folder|project|"
+    # italiano (palavras funcionais distintivas)
+    r"sono|della|delle|dello|degli|"
+    r"grazie|prego|ciao|"
+    r"la\s+somma|che|"
+    # espanhol (palavras funcionais distintivas; cuidado para não pegar pt)
+    r"hola|estoy|estamos|gracias|"
+    r"el|los|las|una|uno|"
+    # francês (palavras funcionais distintivas)
+    r"bonjour|merci|oui|non|le|les|une|du"
     r")\b",
     re.IGNORECASE,
 )
 
-# Acentos específicos do português. Suficiente para fixar PT-BR sem ambiguidade.
-_ACENTO_PT = re.compile(r"[áéíóúâêîôûãõàèç]", re.IGNORECASE)
+# Acentos EXCLUSIVOS do português (não aparecem em italiano/espanhol/francês).
+# 'ã', 'õ' e 'ç' são suficientes para fixar PT-BR sem ambiguidade.
+# Acentos compartilhados ('è', 'à', 'é', etc.) NÃO entram aqui — vão pro fallback
+# de contagem que distingue por palavras funcionais.
+_ACENTO_PT = re.compile(r"[ãõç]", re.IGNORECASE)
 
 
 def is_pt_br(text: str) -> bool:
