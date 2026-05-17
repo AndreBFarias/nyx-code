@@ -7,7 +7,9 @@ import subprocess
 from nyx.agent.commands._registry import nyx_command
 
 
-@nyx_command(name="commit", description="Cria um commit git", category="git")
+@nyx_command(name="commit", description="Cria um commit git", category="git",
+    examples=['/commit -m "fix: regex do parser"', '/commit --amend', '/commit'],
+)
 def cmd_commit(message: str, project_root: str) -> str:
     return (
         "Crie um commit git com as mudanças atuais. Passos:\n"
@@ -25,7 +27,9 @@ def cmd_commit(message: str, project_root: str) -> str:
     )
 
 
-@nyx_command(name="diff", description="Mostra mudanças não commitadas", aliases=["d"], category="git")
+@nyx_command(name="diff", description="Mostra mudanças não commitadas", aliases=["d"], category="git",
+    examples=['/diff', '/diff HEAD~1', '/diff nyx/cli.py'],
+)
 def cmd_diff(_args: str, project_root: str) -> str:
     from nyx.agent.git_ops import git_diff_full, git_status
 
@@ -49,7 +53,9 @@ def cmd_diff(_args: str, project_root: str) -> str:
     return "\n".join(parts)
 
 
-@nyx_command(name="review", description="Review de pull request", aliases=["rv"], category="git")
+@nyx_command(name="review", description="Review de pull request", aliases=["rv"], category="git",
+    examples=['/review', '/review 123'],
+)
 def cmd_review(pr_number: str, project_root: str) -> str:
     if not pr_number.strip():
         return (
@@ -72,7 +78,9 @@ def cmd_review(pr_number: str, project_root: str) -> str:
     )
 
 
-@nyx_command(name="branch", description="Operações de branch", aliases=["br"], category="git")
+@nyx_command(name="branch", description="Operações de branch", aliases=["br"], category="git",
+    examples=['/branch', '/branch feature-x'],
+)
 def cmd_branch(args: str, project_root: str) -> str:
     from nyx.agent.git_ops import run_git
 
@@ -94,7 +102,9 @@ def cmd_branch(args: str, project_root: str) -> str:
     return f"__error__Falha ao criar a branch '{args}'.||Detalhe: {out.strip()[:120]}"
 
 
-@nyx_command(name="issue", description="Cria/lista issues via gh CLI", category="git")
+@nyx_command(name="issue", description="Cria/lista issues via gh CLI", category="git",
+    examples=['/issue', '/issue 42'],
+)
 def cmd_issue(args: str, project_root: str) -> str:
     args = args.strip()
     try:
@@ -121,7 +131,9 @@ def cmd_issue(args: str, project_root: str) -> str:
         )
 
 
-@nyx_command(name="pr", description="Lista/mostra PRs via gh CLI", category="git")
+@nyx_command(name="pr", description="Lista/mostra PRs via gh CLI", category="git",
+    examples=['/pr', '/pr 123'],
+)
 def cmd_pr(args: str, project_root: str) -> str:
     args = args.strip()
     try:
@@ -151,7 +163,9 @@ def cmd_pr(args: str, project_root: str) -> str:
         )
 
 
-@nyx_command(name="pr-comments", description="Mostra comentários de PR", category="avançado")
+@nyx_command(name="pr-comments", description="Mostra comentários de PR", category="avançado",
+    examples=['/pr-comments', '/pr-comments 123'],
+)
 def cmd_pr_comments(args: str, project_root: str) -> str:
     pr_number = args.strip()
     if not pr_number or not pr_number.isdigit():
@@ -190,7 +204,9 @@ def cmd_pr_comments(args: str, project_root: str) -> str:
         )
 
 
-@nyx_command(name="commit-push-pr", description="Commit, push e PR", category="root")
+@nyx_command(name="commit-push-pr", description="Commit, push e PR", category="root",
+    examples=['/commit-push-pr', '/commit-push-pr --draft'],
+)
 def cmd_commit_push_pr(args: str, project_root: str) -> str:
     return (
         "Execute o fluxo completo: commit, push e PR. Passos:\n"

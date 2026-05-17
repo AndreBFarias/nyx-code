@@ -4,35 +4,72 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from nyx.agent.commands._registry import format_help, nyx_command
+from nyx.agent.commands._registry import format_help, get_command, nyx_command
 
 
-@nyx_command(name="help", description="Mostra esta ajuda (/help <filtro>, /help all)", aliases=["h"])
+@nyx_command(
+    name="help",
+    description="Mostra esta ajuda (/help <cmd> mostra exemplos; /help all lista tudo)",
+    aliases=["h"],
+    examples=["/help", "/help commit", "/help all"],
+)
 def cmd_help(args: str, _root: str) -> str:
-    arg = args.strip().lower()
+    arg = args.strip().lstrip("/").lower()
     if arg in ("all", "todos", "*"):
         return format_help(show_all=True)
     if arg:
+        # HELP-EXAMPLES-01: nome exato -> descricao + exemplos; fallback fuzzy.
+        cmd = get_command(arg)
+        if cmd is not None:
+            lines = [f"  /{cmd.name} -- {cmd.description}"]
+            if cmd.aliases:
+                lines.append(f"    aliases: {', '.join('/' + a for a in cmd.aliases)}")
+            if cmd.examples:
+                lines.append("")
+                lines.append("  Exemplos:")
+                for ex in cmd.examples:
+                    lines.append(f"    {ex}")
+            else:
+                lines.append("    (sem exemplos cadastrados)")
+            return "\n".join(lines)
         return format_help(show_all=False, filter_query=arg)
     return format_help(show_all=False)
 
 
-@nyx_command(name="quit", description="Sai do REPL", aliases=["q", "exit"])
+@nyx_command(
+    name="quit",
+    description="Sai do REPL salvando a sessão atual",
+    aliases=["q", "exit"],
+    examples=["/quit", "/q"],
+)
 def cmd_quit(_args: str, _root: str) -> str:
     return "__quit__"
 
 
-@nyx_command(name="clear", description="Limpa a sessão")
+@nyx_command(
+    name="clear",
+    description="Limpa a sessão (histórico, tela)",
+    examples=["/clear", "/clear all"],
+)
 def cmd_clear(_args: str, _root: str) -> str:
     return "__clear__"
 
 
-@nyx_command(name="status", description="Mostra estado da sessão")
+@nyx_command(
+    name="status",
+    description="Mostra estado da sessão (iterações, tokens, contexto)",
+    examples=["/status", "/status verbose"],
+)
 def cmd_status(_args: str, _root: str) -> str:
     return "__status__"
 
 
-@nyx_command(name="tools", description="Lista ferramentas (tools) disponíveis no agent", category="contexto")
+@nyx_command(
+    name="tools",
+    description="Lista ferramentas (tools) disponíveis no agent",
+    category="contexto",
+    examples=["/tools", "/tools git", "/tools read"],
+)
 def cmd_tools(args: str, project_root: str) -> str:
     from nyx.agent.tools.registry import ToolRegistry
 
@@ -52,7 +89,12 @@ def cmd_tools(args: str, project_root: str) -> str:
     return "\n".join(lines)
 
 
-@nyx_command(name="memory", description="Lista memórias persistentes do projeto", category="contexto")
+@nyx_command(
+    name="memory",
+    description="Lista memórias persistentes do projeto",
+    category="contexto",
+    examples=["/memory", "/memory show nyx_overview"],
+)
 def cmd_memory(args: str, project_root: str) -> str:
     from nyx.agent.memory import NyxMemory
 
@@ -87,6 +129,7 @@ def cmd_memory(args: str, project_root: str) -> str:
     description="Busca textual nas memórias do projeto (/recall <termo>)",
     category="memória",
     aliases=["rec"],
+    examples=["/recall pyenv", "/recall sessão", "/recall ADR"],
 )
 def cmd_recall(args: str, project_root: str) -> str:
     from nyx.agent.memory import NyxMemory
@@ -128,7 +171,12 @@ def cmd_recall(args: str, project_root: str) -> str:
     return "\n".join(resultados)
 
 
-@nyx_command(name="paste", description="Lista imagens coladas na sessão (Ctrl+V)", category="contexto")
+@nyx_command(
+    name="paste",
+    description="Lista imagens coladas na sessão (Ctrl+V)",
+    category="contexto",
+    examples=["/paste", "/paste limpar"],
+)
 def cmd_paste(_args: str, _project_root: str) -> str:
     pastes = Path.home() / ".nyx" / "pastes"
     if not pastes.exists():

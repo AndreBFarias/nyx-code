@@ -5,12 +5,16 @@ from __future__ import annotations
 from nyx.agent.commands._registry import nyx_command
 
 
-@nyx_command(name="context", description="Mostra uso do contexto", aliases=["ctx"], category="sessão")
+@nyx_command(name="context", description="Mostra uso do contexto", aliases=["ctx"], category="sessão",
+    examples=['/context', '/ctx'],
+)
 def cmd_context(_args: str, _root: str) -> str:
     return "__context__"
 
 
-@nyx_command(name="session", description="Gerencia sessões salvas", aliases=["sess"], category="sessão")
+@nyx_command(name="session", description="Gerencia sessões salvas", aliases=["sess"], category="sessão",
+    examples=['/session list', '/session save', '/session load'],
+)
 def cmd_session(action: str, _root: str) -> str:
     from nyx.agent.persistence import SESSIONS_DIR, load_latest_session
 
@@ -53,7 +57,9 @@ def cmd_session(action: str, _root: str) -> str:
     )
 
 
-@nyx_command(name="rewind", description="Desfaz últimas N ações do agent", category="sessão")
+@nyx_command(name="rewind", description="Desfaz últimas N ações do agent", category="sessão",
+    examples=['/rewind 1', '/rewind 5'],
+)
 def cmd_rewind(args: str, _root: str) -> str:
     n = 1
     if args.strip().isdigit():
@@ -65,6 +71,7 @@ def cmd_rewind(args: str, _root: str) -> str:
     name="resume",
     description="Retoma sessão (sem arg = última, /resume list, /resume <prefixo>)",
     category="sessão",
+    examples=["/resume", "/resume list", "/resume a3f2"],
 )
 def cmd_resume(args: str, _root: str) -> str:
     """SESSION-RESUME-01: três modos.
@@ -82,7 +89,12 @@ def cmd_resume(args: str, _root: str) -> str:
     return f"__session_load_id__{arg}"
 
 
-@nyx_command(name="replay", description="Re-renderiza sessão salva (read-only, sem chamar modelo)", category="sessão")
+@nyx_command(
+    name="replay",
+    description="Re-renderiza sessão salva (read-only, sem chamar modelo)",
+    category="sessão",
+    examples=["/replay session_2026-05-17_123", "/replay last"],
+)
 def cmd_replay(args: str, _root: str) -> str:
     args = args.strip()
     if not args:
@@ -93,17 +105,23 @@ def cmd_replay(args: str, _root: str) -> str:
     return f"__replay__{args}"
 
 
-@nyx_command(name="export", description="Exporta sessão para arquivo", category="sessão")
+@nyx_command(name="export", description="Exporta sessão para arquivo", category="sessão",
+    examples=['/export md', '/export txt'],
+)
 def cmd_export(args: str, _root: str) -> str:
     return "__export__" + (args.strip() or "md")
 
 
-@nyx_command(name="copy", description="Copia último output para clipboard", category="sessão")
+@nyx_command(name="copy", description="Copia último output para clipboard", category="sessão",
+    examples=['/copy', '/copy last'],
+)
 def cmd_copy(_args: str, _root: str) -> str:
     return "__copy__"
 
 
-@nyx_command(name="summary", description="Gera resumo da sessão", category="sessão")
+@nyx_command(name="summary", description="Gera resumo da sessão", category="sessão",
+    examples=['/summary', '/summary detalhado'],
+)
 def cmd_summary(_args: str, _root: str) -> str:
     return (
         "Gere um resumo do trabalho realizado nesta sessão.\n"
@@ -116,27 +134,37 @@ def cmd_summary(_args: str, _root: str) -> str:
     )
 
 
-@nyx_command(name="stats", description="Estatísticas detalhadas da sessão", category="sessão")
+@nyx_command(name="stats", description="Estatísticas detalhadas da sessão", category="sessão",
+    examples=['/stats', '/stats verbose'],
+)
 def cmd_stats(_args: str, _root: str) -> str:
     return "__stats__"
 
 
-@nyx_command(name="usage", description="Uso de tokens e contexto", category="sessão")
+@nyx_command(name="usage", description="Uso de tokens e contexto", category="sessão",
+    examples=['/usage', '/usage tokens'],
+)
 def cmd_usage(_args: str, _root: str) -> str:
     return "__usage__"
 
 
-@nyx_command(name="files", description="Mostra arquivos no contexto", category="execução")
+@nyx_command(name="files", description="Mostra arquivos no contexto", category="execução",
+    examples=['/files', '/files diff'],
+)
 def cmd_files(_args: str, _root: str) -> str:
     return "__files__"
 
 
-@nyx_command(name="trace", description="Trace de execução do agent loop", category="debug")
+@nyx_command(name="trace", description="Trace de execução do agent loop", category="debug",
+    examples=['/trace', '/trace 10'],
+)
 def cmd_trace(_args: str, _root: str) -> str:
     return "__trace__"
 
 
-@nyx_command(name="btw", description="Nota lateral para o agent", category="avançado")
+@nyx_command(name="btw", description="Nota lateral para o agent", category="avançado",
+    examples=['/btw lembrar de revisar este teste', '/btw decisão sobre cache'],
+)
 def cmd_btw(args: str, _root: str) -> str:
     note = args.strip()
     if not note:

@@ -31,7 +31,12 @@ from nyx.config.defaults import (
 logger = get_logger("nyx.commands")
 
 
-@nyx_command(name="config", description="Mostra ou edita configuração (use /config setup para wizard)", category="sistema")
+@nyx_command(
+    name="config",
+    description="Mostra ou edita configuração (use /config setup para wizard)",
+    category="sistema",
+    examples=["/config", "/config setup", "/config NYX_MODEL"],
+)
 def cmd_config(args: str, project_root: str) -> str:
     args = args.strip()
     if args == "setup":
@@ -63,7 +68,12 @@ def cmd_config(args: str, project_root: str) -> str:
     return f"  Configuração via env: export {parts[0].upper()}={parts[1]}"
 
 
-@nyx_command(name="env", description="Mostra variáveis de ambiente relevantes", category="sistema")
+@nyx_command(
+    name="env",
+    description="Mostra variáveis de ambiente relevantes",
+    category="sistema",
+    examples=["/env", "/env NYX"],
+)
 def cmd_env(_args: str, _root: str) -> str:
     prefixes = ("OPENAI_", "NYX_", "OLLAMA_", "ANTHROPIC_API")
     lines = ["  Variáveis de ambiente:"]
@@ -76,7 +86,13 @@ def cmd_env(_args: str, _root: str) -> str:
     return "\n".join(lines)
 
 
-@nyx_command(name="doctor", description="Diagnóstico do sistema", aliases=["dr"], category="sistema")
+@nyx_command(
+    name="doctor",
+    description="Diagnóstico do sistema (Ollama, proxy, GPU, venv)",
+    aliases=["dr"],
+    category="sistema",
+    examples=["/doctor", "/dr"],
+)
 def cmd_doctor(_args: str, project_root: str) -> str:
     checks: list[str] = []
 
@@ -127,7 +143,13 @@ def cmd_doctor(_args: str, project_root: str) -> str:
     return "Diagnóstico Nyx:\n" + "\n".join(f"  {c}" for c in checks)
 
 
-@nyx_command(name="version", description="Mostra versão do Nyx", category="projeto", aliases=["v"])
+@nyx_command(
+    name="version",
+    description="Mostra versão do Nyx",
+    category="projeto",
+    aliases=["v"],
+    examples=["/version", "/v"],
+)
 def cmd_version(_args: str, _root: str) -> str:
     from nyx.__version__ import __version__
 
@@ -142,7 +164,13 @@ def cmd_version(_args: str, _root: str) -> str:
     )
 
 
-@nyx_command(name="model", description="Mostra ou troca o modelo", aliases=["m"], category="sistema")
+@nyx_command(
+    name="model",
+    description="Mostra ou troca o modelo em runtime",
+    aliases=["m"],
+    category="sistema",
+    examples=["/model", "/model qwen2.5-coder:7b", "/m llama3.2:3b"],
+)
 def cmd_model(model_name: str, _root: str) -> str:
     if not model_name.strip():
         current = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", _DEFAULT_MODEL))
@@ -150,7 +178,12 @@ def cmd_model(model_name: str, _root: str) -> str:
     return f"__model__{model_name.strip()}"
 
 
-@nyx_command(name="theme", description="Lista ou troca tema de cores", category="sistema")
+@nyx_command(
+    name="theme",
+    description="Lista ou troca tema de cores",
+    category="sistema",
+    examples=["/theme", "/theme nyx", "/theme dracula"],
+)
 def cmd_theme(args: str, _root: str) -> str:
     try:
         from nyx.themes import ThemeManager
@@ -184,7 +217,13 @@ def cmd_theme(args: str, _root: str) -> str:
         )
 
 
-@nyx_command(name="permissions", description="Mostra permissões por tool", aliases=["perms"], category="sistema")
+@nyx_command(
+    name="permissions",
+    description="Mostra permissões por tool",
+    aliases=["perms"],
+    category="sistema",
+    examples=["/permissions", "/perms"],
+)
 def cmd_permissions(_args: str, _root: str) -> str:
     from nyx.agent.permissions import PermissionChecker
 
@@ -216,7 +255,12 @@ def cmd_permissions(_args: str, _root: str) -> str:
     return "\n".join(lines)
 
 
-@nyx_command(name="hooks", description="Lista hooks registrados", category="sistema")
+@nyx_command(
+    name="hooks",
+    description="Lista hooks registrados (pre/post tool)",
+    category="sistema",
+    examples=["/hooks", "/hooks pre"],
+)
 def cmd_hooks(_args: str, _root: str) -> str:
     return (
         "  Hooks são registrados via ToolRegistry.\n"
@@ -226,7 +270,12 @@ def cmd_hooks(_args: str, _root: str) -> str:
     )
 
 
-@nyx_command(name="init", description="Inicializa projeto Nyx", category="projeto")
+@nyx_command(
+    name="init",
+    description="Inicializa estrutura ~/.nyx/ (memory, sessions, logs)",
+    category="projeto",
+    examples=["/init", "/init reset"],
+)
 def cmd_init(_args: str, project_root: str) -> str:
     nyx_dir = Path.home() / ".nyx"
     dirs = [nyx_dir, nyx_dir / "memory", nyx_dir / "sessions", nyx_dir / "logs", nyx_dir / "analytics"]
@@ -240,7 +289,12 @@ def cmd_init(_args: str, project_root: str) -> str:
     return "  Nyx já inicializado. Diretórios existem."
 
 
-@nyx_command(name="add-dir", description="Adiciona diretório ao contexto do agent", category="projeto")
+@nyx_command(
+    name="add-dir",
+    description="Adiciona diretório ao contexto do agent",
+    category="projeto",
+    examples=["/add-dir nyx/agent", "/add-dir dev-journey"],
+)
 def cmd_add_dir(args: str, project_root: str) -> str:
     target = args.strip()
     if not target:
@@ -261,7 +315,12 @@ def cmd_add_dir(args: str, project_root: str) -> str:
     )
 
 
-@nyx_command(name="tune", description="Re-calcula num_gpu via VRAM atual", category="sistema")
+@nyx_command(
+    name="tune",
+    description="Re-calcula num_gpu via VRAM atual (PROXY-NUMGPU-RUNTIME-01)",
+    category="sistema",
+    examples=["/tune", "/tune force"],
+)
 def cmd_tune(_args: str, _root: str) -> str:
     """PROXY-NUMGPU-RUNTIME-01: dispara GET /admin/tune (loopback) e mostra
     o resultado em PT-BR. Útil quando a VRAM mudou durante a sessão (usuário
@@ -320,7 +379,12 @@ def cmd_tune(_args: str, _root: str) -> str:
     )
 
 
-@nyx_command(name="break-cache", description="Limpa caches internos", category="debug")
+@nyx_command(
+    name="break-cache",
+    description="Limpa caches internos e sessões salvas em ~/.nyx/sessions",
+    category="debug",
+    examples=["/break-cache", "/break-cache --force"],
+)
 def cmd_break_cache(_args: str, _root: str) -> str:
     sessions_dir = Path.home() / ".nyx" / "sessions"
     removed = 0

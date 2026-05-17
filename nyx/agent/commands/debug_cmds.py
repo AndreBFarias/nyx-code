@@ -10,7 +10,12 @@ from nyx.agent.commands._registry import nyx_command
 _IMAGE_INDEX_PATH = Path.home() / ".nyx" / "image_index.json"
 
 
-@nyx_command(name="vision", description="Mostra descrição da imagem N (ex.: /vision 1)", category="contexto")
+@nyx_command(
+    name="vision",
+    description="Mostra descrição da imagem N (ex.: /vision 1)",
+    category="contexto",
+    examples=["/vision 1", "/vision 2"],
+)
 def cmd_vision(args: str, _project_root: str) -> str:
     """Retorna descrição cacheada da imagem N (VISION-02).
 
@@ -41,7 +46,9 @@ def cmd_vision(args: str, _project_root: str) -> str:
     return f"  [imagem #{n}] {desc}\n  path: {path_str}"
 
 
-@nyx_command(name="insights", description="Insights do projeto", category="root")
+@nyx_command(name="insights", description="Insights do projeto", category="root",
+    examples=['/insights', '/insights ultimos 7 dias'],
+)
 def cmd_insights(args: str, project_root: str) -> str:
     return (
         "Gere insights sobre o projeto. Passos:\n"
@@ -53,7 +60,9 @@ def cmd_insights(args: str, project_root: str) -> str:
     )
 
 
-@nyx_command(name="advisor", description="Conselheiro de código", category="root")
+@nyx_command(name="advisor", description="Conselheiro de código", category="root",
+    examples=['/advisor', '/advisor nyx/cli.py'],
+)
 def cmd_advisor(args: str, project_root: str) -> str:
     target = args.strip() or "."
     return (
@@ -65,7 +74,9 @@ def cmd_advisor(args: str, project_root: str) -> str:
     )
 
 
-@nyx_command(name="security-review", description="Review de segurança", category="root")
+@nyx_command(name="security-review", description="Review de segurança", category="root",
+    examples=['/security-review', '/security-review nyx/proxy.py'],
+)
 def cmd_security_review(args: str, project_root: str) -> str:
     target = args.strip() or "."
     return (
@@ -78,12 +89,19 @@ def cmd_security_review(args: str, project_root: str) -> str:
     )
 
 
-@nyx_command(name="ctx-viz", description="Visualização do contexto", category="debug")
+@nyx_command(name="ctx-viz", description="Visualização do contexto", category="debug",
+    examples=['/ctx-viz', '/ctx-viz expandido'],
+)
 def cmd_ctx_viz(_args: str, _root: str) -> str:
     return "__context__"
 
 
-@nyx_command(name="debug", description="Debug da sessão (subcomando: session)", category="debug")
+@nyx_command(
+    name="debug",
+    description="Debug da sessão (subcomando: session)",
+    category="debug",
+    examples=["/debug session", "/debug"],
+)
 def cmd_debug(args: str, _root: str) -> str:
     sub = args.strip().lower()
     if sub == "session":
@@ -94,7 +112,9 @@ def cmd_debug(args: str, _root: str) -> str:
     )
 
 
-@nyx_command(name="tasks", description="Gerencia tarefas", category="execução")
+@nyx_command(name="tasks", description="Gerencia tarefas", category="execução",
+    examples=['/tasks', '/tasks list', '/tasks add revisar testes'],
+)
 def cmd_tasks(args: str, project_root: str) -> str:
     from nyx.agent.tools.task_manager import TaskCreateTool, TaskListTool, TaskUpdateTool
 
@@ -123,7 +143,9 @@ def cmd_tasks(args: str, project_root: str) -> str:
     )
 
 
-@nyx_command(name="skills", description="Lista skills disponíveis", category="execução")
+@nyx_command(name="skills", description="Lista skills disponíveis", category="execução",
+    examples=['/skills', '/skills list'],
+)
 def cmd_skills(_args: str, _root: str) -> str:
     from nyx.agent.tools.skill_tool import _list_skills
 

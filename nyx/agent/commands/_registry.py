@@ -22,16 +22,34 @@ class CommandDef:
     handler: Any
     aliases: list[str] = field(default_factory=list)
     category: str = "geral"
+    examples: list[str] = field(default_factory=list)  # HELP-EXAMPLES-01
 
 
 _COMMANDS: dict[str, CommandDef] = {}
 
 
-def nyx_command(name: str, description: str, aliases: list[str] | None = None, category: str = "geral"):
-    """Decorador para registrar um comando."""
+def nyx_command(
+    name: str,
+    description: str,
+    aliases: list[str] | None = None,
+    category: str = "geral",
+    examples: list[str] | None = None,
+):
+    """Decorador para registrar um comando.
+
+    HELP-EXAMPLES-01: ``examples`` armazena 2-3 exemplos de uso reais,
+    consumidos por ``cmd_help <nome>``.
+    """
 
     def decorator(func: Any) -> Any:
-        cmd = CommandDef(name=name, description=description, handler=func, aliases=aliases or [], category=category)
+        cmd = CommandDef(
+            name=name,
+            description=description,
+            handler=func,
+            aliases=aliases or [],
+            category=category,
+            examples=examples or [],
+        )
         _COMMANDS[name] = cmd
         for alias in cmd.aliases:
             _COMMANDS[alias] = cmd

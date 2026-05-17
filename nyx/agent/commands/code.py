@@ -7,7 +7,9 @@ from pathlib import Path
 from nyx.agent.commands._registry import nyx_command
 
 
-@nyx_command(name="explain", description="Analisa e explica um arquivo", aliases=["exp"], category="código")
+@nyx_command(name="explain", description="Analisa e explica um arquivo", aliases=["exp"], category="código",
+    examples=['/explain nyx/cli.py', '/explain nyx/agent/loop'],
+)
 def cmd_explain(file_path: str, project_root: str) -> str:
     full = Path(project_root) / file_path.strip()
     if not full.exists():
@@ -26,7 +28,9 @@ def cmd_explain(file_path: str, project_root: str) -> str:
     )
 
 
-@nyx_command(name="plan", description="Cria plano de implementação", category="código")
+@nyx_command(name="plan", description="Cria plano de implementação", category="código",
+    examples=['/plan refactor do parser', '/plan adicionar fase ao gauntlet'],
+)
 def cmd_plan(description: str, _root: str) -> str:
     return (
         f"Crie um plano de implementação para: {description}\n"
@@ -42,7 +46,9 @@ def cmd_plan(description: str, _root: str) -> str:
     )
 
 
-@nyx_command(name="test", description="Gera testes para um arquivo", aliases=["tst"], category="código")
+@nyx_command(name="test", description="Gera testes para um arquivo", aliases=["tst"], category="código",
+    examples=['/test', '/test nyx/cli.py', '/test --only rapido'],
+)
 def cmd_test(file_path: str, project_root: str) -> str:
     full = Path(project_root) / file_path.strip()
     if not full.exists():
@@ -63,7 +69,9 @@ def cmd_test(file_path: str, project_root: str) -> str:
     )
 
 
-@nyx_command(name="compact", description="Resume o que foi feito na sessão", category="sessão")
+@nyx_command(name="compact", description="Resume o que foi feito na sessão", category="sessão",
+    examples=['/compact', '/compact 5'],
+)
 def cmd_compact(history_summary: str, _root: str) -> str:
     return (
         "Resuma o trabalho realizado até agora.\n"
@@ -75,7 +83,9 @@ def cmd_compact(history_summary: str, _root: str) -> str:
     )
 
 
-@nyx_command(name="brief-cmd", description="Resumo rápido da sessão", category="root")
+@nyx_command(name="brief-cmd", description="Resumo rápido da sessão", category="root",
+    examples=['/brief-cmd', '/brief-cmd nyx/cli.py'],
+)
 def cmd_brief_cmd(_args: str, _root: str) -> str:
     return (
         "Gere um resumo em no máximo 3 linhas do trabalho realizado.\n"
