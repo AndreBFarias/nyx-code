@@ -75,7 +75,7 @@ sprint:
 **Status:** CONCLUIDA
 **Data criação:** 2026-05-16
 **Data conclusão:** 2026-05-17
-**Hash:** (a preencher pós-commit)
+**Hash:** 7f63685
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 **Origem:** achado colateral de PERF-INFERENCE-01. Inicialmente BLOQUEADA após Qwen3-Thinking-2507 reprovar runtime (19% PT-BR rate). Destravada por MODEL-SWAP-01 (a238b79) que trocou modelo padrão para qwen2.5-coder:3b.
 **Resultado:** lang_pt_br_rate = **100%** (21/21) nas 7 perguntas-tipo (3 amostras cada). Implementação em 3 camadas: (1) `nyx/agent/lang_check.py` detector rule-based com acentos exclusivos PT-BR (`ã`, `õ`, `ç`) + markers EN/IT/ES/FR; (2) prompt reforçado "RESPONDA SEMPRE EM PORTUGUÊS BRASILEIRO" em `nyx/agent/prompt.py` (compact + full); (3) retry 1x no proxy quando intent=saudacao/chat/comando e content não-PT. Cap em 1 retry para não explodir P50.
