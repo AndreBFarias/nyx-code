@@ -48,7 +48,7 @@ sprint:
 **Status:** CONCLUIDA
 **Data criação:** 2026-04-18
 **Data conclusão:** 2026-05-17
-**Hash:** (a preencher pós-commit)
+**Hash:** 14e96aa
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 **Resultado:** Console singleton via _get_console() lazy + memory.index() cacheado (invalidação em write) + Analytics migrado para warmup task pós-banner + summarize_task tracked/cancelado no shutdown + shutdown ordenado via asyncio.all_tasks. Mediana time-to-prompt 0.383s (target 1.5s, 4x folga). Gauntlet rapido 18/18 + p7_tui 2/2 + interface 5/5. +100L em 4 arquivos.
 
