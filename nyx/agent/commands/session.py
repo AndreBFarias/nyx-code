@@ -61,9 +61,25 @@ def cmd_rewind(args: str, _root: str) -> str:
     return f"__rewind__{n}"
 
 
-@nyx_command(name="resume", description="Restaura sessão anterior", category="sessão")
-def cmd_resume(_args: str, _root: str) -> str:
-    return "__session_load__"
+@nyx_command(
+    name="resume",
+    description="Retoma sessão (sem arg = última, /resume list, /resume <prefixo>)",
+    category="sessão",
+)
+def cmd_resume(args: str, _root: str) -> str:
+    """SESSION-RESUME-01: três modos.
+
+    Sentinelas:
+      __session_load__              - última sessão (comportamento original)
+      __session_load_id__<id>       - sessão por prefixo de id
+      __session_index__             - imprime índice tabular
+    """
+    arg = args.strip()
+    if not arg:
+        return "__session_load__"
+    if arg == "list":
+        return "__session_index__"
+    return f"__session_load_id__{arg}"
 
 
 @nyx_command(name="replay", description="Re-renderiza sessão salva (read-only, sem chamar modelo)", category="sessão")

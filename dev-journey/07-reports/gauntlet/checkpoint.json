@@ -1,36 +1,36 @@
 {
-  "timestamp": "2026-05-17T20:21:01.363683",
+  "timestamp": "2026-05-17T20:28:08.285560",
   "model": "qwen2.5-coder:3b",
   "phases_done": [],
   "results": [
     {
-      "feature_id": "V-VS-01",
-      "name": "VisionService importa e instancia",
-      "phase": "vision",
+      "feature_id": "S-01",
+      "name": "persistence imports + schema v1",
+      "phase": "sessao",
       "passed": true,
       "elapsed_s": 0.0,
       "tokens": 0,
-      "details": "",
+      "details": "schema_version=1",
       "error": ""
     },
     {
-      "feature_id": "V-VS-02",
-      "name": "is_available() sem crash",
-      "phase": "vision",
+      "feature_id": "S-02",
+      "name": "save_session atualiza index com n_turnos=2",
+      "phase": "sessao",
       "passed": true,
-      "elapsed_s": 0.05,
+      "elapsed_s": 0.0,
       "tokens": 0,
-      "details": "available=False",
+      "details": "entries=1 last={'id': 'session___gauntlet_1779060488', 'ts_inicio': 1779060488, 'ts_fim': 1779060488, 'primeiro_prompt': 'gauntlet test prompt', 'n_turnos': 2, 'projeto': '__gauntlet'}",
       "error": ""
     },
     {
-      "feature_id": "V-VS-03",
-      "name": "describe + cache (skip: moondream ausente)",
-      "phase": "vision",
+      "feature_id": "S-03",
+      "name": "load_session_by_id por prefixo restaura history",
+      "phase": "sessao",
       "passed": true,
-      "elapsed_s": 0,
+      "elapsed_s": 0.0,
       "tokens": 0,
-      "details": "skip: moondream nao instalado; sprint validada via testes 1-2",
+      "details": "prefix='session___gauntlet_1' entries_restored=3",
       "error": ""
     }
   ],

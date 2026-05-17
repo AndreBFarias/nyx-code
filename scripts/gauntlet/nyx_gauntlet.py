@@ -111,6 +111,7 @@ PHASE_GROUPS: dict[str, list[str]] = {
     "p11_infra": ["p11_infra"],
     "p11": ["p11_infra"],
     "vision": ["vision"],
+    "sessao": ["sessao"],
     "contexto": ["contexto"],
     "rapido": ["infra", "proxy", "visual", "config"],
     "port": ["parser", "robustez", "interface", "controle", "persistencia"],
@@ -226,6 +227,7 @@ PHASE_TIMEOUTS: dict[str, int] = {
     "p10_root": 30,
     "p11_infra": 30,
     "vision": 90,
+    "sessao": 60,
     "contexto": 180,
 }
 
@@ -735,6 +737,78 @@ class NyxGauntlet:
     # ═══════════════════════════════════════════════════════════════════
     # FASE: VISUAL (3 testes)
     # ═══════════════════════════════════════════════════════════════════
+
+    # ═══════════════════════════════════════════════════════════════════
+    # FASE: SESSAO (3 testes -- SESSION-RESUME-01)
+    # ═══════════════════════════════════════════════════════════════════
+
+    async def _phase_sessao(self) -> None:
+        import tempfile
+
+        t = time.monotonic()
+        try:
+            from nyx.agent.persistence import (
+                INDEX_SCHEMA_VERSION,
+                load_index,
+                load_session_by_id,
+                save_session,
+            )
+            from nyx.agent.session import CodeSession, HistoryEntry
+        except Exception as e:
+            self._add("S-01", "persistence imports", "sessao", False, 0, error=str(e))
+            return
+        self._add(
+            "S-01",
+            "persistence imports + schema v1",
+            "sessao",
+            INDEX_SCHEMA_VERSION == 1,
+            time.monotonic() - t,
+            details=f"schema_version={INDEX_SCHEMA_VERSION}",
+        )
+
+        with tempfile.TemporaryDirectory(prefix="nyx-gauntlet-sessao-"):
+            session = CodeSession()
+            session.history.append(HistoryEntry(role="user", content="gauntlet test prompt"))
+            session.history.append(HistoryEntry(role="assistant", content="ok"))
+            session.history.append(HistoryEntry(role="user", content="segunda pergunta"))
+
+            t = time.monotonic()
+            path = save_session(session, project_name="__gauntlet")
+            dt = time.monotonic() - t
+            if not path:
+                self._add("S-02", "save_session + index", "sessao", False, dt, error="save_session retornou None")
+                return
+            idx = load_index()
+            gauntlet_entries = [e for e in idx if e.get("projeto") == "__gauntlet"]
+            ok2 = bool(gauntlet_entries) and gauntlet_entries[-1].get("n_turnos") == 2
+            self._add(
+                "S-02",
+                "save_session atualiza index com n_turnos=2",
+                "sessao",
+                ok2,
+                dt,
+                details=f"entries={len(gauntlet_entries)} last={gauntlet_entries[-1] if gauntlet_entries else None}",
+            )
+
+            t = time.monotonic()
+            prefix = path.stem[:20]
+            reloaded = load_session_by_id(prefix)
+            dt = time.monotonic() - t
+            ok3 = reloaded is not None and len(reloaded.history) == 3
+            self._add(
+                "S-03",
+                "load_session_by_id por prefixo restaura history",
+                "sessao",
+                ok3,
+                dt,
+                details=f"prefix={prefix!r} entries_restored={len(reloaded.history) if reloaded else 0}",
+            )
+
+            # Cleanup: remove o arquivo gauntlet do disco real (não polui ~/.nyx)
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                pass
 
     # ═══════════════════════════════════════════════════════════════════
     # FASE: VISION (3 testes -- VISION-01, ADR-022)

@@ -150,7 +150,44 @@ if TYPE_CHECKING:
     from nyx.agent.services.vision_service import VisionService
 
 
-async def run_repl(streaming: bool = True) -> int:
+def maybe_offer_resume(agent: object, project_name: str = "") -> None:
+    """Oferece /resume no boot se TTL <48h e >=3 turnos (SESSION-RESUME-01).
+
+    Suprime prompt em pipe/CI (stdin não-tty), exceção, e sessões antigas.
+    """
+    import time as _time
+
+    from nyx.agent.persistence import load_index, load_session_by_id
+
+    if not sys.stdin.isatty():
+        return
+    idx = load_index()
+    if not idx:
+        return
+    last = idx[-1]
+    if project_name and last.get("projeto") and last["projeto"] != project_name:
+        return
+    age_s = _time.time() - last.get("ts_fim", 0)
+    if age_s > 48 * 3600 or last.get("n_turnos", 0) < 3:
+        return
+    preview = last.get("primeiro_prompt", "") or last.get("id", "")
+    try:
+        resp = input(f"Retomar última sessão ({preview[:60]})? [s/N] ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        return
+    if resp != "s":
+        return
+    loaded = load_session_by_id(last["id"])
+    if loaded:
+        agent._session = loaded  # type: ignore[attr-defined]
+        print(f"  {ACCENT}[ok]{NC} {len(loaded.history)} turnos anteriores restaurados")
+
+
+async def run_repl(
+    streaming: bool = True,
+    resume_id: str | None = None,
+    no_resume_prompt: bool = False,
+) -> int:
     from nyx.agent.commands import handle_command
     from nyx.agent.context import render_context_bar
     from nyx.agent.loop import AgentLoop
@@ -458,6 +495,25 @@ async def run_repl(streaming: bool = True) -> int:
 
     print(_build_banner(model, agent.tools_count, PROJECT_ROOT.name, settings=settings))
 
+    # SESSION-RESUME-01: --resume <id> ou prompt de retomada pós-banner.
+    if resume_id:
+        from nyx.agent.persistence import load_session_by_id
+
+        loaded = load_session_by_id(resume_id)
+        if loaded:
+            agent._session = loaded
+            print(
+                f"  {ACCENT}[ok]{NC} Sessão {resume_id} restaurada "
+                f"({len(loaded.history)} entradas)"
+            )
+        else:
+            _print_error(
+                f"--resume '{resume_id}' não encontrou sessão única.",
+                hint="Use /resume list após o boot para ver os ids disponíveis.",
+            )
+    elif not no_resume_prompt:
+        maybe_offer_resume(agent, project_name=PROJECT_ROOT.name)
+
     # UX-BUG-02C + UX-BUG-03: warm-up pós-banner em task. Inclui agora
     # também Analytics() (que era síncrono pré-banner). cleanup_old_sessions
     # e Analytics são file I/O pequenos; memory.index() é cacheado lazy
@@ -613,6 +669,44 @@ async def run_repl(streaming: bool = True) -> int:
                         "Nenhuma sessão salva para restaurar.",
                         hint="Use /quit para salvar esta sessão e rode novamente para carregá-la.",
                     )
+                continue
+
+            if isinstance(result, str) and result.startswith("__session_load_id__"):
+                # SESSION-RESUME-01: /resume <prefixo>
+                prefix = result[len("__session_load_id__"):]
+                from nyx.agent.persistence import load_session_by_id
+
+                loaded = load_session_by_id(prefix)
+                if loaded:
+                    agent._session = loaded
+                    print(
+                        f"  {ACCENT}[ok]{NC} Sessão {prefix} restaurada "
+                        f"({len(loaded.history)} entradas)"
+                    )
+                else:
+                    _print_error(
+                        f"Nenhuma sessão única casa com '{prefix}'.",
+                        hint="Use /resume list para ver todas, depois /resume <prefixo único>.",
+                    )
+                continue
+
+            if result == "__session_index__":
+                # SESSION-RESUME-01: /resume list
+                from nyx.agent.persistence import load_index
+
+                idx = load_index()
+                if not idx:
+                    _print_error(
+                        "Nenhuma sessão indexada.",
+                        hint="Saia com /quit para gerar a primeira entrada do índice.",
+                    )
+                    continue
+                print(f"  {len(idx)} sessões no índice (mais recentes embaixo):")
+                for entry in idx[-20:]:
+                    sid = entry.get("id", "?")
+                    prompt_preview = entry.get("primeiro_prompt", "")[:60]
+                    n = entry.get("n_turnos", 0)
+                    print(f"    {ACCENT}{sid[:32]:<32}{NC}  {n:>2} turnos  {DIM}{prompt_preview}{NC}")
                 continue
 
             if isinstance(result, str) and result.startswith("__model__"):
@@ -1057,6 +1151,17 @@ def main() -> None:
         action="store_true",
         help="Prova que imports resolvem (imprime 'boot ok' e sai).",
     )
+    parser.add_argument(
+        "--resume",
+        metavar="ID",
+        default=None,
+        help="Retoma sessão por id ou prefixo único (SESSION-RESUME-01).",
+    )
+    parser.add_argument(
+        "--no-resume-prompt",
+        action="store_true",
+        help="Suprime o prompt 'Retomar última sessão?' no boot.",
+    )
     args = parser.parse_args()
 
     if args.smoke:
@@ -1066,7 +1171,15 @@ def main() -> None:
     if args.headless:
         sys.exit(asyncio.run(run_headless()))
     else:
-        sys.exit(asyncio.run(run_repl(streaming=not args.no_stream)))
+        sys.exit(
+            asyncio.run(
+                run_repl(
+                    streaming=not args.no_stream,
+                    resume_id=args.resume,
+                    no_resume_prompt=args.no_resume_prompt,
+                )
+            )
+        )
 
 
 if __name__ == "__main__":

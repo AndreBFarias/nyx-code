@@ -1,15 +1,15 @@
-# Executar próxima sprint — SESSION-RESUME-01
+# Executar próxima sprint — DEPLOY-01A
 
 > **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
 > Copie o bloco abaixo e cole em uma session nova de Claude Opus 4.7.
-> Restam **31** sprints PENDENTE(S) na fila.
+> Restam **30** sprints PENDENTE(S) na fila.
 
 ---
 
 ## Prompt para colar na session
 
 ```
-Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_SESSION_RESUME_01.md.
+Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_DEPLOY_01A.md.
 
 Modelo obrigatório: claude-opus-4-7 (sem subagentes).
 Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambiarra):
@@ -27,10 +27,10 @@ Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambi
 10. Após CONCLUIDA: commit atômico, move sprint file para concluidos/, roda `python scripts/update_next_sprint.py` para atualizar este arquivo.
 
 Se qualquer passo falhar, reporte:
-    [SPRINT SESSION-RESUME-01] BLOQUEADA: <motivo objetivo>
+    [SPRINT DEPLOY-01A] BLOQUEADA: <motivo objetivo>
 
-ID desta sprint: SESSION-RESUME-01
-Arquivo: dev-journey/06-sprints/producao/SPRINT_SESSION_RESUME_01.md
+ID desta sprint: DEPLOY-01A
+Arquivo: dev-journey/06-sprints/producao/SPRINT_DEPLOY_01A.md
 ```
 
 ---
@@ -39,9 +39,9 @@ Arquivo: dev-journey/06-sprints/producao/SPRINT_SESSION_RESUME_01.md
 
 ## Gambiarras específicas (recorte auto-injetado)
 
-> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §SESSION-RESUME-01. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
+> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §DEPLOY-01A. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
 
-(seção específica para SESSION-RESUME-01 não encontrada em GAMBIARRAS_POR_SPRINT.md; ler catálogo universal e matriz geral)
+(seção específica para DEPLOY-01A não encontrada em GAMBIARRAS_POR_SPRINT.md; ler catálogo universal e matriz geral)
 
 <!-- /GAMBIARRAS_INJECT -->
 
