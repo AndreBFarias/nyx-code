@@ -310,9 +310,9 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 53 | **DEPLOY-01B** | 7 Deploy | ALTA | CONCLUIDA (fase Gauntlet install em Docker ubuntu:22.04 real ADR-010; D-02 rc=0 em 61.5s com NYX_INSTALL_SKIP_PULL=1; README ## Instalação rápida com 5 flags e 4 distros; install.sh ganhou guard minimo NYX_INSTALL_SKIP_PULL) | DEPLOY-01A |
 | 54 | **DEPLOY-02** | 7 Deploy | ALTA | PENDENTE | DEPLOY-01B |
 | 55 | **ONBOARDING-01** | 7b Onboarding | MÉDIA | CONCLUIDA (onboarding.py com 5 steps + timeout 60s SIGALRM + auto-skip em pipe; --skip-onboarding flag; /config setup wizard interativo grava ~/.nyx/config.toml com backup atomico; settings.py precedencia env > toml > defaults) | SESSION-RESUME-01, HELP-EXAMPLES-01 |
-| 56 | **HELP-EXAMPLES-01** | 8 Extra | BAIXA | PENDENTE | UX-BUG-01 |
-| 57 | **UX-EXTRA-01** | 8 Extra | BAIXA | PENDENTE | UX-BUG-01 |
-| 58 | **VALIDATE-FINAL-01** | 9 Release | CRÍTICA | PENDENTE | UX-EXTRA-01, DEPLOY-02, ONBOARDING-01, VISION-03, DOC-CONSOLIDATE-01 |
+| 56 | **HELP-EXAMPLES-01** | 8 Extra | BAIXA | CONCLUIDA (54/54 commands com 2-3 examples; audit_help_coverage.py; /help <cmd> renderiza descricao+exemplos+aliases com fallback fuzzy) | UX-BUG-01 |
+| 57 | **UX-EXTRA-01** | 8 Extra | BAIXA | CONCLUIDA (Ctrl+Up recall via keybinding; /edit /e em session.py; app_state["prefill"] alimenta prompt_async default=; absorve O-09) | UX-BUG-01 |
+| 58 | **VALIDATE-FINAL-01** | 9 Release | CRÍTICA | BLOQUEADA (aguarda DOC-CONSOLIDATE-01 + execução humana: 30 screenshots paridade, 47 commands manuais, 5 runs benchmark, install em VM Docker Ubuntu 22.04, 34 tools em fluxo natural) | UX-EXTRA-01, DEPLOY-02, ONBOARDING-01, VISION-03, DOC-CONSOLIDATE-01 |
 | 59 | **PRODUCAO-CLEANUP-01** | 2.10 Higiene | ALTA | CONCLUIDA (commit 767e871) | -- |
 | 60 | **INVENTORY-SYNC-01** | 2.10 Higiene | MÉDIA | CONCLUIDA (commit 3689081) | PRODUCAO-CLEANUP-01 |
 | 61 | **COMPLETER-SEPS-01** | 5 Bugs | MÉDIA | CONCLUIDA (commit 920b3e6) | UX-BUG-01 |
