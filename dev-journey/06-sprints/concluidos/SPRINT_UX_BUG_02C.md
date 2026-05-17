@@ -60,7 +60,7 @@ sprint:
 **Status:** CONCLUIDA
 **Data criação:** 2026-04-19
 **Data conclusão:** 2026-05-17
-**Hash:** (a preencher pós-commit)
+**Hash:** 3b8f91d
 **Origem:** divisão de UX-BUG-02. Esta sprint aplica o fix identificado em 02A.
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 **Resultado:** H2 (warmup sem indicador) e H1 (race de stdin) resolvidos. Cleanup + memory.index migrados para asyncio.create_task(_warmup()) pós-banner. termios.tcflush(stdin, TCIFLUSH) antes do primeiro prompt_async (guard sys.stdin.isatty()). repro_race_input.sh determinístico em 4 runs consecutivas. Gauntlet rapido 18/18 + p7 6/6 + interface 5/5. +32L em nyx/cli.py.
