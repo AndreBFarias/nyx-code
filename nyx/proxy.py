@@ -49,8 +49,12 @@ from nyx.config.defaults import PROXY_PORT as _DEFAULT_PROXY_PORT  # noqa: E402
 from nyx.config.defaults import model_supports_thinking as _model_supports_thinking  # noqa: E402
 
 OLLAMA_URL = _DEFAULT_OLLAMA_URL
-NUM_GPU = _DEFAULT_NUM_GPU
 NUM_CTX = _DEFAULT_NUM_CTX
+
+# PROXY-NUMGPU-RUNTIME-01: num_gpu deixa de ser módulo-global. Snapshot
+# inicial vai para app["num_gpu"] em _on_startup e pode ser re-tunado em
+# runtime via GET /admin/tune (loopback) sem reiniciar o proxy.
+_INITIAL_NUM_GPU = _DEFAULT_NUM_GPU
 
 # Graceful degradation: quando Ollama retorna OOM, cai pra CPU permanente
 # até o fim da sessão. Evita loop de retry e mantém o serviço vivo (ADR-001).
@@ -115,8 +119,11 @@ def _last_user_text(messages: list) -> str:
     return ""
 
 
-def openai_to_ollama(body: dict) -> tuple[dict, str]:
+def openai_to_ollama(body: dict, num_gpu: int) -> tuple[dict, str]:
     """Converte request OpenAI -> Ollama nativa.
+
+    `num_gpu` é injetado pelo caller (vem de ``request.app["state"]["num_gpu"]``)
+    para permitir re-tune em runtime via /admin/tune sem reiniciar o proxy.
 
     Retorna tupla (body_ollama, intent) para que o caller decida se aplica
     guardrail de idioma (LANG-ENFORCE-01).
@@ -151,7 +158,7 @@ def openai_to_ollama(body: dict) -> tuple[dict, str]:
         "stream": False,
         "keep_alive": _KEEP_ALIVE,
         "options": {
-            "num_gpu": NUM_GPU,
+            "num_gpu": num_gpu,
             "num_ctx": NUM_CTX,
         },
     }
@@ -310,14 +317,16 @@ async def _get_session(app: web.Application) -> ClientSession:
 
 
 async def handle_chat(request: web.Request) -> web.StreamResponse:
-    global _OOM_DEGRADED, NUM_GPU
+    global _OOM_DEGRADED
 
     body = await request.json()
     model = body.get("model", _DEFAULT_MODEL)
-    ollama_body, intent = openai_to_ollama(body)
+    state = request.app["state"]
+    num_gpu = state["num_gpu"]
+    ollama_body, intent = openai_to_ollama(body, num_gpu)
 
     n_tools = len(body.get("tools", []))
-    logger.info("-> model=%s tools=%d intent=%s", model, n_tools, intent)
+    logger.info("-> model=%s tools=%d intent=%s num_gpu=%d", model, n_tools, intent, num_gpu)
 
     session = await _get_session(request.app)
     async with session.post(f"{OLLAMA_URL}/api/chat", json=ollama_body) as ollama_resp:
@@ -327,7 +336,7 @@ async def handle_chat(request: web.Request) -> web.StreamResponse:
 
             if _is_oom_error(text) and not _OOM_DEGRADED:
                 _OOM_DEGRADED = True
-                NUM_GPU = 0
+                state["num_gpu"] = 0
                 logger.warning("OOM detectado. Degradando num_gpu=0 (CPU) para esta sessão")
                 ollama_body["options"]["num_gpu"] = 0
                 async with session.post(f"{OLLAMA_URL}/api/chat", json=ollama_body) as retry_resp:
@@ -463,9 +472,135 @@ async def handle_shutdown(request: web.Request) -> web.Response:
     return web.json_response({"status": "shutting_down"})
 
 
+# PROXY-NUMGPU-RUNTIME-01: re-tune proativo em runtime.
+# detect_gpu.py corre fora do event loop via asyncio.create_subprocess_exec
+# (argv separado, sem shell -- imune a injection). Loopback-only por ADR-001.
+_TUNE_MODEL_PATTERN = re.compile(r"^[A-Za-z0-9._:\-]{1,64}$")
+
+
+async def _detect_num_gpu_async(model: str = "qwen3:4b", timeout_s: float = 15.0) -> tuple[int | None, str]:
+    """Executa scripts/detect_gpu.py --for-model <model> em subprocess assíncrono.
+
+    Retorna (num_gpu | None, stderr_tail). num_gpu=None indica falha de parsing
+    ou timeout; caller decide manter snapshot atual. `model` é validado contra
+    regex restritiva antes de virar argv (defesa em profundidade, mesmo já
+    sendo argv-list).
+    """
+    if not _TUNE_MODEL_PATTERN.match(model):
+        return None, f"modelo inválido: {model[:40]}"
+    script = _PROJECT_ROOT / "scripts" / "detect_gpu.py"
+    proc = await asyncio.create_subprocess_exec(
+        sys.executable,
+        str(script),
+        "--for-model",
+        model,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    try:
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout_s)
+    except asyncio.TimeoutError:
+        proc.kill()
+        await proc.wait()
+        return None, "timeout"
+    stderr_text = stderr.decode("utf-8", errors="replace").strip()
+    if proc.returncode != 0:
+        return None, stderr_text[-200:]
+    raw = stdout.decode("utf-8", errors="replace").strip()
+    try:
+        return int(raw or "0"), stderr_text[-200:]
+    except ValueError:
+        return None, f"stdout não-inteiro: {raw[:80]}"
+
+
+def _parse_vram_free_mb(stderr_tail: str) -> int | None:
+    """Extrai vram_free do log do detect_gpu.py.
+
+    Formato esperado em stderr: ``... vram_free=3706MB ...``. Retorna None se
+    não casar (caller exibe 'desconhecido').
+    """
+    match = re.search(r"vram_free=(\d+)\s*MB", stderr_tail)
+    if not match:
+        return None
+    return int(match.group(1))
+
+
+async def handle_tune(request: web.Request) -> web.Response:
+    """Re-roda detect_gpu.py e atualiza app['num_gpu'] live (loopback-only).
+
+    Retorna JSON: ``{old_num_gpu, new_num_gpu, vram_free_mb, changed, oom_degraded}``.
+    Se OOM já degradou, num_gpu permanece 0 (não sobrescreve fail-safe) e
+    ``oom_degraded=true`` sinaliza ao caller que tune fica capado em 0.
+    """
+    remote = request.remote or ""
+    if remote not in _LOOPBACK_HOSTS:
+        logger.warning("tune rejeitado: remote=%s não-loopback", remote)
+        return web.json_response({"error": "loopback only"}, status=403)
+
+    model = request.query.get("model", "qwen3:4b")
+    new_value, stderr_tail = await _detect_num_gpu_async(model=model)
+    vram_free_mb = _parse_vram_free_mb(stderr_tail)
+    state = request.app["state"]
+    old = state["num_gpu"]
+
+    if new_value is None:
+        logger.warning("tune: detect_gpu falhou (%s); mantendo num_gpu=%d", stderr_tail[:80], old)
+        return web.json_response(
+            {
+                "old_num_gpu": old,
+                "new_num_gpu": old,
+                "vram_free_mb": vram_free_mb,
+                "changed": False,
+                "oom_degraded": _OOM_DEGRADED,
+                "error": "detect_gpu falhou",
+                "stderr": stderr_tail[:200],
+            },
+            status=500,
+        )
+
+    if _OOM_DEGRADED:
+        # Fail-safe vence: tune não reanima GPU após OOM nesta sessão.
+        logger.info("tune: OOM já degradou; preservando num_gpu=0 (sugerido seria %d)", new_value)
+        return web.json_response(
+            {
+                "old_num_gpu": old,
+                "new_num_gpu": old,
+                "vram_free_mb": vram_free_mb,
+                "changed": False,
+                "oom_degraded": True,
+                "suggested": new_value,
+            }
+        )
+
+    state["num_gpu"] = new_value
+    changed = old != new_value
+    logger.info(
+        "tune: num_gpu %d -> %d (vram_free=%s MB, model=%s)",
+        old,
+        new_value,
+        vram_free_mb if vram_free_mb is not None else "?",
+        model,
+    )
+    return web.json_response(
+        {
+            "old_num_gpu": old,
+            "new_num_gpu": new_value,
+            "vram_free_mb": vram_free_mb,
+            "changed": changed,
+            "oom_degraded": False,
+        }
+    )
+
+
 async def _on_startup(app: web.Application) -> None:
     app["http_session"] = ClientSession(timeout=ClientTimeout(total=600))
-    logger.info("Sessão HTTP criada")
+    # PROXY-NUMGPU-RUNTIME-01: aiohttp deprecia mutação de app[...] após
+    # startup. Guardamos o estado dinâmico num dict interno (app["state"])
+    # para mutar valores em runtime sem violar a API. main() prepara o dict
+    # antes do startup com o num_gpu da CLI; defaults aplicados se ausente.
+    state = app.setdefault("state", {})
+    state.setdefault("num_gpu", _INITIAL_NUM_GPU)
+    logger.info("Sessão HTTP criada (num_gpu inicial=%d)", state["num_gpu"])
 
 
 async def _on_cleanup(app: web.Application) -> None:
@@ -483,14 +618,17 @@ def main():
     parser.add_argument("--num-ctx", type=int, default=8192)
     args = parser.parse_args()
 
-    global OLLAMA_URL, NUM_GPU, NUM_CTX
+    global OLLAMA_URL, NUM_CTX
     OLLAMA_URL = f"http://127.0.0.1:{args.ollama_port}"
-    NUM_GPU = args.num_gpu
     NUM_CTX = args.num_ctx
 
-    logger.info("Proxy :%d -> Ollama :%d (num_gpu=%d, think=false)", args.port, args.ollama_port, NUM_GPU)
+    logger.info("Proxy :%d -> Ollama :%d (num_gpu=%d, think=false)", args.port, args.ollama_port, args.num_gpu)
 
     app = web.Application()
+    # PROXY-NUMGPU-RUNTIME-01: snapshot inicial vai pelo dict state interno;
+    # pode ser re-tunado em runtime via GET /admin/tune sem reiniciar o proxy.
+    # _on_startup garante a chave 'state' e popula num_gpu se ausente.
+    app["state"] = {"num_gpu": args.num_gpu}
     app.on_startup.append(_on_startup)
     app.on_cleanup.append(_on_cleanup)
     app.router.add_post("/v1/chat/completions", handle_chat)
@@ -498,6 +636,7 @@ def main():
     app.router.add_get("/v1/models/{model_id}", handle_model)
     app.router.add_get("/health", handle_health)
     app.router.add_post("/admin/shutdown", handle_shutdown)
+    app.router.add_get("/admin/tune", handle_tune)
     web.run_app(app, host="127.0.0.1", port=args.port, print=None)
 
 

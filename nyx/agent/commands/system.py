@@ -257,6 +257,65 @@ def cmd_add_dir(args: str, project_root: str) -> str:
     )
 
 
+@nyx_command(name="tune", description="Re-calcula num_gpu via VRAM atual", category="sistema")
+def cmd_tune(_args: str, _root: str) -> str:
+    """PROXY-NUMGPU-RUNTIME-01: dispara GET /admin/tune (loopback) e mostra
+    o resultado em PT-BR. Útil quando a VRAM mudou durante a sessão (usuário
+    fechou browser, abriu outro app) e o usuário quer re-tunar proativamente
+    sem esperar OOM.
+    """
+    try:
+        import httpx
+
+        proxy_base = os.environ.get("OPENAI_BASE_URL", _PROXY_V1_URL).rstrip("/")
+        # /v1/... vira raiz para /admin/tune; aceita ambas as formas.
+        if proxy_base.endswith("/v1"):
+            proxy_base = proxy_base[: -len("/v1")]
+        url = f"{proxy_base}/admin/tune"
+        r = httpx.get(url, timeout=20.0)
+    except Exception as exc:
+        logger.debug("/tune falhou ao contactar proxy: %s", exc)
+        return (
+            f"__error__Proxy não respondeu em /admin/tune: {type(exc).__name__}."
+            "||Verifique se o proxy está rodando com /doctor."
+        )
+
+    if r.status_code != 200:
+        return (
+            f"__error__/admin/tune retornou HTTP {r.status_code}."
+            "||Veja logs do proxy em logs/proxy.log para diagnóstico."
+        )
+
+    try:
+        data = r.json()
+    except ValueError as exc:
+        return (
+            f"__error__Resposta inválida do /admin/tune: {type(exc).__name__}."
+            "||O proxy retornou conteúdo não-JSON; veja logs/proxy.log."
+        )
+
+    old = data.get("old_num_gpu", "?")
+    new = data.get("new_num_gpu", "?")
+    vram_free = data.get("vram_free_mb")
+    changed = data.get("changed", False)
+    oom_degraded = data.get("oom_degraded", False)
+
+    vram_txt = f"{vram_free} MB" if vram_free is not None else "desconhecido"
+    if oom_degraded:
+        suggested = data.get("suggested", "?")
+        return (
+            f"  num_gpu: {old} (preservado por fail-safe OOM)\n"
+            f"  VRAM livre: {vram_txt}\n"
+            f"  Sugestão atual: {suggested} (não aplicada; reinicie o proxy para reativar GPU)"
+        )
+
+    estado = "alterado" if changed else "inalterado"
+    return (
+        f"  num_gpu: {old} -> {new} ({estado})\n"
+        f"  VRAM livre: {vram_txt}"
+    )
+
+
 @nyx_command(name="break-cache", description="Limpa caches internos", category="debug")
 def cmd_break_cache(_args: str, _root: str) -> str:
     sessions_dir = Path.home() / ".nyx" / "sessions"

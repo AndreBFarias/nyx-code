@@ -1,60 +1,68 @@
 {
-  "timestamp": "2026-05-17T01:58:39.061684",
+  "timestamp": "2026-05-17T02:09:52.675601",
   "model": "qwen2.5-coder:3b",
   "phases_done": [],
   "results": [
     {
-      "feature_id": "I-01",
-      "name": "Ollama respondendo",
-      "phase": "infra",
+      "feature_id": "P-01",
+      "name": "Request via proxy",
+      "phase": "proxy",
       "passed": true,
-      "elapsed_s": 0.02,
+      "elapsed_s": 2.33,
+      "tokens": 47,
+      "details": "Sim, o proxy está funcionando corretamente.",
+      "error": ""
+    },
+    {
+      "feature_id": "P-02",
+      "name": "think=false injetado",
+      "phase": "proxy",
+      "passed": true,
+      "elapsed_s": 0,
       "tokens": 0,
+      "details": "sem <think>",
+      "error": ""
+    },
+    {
+      "feature_id": "P-04",
+      "name": "Content array normalizado",
+      "phase": "proxy",
+      "passed": true,
+      "elapsed_s": 0.27,
+      "tokens": 38,
       "details": "",
       "error": ""
     },
     {
-      "feature_id": "I-03",
-      "name": "Versão Ollama",
-      "phase": "infra",
+      "feature_id": "P-05",
+      "name": "Formato OpenAI correto",
+      "phase": "proxy",
       "passed": true,
-      "elapsed_s": 0.02,
+      "elapsed_s": 0.77,
       "tokens": 0,
-      "details": "0.13.5",
+      "details": "choices=True usage=True message=True",
       "error": ""
     },
     {
-      "feature_id": "I-05",
-      "name": "Warmup do modelo",
-      "phase": "infra",
-      "passed": true,
-      "elapsed_s": 4.26,
-      "tokens": 120,
-      "details": "",
-      "error": ""
-    },
-    {
-      "feature_id": "I-09",
-      "name": "Modelo qwen2.5-coder:3b presente",
-      "phase": "infra",
-      "passed": true,
-      "elapsed_s": 0.02,
-      "tokens": 0,
-      "details": "['qwen3:4b', 'nyx-4b:latest', 'qwen2.5-coder:7b', 'qwen2.5-coder:3b']",
-      "error": ""
-    },
-    {
-      "feature_id": "I-11",
-      "name": "Proxy respondendo",
-      "phase": "infra",
+      "feature_id": "P-06",
+      "name": "Listagem /v1/models",
+      "phase": "proxy",
       "passed": true,
       "elapsed_s": 0.02,
       "tokens": 0,
       "details": "4 modelos",
       "error": ""
+    },
+    {
+      "feature_id": "P-07",
+      "name": "tool_calls propagam",
+      "phase": "proxy",
+      "passed": true,
+      "elapsed_s": 1.27,
+      "tokens": 188,
+      "details": "['{\"file_path\": \"./README.md\"}']",
+      "error": ""
     }
   ],
-  "kpis": {
-    "warmup_s": 4.3
-  }
+  "kpis": {}
 }
