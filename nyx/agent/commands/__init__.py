@@ -11,6 +11,7 @@ O import dos submódulos abaixo é necessário para que os decoradores
 """
 
 from nyx.agent.commands import (  # noqa: F401  -- side-effect: registra @nyx_command
+    aesthetic,
     code,
     core,
     debug_cmds,

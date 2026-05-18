@@ -27,6 +27,13 @@ NYX_PLUGINS_DIR: str = os.environ.get(
 COCKPIT_PORT: int = int(os.environ.get("NYX_COCKPIT_PORT", "11437"))
 COCKPIT_HOST: str = "127.0.0.1"
 
+# Estetica (VISUAL-LAYOUT-08). Aesthetic + entity ativos lidos por
+# nyx.themes.design_tokens_extended.get_active().
+# Aesthetics validos: default | arcano | cyberpunk | brutalist | mecha | editorial
+# Entities validas: nyx | eris | juno | lars | luna | mars | somn
+NYX_AESTHETIC: str = os.environ.get("NYX_AESTHETIC", "default")
+NYX_ENTITY: str = os.environ.get("NYX_ENTITY", "nyx")
+
 OLLAMA_PORT: int = 11435
 PROXY_PORT: int = 11436
 # Contrato dual:

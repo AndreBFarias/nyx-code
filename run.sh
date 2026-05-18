@@ -108,6 +108,19 @@ while [[ $# -gt 0 ]]; do
         --only)
             GAUNTLET_ONLY="$2"
             shift 2 ;;
+        --aesthetic)
+            # VISUAL-LAYOUT-08: seta aesthetic visual antes do exec.
+            # Aceita 'aesthetic' ou 'aesthetic:entity' (ex: arcano:luna).
+            if [[ "$2" == *":"* ]]; then
+                export NYX_AESTHETIC="${2%%:*}"
+                export NYX_ENTITY="${2##*:}"
+            else
+                export NYX_AESTHETIC="$2"
+            fi
+            shift 2 ;;
+        --entity)
+            export NYX_ENTITY="$2"
+            shift 2 ;;
         *)
             EXTRA_ARGS+=("$1")
             shift ;;

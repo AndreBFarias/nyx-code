@@ -646,6 +646,72 @@ async def run_repl(
                     )
                 continue
 
+            if result == "__aesthetic_list__":
+                from nyx.themes.design_tokens_extended import list_aesthetics, list_entities
+
+                cur = app_state.get(
+                    "aesthetic_id",
+                    os.environ.get("NYX_AESTHETIC", "default"),
+                )
+                cur_ent = app_state.get(
+                    "entity_id",
+                    os.environ.get("NYX_ENTITY", "nyx"),
+                )
+                print(f"  Estéticos disponíveis (atual: {ACCENT}{cur}{NC}):")
+                for a in list_aesthetics():
+                    marker = f"{ACCENT}* {NC}" if a["id"] == cur else "  "
+                    print(f"    {marker}{ACCENT}{a['id']:<10}{NC} -- {a['tagline']}")
+                print(f"  Entidades disponíveis (atual: {SUCCESS}{cur_ent}{NC}):")
+                for e in list_entities():
+                    marker = f"{SUCCESS}* {NC}" if e["id"] == cur_ent else "  "
+                    print(f"    {marker}{SUCCESS}{e['id']:<6}{NC} {e['name']:<6} accent {e['accent']}")
+                continue
+
+            if result == "__aesthetic_get__":
+                cur = app_state.get(
+                    "aesthetic_id",
+                    os.environ.get("NYX_AESTHETIC", "default"),
+                )
+                cur_ent = app_state.get(
+                    "entity_id",
+                    os.environ.get("NYX_ENTITY", "nyx"),
+                )
+                print(f"  Estético atual: {ACCENT}{cur}{NC} | Entidade: {SUCCESS}{cur_ent}{NC}")
+                continue
+
+            if isinstance(result, str) and result.startswith("__aesthetic_set__"):
+                from nyx.themes.design_tokens_extended import AESTHETICS, ENTITIES
+
+                target = result[len("__aesthetic_set__"):].strip()
+                # Aceita 'aesthetic' ou 'aesthetic:entity'
+                if ":" in target:
+                    a_id, e_id = target.split(":", 1)
+                    a_id, e_id = a_id.strip(), e_id.strip()
+                else:
+                    a_id, e_id = target.strip(), None
+                if a_id and a_id not in AESTHETICS:
+                    _print_error(
+                        f"Estético '{a_id}' não existe.",
+                        hint="Use /aesthetic list para ver opções.",
+                    )
+                    continue
+                if e_id and e_id not in ENTITIES:
+                    _print_error(
+                        f"Entidade '{e_id}' não existe.",
+                        hint="Use /aesthetic list para ver opções.",
+                    )
+                    continue
+                if a_id:
+                    app_state["aesthetic_id"] = a_id
+                    os.environ["NYX_AESTHETIC"] = a_id
+                if e_id:
+                    app_state["entity_id"] = e_id
+                    os.environ["NYX_ENTITY"] = e_id
+                final_a = app_state.get("aesthetic_id", "default")
+                final_e = app_state.get("entity_id", "nyx")
+                print(f"  {SUCCESS}● aesthetic{NC}: {final_a}:{final_e} (próxima invocação aplica)")
+                continue
+
             if result == "__output_style_list__":
                 from nyx.agent.output_style import list_styles
 

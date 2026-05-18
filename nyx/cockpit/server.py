@@ -200,6 +200,30 @@ async def tokens() -> dict[str, Any]:
 _MICROCOPY_PATH = REPO_ROOT / "dev-journey" / "05-guides" / "MICROCOPY.md"
 
 
+@app.get("/api/aesthetics")
+async def aesthetics() -> dict[str, Any]:
+    """VISUAL-LAYOUT-08: lista aesthetics + entities disponiveis.
+
+    Frontend pode renderizar seletor de aesthetic ao vivo.
+    Fonte unica: nyx/themes/design_tokens_extended.py.
+    """
+    from nyx.themes.design_tokens_extended import (
+        get_active,
+        list_aesthetics,
+        list_entities,
+    )
+    active = get_active()
+    return {
+        "active": {
+            "aesthetic": active["aesthetic_id"],
+            "entity": active["entity_id"],
+            "tagline": active["tagline"],
+        },
+        "aesthetics": list_aesthetics(),
+        "entities": list_entities(),
+    }
+
+
 @app.get("/api/microcopy")
 async def microcopy() -> dict[str, Any]:
     """UX-COCKPIT-EXPERIENCE-01: serve MICROCOPY.md + strings canonicas.
