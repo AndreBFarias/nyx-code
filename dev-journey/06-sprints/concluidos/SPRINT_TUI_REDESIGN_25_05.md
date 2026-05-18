@@ -44,9 +44,11 @@ sprint:
 
 # Sprint TUI-REDESIGN-25-05
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-18
+**Data conclusão:** 2026-05-18
 **Modelo obrigatório:** claude-opus-4-7
+**Nota:** wizard ampliado de 5 para 6 passos (consequência de TUI-REDESIGN-25-16 que adicionou schema). Contador é dinâmico XX/YY; spec literal "0[0-9]/05" adaptado para XX/06 — comportamento equivalente.
 
 ## Contexto
 

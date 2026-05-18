@@ -51,20 +51,37 @@ def banner() -> None:
     say()
 
 
-def ask(prompt: str, choices: list[tuple[str, str]], default: str) -> str:
+def ask(
+    prompt: str,
+    choices: list[tuple[str, str]],
+    default: str,
+    step: int | None = None,
+    total: int | None = None,
+    hint: str | None = None,
+) -> str:
     """Mostra choices numeradas; aceita numero ou Enter pro default.
 
     choices: lista de (valor, descricao).
+    TUI-REDESIGN-25-05: contador 'XX/YY' opcional + hint contextual + footer
+    '↵ Enter aceita default'.
     """
     accent = ANSI_ACCENT_FG
+    bold = ANSI_BOLD
     success = ANSI_SUCCESS_FG
     muted = ANSI_DIM
     reset = ANSI_RESET
-    say(f"  {accent}{prompt}{reset}")
+    if step is not None and total is not None:
+        header = f"{step:02d}/{total:02d} · {prompt}"
+    else:
+        header = prompt
+    say()
+    say(f"  {accent}{bold}{header}{reset}")
+    if hint:
+        say(f"  {muted}{hint}{reset}")
     for i, (val, desc) in enumerate(choices, start=1):
         marker = f"{success}*{reset}" if val == default else " "
         say(f"    {marker} {i}. {accent}{val:<16}{reset} {muted}{desc}{reset}")
-    say(f"  {muted}[Enter = {default}] >{reset} ", end="")
+    say(f"  {muted}↵ Enter aceita '{default}' >{reset} ", end="")
     raw = input().strip()
     if not raw:
         return default
@@ -78,16 +95,47 @@ def ask(prompt: str, choices: list[tuple[str, str]], default: str) -> str:
     return default
 
 
-def ask_yes_no(prompt: str, default: bool = False) -> bool:
+def ask_yes_no(
+    prompt: str,
+    default: bool = False,
+    step: int | None = None,
+    total: int | None = None,
+    hint: str | None = None,
+) -> bool:
+    """Pergunta sim/não com contador e hint opcionais (TUI-REDESIGN-25-05)."""
+    accent = ANSI_ACCENT_FG
+    bold = ANSI_BOLD
     muted = ANSI_DIM
     reset = ANSI_RESET
-    accent = ANSI_ACCENT_FG
+    if step is not None and total is not None:
+        header = f"{step:02d}/{total:02d} · {prompt}"
+    else:
+        header = prompt
+    say()
+    say(f"  {accent}{bold}{header}{reset}")
+    if hint:
+        say(f"  {muted}{hint}{reset}")
     suffix = "[S/n]" if default else "[s/N]"
-    say(f"  {accent}{prompt}{reset} {muted}{suffix}>{reset} ", end="")
+    default_label = "sim" if default else "nao"
+    say(f"  {muted}↵ Enter aceita '{default_label}' {suffix} >{reset} ", end="")
     raw = input().strip().lower()
     if not raw:
         return default
     return raw in ("s", "sim", "y", "yes")
+
+
+def render_summary(cfg: dict) -> None:
+    """Renderiza summary card com box drawing antes de salvar (TUI-REDESIGN-25-05)."""
+    accent = ANSI_ACCENT_FG
+    muted = ANSI_DIM
+    reset = ANSI_RESET
+    say()
+    say(f"  {accent}╭─ resumo ─────────────────────────────╮{reset}")
+    for k, v in cfg.items():
+        v_render = "sim" if v is True else ("não" if v is False else str(v))
+        say(f"  {accent}│{reset}  {accent}{k:<14}{reset} = {v_render}")
+    say(f"  {accent}╰──────────────────────────────────────╯{reset}")
+    say()
 
 
 def write_config(cfg: dict) -> None:
@@ -124,6 +172,10 @@ def main() -> int:
     banner()
     cfg = {}
 
+    # TUI-REDESIGN-25-05: contador XX/YY + hint contextual em cada passo.
+    # Total = 6 passos após TUI-REDESIGN-25-16 ampliar com schema.
+    TOTAL_STEPS = 6
+
     cfg["aesthetic"] = ask(
         "Aesthetic visual",
         [
@@ -135,6 +187,8 @@ def main() -> int:
             ("editorial", "papel creme, serif"),
         ],
         default="default",
+        step=1, total=TOTAL_STEPS,
+        hint="Cor base do tema (bg, ink, accent, glyphs).",
     )
 
     cfg["entity"] = ask(
@@ -149,6 +203,8 @@ def main() -> int:
             ("somn", "ciano     #8BE9FD"),
         ],
         default="nyx",
+        step=2, total=TOTAL_STEPS,
+        hint="Apenas accent + glow; aesthetic permanece como base.",
     )
 
     cfg["schema"] = ask(
@@ -160,6 +216,8 @@ def main() -> int:
             ("brutalist", "CAIXA ALTA + bracket labels + table rows"),
         ],
         default="hybrid",
+        step=3, total=TOTAL_STEPS,
+        hint="Estrutura: prefixes, bubbles, divisores (ortogonal à cor).",
     )
 
     cfg["banner_mode"] = ask(
@@ -170,6 +228,8 @@ def main() -> int:
             ("neofetch", "info-rich estilo neofetch"),
         ],
         default="wide",
+        step=4, total=TOTAL_STEPS,
+        hint="Forma do header impresso no boot do REPL.",
     )
 
     cfg["model"] = ask(
@@ -180,18 +240,18 @@ def main() -> int:
             ("qwen2.5-coder:7b", "qualidade maior, ~3GB VRAM, P95 alto"),
         ],
         default="qwen2.5-coder:3b",
+        step=5, total=TOTAL_STEPS,
+        hint="Tradeoff VRAM × latência × qualidade.",
     )
 
     cfg["auto_approve"] = ask_yes_no(
         "Auto-aprovar permissões CONFIRM_ONCE (modo automação)?",
         default=False,
+        step=6, total=TOTAL_STEPS,
+        hint="Auto-aprovar tools de nível CONFIRM_ONCE; aprovação manual permanece para níveis acima.",
     )
 
-    say()
-    say(f"  {ANSI_DIM}Configuração escolhida:{ANSI_RESET}")
-    for k, v in cfg.items():
-        say(f"    {ANSI_ACCENT_FG}{k:<14}{ANSI_RESET} = {v}")
-    say()
+    render_summary(cfg)
 
     if ask_yes_no("Salvar em ~/.nyx/config.toml e inicializar?", default=True):
         write_config(cfg)
