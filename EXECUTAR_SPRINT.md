@@ -1,15 +1,15 @@
-# Executar próxima sprint — COCKPIT-01
+# Executar próxima sprint — COCKPIT-02
 
 > **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
 > Copie o bloco abaixo e cole em uma session nova de Claude Opus 4.7.
-> Restam **16** sprints PENDENTE(S) na fila.
+> Restam **15** sprints PENDENTE(S) na fila.
 
 ---
 
 ## Prompt para colar na session
 
 ```
-Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_COCKPIT_01.md.
+Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_COCKPIT_02.md.
 
 Modelo obrigatório: claude-opus-4-7 (sem subagentes).
 Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambiarra):
@@ -27,10 +27,10 @@ Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambi
 10. Após CONCLUIDA: commit atômico, move sprint file para concluidos/, roda `python scripts/update_next_sprint.py` para atualizar este arquivo.
 
 Se qualquer passo falhar, reporte:
-    [SPRINT COCKPIT-01] BLOQUEADA: <motivo objetivo>
+    [SPRINT COCKPIT-02] BLOQUEADA: <motivo objetivo>
 
-ID desta sprint: COCKPIT-01
-Arquivo: dev-journey/06-sprints/producao/SPRINT_COCKPIT_01.md
+ID desta sprint: COCKPIT-02
+Arquivo: dev-journey/06-sprints/producao/SPRINT_COCKPIT_02.md
 ```
 
 ---
@@ -39,9 +39,9 @@ Arquivo: dev-journey/06-sprints/producao/SPRINT_COCKPIT_01.md
 
 ## Gambiarras específicas (recorte auto-injetado)
 
-> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §COCKPIT-01. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
+> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §COCKPIT-02. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
 
-(seção específica para COCKPIT-01 não encontrada em GAMBIARRAS_POR_SPRINT.md; ler catálogo universal e matriz geral)
+(seção específica para COCKPIT-02 não encontrada em GAMBIARRAS_POR_SPRINT.md; ler catálogo universal e matriz geral)
 
 <!-- /GAMBIARRAS_INJECT -->
 

@@ -431,7 +431,7 @@ Reorganização proposta priorizando meta v1.0 "Claude Code offline e opensource
 | 104 | **SBOM-REGISTRY-01** | 23.2 SBOM | ALTA | PENDENTE | -- |
 | 105 | **SBOM-REGISTRY-02** | 23.2 SBOM | ALTA | CONCLUIDA (sbom_sync.py regenera FEATURE_MAP.md de REGISTRY.yaml; --from-gauntlet absorve checkpoint.json para atualizar status/timestamp; ADR-028 PROPOSTO; sbom_init parser tolera tags [?]) | SBOM-REGISTRY-01 |
 | 106 | **SBOM-REGISTRY-03** | 23.2 SBOM | MÉDIA | CONCLUIDA (sbom_sync --propose-sprints --dry-run lista 62 stubs; cria SPRINT_FEAT_X-NN_TEST_01.md em producao/ com status RASCUNHO; nao roda sem dry-run por default para evitar flood) | SBOM-REGISTRY-02 |
-| 107 | **COCKPIT-01** | 23.3 Cockpit | ALTA | PENDENTE | BOOT-VRAM-GUARD-01, SBOM-REGISTRY-02 |
+| 107 | **COCKPIT-01** | 23.3 Cockpit | ALTA | CONCLUIDA (FastAPI server bind 127.0.0.1:11437 ADR-001; /health /api/features WS /stream; middleware loopback-only retorna 403 nao-127.0.0.1; static/index.html placeholder; COCKPIT_PORT em defaults; integracao --cockpit no run.sh fica para sprint futura) | BOOT-VRAM-GUARD-01, SBOM-REGISTRY-02 |
 | 108 | **COCKPIT-02** | 23.3 Cockpit | ALTA | PENDENTE | COCKPIT-01 |
 | 109 | **COCKPIT-03** | 23.3 Cockpit | ALTA | PENDENTE | COCKPIT-02 |
 | 110 | **COCKPIT-04** | 23.3 Cockpit | MÉDIA | PENDENTE | COCKPIT-03 |

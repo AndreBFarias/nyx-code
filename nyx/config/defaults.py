@@ -23,6 +23,10 @@ NYX_PLUGINS_DIR: str = os.environ.get(
     str(__import__("pathlib").Path.home() / ".nyx" / "plugins"),
 )
 
+# Cockpit (COCKPIT-01). FastAPI server bind 127.0.0.1 apenas.
+COCKPIT_PORT: int = int(os.environ.get("NYX_COCKPIT_PORT", "11437"))
+COCKPIT_HOST: str = "127.0.0.1"
+
 OLLAMA_PORT: int = 11435
 PROXY_PORT: int = 11436
 # Contrato dual:
