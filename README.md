@@ -142,7 +142,7 @@ container, o auto-tune detecta e usa CPU (num_gpu=0).
 `install.sh --no-prompt` é não-interativo: preserva binários existentes
 sem perguntar, ideal para CI/container.
 
-## Tools (34 registradas -- todas funcionais)
+## Tools (35 registradas -- todas funcionais)
 
 | Categoria | Tools |
 |-----------|-------|
@@ -155,50 +155,122 @@ sem perguntar, ideal para CI/container.
 | Edição avançada | analyze, patch, multi_edit |
 | Utilidade | sleep, config, brief, tool_search, skill, send_message, ask_user |
 
-## Commands (47 registrados)
+## Commands (61 registrados)
 
 | Categoria | Commands |
 |-----------|----------|
-| Geral | /help, /quit, /clear, /status |
+| Geral | /help, /quit, /clear, /status, /? |
 | Código | /explain, /plan, /test, /summary |
 | Git | /commit, /diff, /review, /branch, /issue, /pr, /rewind |
-| Sistema | /doctor, /model, /config, /env, /permissions, /hooks, /theme |
+| Sistema | /doctor, /model, /config, /env, /permissions, /hooks, /theme, /aesthetic, /output-style |
 | Sessão | /compact, /context, /session, /resume, /export, /copy, /stats, /usage |
-| Execução | /tasks, /skills, /files |
+| Execução | /tasks, /skills, /files, /cancel |
 | Projeto | /add-dir, /init, /version |
 | Debug | /trace, /ctx-viz, /break-cache |
 | Memória | /memory |
+| Plugins/MCP | /plugin, /mcp |
 | Avançado | /btw, /pr-comments |
 | Root | /advisor, /brief-cmd, /commit-push-pr, /insights, /security-review |
 
-## Services (10)
+## Services (14)
 
-tokens, compact, hooks, memory, summary, suggestions, analytics, diagnostics, logging_service, tool_use_summary
+tokens, compact, hooks, memory, summary, suggestions, analytics, diagnostics, logging_service, tool_use_summary, plugin_manager, mcp_client, hook_runtime, lifecycle.
 
-## ADRs (20)
+## Cockpit (Onda 23-24, COCKPIT-01..05 + UX-COCKPIT-EXPERIENCE-01)
 
-| # | Título |
-|---|--------|
-| 001 | Local First -- 100% offline |
-| 002 | Proxy think=false |
-| 003 | VRAM Management (RTX 3050 4GB) |
-| 004 | Zero Emojis |
-| 005 | Anonimato (sem menção a IA) |
-| 006 | PT-BR obrigatório |
-| 007 | Gauntlet (1 teste por feature) |
-| 008 | Performance KPIs |
-| 009 | Acesso Universal |
-| 010 | Zero Mocks |
-| 011 | Gauntlet Obrigatório |
-| 012 | Cobertura 100% fonte TS original |
-| 013 | Integração Obrigatória (nada solto) |
-| 014 | Testes via Gauntlet (sem pytest) |
-| 015 | Documentação para continuidade |
-| 016 | Luna no backlog |
-| 017 | Scaffold-first |
-| 018 | Stubs progressivos |
-| 019 | Gauntlet coverage |
-| 020 | Testes via run.sh |
+Servidor local FastAPI em `127.0.0.1:11437` (bind loopback-only, ADR-001):
+
+| Endpoint | O que faz |
+|---|---|
+| `GET /` | Dashboard reativo com 62 cards (Alpine.js + HTMX vendored, sem CDN) |
+| `GET /static/terminal.html` | REPL Nyx embedded via PTY + xterm.js |
+| `WS /repl` | Bridge PTY ↔ WebSocket (bidirecional, com resize JSON-meta) |
+| `GET /api/features` | REGISTRY.yaml (62 features) |
+| `GET /api/tokens` | Paleta D do design_tokens.py (frontend hidrata CSS vars) |
+| `GET /api/microcopy` | MICROCOPY.md + 25 strings PT-BR canônicas |
+| `GET /api/aesthetics` | 6 aesthetics × 7 entities + ativo |
+| `GET /api/evidencia` | Lista evidências PNG por feature |
+| `POST /api/screenshot` | Recebe PNG do canvas (form-data; rotação 5/feature) |
+| `POST /api/features/{id}/run` | Dispara gauntlet single-feature |
+| `GET /api/features/{id}/status/{job_id}` | Poll de progresso |
+| `POST /control/gauntlet/run` | Gauntlet completo (cap 600s) |
+| `POST /control/feature/{id}/run` | Alias do anterior |
+| `GET /control/gauntlet/status/{job_id}` | Estado de qualquer job |
+| `POST /control/repl/send` | Envia bytes pro PTY ativo |
+| `GET /control/repl/snapshot` | Buffer (anti-débito COCKPIT-05-SNAPSHOT-BUFFER-01) |
+| `GET /control/registry` | REGISTRY.yaml completo (introspecção MCP) |
+
+Documentação completa: [`dev-journey/05-guides/COCKPIT_API.md`](dev-journey/05-guides/COCKPIT_API.md).
+
+## Aesthetics & Entities (Onda 24, VISUAL-LAYOUT-01..08)
+
+5 estéticos × 7 entidades = 35 combinações visuais opcionais.
+
+| Aesthetic | Cor base | Características |
+|---|---|---|
+| `default` | turquesa `#00D4AA` + roxo `#9D4EDD` | Paleta D canônica (ADR-023) |
+| `arcano` | roxo `#9D4EDD` profundo | Noite violeta com glow |
+| `cyberpunk` | ciano neon `#00F5FF` + magenta | Scanlines, typewriter |
+| `brutalist` | preto `#0A0A0A` em papel | Knuth-style, sem efeitos |
+| `mecha` | âmbar `#FFAB00` HUD | Grid background |
+| `editorial` | marrom `#7A4A1A` serif | Marginalia O'Reilly |
+
+Entidades (override de accent): `nyx` (turquesa), `eris` (rosa), `juno` (verde), `lars` (matrix), `luna` (violeta), `mars` (vermelho), `somn` (ciano).
+
+Uso:
+```bash
+./run.sh --menu                    # Wizard (5 perguntas)
+./run.sh --aesthetic arcano        # Direto
+./run.sh --aesthetic arcano:luna   # Combinado
+# Em runtime:
+/aesthetic list                    # ver opções
+/aesthetic set cyberpunk:mars      # mudar
+```
+
+## ADRs (32)
+
+| # | Título | Status |
+|---|---|---|
+| 001 | Local First -- 100% offline | ACEITO |
+| 002 | Proxy think=false | ACEITO |
+| 003 | VRAM Management (RTX 3050 4GB) | ACEITO |
+| 004 | Zero Emojis | ACEITO |
+| 005 | Anonimato (sem menção a IA externa) | ACEITO |
+| 006 | PT-BR obrigatório | ACEITO |
+| 007 | Gauntlet (1 teste por feature) | ACEITO |
+| 008 | Performance KPIs | ACEITO |
+| 009 | Acesso Universal (sandbox) | ACEITO |
+| 010 | Zero Mocks | ACEITO |
+| 011 | Gauntlet Obrigatório | ACEITO |
+| 012 | Cobertura 100% fonte TS original | ACEITO |
+| 013 | Integração Obrigatória (nada solto) | ACEITO |
+| 014 | Testes via Gauntlet (sem pytest) | ACEITO |
+| 015 | Documentação para continuidade | ACEITO |
+| 016 | Luna no backlog | ACEITO |
+| 017 | Scaffold-first | ACEITO |
+| 018 | Stubs progressivos | ACEITO |
+| 019 | Gauntlet coverage | ACEITO |
+| 020 | Testes via run.sh | ACEITO |
+| 021 | Dependências opcionais (tree-sitter) | ACEITO |
+| 022 | Visão moondream CPU puro | ACEITO |
+| 023 | Design System paleta D | ACEITO |
+| 024 | Render Layer | ACEITO |
+| 025 | Loop de experiência | ACEITO |
+| 026 | Agência (usuário sempre controla) | ACEITO (Onda 24) |
+| 027 | Progressão & Identidade Nyx | ACEITO (Onda 24) |
+| 028 | SBOM Registry | ACEITO |
+| 029 | Layout Parity com Claude Code | ACEITO |
+| 030 | MCP cliente stdio | ACEITO |
+| 031 | Modelo padrão qwen2.5-coder:3b | ACEITO |
+
+## Status atual (2026-05-18, Onda 24)
+
+- **Gauntlet**: 304 testes registrados; `--only rapido` 11/11 APROVADO
+- **Smoke**: `boot ok` em ~0.14s (10x abaixo do critério v1.0 de 1.5s)
+- **Invariantes**: 14/14 PASS
+- **Cockpit**: operacional em `127.0.0.1:11437` com 17 endpoints HTTP + 2 WS
+- **Tag v1.0**: aguarda `VALIDATE-FINAL-01-PARTE-2` (screenshots + Docker + 47 commands manuais)
+- **Sprints pendentes**: 12 anti-débito materializadas em `dev-journey/06-sprints/producao/` (NYX-AUTO-APPROVE-01, COCKPIT-LIFECYCLE-FIX-01, NYX-NO-HALLUCINATE-TOOL-01, PROJECT-ROOTS-MULTI-01, SHIFT-TAB-CYCLE-01, SUDO-MODE-01, NYX-GSD-CHECKPOINTS-01, NYX-PROMPT-REINJECT-01, NYX-OUTPUT-LIMITS-01, PTY-PERMISSION-FLOW-01, HELP-COVERAGE-FIX-02, VALIDATE-FINAL-01-PARTE-2) + 51 RASCUNHOs SBOM em fila
 
 ## Requisitos
 
@@ -211,34 +283,47 @@ tokens, compact, hooks, memory, summary, suggestions, analytics, diagnostics, lo
 
 ```
 nyx/
-  cli.py             # REPL + modo headless + prompt-toolkit
-  proxy.py           # Proxy think=false
+  cli.py               # REPL + modo headless + prompt-toolkit
+  cli_helpers.py       # Helpers extraídos do cli.py (INFRA-CLI-SPLIT-01)
+  proxy.py             # Proxy think=false + num_predict adaptativo
   agent/
-    loop.py          # AgentLoop (plan-execute-observe)
-    parser.py        # ActionParser (7 níveis)
-    session.py       # CodeSession
-    commands.py      # 61 slash commands
-    completer.py     # Tab completion
-    output.py        # Rich output + spinner
-    tools/
-      registry.py    # 35 tools registradas
-      base.py        # RegisteredTool + ToolDef
-      [34 arquivos]
-    services/
-      [10 arquivos]
-  providers/
-    ollama.py        # OllamaProvider
-  context/
-    project.py       # Detecção de projeto
+    loop/              # AgentLoop split (_core + _iteration)
+    parser.py          # ActionParser (7 níveis)
+    banner.py          # 3 modos (compact/wide/neofetch)
+    commands/          # 61 slash commands (incl. /aesthetic, /cancel)
+    output.py          # Rich + theme_manager
+    tools/             # 35 tools registradas
+    services/          # 14 services (incl. hook_runtime, plugin_manager, mcp_client)
+  cockpit/             # FastAPI server local (COCKPIT-01..05)
+    server.py          # 17 endpoints HTTP + 2 WS
+    pty_bridge.py      # PTY bridge para terminal embedded
+    evidencia.py       # Captura PNG por feature (rotação 5)
+    static/            # index.html (dashboard), terminal.html (xterm.js)
+    static/vendor/     # xterm.js 5.3.0 + HTMX 1.9 + Alpine.js 3.13 vendored
+  themes/
+    design_tokens.py             # Paleta D (ADR-023)
+    design_tokens_extended.py    # 6 aesthetics x 7 entities (Onda 24)
+    theme_manager.py             # Resolve runtime (VL-CLI-CONSUME-01)
+  providers/ollama.py
+  config/defaults.py   # NYX_AESTHETIC, NYX_ENTITY, COCKPIT_PORT, etc.
 scripts/
-  gauntlet/
-    nyx_gauntlet.py  # Validação automatizada
-  scaffold.py        # Gerador de componentes
-  sync.py            # Verificação de consistência
+  gauntlet/nyx_gauntlet.py  # 304 testes; --only fase|feature_id
+  menu_wizard.py            # TUI wizard (NYX-MENU-WIZARD-01)
+  check_oom.sh              # Diagnóstico OOM (INFRA-OOM-01)
+  sprint_invariants.sh      # 14 invariantes
+  scaffold.py / sync.py     # Scaffold + verificação
+bin/
+  nyx-runtime-limits.sh     # ulimit + oom_score_adj (sourced pelo run.sh)
 dev-journey/
-  PORT_STATUS.md     # Mapeamento 1:1 fonte TS -> Nyx
-  03-decisions/      # 20 ADRs
-  06-sprints/        # Sprint files + SPRINT_ORDER_MASTER
+  03-decisions/       # 32 ADRs
+  04-features/        # REGISTRY.yaml (62 features SBOM)
+  05-guides/          # MICROCOPY.md, COCKPIT_API.md, etc.
+  06-sprints/         # producao/ + concluidos/ + SPRINT_ORDER_MASTER
+  07-reports/         # RELATORIO_*.md + proofs/ + evidencia/
+  08-templates/       # SPRINT_TEMPLATE_V2 + GAMBIARRAS_POR_SPRINT
+novo_layout/          # Mockups de referência visual (HTML/JSX/CSS)
+  src/                # 5 aesthetics x 7 entities em JS
+  v2_referencias/     # Iteração 2 de design
 ```
 
 
