@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import subprocess
 import time
 import uuid
@@ -45,7 +46,39 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 REGISTRY_PATH = REPO_ROOT / "dev-journey" / "04-features" / "REGISTRY.yaml"
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 RUN_SH = REPO_ROOT / "run.sh"
+VENV_PYTHON = REPO_ROOT / "venv" / "bin" / "python"
+NYX_CLI = REPO_ROOT / "nyx" / "cli.py"
 COCKPIT_VERSION = "0.2.0"
+
+
+def _proxy_up(timeout_s: float = 1.0) -> bool:
+    """COCKPIT-WEB-REDESIGN-02: detecta se proxy Nyx já responde em /v1/models.
+
+    Usa httpx síncrono com timeout curto. Retorno True só se status 200 e
+    payload contém 'data' (formato OpenAI compatível). Qualquer falha de I/O
+    retorna False (assume DOWN).
+    """
+    from nyx.config.defaults import PROXY_PORT
+    try:
+        import httpx as _httpx
+        with _httpx.Client(timeout=timeout_s) as c:
+            r = c.get(f"http://127.0.0.1:{PROXY_PORT}/v1/models")
+            return r.status_code == 200 and isinstance(r.json().get("data"), list)
+    except Exception:
+        return False
+
+
+def _choose_repl_command() -> list[str]:
+    """COCKPIT-WEB-REDESIGN-02: escolhe comando PTY conforme stack já UP ou não.
+
+    Proxy UP -> REPL puro (sem re-bootar Ollama/proxy).
+    Proxy DOWN -> ./run.sh completo (compat com browser standalone).
+    """
+    if _proxy_up() and VENV_PYTHON.is_file() and NYX_CLI.is_file():
+        logger.info("PTY mode: REPL puro (proxy UP)")
+        return [str(VENV_PYTHON), str(NYX_CLI)]
+    logger.info("PTY mode: ./run.sh completo (proxy DOWN ou venv ausente)")
+    return [str(RUN_SH)]
 
 _pty_lock = asyncio.Lock()
 _active_pty: PtyBridge | None = None
@@ -470,7 +503,14 @@ async def repl(ws: WebSocket):
         return
 
     async with _pty_lock:
-        bridge = PtyBridge([str(RUN_SH)], cwd=str(REPO_ROOT))
+        # COCKPIT-WEB-REDESIGN-02: detecta se proxy já está UP. Se sim, spawna
+        # REPL puro (./venv/bin/python nyx/cli.py) reusando Ollama/proxy já
+        # gerenciados. Se não, fallback para ./run.sh completo (compat para
+        # browser standalone sem cockpit pre-bootado).
+        cmd = _choose_repl_command()
+        # Propaga env vars de configuração da Onda 25/26 (NYX_SCHEMA etc).
+        env = dict(os.environ)
+        bridge = PtyBridge(cmd, cwd=str(REPO_ROOT), env=env)
         _active_pty = bridge
         try:
             bridge.start()
