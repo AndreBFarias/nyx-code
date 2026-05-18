@@ -11,7 +11,7 @@ from nyx.agent.commands._registry import format_help, get_command, nyx_command
     name="?",
     description="Ajuda contextual (UX-AGENCY-01): mostra 3 ações relevantes ao estado atual",
     category="contexto",
-    examples=["/?"],
+    examples=["/?", "/? sugere próximo passo dado o estado neutro"],
 )
 def cmd_contextual_help(_args: str, _root: str) -> str:
     """ADR-026 §affordances: /? imprime as 3 ações principais do estado neutro."""
@@ -45,7 +45,7 @@ def cmd_help(args: str, _root: str) -> str:
     if arg in ("all", "todos", "*"):
         return format_help(show_all=True)
     if arg:
-        # HELP-EXAMPLES-01: nome exato -> descricao + exemplos; fallback fuzzy.
+        # HELP-EXAMPLES-01: nome exato -> descrição + exemplos; fallback fuzzy.
         cmd = get_command(arg)
         if cmd is not None:
             lines = [f"  /{cmd.name} -- {cmd.description}"]

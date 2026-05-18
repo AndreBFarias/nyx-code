@@ -42,9 +42,16 @@ sprint:
 
 # Sprint HELP-COVERAGE-FIX-01 — `/?` exemplos
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-18
+**Data conclusão:** 2026-05-18
 **Modelo obrigatório:** claude-opus-4-7
+
+### Resultado
+
+Adicionado 2º exemplo em `nyx/agent/commands/core.py:14` para `/?`. Baseline real divergiu do spec: era `59/61 OK` (não `59/60`). Pós-fix: `60/61 OK`. A falha remanescente (`/aesthetic` com 4 exemplos, máximo 3) é achado colateral materializado em SPRINT_HELP_COVERAGE_FIX_02 (anti-débito formal). O escopo desta sprint (`/?`) está integralmente atendido.
+
+Correção colateral inline: `core.py:48` tinha `descricao` (sem acento) em comentário; corrigido junto pois o arquivo já estava sob edição (varredura de acentuação periférica do BRIEF).
 
 ---
 
