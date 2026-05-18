@@ -125,8 +125,11 @@ else
 fi
 
 # 6. Zero hex de cor (#RRGGBB) em Python fora das fontes declaradas
+# design_tokens_extended.py adicionado em VISUAL-LAYOUT-01 (Onda 24): porta
+# 5 aesthetics + 7 entities de novo_layout/src/themes.js. Mesma natureza
+# de fonte unica de tokens visuais que design_tokens.py.
 BAD_HEX=$(grep -rn -E '#[0-9A-Fa-f]{6}' nyx/ --include='*.py' 2>/dev/null |
-          grep -v 'nyx/themes/design_tokens.py\|nyx/themes/constants.py' || true)
+          grep -v -E 'nyx/themes/design_tokens(_extended)?\.py|nyx/themes/constants\.py' || true)
 # Nota: este check vira ATIVO após UX-DESIGN-01. Antes dessa sprint, esperar violações.
 if [ -n "$BAD_HEX" ]; then
     if [ -f nyx/themes/design_tokens.py ]; then
