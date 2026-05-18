@@ -74,53 +74,26 @@ def _job_register(feature_id: str) -> str:
     return job_id
 
 
-_CATEGORIA_PARA_FASE = {
-    "infraestrutura": "infra",
-    "infraestrutura (boot/lifecycle)": "infra",
-    "proxy": "proxy",
-    "tools": "tools",
-    "qualidade": "qualidade",
-    "performance": "performance",
-    "visual": "visual",
-    "configuração": "config",
-    "configuracao": "config",
-    "resiliência": "resiliencia",
-    "resiliencia": "resiliencia",
-}
-
-
-def _fase_para(feature_id: str) -> str:
-    """Mapeia feature_id (ex: I-01) -> fase do gauntlet (ex: infra).
-
-    COCKPIT-03 dispara fase inteira da categoria; teste por feature
-    individual fica em sub-sprint COCKPIT-03-GAUNTLET-PER-FEATURE-01.
-    """
-    data = _load_registry()
-    for f in data.get("features", []):
-        if f.get("id") == feature_id:
-            cat = (f.get("categoria") or "").lower()
-            return _CATEGORIA_PARA_FASE.get(cat, "rapido")
-    return "rapido"
-
-
 async def _run_gauntlet_single_feature(feature_id: str, job_id: str) -> None:
-    """Executa `./run.sh --gauntlet --only <fase-da-categoria>` em subprocess.
+    """Executa `./run.sh --gauntlet --only <feature_id>` em subprocess.
+
+    COCKPIT-03-GAUNTLET-PER-FEATURE-01: passa feature_id direto para o gauntlet,
+    que detecta regex (^[A-Z]-\\d+$), localiza a fase via REGISTRY.yaml e
+    filtra resultados para o teste alvo. Não roda mais a fase inteira.
 
     Job_id de tracking para poll via /api/features/{id}/status/{job_id}.
-    Atalho: feature_id -> categoria do REGISTRY -> fase do gauntlet.
     """
     job = _jobs.get(job_id)
     if not job:
         return
-    fase = _fase_para(feature_id)
-    job["fase"] = fase
+    job["fase"] = feature_id
     # String concat runtime evita falso positivo de hook de seguranca
     # que casa o substring 'exec' (asyncio create_subprocess_exec eh seguro
     # pois recebe args como lista, sem shell).
     spawn = getattr(asyncio, "create_subprocess_" + "exec")
     try:
         proc = await spawn(
-            "./run.sh", "--gauntlet", "--only", fase,
+            "./run.sh", "--gauntlet", "--only", feature_id,
             cwd=str(REPO_ROOT),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,

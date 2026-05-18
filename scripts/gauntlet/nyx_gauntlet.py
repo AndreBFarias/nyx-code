@@ -243,6 +243,66 @@ PHASE_TIMEOUTS: dict[str, int] = {
 
 NEEDS_OLLAMA = {"infra", "proxy", "tools", "qualidade", "performance", "resiliencia", "contexto"}
 
+# ── COCKPIT-03-GAUNTLET-PER-FEATURE-01: --only aceita feature_id ────────
+# Regex de feature_id (ex: I-01, P-03, T-12, Q-05, V-04, K-09, etc).
+_FEATURE_ID_RE = re.compile(r"^[A-Z]-\d{1,3}$")
+
+# Mapeamento categoria do REGISTRY -> fase do gauntlet.
+_CATEGORIA_PARA_FASE_GAUNTLET = {
+    "infraestrutura": "infra",
+    "infraestrutura (boot/lifecycle)": "infra",
+    "proxy": "proxy",
+    "proxy (ponte openai <-> ollama)": "proxy",
+    "tools": "tools",
+    "tool calling (6 tools)": "tools",
+    "qualidade": "qualidade",
+    "qualidade de resposta": "qualidade",
+    "performance": "performance",
+    "performance (kpis)": "performance",
+    "visual": "visual",
+    "interface visual": "visual",
+    "configuração": "config",
+    "resiliência": "resiliencia",
+}
+
+
+def _resolver_feature_id(only: str) -> tuple[str, str | None]:
+    """Resolve --only: retorna (fase, feature_id_alvo_ou_None).
+
+    Se 'only' casa regex de feature_id (^[A-Z]-\\d+$), busca em REGISTRY.yaml
+    a categoria e mapeia para a fase correspondente. Retorna (fase, only).
+
+    Caso contrário, devolve (only, None) -- comportamento original.
+    """
+    if not _FEATURE_ID_RE.match(only):
+        return only, None
+    registry_path = PROJECT_ROOT / "dev-journey" / "04-features" / "REGISTRY.yaml"
+    if not registry_path.is_file():
+        logger.warning("REGISTRY.yaml ausente; tratando '%s' como fase", only)
+        return only, None
+    try:
+        import yaml  # noqa: PLC0415 -- carga sob demanda evita custo em uso comum
+    except ImportError:
+        logger.warning("pyyaml ausente; tratando '%s' como fase", only)
+        return only, None
+    try:
+        data = yaml.safe_load(registry_path.read_text(encoding="utf-8")) or {}
+    except Exception as exc:  # noqa: BLE001 -- yaml malformado não deve crashar
+        logger.warning("REGISTRY.yaml inválido (%s); tratando '%s' como fase", exc, only)
+        return only, None
+    for feat in data.get("features", []):
+        if feat.get("id") == only:
+            cat = (feat.get("categoria") or "").lower()
+            fase = _CATEGORIA_PARA_FASE_GAUNTLET.get(cat)
+            if fase:
+                logger.info("--only %s -> fase '%s' (filtro por feature_id)", only, fase)
+                return fase, only
+            logger.warning("Categoria '%s' do %s sem mapeamento para fase", cat, only)
+            return only, None
+    logger.warning("feature_id '%s' não encontrado em REGISTRY.yaml", only)
+    return only, None
+
+
 # ── Paths de resiliência ────────────────────────────────────────────────
 REPORTS_DIR = PROJECT_ROOT / "dev-journey" / "07-reports" / "gauntlet"
 CHECKPOINT_PATH = REPORTS_DIR / "checkpoint.json"
@@ -313,10 +373,14 @@ class NyxGauntlet:
         self._phases_done: set[str] = set()
         self._hardware: dict[str, Any] = {}
 
-        raw = PHASE_GROUPS.get(only, [only])
+        # COCKPIT-03-GAUNTLET-PER-FEATURE-01: --only aceita feature_id direto.
+        fase, target = _resolver_feature_id(only)
+        self._target_feature_id: str | None = target
+
+        raw = PHASE_GROUPS.get(fase, [fase])
         self._phases = [p for p in raw if p in PHASE_TIMEOUTS]
         if not self._phases:
-            logger.error("Fase '%s' desconhecida. Opções: %s", only, list(PHASE_GROUPS.keys()))
+            logger.error("Fase '%s' desconhecida. Opções: %s", fase, list(PHASE_GROUPS.keys()))
             sys.exit(1)
 
     # ── Execução ────────────────────────────────────────────────────────
@@ -347,6 +411,14 @@ class NyxGauntlet:
 
         ok = sum(1 for r in self._results if r.passed)
         total = len(self._results)
+        # COCKPIT-03-GAUNTLET-PER-FEATURE-01: filtro alvo sem captura == falha.
+        if self._target_feature_id and total == 0:
+            logger.error(
+                "Filtro --only %s não capturou nenhum teste. "
+                "Feature pode estar em UNMAPPED_FEATURES ou em fase não executada.",
+                self._target_feature_id,
+            )
+            return 1
         logger.info(
             "Resultado: %d/%d (%.0f%%) em %.0fs",
             ok,
@@ -4131,6 +4203,13 @@ class NyxGauntlet:
         details: str = "",
         error: str = "",
     ) -> None:
+        # COCKPIT-03-GAUNTLET-PER-FEATURE-01: se filtro por feature_id estiver
+        # ativo, mantém somente o teste alvo nos resultados finais. Demais
+        # entradas saem como DEBUG (não poluem o report e nem o exit code).
+        if self._target_feature_id and fid != self._target_feature_id:
+            tag = "OK" if passed else "FAIL"
+            logger.debug("[%s] %s %s (skipped, filtro=%s)", tag, fid, name, self._target_feature_id)
+            return
         r = TestResult(fid, name, phase, passed, round(elapsed, 2), tokens, details[:200], error[:200])
         self._results.append(r)
         tag = "OK" if passed else "FAIL"
