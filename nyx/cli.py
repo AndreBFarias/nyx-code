@@ -275,6 +275,11 @@ async def run_repl(
             glyph = _STATE_GLYPHS.get(model_state, _STATE_GLYPHS["cold"])
             parts.append((f"fg:{NYX_MUTED}", f"  |  {glyph} {model_state}"))
 
+            # UX-AGENCY-02: indicador de tool em curso (footer dinâmico)
+            inflight = app_state.get("inflight_task")
+            if inflight is not None and not inflight.done():
+                parts.append((f"fg:{NYX_ACCENT}", "  |  ◐ executando (Ctrl+C cancela)"))
+
             if app_state.get("bypass"):
                 parts.append(("", "  "))
                 parts.append((
@@ -625,13 +630,20 @@ async def run_repl(
                 continue
 
             if result == "__cancel_inflight__":
-                # UX-AGENCY-01 MVP: dispatch placeholder. Cancel real de tool
-                # em curso fica para UX-AGENCY-02 (precisa hookar asyncio.CancelledError
-                # no AgentLoop, que envolve estado compartilhado e race no streaming).
-                print(
-                    f"  {DIM}/cancel: tools em curso só podem ser interrompidas via "
-                    f"Ctrl+C neste MVP. (UX-AGENCY-02 vai integrar cancel asyncio.){NC}"
-                )
+                # UX-AGENCY-02: cancel real via asyncio.
+                # /cancel via prompt só funciona se a tool ainda estiver em curso
+                # (normalmente o REPL só processa /cancel após tool concluir, então
+                # o caminho prático é Ctrl+C; este handler é fallback para shells
+                # com input buffer ou modo headless onde Ctrl+C pode não bubblar).
+                inflight = app_state.get("inflight_task")
+                if inflight is not None and not inflight.done():
+                    inflight.cancel()
+                    print(f"  {SUCCESS}● cancel sinalizado{NC} (asyncio.CancelledError despachado)")
+                else:
+                    print(
+                        f"  {DIM}/cancel: nenhuma tool em curso. "
+                        f"Use Ctrl+C durante execução para interromper.{NC}"
+                    )
                 continue
 
             if result == "__output_style_list__":
@@ -1020,11 +1032,26 @@ async def run_repl(
             spinner.__enter__()
             spinner_state["active"] = spinner
             render_assistant_start()
+            # UX-AGENCY-02: cancel real via asyncio.create_task + tracking em app_state.
+            # /cancel ou Ctrl+C cancelam essa task (Ctrl+C captura via KeyboardInterrupt;
+            # /cancel via app_state["inflight_task"].cancel() no handler).
+            inflight = asyncio.create_task(agent.run(user_input))
+            app_state["inflight_task"] = inflight
             try:
-                status = await agent.run(user_input)
+                status = await inflight
+            except asyncio.CancelledError:
+                _stop_spinner()
+                _flush_buffer()
+                sys.stdout.write("\r\x1b[2K")
+                sys.stdout.flush()
+                print(f"\n  {SUCCESS}● cancelado{NC} (tool em curso interrompida)")
+                # Continua o REPL — usuário recupera controle.
+                app_state["inflight_task"] = None
+                continue
             finally:
                 _stop_spinner()
                 _flush_buffer()
+                app_state["inflight_task"] = None
             total_iterations += status.iterations
 
             streamed = turn_state["streamed_text"].strip()
@@ -1069,11 +1096,16 @@ async def run_repl(
                 summarize_task = None
 
         except KeyboardInterrupt:
+            # UX-AGENCY-02: cancela inflight task explicitamente para que
+            # asyncio.CancelledError propague e tools encerrem limpas.
+            _inflight = app_state.get("inflight_task")
+            if _inflight is not None and not _inflight.done():
+                _inflight.cancel()
             _stop_spinner()
             _flush_buffer()
             sys.stdout.write("\r\x1b[2K")
             sys.stdout.flush()
-            print(f"\n  {ACCENT}[cancelado]{NC}")
+            print(f"\n  {SUCCESS}● cancelado{NC}")
 
     elapsed = time.time() - session_start
 

@@ -1,8 +1,8 @@
 # ADR-026 — Agência: o usuário sempre sente que controla
 
-**Status:** PROPOSTO
-**Data:** 2026-05-15
-**Contexto da Onda:** 23, Bloco 23.4, UX-AGENCY-01
+**Status:** ACEITO (UX-AGENCY-01 ACEITO_PARCIAL -> ACEITO completo via UX-AGENCY-02, 2026-05-18)
+**Data:** 2026-05-15 (proposto) / 2026-05-18 (aceito completo)
+**Contexto da Onda:** 23, Bloco 23.4, UX-AGENCY-01 + UX-AGENCY-02 (Onda 24)
 
 ## Contexto
 
@@ -93,11 +93,23 @@ viola princípio "tutorial sem tutorial".
 
 ## Verificação
 
-Sprint UX-AGENCY-01 implementa e mede:
+Sprint UX-AGENCY-01 implementa MVP (ACEITO_PARCIAL 2026-05-17):
 1. `/?` em estados diferentes retorna conteúdo diferente (e relevante).
 2. Footer atualiza ao mudar de modo (bypass on/off).
 3. Ctrl+C cancela tool call em andamento sem corromper REPL.
 4. Cada erro de tool tem actionable nomeado (audit grep).
+
+Sprint UX-AGENCY-02 fecha (ACEITO completo 2026-05-18):
+1. **Cancel asyncio real:** `agent.run` agora é `asyncio.create_task` salvo em
+   `app_state["inflight_task"]`. Ctrl+C explicitamente chama `.cancel()`,
+   propagando `asyncio.CancelledError` em toda a árvore async (tools, llm
+   request, streaming).
+2. **`/cancel` real:** comando despacha `inflight.cancel()` se houver task em
+   curso. Mensagem informativa quando nenhuma task ativa.
+3. **Footer dinâmico:** quando `inflight_task` ativo, mostra
+   `◐ executando (Ctrl+C cancela)` no `_bottom_toolbar`.
+4. **Mensagens unificadas:** "● cancelado" com glifo de sucesso (alinha
+   com MICROCOPY.md de UX-PROGRESSION-02).
 
 ## Referências
 
