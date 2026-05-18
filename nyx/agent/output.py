@@ -944,43 +944,45 @@ def render_user_input(
 
 
 def render_assistant_start() -> None:
-    """Imprime header 'Nyx + faixa lateral' antes do streaming (TUI-REDESIGN-25-08).
+    """Header inline-leading '◆ Nyx' antes do streaming (TUI-REDESIGN-26-02).
 
-    Emite duas linhas: 'Nyx' em accent bold e '│' em PURPLE (faixa lateral
-    canônica para bloco Nyx, ver SIDE_RULE_NYX em design_tokens.py).
+    Emite uma linha: ◆ (PURPLE) + Nyx (ACCENT bold). Meta dinâmica (tempo,
+    tokens) é renderizada no rodapé via render_assistant_end (cursor não
+    volta atrás durante streaming sem hack visual).
     """
-    from nyx.themes.design_tokens import ANSI_BOLD, ANSI_PURPLE_FG, SIDE_RULE_NYX
+    from nyx.themes.design_tokens import ANSI_BOLD, ANSI_PURPLE_FG
 
-    print(f"\n  {ANSI_ACCENT_FG}{ANSI_BOLD}Nyx{ANSI_RESET}")
-    print(f"  {ANSI_PURPLE_FG}{SIDE_RULE_NYX}{ANSI_RESET}")
+    print(f"\n  {ANSI_PURPLE_FG}◆{ANSI_RESET} {ANSI_ACCENT_FG}{ANSI_BOLD}Nyx{ANSI_RESET}")
 
 
 def render_assistant_end(
     start_monotonic: float | None = None,
     tokens: int | None = None,
 ) -> None:
-    """Imprime linha em branco + meta opcional ao fim da resposta (TUI-REDESIGN-25-08).
+    """Rodapé do turno com meta opcional (TUI-REDESIGN-26-02 + 25-08).
 
-    Se start_monotonic ou tokens informados, emite faixa lateral + meta:
-      '│  Nyx · Ns · N tokens'
+    Se start_monotonic ou tokens informados, emite rodapé compacto:
+      '└── 4.5s · 487 tokens'
+    em PURPLE/DIM, simulando o fechamento do bloco do mockup.
     Sem dados, mantém comportamento antigo (linha em branco).
     """
     if start_monotonic is None and tokens is None:
         print()
         return
 
-    from nyx.themes.design_tokens import ANSI_PURPLE_FG, SIDE_RULE_NYX
+    from nyx.themes.design_tokens import ANSI_PURPLE_FG
 
-    parts: list[str] = ["Nyx"]
+    parts: list[str] = []
     if start_monotonic is not None:
         import time
         elapsed = time.monotonic() - start_monotonic
         parts.append(f"{elapsed:.1f}s")
     if tokens is not None:
         parts.append(f"{tokens} tokens")
-    meta = " · ".join(parts)
-    print(f"  {ANSI_PURPLE_FG}{SIDE_RULE_NYX}{ANSI_RESET}")
-    print(f"  {ANSI_PURPLE_FG}{SIDE_RULE_NYX}{ANSI_RESET}  {ANSI_DIM}{meta}{ANSI_RESET}")
+    meta = " · ".join(parts) if parts else ""
+    print(
+        f"  {ANSI_PURPLE_FG}└──{ANSI_RESET} {ANSI_DIM}{meta}{ANSI_RESET}"
+    )
     print()
 
 

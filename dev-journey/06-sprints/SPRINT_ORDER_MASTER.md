@@ -561,7 +561,7 @@ Promoção em batch durante a Fase H do plano canônico da sessão 2026-05-18.
 | 163 | **COCKPIT-WEB-REDESIGN-02** | 26.2 Cockpit --web reformulado | ALTA | CONCLUIDA (2026-05-18) | COCKPIT-WEB-REDESIGN-01 |
 | 164 | **COCKPIT-WEB-REDESIGN-03** | 26.2 Cockpit --web reformulado | MÉDIA | CONCLUIDA (2026-05-18) | COCKPIT-WEB-REDESIGN-02 |
 | 165 | **TUI-REDESIGN-26-01** | 26.1 Fidelidade visual | ALTA | CONCLUIDA (2026-05-18) | COCKPIT-WEB-REDESIGN-03 |
-| 166 | **TUI-REDESIGN-26-02** | 26.1 Fidelidade visual | ALTA | PENDENTE | TUI-REDESIGN-26-01 |
+| 166 | **TUI-REDESIGN-26-02** | 26.1 Fidelidade visual | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-26-01 |
 | 167 | **TUI-REDESIGN-26-03** | 26.1 Fidelidade visual | ALTA | PENDENTE | TUI-REDESIGN-26-02 |
 | 168 | **TUI-REDESIGN-26-04** | 26.1 Fidelidade visual | ALTA | PENDENTE | TUI-REDESIGN-26-03 |
 | 169 | **TUI-REDESIGN-26-05** | 26.3 Onboarding nome | MÉDIA | PENDENTE | TUI-REDESIGN-26-04 |
