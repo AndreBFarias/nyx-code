@@ -74,7 +74,7 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** BLOQUEADA
 **Data criação:** 2026-05-15
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 
