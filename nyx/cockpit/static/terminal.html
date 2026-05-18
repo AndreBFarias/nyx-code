@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Nyx Cockpit -- REPL</title>
+  <link rel="stylesheet" href="/static/vendor/xterm.css">
+  <style>
+    /* Paleta D (ADR-023): turquesa #00D4AA + roxo #9D4EDD em estados especiais. */
+    :root {
+      --nyx-bg: #0E0F1A;
+      --nyx-bg-soft: #1A1D29;
+      --nyx-ink: #E8E8E8;
+      --nyx-ink-dim: #6C7A89;
+      --nyx-accent: #00D4AA;
+      --nyx-purple: #9D4EDD;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      background: var(--nyx-bg);
+      color: var(--nyx-ink);
+      font-family: ui-monospace, "JetBrains Mono", "Fira Mono", monospace;
+    }
+    .header {
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid var(--nyx-bg-soft);
+      display: flex; align-items: center; gap: 1rem;
+      font-size: 0.85rem;
+    }
+    .header .brand {
+      color: var(--nyx-accent);
+      font-weight: 600;
+    }
+    .header .muted { color: var(--nyx-ink-dim); }
+    .header .status { margin-left: auto; }
+    .status-dot {
+      display: inline-block;
+      width: 0.6rem; height: 0.6rem;
+      border-radius: 50%;
+      background: var(--nyx-ink-dim);
+      vertical-align: middle;
+      margin-right: 0.3rem;
+    }
+    .status-dot.connected { background: var(--nyx-accent); }
+    .status-dot.busy { background: var(--nyx-purple); }
+    .status-dot.error { background: #FF6B6B; }
+    #terminal {
+      height: calc(100vh - 2.5rem);
+      padding: 0.5rem;
+    }
+    .footer {
+      position: fixed; bottom: 0; right: 0;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.75rem;
+      color: var(--nyx-ink-dim);
+      background: var(--nyx-bg-soft);
+      border-top-left-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="brand">Nyx</span>
+    <span class="muted">cockpit / REPL embedded</span>
+    <span class="status"><span id="dot" class="status-dot"></span><span id="status-text">conectando...</span></span>
+  </div>
+  <div id="terminal"></div>
+  <div class="footer">Ctrl+C cancela | Ctrl+D sai | redimensione livremente</div>
+
+  <script src="/static/vendor/xterm.js"></script>
+  <script>
+    const dot = document.getElementById("dot");
+    const statusText = document.getElementById("status-text");
+    const setStatus = (cls, text) => {
+      dot.className = "status-dot " + cls;
+      statusText.textContent = text;
+    };
+
+    const term = new Terminal({
+      cursorBlink: true,
+      cursorStyle: "block",
+      fontFamily: 'ui-monospace, "JetBrains Mono", "Fira Mono", monospace',
+      fontSize: 13,
+      theme: {
+        background: "#0E0F1A",
+        foreground: "#E8E8E8",
+        cursor: "#00D4AA",
+        cursorAccent: "#0E0F1A",
+        selectionBackground: "#9D4EDD55",
+        black: "#1A1D29",
+        green: "#00D4AA",
+        magenta: "#9D4EDD",
+        cyan: "#00D4AA",
+        white: "#E8E8E8",
+        brightBlack: "#6C7A89",
+        brightGreen: "#4ADE80",
+        brightMagenta: "#BD93F9",
+        brightWhite: "#E8E8E8",
+      },
+    });
+    term.open(document.getElementById("terminal"));
+
+    const wsProto = location.protocol === "https:" ? "wss:" : "ws:";
+    const ws = new WebSocket(`${wsProto}//${location.host}/repl`);
+    ws.binaryType = "arraybuffer";
+
+    ws.onopen = () => {
+      setStatus("connected", "conectado");
+      // Envia tamanho inicial
+      sendResize();
+    };
+    ws.onmessage = (e) => {
+      if (typeof e.data === "string") {
+        try {
+          const meta = JSON.parse(e.data);
+          if (meta.type === "busy") {
+            setStatus("busy", "PTY ocupado (outra sessao ativa)");
+            term.write("\r\n\x1b[33m[cockpit] outra sessao PTY ativa. Aguarde ela fechar.\x1b[0m\r\n");
+          } else if (meta.type === "error") {
+            setStatus("error", "erro");
+            term.write(`\r\n\x1b[31m[cockpit] erro: ${meta.message}\x1b[0m\r\n`);
+          }
+        } catch (_) {
+          term.write(e.data);
+        }
+      } else {
+        term.write(new Uint8Array(e.data));
+      }
+    };
+    ws.onclose = () => {
+      setStatus("error", "desconectado");
+      term.write("\r\n\x1b[90m[cockpit] WebSocket fechado.\x1b[0m\r\n");
+    };
+    ws.onerror = (e) => {
+      setStatus("error", "erro WS");
+      console.error("[cockpit] WS error:", e);
+    };
+
+    term.onData((d) => {
+      if (ws.readyState !== WebSocket.OPEN) return;
+      ws.send(new TextEncoder().encode(d));
+    });
+
+    // COCKPIT-02: resize coordenado (xterm.js -> ws JSON meta)
+    function sendResize() {
+      if (ws.readyState !== WebSocket.OPEN) return;
+      ws.send(JSON.stringify({ type: "resize", rows: term.rows, cols: term.cols }));
+    }
+    window.addEventListener("resize", () => {
+      // xterm.js precisa de fitAddon para resize automatico; sem ele,
+      // o usuario pode disparar manualmente via 'r' no inicio.
+      sendResize();
+    });
+  </script>
+</body>
+</html>
