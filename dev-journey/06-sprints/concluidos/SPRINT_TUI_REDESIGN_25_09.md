@@ -44,9 +44,11 @@ sprint:
 
 # Sprint TUI-REDESIGN-25-09
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA_PARCIAL
 **Data criação:** 2026-05-18
+**Data conclusão:** 2026-05-18 (parcial -- helper render_thinking_block)
 **Modelo obrigatório:** claude-opus-4-7
+**Nota:** Helper visual implementado (collapsed + expanded). Captura real do field `thinking` em `loop/_iteration.py` (qwen3) ou surrogate (qwen2.5-coder) + Tab keybinding para expandir/colapsar ficam para sprint nova **TUI-REDESIGN-25-09-PARTE-2**.
 
 ## Contexto
 

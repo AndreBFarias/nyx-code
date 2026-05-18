@@ -508,6 +508,46 @@ def render_tool_card_start(
     print(args_line)
 
 
+def render_thinking_block(
+    text: str,
+    duration_s: float | None = None,
+    expanded: bool = False,
+    preview_chars: int = 60,
+) -> None:
+    """Renderiza chain-of-thought recolhível (TUI-REDESIGN-25-09).
+
+    Collapsed (expanded=False): '▶ pensando · {d}s · {text[:60]}...'
+    Expanded (expanded=True): bloco completo entre divisores PURPLE.
+
+    Texto único linha (preview): chama com expanded=False; texto longo
+    cabe quando expanded=True. Integração com loop/_iteration (captura
+    automática do response.message.thinking) e Tab keybinding ficam
+    para TUI-REDESIGN-25-09-PARTE-2.
+    """
+    from nyx.themes.design_tokens import ANSI_PURPLE_FG
+
+    if not text:
+        return
+    duration_lbl = f"{duration_s:.1f}s" if duration_s is not None else "—"
+    if not expanded:
+        clean = " ".join(text.strip().split())
+        preview = clean[:preview_chars]
+        if len(clean) > preview_chars:
+            preview += "…"
+        print(
+            f"  {ANSI_PURPLE_FG}▶{ANSI_RESET} {ANSI_DIM}pensando · "
+            f"{duration_lbl} · {preview}{ANSI_RESET}"
+        )
+        return
+    # Expanded: bloco entre divisores PURPLE.
+    rule = "─" * 60
+    print(f"  {ANSI_PURPLE_FG}{rule}{ANSI_RESET}")
+    print(f"  {ANSI_PURPLE_FG}▼{ANSI_RESET} {ANSI_DIM}pensando · {duration_lbl}{ANSI_RESET}")
+    for line in text.splitlines() or [text]:
+        print(f"  {ANSI_PURPLE_FG}│{ANSI_RESET} {line}")
+    print(f"  {ANSI_PURPLE_FG}{rule}{ANSI_RESET}")
+
+
 def render_tool_chip(
     name: str,
     args: dict,

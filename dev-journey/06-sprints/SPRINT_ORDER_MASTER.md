@@ -573,6 +573,7 @@ Promoção em batch durante a Fase H do plano canônico da sessão 2026-05-18.
 | 146 | **TUI-REDESIGN-25-01** | 25.1 Fundamentos visuais | ALTA | CONCLUIDA (2026-05-18, commit `e17c084`) | -- |
 | M1  | **SPRINT_ORDER-OVERRIDE-FIX-01** | 25.meta Anti-débito de pipeline | ALTA | PENDENTE | -- (achado durante 25-01: `update_next_sprint.py` não respeita este bloco MANUAL_OVERRIDE) |
 | M2  | **STREAMING-SIDE-RULE-01** | 25.meta Anti-débito de UX | MÉDIA | PENDENTE | TUI-REDESIGN-25-08 (achado: faixa lateral em cada linha da resposta streamada -- requer wrap on_token; extraído por complexidade) |
+| M3  | **TUI-REDESIGN-25-09-PARTE-2** | 25.meta Anti-débito de UX | MÉDIA | PENDENTE | TUI-REDESIGN-25-09 (achado: captura real do thinking + Tab keybinding extraídos -- helper visual já em 25-09) |
 | 147 | **TUI-REDESIGN-25-02** | 25.1 Fundamentos visuais | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-25-01 |
 | 148 | **TUI-REDESIGN-25-03** | 25.1 Fundamentos visuais | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-25-02 |
 | 149 | **TUI-REDESIGN-25-15** | 25.1 Fundamentos visuais | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-25-03 |
@@ -582,7 +583,7 @@ Promoção em batch durante a Fase H do plano canônico da sessão 2026-05-18.
 | 153 | **TUI-REDESIGN-25-06** | 25.2 Onboarding & Banner | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-25-02, TUI-REDESIGN-25-05 |
 | 154 | **TUI-REDESIGN-25-07** | 25.3 Diálogo | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-25-03, TUI-REDESIGN-25-04 |
 | 155 | **TUI-REDESIGN-25-08** | 25.3 Diálogo | ALTA | CONCLUIDA_PARCIAL (2026-05-18; faixa lateral durante streaming extraída para STREAMING-SIDE-RULE-01) | TUI-REDESIGN-25-03, TUI-REDESIGN-25-06 |
-| 156 | **TUI-REDESIGN-25-09** | 25.4 Thinking/tools/estrutura | ALTA | PENDENTE | TUI-REDESIGN-25-08 |
+| 156 | **TUI-REDESIGN-25-09** | 25.4 Thinking/tools/estrutura | ALTA | CONCLUIDA_PARCIAL (2026-05-18; helper visual; captura + Tab extraídos para TUI-REDESIGN-25-09-PARTE-2) | TUI-REDESIGN-25-08 |
 | 157 | **TUI-REDESIGN-25-10** | 25.4 Thinking/tools/estrutura | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-25-08 |
 | 158 | **TUI-REDESIGN-25-11** | 25.4 Thinking/tools/estrutura | ALTA | PENDENTE | TUI-REDESIGN-25-10 |
 | 159 | **TUI-REDESIGN-25-12** | 25.4 Thinking/tools/estrutura | MÉDIA | PENDENTE | TUI-REDESIGN-25-08 |
