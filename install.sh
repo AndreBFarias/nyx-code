@@ -49,7 +49,7 @@ Flags:
   --no-prompt   Modo não-interativo (CI); usa defaults seguros
   -h, --help    Esta mensagem
 
-11 fases:
+12 fases:
   0  Requisitos mínimos (Python >=3.10, distro)
   1  Cria venv (se ausente)
   2  pip install -r requirements.txt
@@ -62,6 +62,7 @@ Flags:
   9  Desktop entry (SKIP se scripts/setup_desktop_entry.py ausente)
  10  Smoke test (import nyx via venv)
  11  Controle OOM (chmod bin/nyx-runtime-limits.sh + scripts/check_oom.sh)
+ 12  Ícones XDG + desktop entry (hicolor + applications)
 
 Variáveis de ambiente:
   NYX_SUDO_PASSWORD   senha sudo para CI/replicação (NÃO commit; lida só em runtime)
@@ -74,7 +75,7 @@ EOF
 done
 
 # --- HELPERS -----------------------------------------------
-TOTAL=11
+TOTAL=12
 print_header() {
     echo -e "${PRIMARY}${BOLD}"
     echo "  _   _                ____          _      "
@@ -359,6 +360,61 @@ if [ -f "$LIMITS_SH" ]; then
     print_ok "scripts/check_oom.sh disponivel para diagnostico OOM"
 else
     print_warn "bin/nyx-runtime-limits.sh ausente -- INFRA-OOM-01 pulado"
+fi
+
+# ===========================================================
+# FASE 12 -- Ícones XDG + desktop entry (BRANDING-MONO-STENCIL)
+# ===========================================================
+print_step 12 "Ícones XDG (hicolor) + entry no menu"
+
+XDG_ICONS="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor"
+XDG_APPS="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+
+if [ -d "$SCRIPT_DIR/assets/icons/hicolor" ]; then
+    for size in 16 22 24 32 48 64 128 256 512; do
+        src="$SCRIPT_DIR/assets/icons/hicolor/${size}x${size}/apps/nyx.png"
+        dest="$XDG_ICONS/${size}x${size}/apps/nyx.png"
+        if [ -f "$src" ]; then
+            mkdir -p "$(dirname "$dest")"
+            if [ $DRY_RUN -eq 1 ]; then
+                print_skip "cp -u $src (dry-run)"
+            else
+                cp -u "$src" "$dest"
+            fi
+        fi
+    done
+
+    mkdir -p "$XDG_ICONS/scalable/apps" "$XDG_ICONS/symbolic/apps"
+    if [ -f "$SCRIPT_DIR/assets/icons/hicolor/scalable/apps/nyx.svg" ]; then
+        cp -u "$SCRIPT_DIR/assets/icons/hicolor/scalable/apps/nyx.svg" "$XDG_ICONS/scalable/apps/nyx.svg"
+    fi
+    if [ -f "$SCRIPT_DIR/assets/icons/hicolor/symbolic/apps/nyx-symbolic.svg" ]; then
+        cp -u "$SCRIPT_DIR/assets/icons/hicolor/symbolic/apps/nyx-symbolic.svg" "$XDG_ICONS/symbolic/apps/nyx-symbolic.svg"
+    fi
+    print_ok "ícones instalados em $XDG_ICONS"
+else
+    print_warn "assets/icons/hicolor ausente -- pulando ícones"
+fi
+
+if [ -f "$SCRIPT_DIR/assets/desktop/nyx.desktop" ]; then
+    mkdir -p "$XDG_APPS"
+    if [ $DRY_RUN -eq 1 ]; then
+        print_skip "instalar nyx.desktop (dry-run)"
+    else
+        cp -u "$SCRIPT_DIR/assets/desktop/nyx.desktop" "$XDG_APPS/nyx.desktop"
+        # Reescreve Exec= para o SCRIPT_DIR real (substitui placeholder absoluto)
+        sed -i "s|^Exec=.*$|Exec=$SCRIPT_DIR/run.sh|" "$XDG_APPS/nyx.desktop"
+        print_ok "desktop entry em $XDG_APPS/nyx.desktop"
+    fi
+else
+    print_warn "assets/desktop/nyx.desktop ausente -- pulando entry"
+fi
+
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -q -t "$XDG_ICONS" 2>/dev/null || true
+fi
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database -q "$XDG_APPS" 2>/dev/null || true
 fi
 
 echo ""

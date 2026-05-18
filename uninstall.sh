@@ -129,6 +129,25 @@ if [ "$FULL_REMOVE" -eq 1 ]; then
     fi
 fi
 
+# Ícones XDG + desktop entry (BRANDING-MONO-STENCIL)
+XDG_ICONS="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor"
+XDG_APPS="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+if [ -f "$XDG_APPS/nyx.desktop" ]; then
+    rm -f "$XDG_APPS/nyx.desktop"
+    log_ok "desktop entry removido"
+fi
+for size in 16 22 24 32 48 64 128 256 512; do
+    rm -f "$XDG_ICONS/${size}x${size}/apps/nyx.png"
+done
+rm -f "$XDG_ICONS/scalable/apps/nyx.svg" "$XDG_ICONS/symbolic/apps/nyx-symbolic.svg"
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -q -t "$XDG_ICONS" 2>/dev/null || true
+fi
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database -q "$XDG_APPS" 2>/dev/null || true
+fi
+log_ok "ícones XDG removidos"
+
 echo ""
 echo -e "${GREEN}${BOLD}Remoção concluída.${NC}"
 

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Nyx
+GenericName=Agente de código local
+Comment=Agente de código offline com qwen2.5-coder e Ollama
+Exec=/home/andrefarias/Desenvolvimento/Nyx-Code/run.sh
+Icon=nyx
+Terminal=true
+Categories=Development;IDE;TextEditor;
+StartupNotify=true
+StartupWMClass=Nyx
+Keywords=ollama;agent;cli;code;assistant;

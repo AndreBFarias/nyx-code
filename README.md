@@ -279,6 +279,39 @@ Uso:
 - GPU NVIDIA (RTX 3050 4GB recomendado)
 - ~8 GB de disco (modelos Ollama)
 
+### Dependências opcionais (regeneração de ícones)
+
+Os ícones em `assets/icons/` já vêm pré-renderizados no repositório. Para
+regenerar a partir do SVG mestre (`assets/branding/nyx-mono-stencil.svg`):
+
+```bash
+sudo apt-get install -y librsvg2-bin icoutils icnsutils
+./venv/bin/pip install Pillow cairosvg
+```
+
+`librsvg2-bin` provê `rsvg-convert`; `icoutils` provê `icotool` (favicon.ico
+multi-resolução); `icnsutils` provê `png2icns` (bundle macOS `.icns`).
+
+## Branding
+
+A identidade visual do Nyx é a logo **Mono Stencil**: hastes verticais do N
+mais diagonal interrompida (efeito stencil), com pupila central violeta
+(`#BD93F9`) sobre disco gradiente. Arquivos em:
+
+- `assets/branding/nyx-mono-stencil.svg` -- mestre 256x256 colorido
+- `assets/branding/nyx-mono-stencil-symbolic.svg` -- monocromático 16x16 (currentColor)
+- `assets/branding/nyx-mono-stencil-light.svg` -- variante para fundo claro
+- `assets/icons/favicon/favicon.ico` -- bundle 16/32/48/64/256
+- `assets/icons/hicolor/<size>x<size>/apps/nyx.png` -- Linux app menu (XDG)
+- `assets/icons/tray/nyx-tray-*.png` -- system tray (StatusNotifier)
+- `assets/icons/dock/nyx-dock-*.png` -- dock/launcher (64..1024)
+- `assets/icons/macos/nyx.icns` -- bundle macOS
+- `assets/icons/windows/nyx.ico` -- ícone Windows multi-res
+
+A FASE 12 do `install.sh` copia ícones para `~/.local/share/icons/hicolor/`
+e o `.desktop` para `~/.local/share/applications/`, com cache atualizado
+via `gtk-update-icon-cache` e `update-desktop-database` quando presentes.
+
 ## Estrutura
 
 ```
