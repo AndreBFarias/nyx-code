@@ -335,7 +335,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 122 | **GAUNTLET-RAPIDO-FIXES-01** | 23.0 Performance | ALTA | CONCLUIDA (18/18 100% rapido; fix P-07 think gating + parser content-JSON; fix C-03 settings.json criado; fix C-04 GUIDE.md -> GSD.md) | -- |
 | 124 | **INFRA-SANITIZER-FIX-01** | 23.0 Performance | MÉDIA | CONCLUIDA (hash e16e61b; 23 arquivos restaurados bit-exact; invariante #14 ativo; PASS=14/FAIL=0) | -- |
 | 125 | **INFRA-SANITIZER-FIX-02** | 23.0 Performance | ALTA | CONCLUIDA (invariante #14 endurecido: grep textual -> python codepoint count; cobertura expandida para output.py; imune a strip + reescrita coerente) | INFRA-SANITIZER-FIX-01 |
-| 123 | **LANG-PROMPT-ACENT-01** | 23.0 Performance | BAIXA | PENDENTE | LANG-ENFORCE-01 |
+| 123 | **LANG-PROMPT-ACENT-01** | 23.0 Performance | BAIXA | CONCLUIDA (NYX_SYSTEM_PROMPT em run.sh:551-562 com acentos: Codigo->Código, nao->não, diagnostico->diagnóstico, solucao->solução, verificacao->verificação, tecnico->técnico, Diretorio->Diretório; UTF-8 preservado; smoke+invariantes OK) | LANG-ENFORCE-01 |
 
 ---
 
