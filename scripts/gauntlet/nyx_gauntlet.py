@@ -113,6 +113,7 @@ PHASE_GROUPS: dict[str, list[str]] = {
     "vision": ["vision"],
     "sessao": ["sessao"],
     "install": ["install"],
+    "loop": ["loop"],
     "contexto": ["contexto"],
     "rapido": ["infra", "proxy", "visual", "config"],
     "port": ["parser", "robustez", "interface", "controle", "persistencia"],
@@ -230,6 +231,7 @@ PHASE_TIMEOUTS: dict[str, int] = {
     "vision": 90,
     "sessao": 60,
     "install": 1200,
+    "loop": 30,
     "contexto": 180,
 }
 
@@ -739,6 +741,39 @@ class NyxGauntlet:
     # ═══════════════════════════════════════════════════════════════════
     # FASE: VISUAL (3 testes)
     # ═══════════════════════════════════════════════════════════════════
+
+    # ═══════════════════════════════════════════════════════════════════
+    # FASE: LOOP (1 teste -- UX-LOOP-01 / ADR-025 feedback budget)
+    # ═══════════════════════════════════════════════════════════════════
+
+    async def _phase_loop(self) -> None:
+        import subprocess as _sp
+
+        t = time.monotonic()
+        fixture = PROJECT_ROOT / "scripts" / "gauntlet" / "fixtures" / "loop_benchmark.py"
+        if not fixture.is_file():
+            self._add("L-01", "loop_benchmark.py existe", "loop", False, 0, error="fixture ausente")
+            return
+        try:
+            result = await asyncio.to_thread(
+                _sp.run,
+                [str(PROJECT_ROOT / "venv" / "bin" / "python"), str(fixture)],
+                capture_output=True,
+                timeout=20,
+            )
+            output = (result.stdout or b"").decode("utf-8", errors="replace")
+            ok = result.returncode == 0
+            tail = "\n".join(output.strip().splitlines()[-4:])
+            self._add(
+                "L-01",
+                "loop_benchmark (ack<100ms, tool_start<300ms, streaming<500ms)",
+                "loop",
+                ok,
+                time.monotonic() - t,
+                details=f"rc={result.returncode} tail={tail!r}",
+            )
+        except Exception as e:
+            self._add("L-01", "loop_benchmark", "loop", False, time.monotonic() - t, error=str(e))
 
     # ═══════════════════════════════════════════════════════════════════
     # FASE: INSTALL (2 testes -- DEPLOY-01B em Docker ubuntu:22.04)
