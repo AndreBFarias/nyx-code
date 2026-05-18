@@ -588,7 +588,7 @@ Promoção em batch durante a Fase H do plano canônico da sessão 2026-05-18.
 | 158 | **TUI-REDESIGN-25-11** | 25.4 Thinking/tools/estrutura | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-25-10 |
 | 159 | **TUI-REDESIGN-25-12** | 25.4 Thinking/tools/estrutura | MÉDIA | CONCLUIDA (2026-05-18; helper+parser; integração pós-stream pendente) | TUI-REDESIGN-25-08 |
 | 160 | **TUI-REDESIGN-25-13** | 25.5 Comandos & encerramento | MÉDIA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-25-01 |
-| 161 | **TUI-REDESIGN-25-14** | 25.5 Comandos & encerramento | MÉDIA | PENDENTE | TUI-REDESIGN-25-02 |
+| 161 | **TUI-REDESIGN-25-14** | 25.5 Comandos & encerramento | MÉDIA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-25-02 |
 
 **Bloco 25.1 (Fundamentos visuais):** 5 sprints — capitalização, glifos/divisores, bubble tokens, 4 schemas, compose runtime. Resolve P01, P02, P03, P09, P10, P14 e introduz a camada de schema.
 
