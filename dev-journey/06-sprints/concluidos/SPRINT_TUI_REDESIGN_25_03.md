@@ -45,8 +45,9 @@ sprint:
 
 # Sprint TUI-REDESIGN-25-03
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criacao:** 2026-05-18
+**Data conclusao:** 2026-05-18
 **Modelo obrigatorio:** claude-opus-4-7
 
 ## Contexto

@@ -290,8 +290,51 @@ def list_entities() -> list[dict[str, str]]:
     ]
 
 
+# ── Bubble styles (TUI-REDESIGN-25-03) ──────────────────────────────
+# Vocabulário de bubbles que envolve mensagens do usuário e da Nyx.
+# Cada "kind" descreve estrutura (glifos + padding + token de cor); a
+# aplicação visual concreta usa os glifos do aesthetic ativo via compose().
+# Renderização fina fica para sprints 25-07 (user) e 25-08 (Nyx).
+
+BUBBLE_STYLES: dict[str, dict[str, Any]] = {
+    "soft-box": {
+        "kind": "box",
+        "glyphs": ("tl", "tr", "bl", "br", "h", "v"),
+        "padding": (0, 1, 0, 1),
+        "color_token": "accent_lo",
+        "label_position": "header",
+    },
+    "side-rule": {
+        "kind": "rule",
+        "glyphs": ("v",),
+        "padding": (0, 0, 0, 2),
+        "color_token": "accent",
+        "label_position": "inline",
+    },
+    "bracket-label": {
+        "kind": "label",
+        "delimiters": ("[", "]"),
+        "padding": (0, 1, 0, 0),
+        "color_token": "ink",
+        "uppercase": True,
+    },
+    "ornament-box": {
+        "kind": "box",
+        "glyphs": ("tl", "tr", "bl", "br", "h", "v"),
+        "padding": (0, 2, 0, 2),
+        "color_token": "accent",
+        "label_position": "header",
+        "ornaments": ("◆", "─"),
+    },
+}
+
+DEFAULT_USER_BUBBLE = "soft-box"
+DEFAULT_NYX_BUBBLE = "side-rule"
+
+
 __all__ = [
     "AESTHETICS", "ENTITIES",
+    "BUBBLE_STYLES", "DEFAULT_USER_BUBBLE", "DEFAULT_NYX_BUBBLE",
     "compose", "get_active",
     "list_aesthetics", "list_entities",
 ]
