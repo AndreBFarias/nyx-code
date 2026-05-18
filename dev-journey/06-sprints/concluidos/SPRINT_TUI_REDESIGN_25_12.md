@@ -41,9 +41,11 @@ sprint:
 
 # Sprint TUI-REDESIGN-25-12
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-18
+**Data conclusão:** 2026-05-18
 **Modelo obrigatório:** claude-opus-4-7
+**Nota:** Helpers (parser + renderer) implementados e validados. Integração com streaming (call automático a partir do agente quando detectar todo-block na resposta) fica para sprint futura quando necessário; helper já é callable manualmente.
 
 ## Contexto
 

@@ -573,6 +573,42 @@ def render_error_with_actions(
         )
 
 
+_TODO_PATTERN = re.compile(r"^\s*-\s*\[([x ])\]\s*(.+?)\s*$", re.IGNORECASE)
+
+
+def parse_todo_lines(text: str) -> list[tuple[bool, str]]:
+    """Detecta linhas markdown '- [ ] X' e '- [x] X' em texto (TUI-REDESIGN-25-12).
+
+    Retorna lista [(done: bool, label: str)] na ordem encontrada. Texto não
+    matchando é ignorado — caller decide o que fazer com linhas restantes.
+    """
+    items: list[tuple[bool, str]] = []
+    for line in text.splitlines():
+        m = _TODO_PATTERN.match(line)
+        if not m:
+            continue
+        done = m.group(1).lower() == "x"
+        items.append((done, m.group(2)))
+    return items
+
+
+def render_todo_block(items: list[tuple[bool, str]]) -> None:
+    """Renderiza lista de todos com checkboxes geometric shapes (TUI-REDESIGN-25-12).
+
+    Done: '◼' (U+25FC) + texto em muted (visual strikethrough sutil).
+    Pending: '◻' (U+25FB) + texto em ink. Glifos ADR-004 ok (não-emoji).
+    """
+    if not items:
+        return
+    for done, label in items:
+        if done:
+            glyph = "◼"
+            print(f"      {ANSI_ACCENT_FG}{glyph}{ANSI_RESET} {ANSI_MUTED_FG}{label}{ANSI_RESET}")
+        else:
+            glyph = "◻"
+            print(f"      {ANSI_ACCENT_FG}{glyph}{ANSI_RESET} {label}")
+
+
 def render_thinking_block(
     text: str,
     duration_s: float | None = None,
