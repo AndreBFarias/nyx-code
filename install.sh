@@ -49,7 +49,7 @@ Flags:
   --no-prompt   Modo não-interativo (CI); usa defaults seguros
   -h, --help    Esta mensagem
 
-12 fases:
+11 fases:
   0  Requisitos mínimos (Python >=3.10, distro)
   1  Cria venv (se ausente)
   2  pip install -r requirements.txt
@@ -59,10 +59,9 @@ Flags:
   6  Instala xclip (respeita pkg manager)
   7  Pergunta sobre kitty (respeita --no-kitty)
   8  chmod +x em run.sh e scripts/*.sh|.py
-  9  Desktop entry (SKIP se scripts/setup_desktop_entry.py ausente)
- 10  Smoke test (import nyx via venv)
- 11  Controle OOM (chmod bin/nyx-runtime-limits.sh + scripts/check_oom.sh)
- 12  Ícones XDG + desktop entry (hicolor + applications)
+  9  Smoke test (import nyx via venv)
+ 10  Controle OOM (chmod bin/nyx-runtime-limits.sh + scripts/check_oom.sh)
+ 11  Ícones XDG + desktop entry (hicolor + applications)
 
 Variáveis de ambiente:
   NYX_SUDO_PASSWORD   senha sudo para CI/replicação (NÃO commit; lida só em runtime)
@@ -75,7 +74,7 @@ EOF
 done
 
 # --- HELPERS -----------------------------------------------
-TOTAL=12
+TOTAL=11
 print_header() {
     echo -e "${PRIMARY}${BOLD}"
     echo "  _   _                ____          _      "
@@ -316,21 +315,9 @@ else
 fi
 
 # ===========================================================
-# FASE 9 -- desktop entry (SKIP se ausente)
+# FASE 9 -- smoke test
 # ===========================================================
-print_step 9 "Desktop entry"
-
-if [ -x "$SCRIPT_DIR/scripts/setup_desktop_entry.py" ]; then
-    run_or_skip "setup_desktop_entry.py" "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/scripts/setup_desktop_entry.py"
-    print_ok "desktop entry processado"
-else
-    print_skip "scripts/setup_desktop_entry.py ausente (escopo de DEPLOY-02)"
-fi
-
-# ===========================================================
-# FASE 10 -- smoke test
-# ===========================================================
-print_step 10 "Smoke test (import nyx)"
+print_step 9 "Smoke test (import nyx)"
 
 if [ -x "$SCRIPT_DIR/venv/bin/python" ]; then
     if [ $DRY_RUN -eq 1 ]; then
@@ -346,9 +333,9 @@ else
 fi
 
 # ===========================================================
-# FASE 11 -- Controle OOM (INFRA-OOM-01)
+# FASE 10 -- Controle OOM (INFRA-OOM-01)
 # ===========================================================
-print_step 11 "Controle OOM (ulimit + oom_score_adj)"
+print_step 10 "Controle OOM (ulimit + oom_score_adj)"
 
 LIMITS_SH="$SCRIPT_DIR/bin/nyx-runtime-limits.sh"
 if [ -f "$LIMITS_SH" ]; then
@@ -363,9 +350,9 @@ else
 fi
 
 # ===========================================================
-# FASE 12 -- Ícones XDG + desktop entry (BRANDING-MONO-STENCIL)
+# FASE 11 -- Ícones XDG + desktop entry (BRANDING-MONO-STENCIL)
 # ===========================================================
-print_step 12 "Ícones XDG (hicolor) + entry no menu"
+print_step 11 "Ícones XDG (hicolor) + entry no menu"
 
 XDG_ICONS="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor"
 XDG_APPS="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
