@@ -570,7 +570,8 @@ Promoção em batch durante a Fase H do plano canônico da sessão 2026-05-18.
 
 | # | Sprint | Bloco | Prioridade | Status | Depende de |
 |---|--------|-------|------------|--------|------------|
-| 146 | **TUI-REDESIGN-25-01** | 25.1 Fundamentos visuais | ALTA | PENDENTE | -- |
+| 146 | **TUI-REDESIGN-25-01** | 25.1 Fundamentos visuais | ALTA | CONCLUIDA (2026-05-18, commit `e17c084`) | -- |
+| M1  | **SPRINT_ORDER-OVERRIDE-FIX-01** | 25.meta Anti-débito de pipeline | ALTA | PENDENTE | -- (achado durante 25-01: `update_next_sprint.py` não respeita este bloco MANUAL_OVERRIDE) |
 | 147 | **TUI-REDESIGN-25-02** | 25.1 Fundamentos visuais | ALTA | PENDENTE | TUI-REDESIGN-25-01 |
 | 148 | **TUI-REDESIGN-25-03** | 25.1 Fundamentos visuais | ALTA | PENDENTE | TUI-REDESIGN-25-02 |
 | 149 | **TUI-REDESIGN-25-15** | 25.1 Fundamentos visuais | ALTA | PENDENTE | TUI-REDESIGN-25-03 |
