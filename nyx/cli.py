@@ -363,11 +363,15 @@ async def run_repl(
         if len(turn_state["token_buffer"]) >= TOKEN_FLUSH_CHARS or "\n" in token:
             _flush_buffer()
 
+    # TUI-REDESIGN-25-10: tool_args_cache mantém args entre on_tool e
+    # on_tool_result para render_tool_chip ter acesso ao arg_preview.
+    tool_args_cache: dict[str, dict] = {}
+
     def on_tool(name: str, args: dict) -> None:
         _stop_spinner()
         turn_state["streamed_text"] = ""
         tool_timers[name] = time.monotonic()
-        render_tool_card_start(name, format_args_preview(args))
+        tool_args_cache[name] = args or {}
 
     def on_tool_result(name: str, result: str) -> None:
         if name == "ask_user":
@@ -392,15 +396,20 @@ async def run_repl(
                         if 0 <= idx < len(idx_opts):
                             answer = idx_opts[idx].get("label", answer)
                     agent.session.add_user(f"[resposta] {answer}")
+                tool_args_cache.pop(name, None)
                 return
         started = tool_timers.pop(name, None)
         duration_ms = int((time.monotonic() - started) * 1000) if started else 0
         first_line = next((ln.strip() for ln in (result or "").splitlines() if ln.strip()), "")
-        render_tool_card_end(
-            name,
+        is_err = is_tool_error(first_line)
+        from nyx.agent.output import render_tool_chip
+        render_tool_chip(
+            name=name,
+            args=tool_args_cache.pop(name, {}),
+            status="erro" if is_err else "ok",
             duration_ms=duration_ms,
-            summary_line=first_line,
-            is_error=is_tool_error(first_line),
+            error_preview=first_line if is_err else None,
+            project_root=str(PROJECT_ROOT),
         )
 
     def on_compaction(level: int, tokens_removed: int, pct_before: float, pct_after: float) -> None:

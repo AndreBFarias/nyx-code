@@ -508,6 +508,44 @@ def render_tool_card_start(
     print(args_line)
 
 
+def render_tool_chip(
+    name: str,
+    args: dict,
+    status: str,
+    duration_ms: int,
+    error_preview: str | None = None,
+    project_root: str | None = None,
+) -> None:
+    """Renderiza tool call como chip de 1 linha (TUI-REDESIGN-25-10).
+
+    Formato: '● {name} {arg_preview}  {Nms}  {status}' em verde/vermelho.
+    Path encurtado via _shorten_path (~/.../basename ou … no meio).
+    Se ``error_preview`` informado, adiciona linha extra de preview muted.
+    Substitui o par render_tool_card_start/end (2 caixas de 4-6 linhas).
+    """
+    from nyx.themes.design_tokens import ANSI_ERROR_FG, ANSI_SUCCESS_FG
+
+    glyph = "●"
+    color = ANSI_ERROR_FG if status != "ok" else ANSI_SUCCESS_FG
+    arg_preview = ""
+    for key in PRIMARY_ARG_KEYS:
+        if key in args and args[key] not in (None, ""):
+            arg_preview = _shorten_path(str(args[key]), project_root, 50)
+            break
+    duration = _format_duration(duration_ms)
+    parts = [
+        f"  {color}{glyph}{ANSI_RESET}",
+        f"{ANSI_ACCENT_FG}{name}{ANSI_RESET}",
+    ]
+    if arg_preview:
+        parts.append(f"{ANSI_DIM}{arg_preview}{ANSI_RESET}")
+    parts.append(f"{ANSI_MUTED_FG}{duration}{ANSI_RESET}")
+    parts.append(f"{color}{status}{ANSI_RESET}")
+    print(" ".join(parts))
+    if error_preview:
+        print(f"      {ANSI_DIM}{error_preview[:120]}{ANSI_RESET}")
+
+
 def render_tool_card_end(
     name: str,
     duration_ms: int,
@@ -515,10 +553,10 @@ def render_tool_card_end(
     is_error: bool = False,
     extra_lines: list[str] | None = None,
 ) -> None:
-    """Fecha card de tool com duração e primeira linha do resultado.
+    """[DEPRECATED em TUI-REDESIGN-25-10] Use render_tool_chip.
 
-    Call-site principal (cli.py on_tool_result) chama sempre este — o
-    card é de linha única quando o start não foi chamado (tool rápida).
+    Fecha card de tool com duração e primeira linha do resultado.
+    Mantido para callers legados; novos call-sites devem usar render_tool_chip.
     """
     h = BOX_CHARS["h"]
     tl = BOX_CHARS["tl"]
