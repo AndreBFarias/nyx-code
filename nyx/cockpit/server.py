@@ -177,7 +177,7 @@ async def features() -> dict[str, Any]:
 
 @app.get("/api/tokens")
 async def tokens() -> dict[str, Any]:
-    """COCKPIT-03 + D1 UX-COCKPIT-EXPERIENCE: paleta D serializada para o frontend.
+    """COCKPIT-03 + UX-COCKPIT-EXPERIENCE-01: paleta D serializada para o frontend.
 
     Frontend hidrata CSS vars via fetch('/api/tokens') na inicialização.
     Fonte única: nyx/themes/design_tokens.py (n-para-n honrado).
@@ -194,6 +194,51 @@ async def tokens() -> dict[str, Any]:
         "success": NYX_SUCCESS,
         "warning": NYX_WARNING,
         "error": NYX_ERROR,
+    }
+
+
+_MICROCOPY_PATH = REPO_ROOT / "dev-journey" / "05-guides" / "MICROCOPY.md"
+
+
+@app.get("/api/microcopy")
+async def microcopy() -> dict[str, Any]:
+    """UX-COCKPIT-EXPERIENCE-01: serve MICROCOPY.md + strings canonicas.
+
+    Cockpit consome via fetch + atualiza textos do UI. Fonte unica.
+    """
+    raw = _MICROCOPY_PATH.read_text(encoding="utf-8") if _MICROCOPY_PATH.is_file() else ""
+    return {
+        "version": "1",
+        "raw_markdown": raw,
+        # ADR-027 vocabulario Nyx canonico (espelha tabela do MICROCOPY.md)
+        "strings": {
+            "running": "rodando",
+            "ok": "ok",
+            "warn": "aviso",
+            "fail": "falha",
+            "unknown": "sem teste",
+            "no_test": "sem teste",
+            "timeout": "tempo esgotado",
+            "error": "erro",
+            "cancel": "cancelar",
+            "cancelled": "cancelado",
+            "run_gauntlet": "rodar gauntlet",
+            "reload": "recarregar",
+            "category": "categoria",
+            "status": "status",
+            "all": "todos",
+            "all_f": "todas",
+            "no_session": "nenhuma sessao",
+            "session_saved": "sessao salva",
+            "session_restored": "sessao restaurada",
+            "session_clean": "sessao limpa",
+            "boot_ok": "boot ok",
+            "footer": "ADR-001 Local First | bind 127.0.0.1 | paleta D | Onda 24",
+            # Tooltips contextuais (ADR-026: '?' em qualquer ponto)
+            "tooltip_run": "Dispara fase do Gauntlet correspondente a essa categoria",
+            "tooltip_filter_cat": "Filtra cards pela categoria do REGISTRY",
+            "tooltip_filter_status": "Filtra cards pelo estado atual do teste",
+        },
     }
 
 

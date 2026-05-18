@@ -11,10 +11,28 @@ function dashboard() {
     running: {},   // {feature_id: job_id}
     output: {},    // {feature_id: tail do output}
     pollers: {},   // {feature_id: timeout handle}
+    // UX-COCKPIT-EXPERIENCE-01: microcopy hidratado de /api/microcopy
+    copy: {
+      running: "rodando", ok: "ok", warn: "aviso", fail: "falha",
+      unknown: "sem teste", run_gauntlet: "rodar gauntlet",
+      cancel: "cancelar", cancelled: "cancelado", reload: "recarregar",
+      category: "categoria", status: "status", all: "todos", all_f: "todas",
+      tooltip_run: "", tooltip_filter_cat: "", tooltip_filter_status: "",
+      footer: "ADR-001 Local First | bind 127.0.0.1 | paleta D",
+    },
 
     async init() {
-      await this.hidratarTokens();
+      await Promise.all([this.hidratarTokens(), this.hidratarMicrocopy()]);
       await this.recarregar();
+    },
+
+    async hidratarMicrocopy() {
+      try {
+        const r = await fetch("/api/microcopy");
+        if (!r.ok) return;
+        const data = await r.json();
+        Object.assign(this.copy, data.strings || {});
+      } catch (e) { console.warn("hidratarMicrocopy falhou:", e); }
     },
 
     async hidratarTokens() {
@@ -72,11 +90,21 @@ function dashboard() {
 
     statusLabel(f) {
       const s = this.statusOf(f);
-      if (s === "running") return "rodando";
-      if (s === "ok") return "ok";
-      if (s === "warn") return "aviso";
-      if (s === "fail") return "falha";
-      return "sem teste";
+      return this.copy[s] || s;
+    },
+
+    async cancelar(featureId) {
+      // UX-COCKPIT-EXPERIENCE-01 (ADR-026): cancel nomeado.
+      // Front cancela apenas o poll local; gauntlet subprocess no servidor
+      // continua até timeout. Anti-debito COCKPIT-04-CANCEL-RUN-01 (futuro)
+      // adicionaria DELETE /api/features/{id}/run para cancelar de fato.
+      if (this.pollers[featureId]) {
+        clearTimeout(this.pollers[featureId]);
+        delete this.pollers[featureId];
+      }
+      delete this.running[featureId];
+      this.output[featureId] = "[" + this.copy.cancelled + "] (subprocess pode continuar ate timeout)";
+      this.recomputarCounters();
     },
 
     get filtered() {
