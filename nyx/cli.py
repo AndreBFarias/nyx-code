@@ -711,6 +711,69 @@ async def run_repl(
                     )
                 continue
 
+            if result == "__mcp_list__":
+                # MCP-SERVER-01: lista servers + tools de ~/.nyx/mcp.json
+                from nyx.agent.services.mcp_client import McpClient
+
+                client = McpClient.from_config()
+                if not client.servers:
+                    _print_error(
+                        "Nenhum server MCP configurado.",
+                        hint="Crie ~/.nyx/mcp.json com {\"servers\": {...}}.",
+                    )
+                    continue
+                await client.connect_all()
+                print(f"  Servers MCP ({len(client.servers)}):")
+                for name, srv in client.servers.items():
+                    status = (
+                        f"{ACCENT}OK{NC}" if srv.connected else f"{DIM}{srv.error or 'down'}{NC}"
+                    )
+                    print(f"    {ACCENT}{name}{NC} [{status}] -- {len(srv.tools)} tool(s)")
+                    for tool in srv.tools[:5]:
+                        tname = tool.get("name", "?")
+                        tdesc = (tool.get("description") or "").strip()[:60]
+                        print(f"      {DIM}- {tname}: {tdesc}{NC}")
+                    if len(srv.tools) > 5:
+                        print(f"      {DIM}... (+{len(srv.tools) - 5} tools){NC}")
+                await client.close_all()
+                continue
+
+            if result == "__mcp_reload__":
+                from nyx.agent.services.mcp_client import McpClient
+
+                client = McpClient.from_config()
+                if not client.servers:
+                    _print_error("Nenhum server MCP em ~/.nyx/mcp.json.", hint=None)
+                    continue
+                results = await client.connect_all()
+                ok = sum(1 for v in results.values() if v)
+                print(f"  {ACCENT}[ok]{NC} MCP recarregado: {ok}/{len(results)} server(s) conectado(s)")
+                await client.close_all()
+                continue
+
+            if isinstance(result, str) and result.startswith("__mcp_test__"):
+                target = result[len("__mcp_test__"):].strip()
+                from nyx.agent.services.mcp_client import McpClient
+
+                client = McpClient.from_config()
+                if target not in client.servers:
+                    _print_error(
+                        f"Server MCP '{target}' não encontrado.",
+                        hint="Veja /mcp list.",
+                    )
+                    continue
+                await client.connect_all()
+                alive = await client.ping(target)
+                if alive:
+                    print(f"  {ACCENT}[ok]{NC} MCP {target} responde (ping ok)")
+                else:
+                    _print_error(
+                        f"MCP {target} não responde ao ping.",
+                        hint="Verifique o command/args em ~/.nyx/mcp.json.",
+                    )
+                await client.close_all()
+                continue
+
             if result == "__edit_last__":
                 # UX-EXTRA-01: pré-popula próximo prompt_async via app_state["prefill"].
                 last = last_input_state.get("text", "")

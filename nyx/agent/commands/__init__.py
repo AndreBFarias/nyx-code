@@ -15,6 +15,7 @@ from nyx.agent.commands import (  # noqa: F401  -- side-effect: registra @nyx_co
     core,
     debug_cmds,
     git_cmds,
+    mcp,
     session,
     system,
 )

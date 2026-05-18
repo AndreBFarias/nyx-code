@@ -324,7 +324,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 111 | **UX-CLAUDE-PARITY-01** | 23.4 Gamedesigner | ALTA | CONCLUIDA (ADR-029; banner 9->3 linhas mantendo paleta D + glifos; toolbar separator . substituido por pipes; bypass off com prefix triangulo duplo paridade estrutural; identidade Nyx preservada) | UX-BUG-02B, UX-LOOP-VISIBILITY-01 |
 | 112 | **UX-LIFECYCLE-01** | 23.1 Estabilização | ALTA | CONCLUIDA (lock file + cleanup robusto SIGINT/TERM/HUP + /admin/shutdown loopback + VRAM check pré-inferência; gauntlet rápido 18/18 em 11s) | BOOT-VRAM-GUARD-01, TUI-SHUTDOWN-SILENT-01 |
 | 113 | **PERF-INFERENCE-01** | 23.0 Performance (NOVA FASE 1) | CRÍTICA | CONCLUIDA | -- |
-| 114 | **MCP-SERVER-01** | 23.5 Feature parity Claude Code | ALTA | PENDENTE | PERF-INFERENCE-01 |
+| 114 | **MCP-SERVER-01** | 23.5 Feature parity | ALTA | CONCLUIDA (ADR-030; McpClient stdio JSON-RPC com timeouts; /mcp list/reload/test; NYX_MCP_CONFIG em defaults; boot tolerante; MCP-SERVER-02 anti-debito para ToolRegistry+HTTP+Gauntlet) | PERF-INFERENCE-01 |
 | 115 | **PLUGINS-01** | 23.5 Feature parity Claude Code | MÉDIA | PENDENTE | MCP-SERVER-01 |
 | 116 | **OUTPUT-STYLES-01** | 23.5 Feature parity Claude Code | MÉDIA | PENDENTE | PERF-INFERENCE-01 |
 | 117 | **HOOKS-DYNAMIC-01** | 23.5 Feature parity Claude Code | MÉDIA | PENDENTE | PERF-INFERENCE-01 |

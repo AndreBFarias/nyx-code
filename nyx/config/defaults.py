@@ -10,6 +10,13 @@ import os
 # Default em /tmp por convenção POSIX para lock files de processo único.
 NYX_PID_FILE: str = os.environ.get("NYX_PID_FILE", "/tmp/nyx.pid")  # noqa: abs-path
 
+# MCP (Model Context Protocol) config file. Lido por nyx.agent.services.mcp_client.
+# Override via env var NYX_MCP_CONFIG (test isolation, multi-projeto).
+NYX_MCP_CONFIG: str = os.environ.get(
+    "NYX_MCP_CONFIG",
+    str(__import__("pathlib").Path.home() / ".nyx" / "mcp.json"),
+)
+
 OLLAMA_PORT: int = 11435
 PROXY_PORT: int = 11436
 # Contrato dual:
