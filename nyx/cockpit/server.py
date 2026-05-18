@@ -27,10 +27,11 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from nyx.agent.services.logging_service import get_logger
+from nyx.cockpit.evidencia import latest_evidence, save_evidence
 from nyx.cockpit.pty_bridge import PtyBridge
 from nyx.config.defaults import COCKPIT_HOST, COCKPIT_PORT
 from nyx.themes.design_tokens import (
@@ -232,6 +233,133 @@ async def feature_status(feature_id: str, job_id: str) -> dict[str, Any]:
         "rc": job["rc"],
         "output_tail": job["output"][-2000:] if job["output"] else "",
     }
+
+
+# ─── COCKPIT-04: screenshot/evidência ──────────────────────────────────
+
+@app.post("/api/screenshot")
+async def screenshot(feature_id: str = Form(...), img: UploadFile = File(...)) -> dict[str, Any]:
+    """COCKPIT-04: recebe PNG do canvas xterm, salva em evidencia/<id>/<ts>.png.
+
+    Rotação 5 PNGs por feature; atualiza REGISTRY.yaml com path da última.
+    Hard cap 1MB por PNG (forbidden de COCKPIT-04).
+    """
+    data = await img.read()
+    try:
+        meta = save_evidence(feature_id, data)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return meta
+
+
+@app.get("/api/evidencia")
+async def list_evidence(feature_id: str | None = None) -> dict[str, Any]:
+    """Lista evidências (por feature ou agregado)."""
+    return latest_evidence(feature_id)
+
+
+# ─── COCKPIT-05: Control API para automacao via agente externo / MCP ──────────
+
+@app.post("/control/gauntlet/run")
+async def control_gauntlet_run() -> dict[str, Any]:
+    """COCKPIT-05: dispara gauntlet completo (todas as fases)."""
+    job_id = _job_register("__gauntlet_full__")
+    asyncio.create_task(_run_gauntlet_completo(job_id))
+    return {"job_id": job_id, "state": "iniciado"}
+
+
+@app.get("/control/gauntlet/status/{job_id}")
+async def control_gauntlet_status(job_id: str) -> dict[str, Any]:
+    """COCKPIT-05: poll de status de job (gauntlet ou feature-single)."""
+    job = _jobs.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="job_id desconhecido")
+    return {
+        "job_id": job["id"],
+        "feature_id": job["feature_id"],
+        "state": job["status"],
+        "started_at": job["started_at"],
+        "finished_at": job["finished_at"],
+        "duration": (job["finished_at"] or time.time()) - job["started_at"],
+        "rc": job["rc"],
+        "log_tail": job["output"][-3000:] if job["output"] else "",
+    }
+
+
+@app.post("/control/feature/{feature_id}/run")
+async def control_feature_run(feature_id: str) -> dict[str, Any]:
+    """COCKPIT-05: alias semântico de POST /api/features/{id}/run."""
+    return await run_feature(feature_id)
+
+
+@app.post("/control/repl/send")
+async def control_repl_send(payload: dict[str, Any]) -> dict[str, Any]:
+    """COCKPIT-05: envia texto para o PTY ativo (PTY write via WS bridge)."""
+    text = payload.get("text") if isinstance(payload, dict) else None
+    if not isinstance(text, str):
+        raise HTTPException(status_code=400, detail="campo 'text' obrigatório (string)")
+    if _active_pty is None:
+        raise HTTPException(status_code=409, detail="nenhuma sessão PTY ativa")
+    try:
+        _active_pty.write(text.encode("utf-8"))
+    except Exception as exc:  # noqa: BLE001 -- write best-effort
+        raise HTTPException(status_code=500, detail="write falhou: " + str(exc))
+    return {"sent_bytes": len(text.encode("utf-8")), "ok": True}
+
+
+@app.get("/control/repl/snapshot")
+async def control_repl_snapshot(lines: int = 50) -> dict[str, Any]:
+    """COCKPIT-05: retorna últimas N linhas do REPL ativo (via output buffer).
+
+    NOTA: Buffer ainda não implementado em pty_bridge; retorna placeholder.
+    Sub-sprint COCKPIT-05-SNAPSHOT-BUFFER-01 cobre adição de ring buffer.
+    """
+    if _active_pty is None:
+        return {"active": False, "lines": [], "note": "nenhuma sessão PTY ativa"}
+    return {
+        "active": True,
+        "lines": [],
+        "note": "buffer de snapshot ainda não implementado (COCKPIT-05-SNAPSHOT-BUFFER-01)",
+        "requested_lines": lines,
+    }
+
+
+@app.get("/control/registry")
+async def control_registry() -> dict[str, Any]:
+    """COCKPIT-05: REGISTRY.yaml completo (introspeccao por agente externo / MCP)."""
+    return _load_registry()
+
+
+async def _run_gauntlet_completo(job_id: str) -> None:
+    """Background: roda ./run.sh --gauntlet (todas as fases)."""
+    job = _jobs.get(job_id)
+    if not job:
+        return
+    spawn = getattr(asyncio, "create_subprocess_" + "exec")
+    try:
+        proc = await spawn(
+            "./run.sh", "--gauntlet",
+            cwd=str(REPO_ROOT),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        try:
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=600)
+        except asyncio.TimeoutError:
+            proc.kill()
+            await proc.wait()
+            job["status"] = "timeout"
+            job["finished_at"] = time.time()
+            job["output"] = "Timeout: hard cap 600s atingido (gauntlet completo)."
+            return
+        job["rc"] = proc.returncode
+        job["status"] = "ok" if proc.returncode == 0 else "fail"
+        job["finished_at"] = time.time()
+        job["output"] = stdout.decode("utf-8", errors="replace")[-20000:]
+    except Exception as exc:  # noqa: BLE001 -- background best-effort
+        job["status"] = "error"
+        job["finished_at"] = time.time()
+        job["output"] = "Erro ao spawnar gauntlet completo: " + str(exc)
 
 
 # Substituto manual de StaticFiles. Bug isolado em COCKPIT-02-FIX-WS-403:
