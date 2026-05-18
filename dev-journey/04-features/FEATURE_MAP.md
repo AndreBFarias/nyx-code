@@ -1,5 +1,10 @@
 # Mapeamento Completo de Features -- Nyx-Code
 
+> **SBOM-REGISTRY-01:** este documento é a fonte humana das 62 features;
+> a fonte machine-readable correspondente é `REGISTRY.yaml`, gerado por
+> `scripts/sbom_init.py`. Sprints futuras (SBOM-REGISTRY-02) sincronizarão
+> `REGISTRY.yaml` -> `FEATURE_MAP.md` automaticamente (`sbom_sync.py`).
+
 ## 1. Infraestrutura (Boot/Lifecycle)
 
 | ID | Feature | Componente | Validação |

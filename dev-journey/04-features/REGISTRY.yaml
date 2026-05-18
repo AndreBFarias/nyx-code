@@ -1,0 +1,686 @@
+schema_version: 1
+gerado_de: FEATURE_MAP.md
+total: 62
+features:
+- id: I-01
+  categoria: Infraestrutura (Boot/Lifecycle)
+  descricao: Boot completo (Ollama + Proxy + TUI)
+  componente: run.sh
+  validacao: Tempo de boot, todos os componentes respondendo
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: I-02
+  categoria: Infraestrutura (Boot/Lifecycle)
+  descricao: Kill de processos anteriores
+  componente: run.sh
+  validacao: Porta livre antes de iniciar
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: I-03
+  categoria: Infraestrutura (Boot/Lifecycle)
+  descricao: Health check Ollama
+  componente: run.sh
+  validacao: /api/version responde em <30s
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: I-04
+  categoria: Infraestrutura (Boot/Lifecycle)
+  descricao: Download automático de modelo
+  componente: run.sh/install.sh
+  validacao: Modelo ausente -> pull automático
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: I-05
+  categoria: Infraestrutura (Boot/Lifecycle)
+  descricao: Warmup do modelo
+  componente: run.sh
+  validacao: Primeira inferência antes da TUI
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: I-06
+  categoria: Infraestrutura (Boot/Lifecycle)
+  descricao: Cleanup ao sair (trap EXIT)
+  componente: run.sh
+  validacao: Zero processos órfãos após Ctrl+C
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: I-07
+  categoria: Infraestrutura (Boot/Lifecycle)
+  descricao: Instalação idempotente
+  componente: install.sh
+  validacao: Rodar 2x sem quebrar
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: I-08
+  categoria: Infraestrutura (Boot/Lifecycle)
+  descricao: Desinstalação limpa
+  componente: uninstall.sh
+  validacao: Remove tudo, mantém código fonte
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: I-09
+  categoria: Infraestrutura (Boot/Lifecycle)
+  descricao: Seleção de modelo (--3b, --4b, --7b)
+  componente: run.sh
+  validacao: Cada flag carrega modelo correto
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: I-10
+  categoria: Infraestrutura (Boot/Lifecycle)
+  descricao: Modo debug (--debug)
+  componente: run.sh
+  validacao: Logs detalhados ativados
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: I-11
+  categoria: Infraestrutura (Boot/Lifecycle)
+  descricao: Modo headless (--headless)
+  componente: run.sh
+  validacao: Sem banner, sem cores
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: P-01
+  categoria: Proxy (Ponte OpenAI <-> Ollama)
+  descricao: Conversão /v1/chat/completions -> /api/chat
+  componente: proxy.py
+  validacao: Request chega ao Ollama formato nativo
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: P-02
+  categoria: Proxy (Ponte OpenAI <-> Ollama)
+  descricao: Injeção de think=false
+  componente: proxy.py
+  validacao: Resposta sem reasoning tags
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: P-03
+  categoria: Proxy (Ponte OpenAI <-> Ollama)
+  descricao: Injeção de num_gpu e num_ctx
+  componente: proxy.py
+  validacao: Options corretas no request
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: P-04
+  categoria: Proxy (Ponte OpenAI <-> Ollama)
+  descricao: Normalização de content array -> string
+  componente: proxy.py
+  validacao: Content Anthropic-style convertido
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: P-05
+  categoria: Proxy (Ponte OpenAI <-> Ollama)
+  descricao: Conversão de resposta Ollama -> OpenAI
+  componente: proxy.py
+  validacao: tool_calls no formato OpenAI
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: P-06
+  categoria: Proxy (Ponte OpenAI <-> Ollama)
+  descricao: Listagem de modelos (/v1/models)
+  componente: proxy.py
+  validacao: Retorna modelos do Ollama
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: P-07
+  categoria: Proxy (Ponte OpenAI <-> Ollama)
+  descricao: Propagação de tool_calls
+  componente: proxy.py
+  validacao: Tool calls passam corretamente
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: P-08
+  categoria: Proxy (Ponte OpenAI <-> Ollama)
+  descricao: Logging de requests/responses
+  componente: proxy.py
+  validacao: Cada request logado com modelo, tools, resultado
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: T-01
+  categoria: Tool Calling (6 tools)
+  descricao: Ler arquivo existente
+  componente: Read
+  validacao: Retorna conteúdo correto
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: T-02
+  categoria: Tool Calling (6 tools)
+  descricao: Ler arquivo inexistente (graceful)
+  componente: Read
+  validacao: Erro informativo, sem crash
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: T-03
+  categoria: Tool Calling (6 tools)
+  descricao: Criar arquivo novo
+  componente: Write
+  validacao: Arquivo existe no disco após execução
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: T-04
+  categoria: Tool Calling (6 tools)
+  descricao: Sobrescrever arquivo existente
+  componente: Write
+  validacao: Conteúdo atualizado
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: T-05
+  categoria: Tool Calling (6 tools)
+  descricao: Editar trecho de arquivo
+  componente: Edit
+  validacao: SEARCH/REPLACE aplicado corretamente
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: T-06
+  categoria: Tool Calling (6 tools)
+  descricao: Executar comando shell
+  componente: Bash
+  validacao: Output do comando retornado
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: T-07
+  categoria: Tool Calling (6 tools)
+  descricao: Comando com erro (exit code != 0)
+  componente: Bash
+  validacao: Stderr retornado, sem crash
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: T-08
+  categoria: Tool Calling (6 tools)
+  descricao: Buscar arquivos por padrão
+  componente: Glob
+  validacao: Lista de arquivos correta
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: T-09
+  categoria: Tool Calling (6 tools)
+  descricao: Buscar texto em arquivos
+  componente: Grep
+  validacao: Linhas com match retornadas
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: T-10
+  categoria: Tool Calling (6 tools)
+  descricao: Tool calling em cadeia (Read -> Edit)
+  componente: Multi
+  validacao: Segundo turno usa resultado do primeiro
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: Q-01
+  categoria: Qualidade de Resposta
+  descricao: Resposta em PT-BR
+  componente: Idioma
+  validacao: Conteúdo em português
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: Q-02
+  categoria: Qualidade de Resposta
+  descricao: Identidade Nyx
+  componente: Personalidade
+  validacao: Não se identifica como Qwen/outro
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: Q-03
+  categoria: Qualidade de Resposta
+  descricao: Concisão
+  componente: Estilo
+  validacao: Respostas < 200 palavras para perguntas simples
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: Q-04
+  categoria: Qualidade de Resposta
+  descricao: Uso proativo de tools
+  componente: Comportamento
+  validacao: Chama tool em vez de descrever
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: Q-05
+  categoria: Qualidade de Resposta
+  descricao: Precisão de argumentos
+  componente: Tool call
+  validacao: Paths e parâmetros corretos
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: Q-06
+  categoria: Qualidade de Resposta
+  descricao: Sem emojis na resposta
+  componente: Estilo
+  validacao: Zero emojis
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: Q-07
+  categoria: Qualidade de Resposta
+  descricao: Sem hallucination de paths
+  componente: Precisão
+  validacao: Paths existem no projeto real
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: K-01
+  categoria: Performance (KPIs)
+  descricao: Tempo de boot (Ollama pronto)
+  componente: segundos
+  validacao: <30s
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: K-02
+  categoria: Performance (KPIs)
+  descricao: Tempo de warmup
+  componente: segundos
+  validacao: <90s
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: K-03
+  categoria: Performance (KPIs)
+  descricao: TTFR (Time to First Response) - chat
+  componente: segundos
+  validacao: <15s
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: K-04
+  categoria: Performance (KPIs)
+  descricao: TTFR - tool call simples
+  componente: segundos
+  validacao: <20s
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: K-05
+  categoria: Performance (KPIs)
+  descricao: TTFR - tool call com conteúdo (Write)
+  componente: segundos
+  validacao: <45s
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: K-06
+  categoria: Performance (KPIs)
+  descricao: Tokens por resposta (chat)
+  componente: tokens
+  validacao: 30-100
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: K-07
+  categoria: Performance (KPIs)
+  descricao: Tokens por resposta (tool call)
+  componente: tokens
+  validacao: 200-800
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: K-08
+  categoria: Performance (KPIs)
+  descricao: VRAM em uso estável
+  componente: MiB
+  validacao: <2500
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: K-09
+  categoria: Performance (KPIs)
+  descricao: VRAM pico durante inferência
+  componente: MiB
+  validacao: <3500
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: K-10
+  categoria: Performance (KPIs)
+  descricao: Tempo total do gauntlet
+  componente: minutos
+  validacao: <20min
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: V-01
+  categoria: Interface Visual
+  descricao: Banner ASCII com cores Nyx
+  componente: run.sh
+  validacao: 'Cores #00D4AA no terminal'
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: V-02
+  categoria: Interface Visual
+  descricao: Mensagens [nyx] coloridas
+  componente: run.sh
+  validacao: PRIMARY para sistema, GREEN ok, RED erro
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: V-03
+  categoria: Interface Visual
+  descricao: Info de boot (modelo, portas)
+  componente: run.sh
+  validacao: Modelo e portas exibidos
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: V-04
+  categoria: Interface Visual
+  descricao: Citação de filósofo nos scripts
+  componente: '*.sh, *.py'
+  validacao: Presente no fim de cada arquivo
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: V-05
+  categoria: Interface Visual
+  descricao: Temas carregam corretamente (7 entidades)
+  componente: nyx/themes/
+  validacao: Cada tema retorna cores válidas
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: V-06
+  categoria: Interface Visual
+  descricao: Fallback Dracula para tema inexistente
+  componente: nyx/themes/
+  validacao: Cores Dracula retornadas
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: V-07
+  categoria: Interface Visual
+  descricao: Conversão hex -> ANSI 24-bit
+  componente: nyx/themes/utils.py
+  validacao: Escape sequences corretas
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: C-01
+  categoria: Configuração
+  descricao: .env carregado pelo run.sh
+  componente: run.sh
+  validacao: Variáveis sobrescrevem defaults
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: C-02
+  categoria: Configuração
+  descricao: NyxSettings carrega .env + CLI args
+  componente: config/settings.py
+  validacao: 'Prioridade: CLI > .env > defaults'
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: C-03
+  categoria: Configuração
+  descricao: .claude/settings.json respeita tema dark
+  componente: .claude/
+  validacao: theme=dark, language=pt-BR
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: C-04
+  categoria: Configuração
+  descricao: GSD.md guia canônico do projeto
+  componente: GSD.md
+  validacao: Identidade Nyx aplicada
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: R-01
+  categoria: Resiliência
+  descricao: Ollama cai durante operação
+  componente: Proxy
+  validacao: Erro informativo, sem hang
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: R-02
+  categoria: Resiliência
+  descricao: Modelo não existe
+  componente: run.sh
+  validacao: Pull automático ou erro claro
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: R-03
+  categoria: Resiliência
+  descricao: Porta já ocupada
+  componente: run.sh
+  validacao: Kill anterior e retry
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: R-04
+  categoria: Resiliência
+  descricao: VRAM insuficiente
+  componente: Proxy
+  validacao: num_gpu reduzido ou erro
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
+- id: R-05
+  categoria: Resiliência
+  descricao: Timeout de inferência
+  componente: Proxy
+  validacao: Resposta em tempo máximo ou erro
+  status: desconhecido
+  ultimo_teste: ''
+  evidencia: ''
+  kpi: ''
+  sprint_origem: ''
+  tags: []
