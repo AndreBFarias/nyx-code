@@ -44,8 +44,9 @@ sprint:
 
 # Sprint SPRINT_ORDER-OVERRIDE-FIX-01
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-18 (achado colateral durante TUI-REDESIGN-25-01)
+**Data conclusão:** 2026-05-18
 **Modelo obrigatório:** claude-opus-4-7
 
 ## Contexto

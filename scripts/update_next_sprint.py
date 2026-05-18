@@ -34,8 +34,16 @@ INJECT_END = "<!-- /GAMBIARRAS_INJECT -->"
 MAX_INJECT_LINES = 50
 
 ROW_PATTERN = re.compile(
-    r"^\|\s*\d+\s*\|\s*\*\*([A-Z][A-Z0-9_\-]+)\*\*\s*\|.*\|\s*PENDENTE\s*\|",
+    r"^\|\s*[A-Z]?\d+\s*\|\s*\*\*([A-Z][A-Z0-9_\-]+)\*\*\s*\|.*\|\s*PENDENTE\s*\|",
     re.MULTILINE,
+)
+
+# SPRINT_ORDER-OVERRIDE-FIX-01: blocos MANUAL_OVERRIDE_ONDA_NN_START..END canonizam
+# a ordem de sprints da Onda NN. Prioridade DESC: Onda mais recente vence quando
+# múltiplos blocos têm sprints PENDENTE.
+_OVERRIDE_BLOCK_RE = re.compile(
+    r"<!--\s*MANUAL_OVERRIDE_ONDA_(\d+)_START\s*-->(.*?)<!--\s*MANUAL_OVERRIDE_ONDA_\d+_END\s*-->",
+    re.DOTALL,
 )
 
 # Tolera blockquote ('> ') opcional, asteriscos em torno de 'Status' (com
@@ -131,19 +139,14 @@ def _scan_producao_statuses() -> dict[str, str]:
     return statuses
 
 
-def find_next_pending() -> str | None:
-    """Retorna o ID da primeira sprint PENDENTE válida.
+def _scan_block_for_pending(block: str) -> str | None:
+    """Procura primeira sprint PENDENTE válida dentro de um trecho do MASTER.
 
-    Itera sobre as linhas PENDENTE do SPRINT_ORDER_MASTER.md (fonte de ordem
-    canônica) e descarta aquelas cujo arquivo físico em ``producao/`` tem
-    Status fora da whitelist. Garante que fantasmas (ABSORVIDA/DEFERIDA/
-    CONCLUIDA que ainda sobrevivem em producao/) não sejam eleitos.
+    Reutiliza ROW_PATTERN + _read_status do arquivo físico em producao/.
+    SPRINT_ORDER-OVERRIDE-FIX-01: helper extraído para suportar blocos
+    MANUAL_OVERRIDE_ONDA_NN antes do fallback legado.
     """
-    if not MASTER.exists():
-        logger.error("%s não encontrado", MASTER)
-        return None
-    content = MASTER.read_text(encoding="utf-8")
-    for match in ROW_PATTERN.finditer(content):
+    for match in ROW_PATTERN.finditer(block):
         sprint_id = match.group(1)
         sprint_path = PRODUCAO_DIR / sprint_file_name(sprint_id)
         if not sprint_path.exists():
@@ -156,6 +159,38 @@ def find_next_pending() -> str | None:
             return sprint_id
         logger.info("pulando %s (status=%s)", sprint_path.name, status)
     return None
+
+
+def find_next_pending() -> str | None:
+    """Retorna o ID da primeira sprint PENDENTE válida.
+
+    SPRINT_ORDER-OVERRIDE-FIX-01: prioriza blocos MANUAL_OVERRIDE_ONDA_NN do
+    MASTER (ordem DESC por número da Onda). Cai para regex global apenas se
+    nenhum override tiver PENDENTE elegível. Garante que sprints da Onda
+    ativa (ex: 26) vençam sprints legadas pré-onda (ex: INFRA-MODEL-AGNOSTIC).
+
+    Itera sobre as linhas PENDENTE e descarta aquelas cujo arquivo físico em
+    ``producao/`` tem Status fora da whitelist. Garante que fantasmas
+    (ABSORVIDA/DEFERIDA/CONCLUIDA que ainda sobrevivem em producao/) não
+    sejam eleitos.
+    """
+    if not MASTER.exists():
+        logger.error("%s não encontrado", MASTER)
+        return None
+    content = MASTER.read_text(encoding="utf-8")
+    # Prioridade 1: blocos MANUAL_OVERRIDE ordenados DESC pelo número da Onda.
+    blocks: list[tuple[int, str]] = [
+        (int(m.group(1)), m.group(2))
+        for m in _OVERRIDE_BLOCK_RE.finditer(content)
+    ]
+    blocks.sort(key=lambda b: b[0], reverse=True)
+    for onda_num, block_content in blocks:
+        result = _scan_block_for_pending(block_content)
+        if result is not None:
+            logger.info("escolha via MANUAL_OVERRIDE_ONDA_%d", onda_num)
+            return result
+    # Prioridade 2 (fallback legado): regex global sobre o MASTER inteiro.
+    return _scan_block_for_pending(content)
 
 
 def sprint_file_name(sprint_id: str) -> str:
