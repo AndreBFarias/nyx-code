@@ -59,6 +59,17 @@ Thumbs.db
 # Temporários de teste
 /tmp/nyx_*
 
+# Playwright MCP cache (sessões de validação visual)
+.playwright-mcp/
+
+# Screenshots/PNGs soltos na raiz (devem ir pra dev-journey/07-reports/proofs/)
+/cockpit_*.png
+/nyx_*.png
+/*.png
+
+# node-ish leftovers de vendoring (xterm.js/HTMX/Alpine via npm pack)
+package-lock.json
+
 .claude/
 
 # --- anti-IA (anonimato local) ---
