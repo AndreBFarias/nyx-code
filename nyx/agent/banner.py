@@ -36,8 +36,14 @@ def build_banner(
     settings: "NyxSettings | None" = None,
     cols: int | None = None,
     memory_count: int | None = None,
+    commands_count: int | None = None,
+    session_type: str = "REPL",
 ) -> str:
-    """Constrói banner de abertura. Retorna string pronta para imprimir."""
+    """Constrói banner de abertura. Retorna string pronta para imprimir.
+
+    TUI-REDESIGN-25-06: ``commands_count`` e ``session_type`` adicionados.
+    Se ``commands_count`` é None, conta via list_commands() em tempo de chamada.
+    """
     import shutil
 
     from nyx.config.settings import load_settings
@@ -46,6 +52,13 @@ def build_banner(
         settings = load_settings()
     if cols is None:
         cols = shutil.get_terminal_size(fallback=(80, 24)).columns
+    if commands_count is None:
+        try:
+            from nyx.agent.commands import list_commands
+
+            commands_count = len(list_commands())
+        except Exception:
+            commands_count = 0
 
     tl = BOX_CHARS["tl"]
     tr = BOX_CHARS["tr"]
@@ -61,6 +74,7 @@ def build_banner(
 
     ollama_port = str(settings.ollama_port)
     proxy_port = str(settings.proxy_port)
+    ports_short = f":{ollama_port} / :{proxy_port}"
     ports_line = f":{ollama_port} ollama  ·  :{proxy_port} proxy"
 
     if cols < 80:
@@ -72,8 +86,10 @@ def build_banner(
         model=model,
         tools_count=tools_count,
         project=project,
-        ports_line=ports_line,
+        ports_short=ports_short,
         memory_count=memory_count,
+        commands_count=commands_count,
+        session_type=session_type,
         cols=cols,
         accent=accent,
         muted=muted,
@@ -114,8 +130,10 @@ def _build_wide(
     model: str,
     tools_count: int,
     project: str,
-    ports_line: str,
+    ports_short: str,
     memory_count: int | None,
+    commands_count: int,
+    session_type: str,
     cols: int,
     accent: str,
     muted: str,
@@ -128,29 +146,38 @@ def _build_wide(
     h: str,
     v: str,
 ) -> str:
-    """Banner compacto da CLI de referência (UX-CLAUDE-PARITY-01, ADR-029).
+    """Header de sessão em 3 linhas com agrupamento (TUI-REDESIGN-25-06).
 
-    Reduz a caixa anterior de 9 linhas para 3 linhas de informação +
-    1 linha em branco no topo/rodapé, totalizando 5 linhas. Identidade
-    Nyx preservada (turquesa+roxo, glifo, microcopy PT-BR).
+    Linha 1: Nyx vX                 100% offline (direita)
+    Linha 2: Modelo X   Projeto Y   Rede :p1 / :p2
+    Linha 3: Tools N   Comandos M   Memória K   Tipo Z
+
+    Rótulos em ink_muted, valores em ink_dim, accent só no nome 'Nyx'.
+    Sem hint /help aqui — o discoverability fica para o REPL.
     """
     mem_str = (
         f"{memory_count} entradas" if memory_count is not None else "ativa"
     )
-    # Linha 1: Logo + versão + offline pin alinhado à direita.
+    # Linha 1: logo + offline pin.
     title = f"{accent}Nyx{nc} {dim}v{NYX_VERSION}{nc}"
     right_tag = f"{muted}100% offline{nc}"
     pad = max(2, cols - len(f"Nyx v{NYX_VERSION}") - len("100% offline") - 4)
     linha_logo = f"  {title}{' ' * pad}{right_tag}"
-    # Linha 2: contexto operacional.
+    # Linha 2: agrupamento por rótulo (Modelo | Projeto | Rede).
     linha_ctx = (
-        f"  {muted}{model}  |  {project}  |  {ports_line}  |  "
-        f"tools {tools_count}  |  memória {mem_str}{nc}"
+        f"  {muted}Modelo{nc} {dim}{model}{nc}"
+        f"   {muted}Projeto{nc} {dim}{project}{nc}"
+        f"   {muted}Rede{nc} {dim}{ports_short}{nc}"
     )
-    # Linha 3: rodapé com atalhos.
-    linha_hint = f"  {dim}/help para comandos  ·  Ctrl+D para sair{nc}"
+    # Linha 3: estatísticas (Tools | Comandos | Memória | Tipo).
+    linha_stats = (
+        f"  {muted}Tools{nc} {dim}{tools_count}{nc}"
+        f"   {muted}Comandos{nc} {dim}{commands_count}{nc}"
+        f"   {muted}Memória{nc} {dim}{mem_str}{nc}"
+        f"   {muted}Tipo{nc} {dim}{session_type}{nc}"
+    )
 
-    return "\n".join(["", linha_logo, linha_ctx, linha_hint, ""])
+    return "\n".join(["", linha_logo, linha_ctx, linha_stats, ""])
 
 
 # "A forma segue a função." -- Louis Sullivan
