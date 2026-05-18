@@ -114,6 +114,7 @@ PHASE_GROUPS: dict[str, list[str]] = {
     "sessao": ["sessao"],
     "install": ["install"],
     "loop": ["loop"],
+    "mcp": ["mcp"],
     "contexto": ["contexto"],
     "rapido": ["infra", "proxy", "visual", "config"],
     "port": ["parser", "robustez", "interface", "controle", "persistencia"],
@@ -232,6 +233,7 @@ PHASE_TIMEOUTS: dict[str, int] = {
     "sessao": 60,
     "install": 1200,
     "loop": 30,
+    "mcp": 60,
     "contexto": 180,
 }
 
@@ -741,6 +743,56 @@ class NyxGauntlet:
     # ═══════════════════════════════════════════════════════════════════
     # FASE: VISUAL (3 testes)
     # ═══════════════════════════════════════════════════════════════════
+
+    # ═══════════════════════════════════════════════════════════════════
+    # FASE: MCP (3 testes -- MCP-SERVER-01/02)
+    # ═══════════════════════════════════════════════════════════════════
+
+    async def _phase_mcp(self) -> None:
+        import tempfile
+
+        t = time.monotonic()
+        try:
+            from nyx.agent.services.mcp_client import (
+                McpClient,
+                McpServer,
+                load_mcp_servers,
+            )
+        except Exception as e:
+            self._add("M-01", "imports MCP", "mcp", False, 0, error=str(e))
+            return
+        self._add("M-01", "imports MCP (McpClient/McpServer/load)", "mcp", True, time.monotonic() - t)
+
+        t = time.monotonic()
+        with tempfile.TemporaryDirectory(prefix="nyx-mcp-") as tmp:
+            empty_cfg = (Path(tmp) / "empty.json")
+            empty_cfg.write_text("{}", encoding="utf-8")
+            servers = load_mcp_servers(empty_cfg)
+            self._add(
+                "M-02",
+                "load_mcp_servers tolera config vazia",
+                "mcp",
+                servers == [],
+                time.monotonic() - t,
+                details=f"len={len(servers)}",
+            )
+
+        t = time.monotonic()
+        client = McpClient(servers=[
+            McpServer(name="naoexiste", command="/usr/bin/false", args=[]),
+        ])
+        results = await client.connect_all()
+        ok3 = results == {"naoexiste": False}
+        ping_ok = await client.ping("naoexiste")
+        await client.close_all()
+        self._add(
+            "M-03",
+            "connect_all marca server invalido como falha + ping retorna False",
+            "mcp",
+            ok3 and not ping_ok,
+            time.monotonic() - t,
+            details=f"connect={results} ping={ping_ok}",
+        )
 
     # ═══════════════════════════════════════════════════════════════════
     # FASE: LOOP (1 teste -- UX-LOOP-01 / ADR-025 feedback budget)

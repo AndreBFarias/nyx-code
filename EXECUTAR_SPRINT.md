@@ -1,15 +1,15 @@
-# Executar próxima sprint — MCP-SERVER-02
+# Executar próxima sprint — PLUGINS-02
 
 > **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
 > Copie o bloco abaixo e cole em uma session nova de Claude Opus 4.7.
-> Restam **17** sprints PENDENTE(S) na fila.
+> Restam **16** sprints PENDENTE(S) na fila.
 
 ---
 
 ## Prompt para colar na session
 
 ```
-Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_MCP_SERVER_02.md.
+Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_PLUGINS_02.md.
 
 Modelo obrigatório: claude-opus-4-7 (sem subagentes).
 Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambiarra):
@@ -27,10 +27,10 @@ Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambi
 10. Após CONCLUIDA: commit atômico, move sprint file para concluidos/, roda `python scripts/update_next_sprint.py` para atualizar este arquivo.
 
 Se qualquer passo falhar, reporte:
-    [SPRINT MCP-SERVER-02] BLOQUEADA: <motivo objetivo>
+    [SPRINT PLUGINS-02] BLOQUEADA: <motivo objetivo>
 
-ID desta sprint: MCP-SERVER-02
-Arquivo: dev-journey/06-sprints/producao/SPRINT_MCP_SERVER_02.md
+ID desta sprint: PLUGINS-02
+Arquivo: dev-journey/06-sprints/producao/SPRINT_PLUGINS_02.md
 ```
 
 ---
@@ -39,9 +39,9 @@ Arquivo: dev-journey/06-sprints/producao/SPRINT_MCP_SERVER_02.md
 
 ## Gambiarras específicas (recorte auto-injetado)
 
-> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §MCP-SERVER-02. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
+> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §PLUGINS-02. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
 
-(seção específica para MCP-SERVER-02 não encontrada em GAMBIARRAS_POR_SPRINT.md; ler catálogo universal e matriz geral)
+(seção específica para PLUGINS-02 não encontrada em GAMBIARRAS_POR_SPRINT.md; ler catálogo universal e matriz geral)
 
 <!-- /GAMBIARRAS_INJECT -->
 

@@ -337,7 +337,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 125 | **INFRA-SANITIZER-FIX-02** | 23.0 Performance | ALTA | CONCLUIDA (invariante #14 endurecido: grep textual -> python codepoint count; cobertura expandida para output.py; imune a strip + reescrita coerente) | INFRA-SANITIZER-FIX-01 |
 | 123 | **LANG-PROMPT-ACENT-01** | 23.0 Performance | BAIXA | CONCLUIDA (NYX_SYSTEM_PROMPT em run.sh:551-562 com acentos: Codigo->Código, nao->não, diagnostico->diagnóstico, solucao->solução, verificacao->verificação, tecnico->técnico, Diretorio->Diretório; UTF-8 preservado; smoke+invariantes OK) | LANG-ENFORCE-01 |
 | 127 | **INFRA-CLI-SPLIT-01** | 23.0 Higiene | MÉDIA | CONCLUIDA_PARCIAL (cli.py 1450L -> 1361L via cli_helpers.py com _persist_image_index/_shorten_description/_expand_images/maybe_offer_resume; meta 800L ainda nao atingida; INFRA-CLI-SPLIT-02 anti-debito para handlers+keybindings) | UX-BUG-03 |
-| 128 | **MCP-SERVER-02** | 23.5 Feature parity | ALTA | PENDENTE | MCP-SERVER-01 |
+| 128 | **MCP-SERVER-02** | 23.5 Feature parity | ALTA | CONCLUIDA_PARCIAL (fase Gauntlet mcp com 3 testes M-01/02/03 OK; integracao ToolRegistry+HTTP loopback ficam para MCP-SERVER-03 anti-debito) | MCP-SERVER-01 |
 | 129 | **PLUGINS-02** | 23.5 Feature parity | MÉDIA | PENDENTE | PLUGINS-01 |
 | 130 | **HOOKS-DYNAMIC-02** | 23.5 Feature parity | MÉDIA | PENDENTE | HOOKS-DYNAMIC-01 |
 | 131 | **UX-AGENCY-02** | 23.4 Gamedesigner | ALTA | PENDENTE | UX-AGENCY-01 |
