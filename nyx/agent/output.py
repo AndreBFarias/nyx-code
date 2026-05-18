@@ -846,6 +846,30 @@ def render_compaction_event(
 USER_INPUT_COLLAPSE_LINES = 8
 
 
+def _render_user_soft_box(display_text: str, user_name: str) -> None:
+    """TUI-REDESIGN-26-01: bubble user em ANSI soft-box.
+
+    Formato: ╭─ Nome ─...─╮ / │ linha ... │ / ╰─...─╯ tudo em ACCENT.
+    Largura ajustada dinamicamente à linha mais longa + 2 padding.
+    Não usa Rich Panel (que tem aparência diferente). Schema=hybrid only.
+    """
+    raw_lines = display_text.splitlines() or [display_text]
+    title = f"─ {user_name} ─"
+    max_line_w = max((len(line) for line in raw_lines), default=0)
+    inner_w = max(max_line_w + 2, len(title) + 2)
+    top = "╭" + title + "─" * (inner_w - len(title)) + "╮"
+    bottom = "╰" + "─" * inner_w + "╯"
+    accent = ANSI_ACCENT_FG
+    reset = ANSI_RESET
+    print()
+    print(f"  {accent}{top}{reset}")
+    for line in raw_lines:
+        pad = " " * (inner_w - len(line) - 2)
+        print(f"  {accent}│{reset} {line}{pad} {accent}│{reset}")
+    print(f"  {accent}{bottom}{reset}")
+    print()
+
+
 def render_user_input(
     text: str,
     console_width: int | None = None,
@@ -864,6 +888,9 @@ def render_user_input(
     TUI-REDESIGN-25-04: ``user_name`` substitui 'você' como title; resolve
     via git config user.name (fallback 'visitante') em call-sites que
     propagam app_state['user_display_name'].
+
+    TUI-REDESIGN-26-01: schema=hybrid usa ANSI soft-box (mockup-faithful);
+    outros schemas mantém Rich Panel default.
     """
     import shutil
 
@@ -879,6 +906,15 @@ def render_user_input(
         )
     else:
         display_text = text
+
+    # TUI-REDESIGN-26-01: schema-aware. Hybrid usa ANSI soft-box; outros Rich.
+    try:
+        from nyx.themes.theme_manager import current_schema_id
+        if current_schema_id() == "hybrid" and console_width >= 80:
+            _render_user_soft_box(display_text, user_name)
+            return
+    except Exception as exc:  # noqa: BLE001 -- fallback silencioso
+        logger.debug("schema_id lookup falhou: %s", exc)
 
     if console_width < 80 or not RICH_AVAILABLE:
         print()
