@@ -2,57 +2,84 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <title>Nyx Cockpit</title>
-  <style>
-    body {
-      background: #0E0F1A;
-      color: #E8E8E8;
-      font-family: ui-monospace, "JetBrains Mono", monospace;
-      margin: 0;
-      padding: 2rem;
-      max-width: 720px;
-    }
-    h1 { color: #00D4AA; margin: 0 0 0.25rem; font-weight: 600; }
-    .sub { color: #6C7A89; font-size: 0.9rem; margin-bottom: 1.5rem; }
-    .cards { display: grid; gap: 0.75rem; margin: 1.5rem 0; }
-    .card {
-      background: #1A1D29;
-      border-left: 3px solid #00D4AA;
-      padding: 1rem;
-      border-radius: 4px;
-    }
-    .card a {
-      color: #00D4AA;
-      text-decoration: none;
-      font-weight: 600;
-    }
-    .card a:hover { text-decoration: underline; }
-    .card .desc { color: #A0A8B5; font-size: 0.85rem; margin-top: 0.25rem; }
-    code { background: #2a2e3a; padding: 0.1rem 0.3rem; border-radius: 2px; color: #9D4EDD; }
-    .muted { color: #6C7A89; font-size: 0.85rem; }
-    .footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #1A1D29; }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nyx Cockpit -- Dashboard</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script defer src="/static/vendor/htmx.min.js"></script>
+  <script defer src="/static/vendor/alpine.min.js"></script>
 </head>
-<body>
-  <h1>Nyx Cockpit</h1>
-  <p class="sub">Servidor local em <code>127.0.0.1:11437</code> -- ADR-001 Local First</p>
-
-  <div class="cards">
-    <div class="card">
-      <a href="/static/terminal.html">terminal.html</a>
-      <div class="desc">REPL Nyx embedded via PTY + xterm.js (COCKPIT-02)</div>
+<body x-data="dashboard()" x-init="init()">
+  <header class="header">
+    <div class="brand">
+      <span class="brand-mark">Nyx</span>
+      <span class="brand-sub">cockpit / dashboard</span>
     </div>
-  </div>
+    <nav class="links">
+      <a href="/static/terminal.html">terminal</a>
+      <a href="/api/features" target="_blank">api/features</a>
+      <a href="/health" target="_blank">health</a>
+    </nav>
+  </header>
 
-  <div class="footer">
-    <p class="muted">Endpoints HTTP:</p>
-    <ul class="muted">
-      <li><code>GET /health</code> -- ping</li>
-      <li><code>GET /api/features</code> -- le REGISTRY.yaml (62 features)</li>
-      <li><code>WS /repl</code> -- bridge PTY do REPL (COCKPIT-02)</li>
-      <li><code>WS /stream</code> -- broadcast eco (legacy)</li>
-    </ul>
-    <p class="muted">Dashboard de features + control API: COCKPIT-03..05 em curso.</p>
-  </div>
+  <section class="summary">
+    <span class="count" x-text="features.length"></span> features
+    <span class="separator">|</span>
+    <span class="status-pill ok"><span x-text="counters.ok"></span> ok</span>
+    <span class="status-pill warn"><span x-text="counters.warn"></span> aviso</span>
+    <span class="status-pill fail"><span x-text="counters.fail"></span> falha</span>
+    <span class="status-pill unknown"><span x-text="counters.unknown"></span> sem teste</span>
+    <span class="separator">|</span>
+    <span class="muted" x-text="`${counters.running} rodando`"></span>
+  </section>
+
+  <section class="filters">
+    <label>
+      categoria
+      <select x-model="filtro.categoria">
+        <option value="">todas</option>
+        <template x-for="cat in categorias" :key="cat">
+          <option :value="cat" x-text="cat"></option>
+        </template>
+      </select>
+    </label>
+    <label>
+      status
+      <select x-model="filtro.status">
+        <option value="">todos</option>
+        <option value="ok">ok</option>
+        <option value="warn">aviso</option>
+        <option value="fail">falha</option>
+        <option value="unknown">sem teste</option>
+        <option value="running">rodando</option>
+      </select>
+    </label>
+    <button @click="recarregar()" class="reload">recarregar</button>
+  </section>
+
+  <section class="grid">
+    <template x-for="f in filtered" :key="f.id">
+      <article class="card" :data-status="statusOf(f)">
+        <header class="card-head">
+          <span class="card-id" x-text="f.id"></span>
+          <span class="badge" :data-status="statusOf(f)" x-text="statusLabel(f)"></span>
+        </header>
+        <p class="card-desc" x-text="f.descricao || f.titulo || '(sem descrição)'"></p>
+        <footer class="card-foot">
+          <span class="muted" x-text="`${f.componente || 'n/a'} | ${f.categoria || '?'}`"></span>
+          <button @click="rodar(f.id)"
+                  :disabled="!!running[f.id]"
+                  x-text="running[f.id] ? 'rodando...' : 'rodar gauntlet'"
+                  class="run-button"></button>
+        </footer>
+        <pre class="card-output" x-show="output[f.id]" x-text="output[f.id]"></pre>
+      </article>
+    </template>
+  </section>
+
+  <footer class="page-footer muted">
+    <span>ADR-001 Local First | bind 127.0.0.1 | paleta D | Onda 24</span>
+  </footer>
+
+  <script src="/static/app.js"></script>
 </body>
 </html>

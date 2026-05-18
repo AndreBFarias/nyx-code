@@ -1,28 +1,60 @@
 {
-  "timestamp": "2026-05-17T22:48:26.448166",
+  "timestamp": "2026-05-18T03:39:59.885564",
   "model": "qwen2.5-coder:3b",
   "phases_done": [],
   "results": [
     {
-      "feature_id": "PL-01",
-      "name": "PluginManager import + instanciacao",
-      "phase": "plugins",
+      "feature_id": "I-01",
+      "name": "Ollama respondendo",
+      "phase": "infra",
       "passed": true,
-      "elapsed_s": 0.0,
+      "elapsed_s": 0.02,
       "tokens": 0,
       "details": "",
       "error": ""
     },
     {
-      "feature_id": "PL-02",
-      "name": "load_all: plugin valido carrega; plugin com top-level Expr eh rejeitado por AST check",
-      "phase": "plugins",
+      "feature_id": "I-03",
+      "name": "Versão Ollama",
+      "phase": "infra",
       "passed": true,
-      "elapsed_s": 0.0,
+      "elapsed_s": 0.02,
       "tokens": 0,
-      "details": "results={'bad': False, 'ok': True}",
+      "details": "0.13.5",
+      "error": ""
+    },
+    {
+      "feature_id": "I-05",
+      "name": "Warmup do modelo",
+      "phase": "infra",
+      "passed": true,
+      "elapsed_s": 2.98,
+      "tokens": 88,
+      "details": "",
+      "error": ""
+    },
+    {
+      "feature_id": "I-09",
+      "name": "Modelo qwen2.5-coder:3b presente",
+      "phase": "infra",
+      "passed": true,
+      "elapsed_s": 0.02,
+      "tokens": 0,
+      "details": "['qwen3:4b', 'nyx-4b:latest', 'qwen2.5-coder:7b', 'qwen2.5-coder:3b']",
+      "error": ""
+    },
+    {
+      "feature_id": "I-11",
+      "name": "Proxy respondendo",
+      "phase": "infra",
+      "passed": true,
+      "elapsed_s": 0.02,
+      "tokens": 0,
+      "details": "4 modelos",
       "error": ""
     }
   ],
-  "kpis": {}
+  "kpis": {
+    "warmup_s": 3.0
+  }
 }
