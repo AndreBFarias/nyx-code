@@ -7,6 +7,7 @@ nas pausas para nunca travar.
 
 from __future__ import annotations
 
+import subprocess
 import sys
 from pathlib import Path
 
@@ -18,28 +19,54 @@ NYX_HOME = Path.home() / ".nyx"
 FIRST_RUN_MARKER = NYX_HOME / ".first_run_done"
 PAUSE_TIMEOUT_S = 60
 
-STEPS: tuple[tuple[str, str], ...] = (
-    (
-        "Bem-vindo ao Nyx",
-        "Codificadora local em PT-BR, 100% offline, sem telemetria. Sua máquina, suas regras.",
-    ),
-    (
-        "Prompt livre",
-        "Digite qualquer pergunta ou tarefa em português. Eu respondo e executo no seu workspace.",
-    ),
-    (
-        "Slash commands",
-        "Comandos começam com /. Exemplos: /help, /tools, /quit. Veja todos com /help.",
-    ),
-    (
-        "Bypass de permissão",
-        "Quando uma tool pedir permissão, responda [s/N]. Use Shift+Tab para alternar bypass.",
-    ),
-    (
-        "Memória persistente",
-        "Suas sessões ficam em ~/.nyx/sessions/. Use /resume para retomar a última, ou /resume list para escolher.",
-    ),
-)
+
+def resolve_user_display_name() -> str:
+    """Lê git config user.name silenciosamente; fallback 'visitante' (TUI-REDESIGN-25-04).
+
+    Timeout 2s. Qualquer falha (git ausente, config vazio, OSError)
+    retorna 'visitante'. Sem prompt interativo: a decisão é silenciosa
+    e respeita usuários sem git instalado.
+    """
+    try:
+        out = subprocess.run(
+            ["git", "config", "--get", "user.name"],
+            capture_output=True, text=True, timeout=2, check=False,
+        )
+        name = out.stdout.strip()
+        return name if name else "visitante"
+    except (FileNotFoundError, OSError, subprocess.TimeoutExpired):
+        return "visitante"
+
+
+def _build_steps(user_name: str) -> tuple[tuple[str, str], ...]:
+    """Gera STEPS personalizado com nome resolvido (TUI-REDESIGN-25-04)."""
+    return (
+        (
+            f"Bem-vindo, {user_name}",
+            "Codificadora local em PT-BR, 100% offline, sem telemetria. Sua máquina, suas regras.",
+        ),
+        (
+            "Prompt livre",
+            "Digite qualquer pergunta ou tarefa em português. Eu respondo e executo no seu workspace.",
+        ),
+        (
+            "Slash commands",
+            "Comandos começam com /. Exemplos: /help, /tools, /quit. Veja todos com /help.",
+        ),
+        (
+            "Bypass de permissão",
+            "Quando uma tool pedir permissão, responda [s/N]. Use Shift+Tab para alternar bypass.",
+        ),
+        (
+            "Memória persistente",
+            "Suas sessões ficam em ~/.nyx/sessions/. Use /resume para retomar a última, ou /resume list para escolher.",
+        ),
+    )
+
+
+# Mantido para compat: STEPS genérico (sem nome). Novos call-sites devem
+# usar _build_steps(user_name). Removível em Onda 26 após consumers migrarem.
+STEPS: tuple[tuple[str, str], ...] = _build_steps("visitante")
 
 
 def _timed_input(prompt: str, timeout: int = PAUSE_TIMEOUT_S) -> str | None:
@@ -84,18 +111,27 @@ def mark_done() -> None:
         logger.warning("não foi possível marcar first_run_done: %s", exc)
 
 
-def run_first_time_tutorial() -> None:
-    """Roda tutorial de 5 steps com pausas timeoutadas. Marca .first_run_done ao fim."""
+def run_first_time_tutorial(user_name: str | None = None) -> None:
+    """Roda tutorial de 5 steps com pausas timeoutadas. Marca .first_run_done ao fim.
+
+    TUI-REDESIGN-25-04: aceita user_name opcional para personalizar a
+    primeira tela. Se None, resolve via resolve_user_display_name() (lê
+    git config user.name silenciosamente; fallback 'visitante').
+    """
     if not sys.stdin.isatty():
         mark_done()
         return
+
+    if user_name is None:
+        user_name = resolve_user_display_name()
+    steps = _build_steps(user_name)
 
     out = sys.stdout
     out.write("\n  ── Tutorial rápido — 30 segundos ──\n\n")
     out.flush()
     try:
-        for idx, (title, body) in enumerate(STEPS, 1):
-            out.write(f"  [{idx}/{len(STEPS)}] {title}\n")
+        for idx, (title, body) in enumerate(steps, 1):
+            out.write(f"  [{idx}/{len(steps)}] {title}\n")
             out.write(f"      {body}\n")
             out.flush()
             resposta = _timed_input(

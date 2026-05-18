@@ -612,8 +612,9 @@ def render_user_input(
     text: str,
     console_width: int | None = None,
     expanded: bool = False,
+    user_name: str = "você",
 ) -> None:
-    """Imprime eco da mensagem do usuário num box '╭─ você ─╮'.
+    """Imprime eco da mensagem do usuário num box '╭─ <user_name> ─╮'.
 
     Se o input tem mais de USER_INPUT_COLLAPSE_LINES linhas (paste longo)
     e ``expanded=False`` (default), colapsa para a primeira linha seguida
@@ -621,6 +622,10 @@ def render_user_input(
     (> 8): paste com exatamente 8 linhas renderiza integralmente.
 
     Fallback pra '> texto' se terminal <80 cols ou sem suporte a Rich.
+
+    TUI-REDESIGN-25-04: ``user_name`` substitui 'você' como title; resolve
+    via git config user.name (fallback 'visitante') em call-sites que
+    propagam app_state['user_display_name'].
     """
     import shutil
 
@@ -653,7 +658,7 @@ def render_user_input(
         console.print(
             Panel(
                 display_text,
-                title="você",
+                title=user_name,
                 title_align="left",
                 border_style=f"{NYX_ACCENT}",
                 expand=False,

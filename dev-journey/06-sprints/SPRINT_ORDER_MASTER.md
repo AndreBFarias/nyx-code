@@ -576,7 +576,7 @@ Promoção em batch durante a Fase H do plano canônico da sessão 2026-05-18.
 | 148 | **TUI-REDESIGN-25-03** | 25.1 Fundamentos visuais | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-25-02 |
 | 149 | **TUI-REDESIGN-25-15** | 25.1 Fundamentos visuais | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-25-03 |
 | 150 | **TUI-REDESIGN-25-16** | 25.1 Fundamentos visuais | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-25-15 |
-| 151 | **TUI-REDESIGN-25-04** | 25.2 Onboarding & Banner | MÉDIA | PENDENTE | TUI-REDESIGN-25-01 |
+| 151 | **TUI-REDESIGN-25-04** | 25.2 Onboarding & Banner | MÉDIA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-25-01 |
 | 152 | **TUI-REDESIGN-25-05** | 25.2 Onboarding & Banner | ALTA | PENDENTE | TUI-REDESIGN-25-04 |
 | 153 | **TUI-REDESIGN-25-06** | 25.2 Onboarding & Banner | ALTA | PENDENTE | TUI-REDESIGN-25-02, TUI-REDESIGN-25-05 |
 | 154 | **TUI-REDESIGN-25-07** | 25.3 Diálogo | ALTA | PENDENTE | TUI-REDESIGN-25-03, TUI-REDESIGN-25-04 |

@@ -331,6 +331,9 @@ async def run_repl(
     turn_state: dict[str, str] = {"streamed_text": "", "token_buffer": ""}
     # app_state: bool para flags, str para estados ("model_state": cold/warming/warm — UX-BUG-02B).
     app_state: dict[str, object] = {"bypass": False, "model_state": "cold"}
+    # TUI-REDESIGN-25-04: nome do usuário via git config (silent, fallback "visitante").
+    from nyx.agent.onboarding import resolve_user_display_name
+    app_state["user_display_name"] = resolve_user_display_name()
     image_counter: dict[str, int] = {"n": 0}
     image_map: dict[int, str] = {}
     tool_timers: dict[str, float] = {}
@@ -527,7 +530,10 @@ async def run_repl(
             if image_map and "[Image #" in user_input:
                 user_input = _expand_images(user_input, image_map)
             last_input_state["text"] = user_input
-            render_user_input(user_input)
+            render_user_input(
+                user_input,
+                user_name=str(app_state.get("user_display_name", "você")),
+            )
 
         if user_input.startswith("/"):
             result = handle_command(user_input, project_root)
@@ -1485,7 +1491,9 @@ def main() -> None:
         )
 
         if should_run_tutorial(args.skip_onboarding):
-            run_first_time_tutorial()
+            # TUI-REDESIGN-25-04: tutorial usa nome resolvido em runtime.
+            from nyx.agent.onboarding import resolve_user_display_name as _resolve_un
+            run_first_time_tutorial(user_name=_resolve_un())
         elif args.skip_onboarding:
             _mark_onboarding_done()
 
