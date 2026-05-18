@@ -711,6 +711,16 @@ async def run_repl(
                     )
                 continue
 
+            if result == "__cancel_inflight__":
+                # UX-AGENCY-01 MVP: dispatch placeholder. Cancel real de tool
+                # em curso fica para UX-AGENCY-02 (precisa hookar asyncio.CancelledError
+                # no AgentLoop, que envolve estado compartilhado e race no streaming).
+                print(
+                    f"  {DIM}/cancel: tools em curso só podem ser interrompidas via "
+                    f"Ctrl+C neste MVP. (UX-AGENCY-02 vai integrar cancel asyncio.){NC}"
+                )
+                continue
+
             if result == "__output_style_list__":
                 from nyx.agent.output_style import list_styles
 

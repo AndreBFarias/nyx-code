@@ -437,7 +437,7 @@ Reorganização proposta priorizando meta v1.0 "Claude Code offline e opensource
 | 110 | **COCKPIT-04** | 23.3 Cockpit | MÉDIA | PENDENTE | COCKPIT-03 |
 | 111 | **COCKPIT-05** | 23.3 Cockpit | MÉDIA | PENDENTE | COCKPIT-04 |
 | 112 | **UX-LOOP-01** | 23.4 Gamedesigner | ALTA | CONCLUIDA (ADR-025 PROPOSTO->ACEITO; loop_benchmark.py 3 medidas ack/tool_start/streaming todas <limites; fase Gauntlet loop com L-01) | ADR-023 |
-| 113 | **UX-AGENCY-01** | 23.4 Gamedesigner | ALTA | PENDENTE | UX-LOOP-01 |
+| 113 | **UX-AGENCY-01** | 23.4 Gamedesigner | ALTA | CONCLUIDA (MVP: ADR-026 ACEITO_PARCIAL; /? contextual com 3 acoes; /cancel sentinela placeholder; UX-AGENCY-02 anti-debito para cancel asyncio + footer/prefix mutavel) | UX-LOOP-01 |
 | 114 | **UX-PROGRESSION-01** | 23.4 Gamedesigner | MÉDIA | PENDENTE | UX-LOOP-01 |
 | 115 | **UX-COCKPIT-EXPERIENCE-01** | 23.4 Gamedesigner | MÉDIA | PENDENTE | COCKPIT-03, UX-LOOP-01, UX-AGENCY-01 |
 

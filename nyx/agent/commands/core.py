@@ -8,6 +8,33 @@ from nyx.agent.commands._registry import format_help, get_command, nyx_command
 
 
 @nyx_command(
+    name="?",
+    description="Ajuda contextual (UX-AGENCY-01): mostra 3 ações relevantes ao estado atual",
+    category="contexto",
+    examples=["/?"],
+)
+def cmd_contextual_help(_args: str, _root: str) -> str:
+    """ADR-026 §affordances: /? imprime as 3 ações principais do estado neutro."""
+    return (
+        "  Ações disponíveis agora:\n"
+        f"    /help                 -- catálogo completo de comandos\n"
+        f"    /memory               -- memória persistente do projeto\n"
+        f"    /resume               -- retomar sessão anterior\n"
+        f"  (Em tool call ativa: Ctrl+C cancela; /cancel pausa fluxo)"
+    )
+
+
+@nyx_command(
+    name="cancel",
+    description="Cancela tool em curso (UX-AGENCY-01)",
+    category="execução",
+    examples=["/cancel", "/cancel forçar"],
+)
+def cmd_cancel(_args: str, _root: str) -> str:
+    return "__cancel_inflight__"
+
+
+@nyx_command(
     name="help",
     description="Mostra esta ajuda (/help <cmd> mostra exemplos; /help all lista tudo)",
     aliases=["h"],
