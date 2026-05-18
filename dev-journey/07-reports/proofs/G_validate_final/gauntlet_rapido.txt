@@ -1,0 +1,48 @@
+  [nyx] próxima sprint: VISUAL-LAYOUT-02 (24 pendentes)
+  [nyx] Pré-carga falhou (modelo será carregado na primeira requisição)
+  [nyx] Executando Gauntlet (fase: rapido)...
+04:00:49 [gauntlet] INFO: Gauntlet -- fases: ['infra', 'proxy', 'visual', 'config'], modelo: qwen2.5-coder:3b, gpu: NVIDIA GeForce RTX 3050 Laptop GPU
+04:00:50 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11435/api/version "HTTP/1.1 200 OK"
+04:00:50 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11435/api/version "HTTP/1.1 200 OK"
+04:00:50 [gauntlet] INFO: [OK] I-01 Ollama respondendo (0.0s, 0tok)
+04:00:50 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11435/api/version "HTTP/1.1 200 OK"
+04:00:50 [gauntlet] INFO: [OK] I-03 Versão Ollama (0.0s, 0tok)
+04:00:54 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+04:00:54 [gauntlet] INFO: [OK] I-05 Warmup do modelo (4.4s, 88tok)
+04:00:54 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11435/api/tags "HTTP/1.1 200 OK"
+04:00:54 [gauntlet] INFO: [OK] I-09 Modelo qwen2.5-coder:3b presente (0.0s, 0tok)
+04:00:54 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11436/v1/models "HTTP/1.1 200 OK"
+04:00:54 [gauntlet] INFO: [OK] I-11 Proxy respondendo (0.0s, 0tok)
+04:00:54 [gauntlet] INFO: Report: /home/andrefarias/Desenvolvimento/Nyx-Code/GAUNTLET_REPORT.md (APROVADO)
+04:00:54 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11435/api/version "HTTP/1.1 200 OK"
+04:00:54 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+04:00:54 [gauntlet] INFO: [OK] P-01 Request via proxy (0.4s, 38tok)
+04:00:54 [gauntlet] INFO: [OK] P-02 think=false injetado (0.0s, 0tok)
+04:00:55 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+04:00:55 [gauntlet] INFO: [OK] P-04 Content array normalizado (0.3s, 38tok)
+04:00:56 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+04:00:56 [gauntlet] INFO: [OK] P-05 Formato OpenAI correto (1.0s, 0tok)
+04:00:56 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11436/v1/models "HTTP/1.1 200 OK"
+04:00:56 [gauntlet] INFO: [OK] P-06 Listagem /v1/models (0.0s, 0tok)
+04:00:59 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+04:00:59 [gauntlet] INFO: [OK] P-07 tool_calls propagam (3.7s, 188tok)
+04:00:59 [gauntlet] INFO: Report: /home/andrefarias/Desenvolvimento/Nyx-Code/GAUNTLET_REPORT.md (APROVADO)
+  [nyx] Atualizando docs...
+
+==================================================
+  Estado real do código
+==================================================
+  Tools:     35
+  Commands:  61
+  Services:  14
+  Testes:    304
+  ADRs:      32
+  Sprints:   204 concluídas | 76 pendentes | 5 backlog
+  Próxima:   UX-BUG-02C
+
+  Docs atualizados: README.md, PORT_STATUS.md
+
+
+  [nyx] Desconectando...
+  [nyx] Parando Ollama (PID: 373568)...
+  [nyx] Fim.

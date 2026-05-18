@@ -1,0 +1,15 @@
+G1 -- 5 runs de start (./run.sh --smoke)
+Timestamp: 2026-05-18 sessão Validador/Integrador
+Critério: mediana < 1.5s
+
+Run 1: 0.14s
+Run 2: 0.14s
+Run 3: 0.14s
+Run 4: 0.13s
+Run 5: 0.14s
+
+Mediana: 0.14s
+Maximo:  0.14s
+Minimo:  0.13s
+
+VEREDICTO: PASS (mediana 0.14s << critério 1.5s, ~10x abaixo do envelope).
