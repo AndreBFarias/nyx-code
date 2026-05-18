@@ -22,7 +22,8 @@ sprint:
 
 ---
 
-**Status:** RASCUNHO
+**Status:** CONCLUIDA (sessao 2026-05-18; cobertura via gauntlet --only rapido,
+             commit 32cbe48; ID aparece como [OK] no log do gauntlet)
 **Data criação:** 2026-05-17
 **Origem:** sbom_sync.py --propose-sprints
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
