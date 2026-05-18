@@ -508,6 +508,71 @@ def render_tool_card_start(
     print(args_line)
 
 
+# TUI-REDESIGN-25-11: classificação de erros conhecidos -> ações sugeridas.
+# Cada entrada: (regex_or_substring, lambda(error_msg) -> list[(key, label, cmd)]).
+# Aplicação fica no call-site (cli.py on_tool_result) que usa classify_error_actions.
+
+def classify_error_actions(error_msg: str) -> list[tuple[str, str, str]]:
+    """Retorna [(key, label, cmd)] sugeridas para erro conhecido (TUI-REDESIGN-25-11)."""
+    if not error_msg:
+        return []
+    low = error_msg.lower()
+    # Sandbox/fora do projeto
+    if "fora do projeto" in low or "outside project" in low:
+        return [
+            ("a", "adicionar pasta ao sandbox", "/sandbox add <caminho>"),
+            ("b", "trocar diretório de trabalho", "/cd <caminho>"),
+            ("c", "colar conteúdo aqui", "(paste manual)"),
+        ]
+    # Permissão
+    if "permissão" in low or "permission denied" in low or "permissao" in low:
+        return [
+            ("a", "adicionar permissão", "/permissions add <tool>"),
+            ("b", "executar mesmo assim", "/bypass on"),
+            ("c", "pular esta ação", "(skip)"),
+        ]
+    # Arquivo não encontrado
+    if "não encontrado" in low or "not found" in low or "nao encontrado" in low:
+        return [
+            ("a", "criar arquivo", "/edit <caminho> (cria)"),
+            ("b", "trocar diretório", "/cd <pasta>"),
+            ("c", "descartar", "(skip)"),
+        ]
+    # Syntax error
+    if "syntax" in low or "sintaxe" in low:
+        return [
+            ("a", "editar trecho", "/edit <caminho>"),
+            ("b", "reler arquivo", "(re-Read)"),
+            ("c", "ignorar", "(skip)"),
+        ]
+    return []
+
+
+def render_error_with_actions(
+    msg: str,
+    actions: list[tuple[str, str, str]] | None = None,
+) -> None:
+    """Renderiza erro + ações sugeridas (TUI-REDESIGN-25-11).
+
+    Formato:
+      [erro] msg
+        (a) label  → comando
+        (b) ...
+
+    Se ``actions`` é None, tenta classificar via classify_error_actions(msg).
+    """
+    from nyx.themes.design_tokens import ANSI_ERROR_FG
+
+    if actions is None:
+        actions = classify_error_actions(msg)
+    print(f"  {ANSI_ERROR_FG}[erro]{ANSI_RESET} {msg}")
+    for key, label, cmd in actions:
+        print(
+            f"      {ANSI_ACCENT_FG}({key}){ANSI_RESET} {label}  "
+            f"{ANSI_DIM}→ {cmd}{ANSI_RESET}"
+        )
+
+
 def render_thinking_block(
     text: str,
     duration_s: float | None = None,
