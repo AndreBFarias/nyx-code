@@ -26,8 +26,12 @@ package-lock.json
 
 # Secrets
 .env
+.env.local
 *.key
 *.pem
+*.password
+.secrets
+secrets/
 
 # Logs e sessões
 logs/

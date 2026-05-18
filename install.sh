@@ -49,7 +49,7 @@ Flags:
   --no-prompt   Modo não-interativo (CI); usa defaults seguros
   -h, --help    Esta mensagem
 
-10 fases:
+11 fases:
   0  Requisitos mínimos (Python >=3.10, distro)
   1  Cria venv (se ausente)
   2  pip install -r requirements.txt
@@ -61,6 +61,11 @@ Flags:
   8  chmod +x em run.sh e scripts/*.sh|.py
   9  Desktop entry (SKIP se scripts/setup_desktop_entry.py ausente)
  10  Smoke test (import nyx via venv)
+ 11  Controle OOM (chmod bin/nyx-runtime-limits.sh + scripts/check_oom.sh)
+
+Variáveis de ambiente:
+  NYX_SUDO_PASSWORD   senha sudo para CI/replicação (NÃO commit; lida só em runtime)
+  NYX_INSTALL_SKIP_PULL=1   pula 'ollama pull' (uso em Docker, DEPLOY-01B)
 EOF
             exit 0
             ;;
@@ -69,7 +74,7 @@ EOF
 done
 
 # --- HELPERS -----------------------------------------------
-TOTAL=10
+TOTAL=11
 print_header() {
     echo -e "${PRIMARY}${BOLD}"
     echo "  _   _                ____          _      "
@@ -109,6 +114,18 @@ run_or_skip() {
         return 0
     fi
     "$@"
+}
+
+# INSTALL-SUDO-01: wrapper de sudo que aceita NYX_SUDO_PASSWORD via env var
+# (apenas para replicação em outros PCs / CI sem TTY). Default mantém
+# comportamento atual (prompt interativo do sudo).
+# NUNCA hardcode da senha; SEMPRE via env. Documentado em README.
+sudo_run() {
+    if [ -n "${NYX_SUDO_PASSWORD:-}" ]; then
+        echo "$NYX_SUDO_PASSWORD" | sudo -S -p "" "$@"
+    else
+        sudo "$@"
+    fi
 }
 
 ask_or_default() {
@@ -252,10 +269,10 @@ elif [ -z "$PKG_MANAGER" ]; then
     print_warn "Sem gerenciador suportado -- instale xclip manualmente"
 else
     case "$PKG_MANAGER" in
-        apt-get) run_or_skip "apt install xclip" sudo apt-get install -y xclip ;;
-        dnf)     run_or_skip "dnf install xclip" sudo dnf install -y xclip ;;
-        pacman)  run_or_skip "pacman -S xclip"   sudo pacman -S --noconfirm xclip ;;
-        zypper)  run_or_skip "zypper install xclip" sudo zypper install -y xclip ;;
+        apt-get) run_or_skip "apt install xclip" sudo_run apt-get install -y xclip ;;
+        dnf)     run_or_skip "dnf install xclip" sudo_run dnf install -y xclip ;;
+        pacman)  run_or_skip "pacman -S xclip"   sudo_run pacman -S --noconfirm xclip ;;
+        zypper)  run_or_skip "zypper install xclip" sudo_run zypper install -y xclip ;;
     esac
     print_ok "xclip instalado"
 fi
@@ -273,10 +290,10 @@ else
     ask_or_default "  Instalar kitty terminal? [s/N] " "n" KITTY_ANS
     if [[ "$KITTY_ANS" =~ ^[sS]$ ]] && [ -n "$PKG_MANAGER" ]; then
         case "$PKG_MANAGER" in
-            apt-get) run_or_skip "apt install kitty" sudo apt-get install -y kitty ;;
-            dnf)     run_or_skip "dnf install kitty" sudo dnf install -y kitty ;;
-            pacman)  run_or_skip "pacman -S kitty"   sudo pacman -S --noconfirm kitty ;;
-            zypper)  run_or_skip "zypper install kitty" sudo zypper install -y kitty ;;
+            apt-get) run_or_skip "apt install kitty" sudo_run apt-get install -y kitty ;;
+            dnf)     run_or_skip "dnf install kitty" sudo_run dnf install -y kitty ;;
+            pacman)  run_or_skip "pacman -S kitty"   sudo_run pacman -S --noconfirm kitty ;;
+            zypper)  run_or_skip "zypper install kitty" sudo_run zypper install -y kitty ;;
         esac
         print_ok "kitty instalado"
     else
@@ -325,6 +342,23 @@ if [ -x "$SCRIPT_DIR/venv/bin/python" ]; then
     fi
 else
     print_warn "venv/bin/python ausente -- smoke pulado"
+fi
+
+# ===========================================================
+# FASE 11 -- Controle OOM (INFRA-OOM-01)
+# ===========================================================
+print_step 11 "Controle OOM (ulimit + oom_score_adj)"
+
+LIMITS_SH="$SCRIPT_DIR/bin/nyx-runtime-limits.sh"
+if [ -f "$LIMITS_SH" ]; then
+    run_or_skip "chmod +x bin/nyx-runtime-limits.sh" chmod +x "$LIMITS_SH"
+    if [ -f "$SCRIPT_DIR/scripts/check_oom.sh" ]; then
+        run_or_skip "chmod +x scripts/check_oom.sh" chmod +x "$SCRIPT_DIR/scripts/check_oom.sh"
+    fi
+    print_ok "nyx-runtime-limits.sh executavel"
+    print_ok "scripts/check_oom.sh disponivel para diagnostico OOM"
+else
+    print_warn "bin/nyx-runtime-limits.sh ausente -- INFRA-OOM-01 pulado"
 fi
 
 echo ""

@@ -27,7 +27,31 @@ cd Nyx-Code
 - Arch (`pacman`) — manual
 - openSUSE (`zypper`) — manual
 
-`install.sh` é idempotente: rodar duas vezes produz a mesma saída (cada fase faz SKIP se já aplicada). Veja `./install.sh --help` para a lista completa das 10 fases.
+`install.sh` é idempotente: rodar duas vezes produz a mesma saída (cada fase faz SKIP se já aplicada). Veja `./install.sh --help` para a lista completa das 11 fases.
+
+### Replicação em outro PC (sem TTY / CI)
+
+Para instalar sem interação manual (útil em containers, scripts de provisão, segundo computador):
+
+```bash
+export NYX_SUDO_PASSWORD='sua-senha-sudo-aqui'
+./install.sh --no-prompt
+unset NYX_SUDO_PASSWORD
+```
+
+**Segurança:** a senha é lida **só em runtime** via env var. Nunca é gravada em arquivo do repositório nem em log. Após instalar, considere `history -d <N>` para apagar o `export` do histórico do shell.
+
+`NYX_INSTALL_SKIP_PULL=1` pula `ollama pull` (útil em Docker, ver DEPLOY-01B).
+
+### Controle OOM (INFRA-OOM-01)
+
+`run.sh` agora aplica automaticamente `ulimit -v 8GB` + `oom_score_adj -100` ao processo Nyx via `bin/nyx-runtime-limits.sh`. Em sessões longas com cockpit + Chrome MCP, isso reduz a chance do OOM-killer derrubar o Ollama.
+
+Diagnóstico ao primeiro sinal de degradação:
+
+```bash
+bash scripts/check_oom.sh    # memória, swap, OOM kernel, top procs, oom_score do Nyx/Ollama
+```
 
 ## Arquitetura
 

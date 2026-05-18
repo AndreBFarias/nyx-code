@@ -8,6 +8,13 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# INFRA-OOM-01: aplica limites de runtime (ulimit + oom_score_adj) se o
+# helper estiver presente. Sem efeito colateral se ausente.
+if [ -f "$SCRIPT_DIR/bin/nyx-runtime-limits.sh" ]; then
+    # shellcheck source=bin/nyx-runtime-limits.sh
+    source "$SCRIPT_DIR/bin/nyx-runtime-limits.sh"
+fi
+
 # ─── CORES (Paleta Nyx - entidade do panteão Luna) ──────────
 if [ -t 1 ]; then
     PRIMARY=$'\033[38;2;0;212;170m'      # #00D4AA - cor principal Nyx (cyan/teal)

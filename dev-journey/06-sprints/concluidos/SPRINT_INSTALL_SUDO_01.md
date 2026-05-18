@@ -29,7 +29,7 @@ sprint:
     - "Salvar a senha em arquivo dentro de logs/ ou sessions/"
 
   tests:
-    - cmd: "grep -c '10203040' install.sh README.md .env.example 2>/dev/null | grep -v ':0' && echo 'VAZAMENTO' || echo 'OK'"
+    - cmd: "grep -c '<SENHA>' install.sh README.md .env.example 2>/dev/null | grep -v ':0' && echo 'VAZAMENTO' || echo 'OK'"
       timeout: 5
       deve_passar: "imprime OK (sem vazamento)"
     - cmd: "NYX_SUDO_PASSWORD=test_dummy ./install.sh --dry-run --no-prompt 2>&1 | grep -v 'test_dummy' && echo OK"
@@ -41,7 +41,7 @@ sprint:
     - "Sem NYX_SUDO_PASSWORD: comportamento atual (prompt interativo)"
     - "README seção 'Replicação' explica passo a passo"
     - "Senha NUNCA aparece em log, output, ou arquivo commitado"
-    - "git grep -c '10203040' retorna 0"
+    - "git grep -c '<SENHA>' retorna 0"
     - "Smoke ok"
     - "Invariantes 14/14"
 ```
@@ -50,15 +50,22 @@ sprint:
 
 # Sprint INSTALL-SUDO-01 — Sudo seguro via env var
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (2026-05-18 sessão Validador)
 **Data criação:** 2026-05-18
 **Modelo obrigatório:** claude-opus-4-7
+
+> **AVISO de SEGURANÇA:** o spec original desta sprint (criado no commit
+> `9f8a84c`, Fase A) referenciou a senha sudo do usuário como literal. A
+> string foi mascarada agora em `concluidos/`, mas o git log preserva o
+> histórico. Recomendação: **trocar a senha sudo do PC** após adotar
+> `NYX_SUDO_PASSWORD`. Repositório privado mitiga vazamento externo;
+> troca local elimina o risco residual.
 
 ---
 
 ## Contexto
 
-Usuário precisa replicar Nyx-Code em outros PCs sem precisar digitar sudo manualmente em cada um (mensagem do prompt: "senha sudo 10203040, eu preciso replicar tudo em outros pcs"). Mas hardcoded em `.sh` é vetor crítico — mesmo em repo privado, git log expõe.
+Usuário precisa replicar Nyx-Code em outros PCs sem precisar digitar sudo manualmente em cada um (mensagem do prompt referenciou a senha do PC, masked como `<SENHA>` neste spec). Mas hardcoded em `.sh` é vetor crítico — mesmo em repo privado, git log expõe.
 
 ### Sintoma observável
 
@@ -132,10 +139,10 @@ Verificar que tem (adicionar se não):
 
 ```bash
 # 1. Sem vazamento de senha
-grep -rn "10203040" install.sh README.md .env.example 2>/dev/null
+grep -rn "<SENHA>" install.sh README.md .env.example 2>/dev/null
 # esperado: zero hits
 
-git log -p --all | grep -c "10203040"
+git log -p --all | grep -c "<SENHA>"
 # esperado: 0
 
 # 2. Comportamento sem env
@@ -160,8 +167,8 @@ bash scripts/sprint_invariants.sh | tail -5
 - [ ] Sem env: comportamento atual preservado
 - [ ] README seção "Replicação em outro PC" documenta uso
 - [ ] `.gitignore` cobre `.env.local`, `.secrets`, `*.password`
-- [ ] `git grep '10203040'` retorna zero hits
-- [ ] `git log -p --all | grep '10203040'` retorna zero hits
+- [ ] `git grep '<SENHA>'` retorna zero hits
+- [ ] `git log -p --all | grep '<SENHA>'` retorna zero hits
 - [ ] Smoke ok
 - [ ] Invariantes 14/14
 - [ ] Sprint movida `producao/` → `concluidos/`
