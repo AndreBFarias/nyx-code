@@ -6,6 +6,26 @@
 
 ---
 
+## TL;DR — Como iniciar a próxima sessão (3 passos)
+
+1. **Abra um terminal** e rode `claude` em `/home/andrefarias/Desenvolvimento/Nyx-Code`
+   (ou abra a UI/extensão apontando para essa pasta). Confirme que o modelo
+   selecionado é `claude-opus-4-7`.
+2. **Copie** todo o conteúdo do bloco `## Bloco para colar` (entre os ` ``` `
+   logo abaixo desta seção) e **cole** como primeira mensagem.
+3. **Envie.** O Claude vai abrir mostrando: smoke, invariantes, próxima sprint
+   pelo `EXECUTAR_SPRINT.md`, lista das 7 BLOQUEADAS e plano de promoção dos
+   62 RASCUNHOs. A partir daí, basta dizer:
+   - `siga` / `executa` / `continua` — para o ciclo padrão rodar sozinho.
+   - `promove I-01..I-11 e executa` — para promover um batch de RASCUNHOs.
+   - `pula <ID>` — para marcar uma sprint como BLOQUEADA e seguir.
+
+Toda a sequência é resiliente: se uma sprint quebrar, o Claude marca BLOQUEADA
+com motivo, materializa anti-débito e segue. Você pode interromper com Ctrl+C
+a qualquer momento; o Checkpoint.md fica como linha-base de retomada.
+
+---
+
 ## Bloco para colar
 
 ```text
