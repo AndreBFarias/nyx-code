@@ -25,7 +25,7 @@ Em caso de sessão Claude cair, próxima sessão Claude deve:
 - **Próxima ação humana:** `./run.sh --web` abre cockpit + browser; ou `./run.sh --menu` para wizard de config; ou seguir prompt em ANEXO ao fim deste arquivo para continuar via Claude.
 - **Estado runtime final:** smoke=`boot ok` | invariantes=14/14 | sbom=62/62 | gauntlet rapido=11/11 APROVADO | benchmark P50=0.14s | cockpit 13 endpoints HTTP + 2 WS + dashboard 62 cards | --menu/--web/--auto-approve flags ativas
 - **tmux sessões persistidas:** `cockpit` (porta 11437; pode reaproveitar via `tmux attach -t cockpit`)
-- **9 sprints anti-débito pendentes em `producao/`** (a próxima sessão pode dispatch executor-sprint em paralelo):
+- **12 sprints anti-débito pendentes em `producao/`** (a próxima sessão pode dispatch executor-sprint em paralelo):
   - NYX-AUTO-APPROVE-01 (ALTA) — destrava automação via PTY
   - PTY-PERMISSION-FLOW-01 (MÉDIA) — UI cockpit aprovar
   - COCKPIT-LIFECYCLE-FIX-01 (ALTA) — evita cascata de kill
@@ -34,6 +34,9 @@ Em caso de sessão Claude cair, próxima sessão Claude deve:
   - PROJECT-ROOTS-MULTI-01 (ALTA) — múltiplos project roots + /sandbox + /cd
   - SHIFT-TAB-CYCLE-01 (ALTA) — shift+tab cicla normal/plan/sudo/bypass
   - SUDO-MODE-01 (ALTA) — sudo cacheado na sessão (não disco)
+  - NYX-GSD-CHECKPOINTS-01 (ALTA) — progress.md write-through por sessão
+  - NYX-PROMPT-REINJECT-01 (ALTA) — system-reminder periódico anti-drift
+  - NYX-OUTPUT-LIMITS-01 (ALTA) — num_predict adaptativo por intent
   - VALIDATE-FINAL-01-PARTE-2 (CRÍTICA, humana) — screenshots/Docker/47cmds
 - **TaskList:** Todas as 14 tasks completed. Task #9 (Fase I) ainda PENDING formal.
 
@@ -81,6 +84,13 @@ CAMINHO A2 -- "escopo expandido (multi-projeto + sudo)":
     2. SUDO-MODE-01 (sem UX -- pode ir paralelo com 1)
     3. SHIFT-TAB-CYCLE-01 (depois das 2 acima -- integra UX dos 4 modos)
   Tras a Nyx para projetos reais: cross-repo + sudo cacheado.
+
+CAMINHO A3 -- "robustez de contexto (GSD + reinject + outputs longos)":
+  Dispatch 3 executor-sprint em ordem:
+    1. NYX-GSD-CHECKPOINTS-01 (progress.md write-through; base de tudo)
+    2. NYX-OUTPUT-LIMITS-01 (num_predict adaptativo; pode paralelo com 1)
+    3. NYX-PROMPT-REINJECT-01 (depende de GSD-CHECKPOINTS pra ler historico)
+  Faz a Nyx aguentar tarefas longas sem perder a meta nem truncar resposta.
 
 CAMINHO B -- "Fase I do plano original":
   Rodar INFRA-MODEL-AGNOSTIC-01 (compara qwen3:4b vs qwen2.5-coder:3b
