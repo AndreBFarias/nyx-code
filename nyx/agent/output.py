@@ -618,6 +618,38 @@ def _format_session_duration(seconds: float) -> str:
     return f"{minutes}m{sec:02d}s"
 
 
+def _render_stats_inline(
+    iterations: int,
+    files_read: int,
+    files_modified: int,
+    duration_lbl: str,
+    tokens_str: str,
+    short_id: str,
+    saved_path: str | None,
+    project_root: str | None,
+) -> None:
+    """Versão linhas-inline para terminais < 80 cols (fallback 25-14)."""
+    print()
+    print(f"  {ANSI_ACCENT_FG}última sessão{ANSI_RESET}")
+    print(f"  {ANSI_ACCENT_FG}{'─' * 14}{ANSI_RESET}")
+    print(
+        f"  {ANSI_MUTED_FG}iterações{ANSI_RESET}  {ANSI_DIM}{iterations:<5}{ANSI_RESET}"
+        f"  {ANSI_MUTED_FG}arquivos lidos{ANSI_RESET}  {ANSI_DIM}{files_read:<4}{ANSI_RESET}"
+        f"  {ANSI_MUTED_FG}arquivos modif{ANSI_RESET}  {ANSI_DIM}{files_modified}{ANSI_RESET}"
+    )
+    print(
+        f"  {ANSI_MUTED_FG}tempo     {ANSI_RESET} {ANSI_DIM}{duration_lbl:<5}{ANSI_RESET}"
+        f"  {ANSI_MUTED_FG}tokens         {ANSI_RESET} {ANSI_DIM}{tokens_str:<4}{ANSI_RESET}"
+        f"  {ANSI_MUTED_FG}sessão         {ANSI_RESET} {ANSI_DIM}{short_id}{ANSI_RESET}"
+    )
+    if saved_path:
+        short = _shorten_path(saved_path, project_root, 60)
+        print(f"  {ANSI_MUTED_FG}salvo em  {ANSI_RESET} {ANSI_DIM}{short}{ANSI_RESET}")
+    print()
+    print(f"  {ANSI_ACCENT_FG}até.{ANSI_RESET}")
+    print()
+
+
 def render_session_stats_card(
     iterations: int,
     files_read: int,
@@ -628,43 +660,77 @@ def render_session_stats_card(
     saved_path: str | None = None,
     project_root: str | None = None,
 ) -> None:
-    """Renderiza card de encerramento com stats da sessão (TUI-REDESIGN-25-14).
+    """Card de encerramento com stats em grid 3×2 com bordas (TUI-REDESIGN-26-04).
 
-    Formato:
+    Layout (≥ 80 cols):
       última sessão
-      ──────────────
-      iterações  3      arquivos lidos  2     arquivos modif  0
-      tempo      1m32s  tokens          1487  sessão          abc12
-      salvo em   ~/.nyx/sessions/abc12
+      ╭──────────────┬──────────────┬──────────────╮
+      │ iterações  3 │ arquivos     │ arquivos     │
+      │              │ lidos      2 │ modif      0 │
+      ├──────────────┼──────────────┼──────────────┤
+      │ tempo  1m32s │ tokens  1487 │ sessão abc12 │
+      ╰──────────────┴──────────────┴──────────────╯
+      salvo em ~/.nyx/sessions/abc12
+      até.
 
-    Path abreviado via _shorten_path. Tokens e session_id opcionais
-    (omite linha se None). Cores: rótulos muted, valores dim, accent
-    no título.
+    Fallback < 80 cols: render_stats_inline (versão 25-14, 3 linhas).
     """
-    print()
-    print(f"  {ANSI_ACCENT_FG}última sessão{ANSI_RESET}")
-    print(f"  {ANSI_ACCENT_FG}{'─' * 14}{ANSI_RESET}")
+    import shutil
+
     duration_lbl = _format_session_duration(duration_s)
-    short_id = (session_id[:6] if session_id else "—")
-    # Linha 1: 3 colunas (iterações, lidos, modif).
-    print(
-        f"  {ANSI_MUTED_FG}iterações{ANSI_RESET}  {ANSI_DIM}{iterations:<5}{ANSI_RESET}"
-        f"  {ANSI_MUTED_FG}arquivos lidos{ANSI_RESET}  {ANSI_DIM}{files_read:<4}{ANSI_RESET}"
-        f"  {ANSI_MUTED_FG}arquivos modif{ANSI_RESET}  {ANSI_DIM}{files_modified}{ANSI_RESET}"
-    )
-    # Linha 2: 3 colunas (tempo, tokens, sessão).
+    short_id = (session_id[:8] if session_id else "—")
     tokens_str = str(tokens) if tokens is not None else "—"
-    print(
-        f"  {ANSI_MUTED_FG}tempo     {ANSI_RESET} {ANSI_DIM}{duration_lbl:<5}{ANSI_RESET}"
-        f"  {ANSI_MUTED_FG}tokens         {ANSI_RESET} {ANSI_DIM}{tokens_str:<4}{ANSI_RESET}"
-        f"  {ANSI_MUTED_FG}sessão         {ANSI_RESET} {ANSI_DIM}{short_id}{ANSI_RESET}"
-    )
-    # Linha 3: caminho do save.
+    cols = shutil.get_terminal_size(fallback=(80, 24)).columns
+    if cols < 80:
+        _render_stats_inline(
+            iterations, files_read, files_modified,
+            duration_lbl, tokens_str, short_id, saved_path, project_root,
+        )
+        return
+
+    # Grid 3×2: cada célula tem largura fixa CELL_W. Layout: rótulo dim
+    # + valor accent à direita, padding interno 1 char cada lado.
+    CELL_W = 22
+    accent = ANSI_ACCENT_FG
+    muted = ANSI_MUTED_FG
+    dim = ANSI_DIM
+    reset = ANSI_RESET
+
+    def cell(label: str, value: str) -> str:
+        # Texto visível (sem ANSI) usa CELL_W - 2 (padding 1 cada lado).
+        inner = CELL_W - 2
+        # Calcula espaço entre rótulo e valor.
+        gap = max(1, inner - len(label) - len(value))
+        body = f"{muted}{label}{reset}{' ' * gap}{dim}{value}{reset}"
+        return f" {body} "
+
+    top = "╭" + ("─" * CELL_W + "┬") * 2 + "─" * CELL_W + "╮"
+    mid = "├" + ("─" * CELL_W + "┼") * 2 + "─" * CELL_W + "┤"
+    bot = "╰" + ("─" * CELL_W + "┴") * 2 + "─" * CELL_W + "╯"
+
+    row1_cells = [
+        cell("iterações", str(iterations)),
+        cell("arquivos lidos", str(files_read)),
+        cell("arquivos modif", str(files_modified)),
+    ]
+    row2_cells = [
+        cell("tempo", duration_lbl),
+        cell("tokens", tokens_str),
+        cell("sessão", short_id),
+    ]
+
+    print()
+    print(f"  {accent}última sessão{reset}")
+    print(f"  {accent}{top}{reset}")
+    print(f"  {accent}│{reset}{row1_cells[0]}{accent}│{reset}{row1_cells[1]}{accent}│{reset}{row1_cells[2]}{accent}│{reset}")
+    print(f"  {accent}{mid}{reset}")
+    print(f"  {accent}│{reset}{row2_cells[0]}{accent}│{reset}{row2_cells[1]}{accent}│{reset}{row2_cells[2]}{accent}│{reset}")
+    print(f"  {accent}{bot}{reset}")
     if saved_path:
         short = _shorten_path(saved_path, project_root, 60)
-        print(f"  {ANSI_MUTED_FG}salvo em  {ANSI_RESET} {ANSI_DIM}{short}{ANSI_RESET}")
+        print(f"  {muted}salvo em  {reset} {dim}{short}{reset}")
     print()
-    print(f"  {ANSI_ACCENT_FG}até.{ANSI_RESET}")
+    print(f"  {accent}até.{reset}")
     print()
 
 

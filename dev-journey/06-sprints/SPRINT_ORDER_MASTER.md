@@ -563,7 +563,7 @@ Promoção em batch durante a Fase H do plano canônico da sessão 2026-05-18.
 | 165 | **TUI-REDESIGN-26-01** | 26.1 Fidelidade visual | ALTA | CONCLUIDA (2026-05-18) | COCKPIT-WEB-REDESIGN-03 |
 | 166 | **TUI-REDESIGN-26-02** | 26.1 Fidelidade visual | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-26-01 |
 | 167 | **TUI-REDESIGN-26-03** | 26.1 Fidelidade visual | ALTA | CONCLUIDA_PARCIAL (2026-05-18; glyph-per-tool feito, alinhamento ações à direita pendente refinamento) | TUI-REDESIGN-26-02 |
-| 168 | **TUI-REDESIGN-26-04** | 26.1 Fidelidade visual | ALTA | PENDENTE | TUI-REDESIGN-26-03 |
+| 168 | **TUI-REDESIGN-26-04** | 26.1 Fidelidade visual | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-26-03 |
 | 169 | **TUI-REDESIGN-26-05** | 26.3 Onboarding nome | MÉDIA | PENDENTE | TUI-REDESIGN-26-04 |
 
 Ordem de execução: Fase 1 (M1 SPRINT_ORDER-OVERRIDE-FIX-01) -> Fase 2 (26.2 cockpit --web) -> Fase 3 (26.1 fidelidade visual) -> Fase 4 (M2 STREAMING-SIDE-RULE-01 + M3 TUI-REDESIGN-25-09-PARTE-2) -> Fase 5 (26.3 onboarding nome).
