@@ -559,7 +559,7 @@ Promoção em batch durante a Fase H do plano canônico da sessão 2026-05-18.
 |---|--------|-------|------------|--------|------------|
 | 162 | **COCKPIT-WEB-REDESIGN-01** | 26.2 Cockpit --web reformulado | ALTA | CONCLUIDA (2026-05-18) | SPRINT_ORDER-OVERRIDE-FIX-01 |
 | 163 | **COCKPIT-WEB-REDESIGN-02** | 26.2 Cockpit --web reformulado | ALTA | CONCLUIDA (2026-05-18) | COCKPIT-WEB-REDESIGN-01 |
-| 164 | **COCKPIT-WEB-REDESIGN-03** | 26.2 Cockpit --web reformulado | MÉDIA | PENDENTE | COCKPIT-WEB-REDESIGN-02 |
+| 164 | **COCKPIT-WEB-REDESIGN-03** | 26.2 Cockpit --web reformulado | MÉDIA | CONCLUIDA (2026-05-18) | COCKPIT-WEB-REDESIGN-02 |
 | 165 | **TUI-REDESIGN-26-01** | 26.1 Fidelidade visual | ALTA | PENDENTE | COCKPIT-WEB-REDESIGN-03 |
 | 166 | **TUI-REDESIGN-26-02** | 26.1 Fidelidade visual | ALTA | PENDENTE | TUI-REDESIGN-26-01 |
 | 167 | **TUI-REDESIGN-26-03** | 26.1 Fidelidade visual | ALTA | PENDENTE | TUI-REDESIGN-26-02 |
