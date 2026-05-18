@@ -1,8 +1,8 @@
 # Sprint Order Master -- Nyx-Code
 
-**Versão:** v5.0
-**Data:** 2026-04-05
-**Modelo obrigatório:** Opus 4.6 (claude-opus-4-6) -- sem subagentes
+**Versão:** v5.1
+**Data:** 2026-05-18 (refresh em SPRINT_ORDER-REFRESH-01)
+**Modelo obrigatório:** Opus 4.7 (claude-opus-4-7) -- sem subagentes (planejador-sprint/executor-sprint/validador-sprint apenas no fluxo /sprint-ciclo; implementação direta no normal)
 
 ---
 
@@ -460,6 +460,94 @@ Reorganização proposta priorizando meta v1.0 "Claude Code offline e opensource
 **Status: PENDENTE.** Specs serão criadas em `producao/` na sequência da Semana 1 do plano. Promoção para PENDENTE só após review.
 
 <!-- MANUAL_OVERRIDE_ONDA_23_END -->
+
+---
+
+<!-- MANUAL_OVERRIDE_ONDA_24_START -->
+
+### Bloco ONDA-24: Visual Layout + Infra resiliente + Release v1.0 (2026-05-18)
+
+**Origem:** sessão Validador/Integrador/Despachador 2026-05-18 com Claude Opus 4.7 (1M). Plano canônico: `~/.claude/plans/prompt-validador-integrador-md-leia-estu-starry-charm.md`. Onda 24 paralela à finalização da Onda 22 e Onda 23.
+
+**Contexto de origem:**
+- Usuário entregou `novo_layout/` (HTMLs + JSX + CSS) propondo 5 estéticos visuais × 7 entidades como extensão da paleta D do ADR-023.
+- Máquina-alvo: RAM 14.81 GiB com swap 80% antes do boot — necessidade de controle OOM.
+- Pedido de replicação em outros PCs com senha sudo via env var (não hardcoded).
+- Meta: tese empírica "infra forte eleva qualquer modelo".
+- MASTER defasado 150+ dias desde v5.0 (2026-04-05).
+- Achado A1 da sessão: `/?` tem 1 exemplo, mínimo 2 (audit_help_coverage 59/60).
+
+**Decisões fechadas (2026-05-18):**
+- D1 novo_layout porta tokens extended + arcano showcase nesta sessão; outros 4 estéticos viram sprints futuras (VISUAL-LAYOUT-06).
+- D2 Senha sudo NUNCA hardcoded; apenas via env var `NYX_SUDO_PASSWORD`.
+- D3 Controle OOM via `oom_score_adj` + `ulimit` aplicados pelo `bin/nyx-runtime-limits.sh` sourced pelo `run.sh`.
+- D4 Tese "modelo menor + infra forte = qualidade alta" validada empiricamente comparando qwen2.5-coder:3b vs qwen3:4b com mesma infra.
+- D5 Persistência tolerante a apagão via Checkpoint.md write-through + SESSAO_LOG.md.
+
+| # | Sprint | Bloco | Prioridade | Status | Depende de |
+|---|--------|-------|------------|--------|------------|
+| 133 | **VISUAL-LAYOUT-01** | 24.2 Visual Layout | ALTA | PENDENTE | -- |
+| 134 | **VISUAL-LAYOUT-02** | 24.2 Visual Layout | MÉDIA | PENDENTE | VISUAL-LAYOUT-01 |
+| 135 | **VISUAL-LAYOUT-03** | 24.2 Visual Layout | MÉDIA | PENDENTE | VISUAL-LAYOUT-01 |
+| 136 | **VISUAL-LAYOUT-04** | 24.2 Visual Layout | BAIXA | PENDENTE | VISUAL-LAYOUT-01, VISUAL-LAYOUT-03 |
+| 137 | **VISUAL-LAYOUT-05** | 24.2 Visual Layout | MÉDIA | PENDENTE | VISUAL-LAYOUT-01, VISUAL-LAYOUT-03 |
+| 138 | **VISUAL-LAYOUT-06** | 24.2 Visual Layout | BAIXA | PENDENTE | VISUAL-LAYOUT-05 |
+| 139 | **VISUAL-LAYOUT-07** | 24.2 Visual Layout | BAIXA | PENDENTE | VISUAL-LAYOUT-01, VISUAL-LAYOUT-03 |
+| 140 | **VISUAL-LAYOUT-08** | 24.2 Visual Layout | MÉDIA | PENDENTE | VISUAL-LAYOUT-01, VISUAL-LAYOUT-03 |
+| 141 | **INFRA-OOM-01** | 24.1 Infra resiliente | ALTA | PENDENTE | -- |
+| 142 | **INSTALL-SUDO-01** | 24.1 Infra resiliente | MÉDIA | PENDENTE | -- |
+| 143 | **INFRA-MODEL-AGNOSTIC-01** | 24.3 Resiliência arquitetural | MÉDIA | PENDENTE | MODEL-SWAP-01 |
+| 144 | **SPRINT_ORDER-REFRESH-01** | 24.4 Higiene | MÉDIA | EM ANDAMENTO (auto-fulfill desta edição) | -- |
+| 145 | **HELP-COVERAGE-FIX-01** | 24.4 Higiene | BAIXA | PENDENTE | -- (achado A1) |
+
+**Bloco 24.1 (Infra resiliente):** 2 sprints — controle OOM no run.sh + senha sudo via env var. Pré-requisito para VALIDATE-FINAL-01 estável em sessões longas.
+
+**Bloco 24.2 (Visual Layout):** 8 sprints — porta `novo_layout/` (5 aesthetics + 7 entities) para `nyx/themes/design_tokens_extended.py` + theme engine no terminal + showcase arcano + config ergonômica via `NYX_AESTHETIC` env + flag `--aesthetic` + command `/aesthetic`.
+
+**Bloco 24.3 (Resiliência arquitetural):** 1 sprint — INFRA-MODEL-AGNOSTIC-01 valida empiricamente que infra do Nyx eleva qualquer modelo (qwen3:4b legacy vs qwen2.5-coder:3b default em métricas equivalentes).
+
+**Bloco 24.4 (Higiene):** 2 sprints — refresh do MASTER (esta) + correção do `/?` (achado A1).
+
+### Notas de reconciliação (commits 5bc4354..decd858 que estavam fora do MASTER)
+
+A sessão 2026-05-17 (Claude Opus 4.6 + Opus 4.7 misto) gerou 30 commits sem entry detalhada no MASTER. As sprints listadas abaixo já estavam em `concluidos/` ou `producao/` com status correto nos arquivos individuais; o MASTER apenas não tinha sido sincronizado:
+
+- UX-LOOP-VISIBILITY-01, INFRA-SANITIZER-FIX-01/02, VISION-01/02/03, SESSION-RESUME-01 → CONCLUIDAS.
+- DEPLOY-01A/01B → CONCLUIDAS (DEPLOY-02 ainda PENDENTE).
+- ONBOARDING-01, HELP-EXAMPLES-01, UX-EXTRA-01, UX-PARITY-01 → CONCLUIDAS.
+- MCP-SERVER-01, PLUGINS-01, OUTPUT-STYLES-01, HOOKS-DYNAMIC-01 → CONCLUIDAS (anti-débitos 02 parciais).
+- LANG-PROMPT-ACENT-01 → CONCLUIDA.
+- SBOM-REGISTRY-01/02/03 → CONCLUIDAS (geraram 62 RASCUNHOs em producao/).
+- COCKPIT-01 → CONCLUIDA (MVP servidor FastAPI 127.0.0.1:11437).
+- UX-LOOP-01, UX-AGENCY-01 (parcial), UX-PROGRESSION-01 (parcial).
+- INFRA-CLI-SPLIT-01 → CONCLUIDA_PARCIAL (1450L → 1361L; INFRA-CLI-SPLIT-02 ainda em producao/).
+- MCP-SERVER-02 → CONCLUIDA_PARCIAL.
+- LANG-ENFORCE-01 → CONCLUIDA (passou após MODEL-SWAP-01).
+- MODEL-SWAP-01 → CONCLUIDA (ADR-031 aceito).
+- VALIDATE-FINAL-01 → BLOQUEADA (gate humano para release v1.0; será destravada nesta sessão Onda 24).
+- UX-COCKPIT-EXPERIENCE-01, UX-AGENCY-02, UX-PROGRESSION-02 → BLOQUEADAS (anti-débito da Onda 23, agora destraváveis com bypasses Onda 24).
+
+### 62 RASCUNHOs (SBOM stubs)
+
+Auto-propostos por `sbom_sync.py --propose-sprints` na sprint SBOM-REGISTRY-03 (2026-05-17). Vivem em `producao/SPRINT_FEAT_<id>_TEST_01.md` com status `RASCUNHO` (não entram na fila do EXECUTAR_SPRINT.md).
+
+Categorias (Pareto declarado em PROMPT_VALIDADOR_INTEGRADOR.md):
+
+| Categoria | Prefixo | Quantidade | Promoção sugerida |
+|---|---|---:|---|
+| Infraestrutura | I-01..11 | 11 | 1ª onda (base de tudo) |
+| Proxy | P-01..08 | 8 | 2ª onda (gargalo histórico) |
+| Tools | T-01..10 | 10 | 3ª onda (cobertura mínima de 6) |
+| Qualidade | Q-01..07 | 7 | 4ª onda (PT-BR, identidade) |
+| Performance | K-01..10 | 10 | 5ª onda (alguns já em perf_inference) |
+| Visual | V-01..07 | 7 | 6ª onda |
+| Configuração | C-01..04 | 4 | 7ª onda |
+| Resiliência | R-01..05 | 5 | 8ª onda |
+| **Total** | | **62** | |
+
+Promoção em batch durante a Fase H do plano canônico da sessão 2026-05-18.
+
+<!-- MANUAL_OVERRIDE_ONDA_24_END -->
 
 ---
 

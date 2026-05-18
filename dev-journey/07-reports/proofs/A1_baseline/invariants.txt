@@ -1,0 +1,22 @@
+
+-- Invariantes do código (nyx/) --
+[OK] 1. zero emoji em nyx/**/*.py
+[OK] 2. zero menção a Claude/Anthropic/GPT/Gemini/Copilot em .py
+[OK] 3. print() só em cli.py e output.py
+[OK] 4. zero except silencioso
+[OK] 5. portas só em config/defaults.py
+[OK] 6. zero hex hardcoded fora de design_tokens.py
+[OK] 7. limite de 800 linhas removido (split por coesão)
+[OK] 8. zero TODO/FIXME/XXX/HACK
+[OK] 9. zero path absoluto hardcoded
+[OK] 10. ruff ausente (pulado)
+[OK] 11. zero flag SKIP_* em código
+[OK] 12. root sem arquivos de teste/scratch esquecidos
+[OK] 13. ./run.sh --smoke (boot integrity)
+[OK] 14. glifos canônicos preservados (UX-BUG-02B + UX-LAYOUT-01 + UX-LOOP-VISIBILITY-01)
+
+-- Resumo --
+PASS: 14
+FAIL: 0
+
+Sprint invariantes OK.
