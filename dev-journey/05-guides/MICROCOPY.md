@@ -16,6 +16,80 @@
 5. **Sucesso silencioso, falha ruidosa.** Confirmar ações destrutivas;
    confirmar OK só quando não é óbvio.
 
+## Regras de capitalização e acentuação
+
+Canonizado em **TUI-REDESIGN-25-01** (Onda 25). Aplica-se a toda string
+user-facing (terminal, TUI, dashboard web, prompts, toasts).
+
+### Sentence-case
+
+Sentenças começam com **maiúscula inicial** e terminam com **ponto final**.
+Fragmentos (rótulos, opções de menu, badges) permanecem em minúscula sem ponto.
+
+- Sentença completa: `Configure antes de inicializar.`
+- Fragmento de menu: `paleta D canônica`
+- Toast de sucesso: `configuração salva.` (minúscula é OK quando segue um glifo `●` ou marcador)
+
+**Não usar** Title Case (`Configure Antes De Inicializar`) nem CAIXA ALTA
+(`CONFIGURE ANTES DE INICIALIZAR`). Estrangeirismo e gritaria, respectivamente.
+
+### Substantivos próprios preservados
+
+Mantêm grafia original mesmo dentro de sentence-case:
+
+- Nomes de produto/projeto: `Nyx`, `Ollama`, `Claude`, `Linux`, `Python`
+- Teclas e atalhos: `Enter`, `Ctrl+D`, `Ctrl+C`, `Shift+Tab`, `REPL`
+- IDs técnicos: `ADR-029`, `TUI-REDESIGN-25-01`, `qwen2.5-coder:3b`
+- Glifos canônicos (invariante #14): `○`, `◐`, `●`
+
+### Acentuação PT-BR obrigatória
+
+Locale do projeto é `pt_BR.UTF-8`. Toda string user-facing deve usar
+acentos completos. Palavras de uso frequente:
+
+| Errado (sem acento) | Correto |
+|---|---|
+| configuracao | configuração |
+| permissoes | permissões |
+| padrao | padrão |
+| automacao | automação |
+| instalacao | instalação |
+| canonica | canônica |
+| ambar | âmbar |
+| rapido | rápido |
+| Bem-vinda (genérico) | Bem-vindo (masculino genérico para usuário desconhecido) |
+| Nao | Não |
+
+### Escopo: só strings user-facing
+
+**Acentuar:** literais em `say()`, `print()`, `out.write()`, mensagens em
+`logger.info()` exibidas ao usuário, prompts em `input()`, textos em
+templates HTML/JSX.
+
+**Não acentuar:** comentários técnicos (`# ...`), docstrings internas,
+nomes de variáveis, strings de IDs/IDs técnicos, logs de debug interno.
+Razão: grep mais robusto em código + compat com terminais sem UTF-8.
+
+### Validação automática
+
+```bash
+# Grep cego para palavras críticas:
+grep -nE "configuracao|permissoes|padrao|automacao|canonica|ambar|bootar|Bem-vinda" \
+  scripts/*.py nyx/**/*.py
+# Esperado: 0 hits.
+
+# Validador externo (se disponível):
+~/.config/zsh/scripts/validar-acentuacao.py <arquivo>
+```
+
+### Anti-débito
+
+Refactor sentence-case amplo (mensagens de erro com call-to-action) está
+fora desta sprint — fica para **TUI-REDESIGN-25-11** (escopo dela).
+Acentuação em comentários técnicos é não-bloqueante (Onda 26 se reaparecer).
+
+---
+
 ## Tabela canônica (em construção)
 
 | Contexto | Atual | Proposta | Motivação |

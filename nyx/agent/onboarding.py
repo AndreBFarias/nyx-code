@@ -20,7 +20,7 @@ PAUSE_TIMEOUT_S = 60
 
 STEPS: tuple[tuple[str, str], ...] = (
     (
-        "Bem-vinda ao Nyx",
+        "Bem-vindo ao Nyx",
         "Codificadora local em PT-BR, 100% offline, sem telemetria. Sua máquina, suas regras.",
     ),
     (

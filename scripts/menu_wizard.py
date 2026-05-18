@@ -47,7 +47,7 @@ def banner() -> None:
     reset = ANSI_RESET
     say()
     say(f"  {bold}{accent}Nyx{reset} {ANSI_DIM}cockpit / menu{reset}")
-    say(f"  {ANSI_DIM}configure antes de bootar (Enter aceita default){reset}")
+    say(f"  {ANSI_DIM}Configure antes de inicializar (Enter aceita default).{reset}")
     say()
 
 
@@ -125,11 +125,11 @@ def main() -> int:
     cfg["aesthetic"] = ask(
         "Aesthetic visual",
         [
-            ("default", "paleta D canonica (turquesa + roxo)"),
+            ("default", "paleta D canônica (turquesa + roxo)"),
             ("arcano", "noite violeta com glow"),
             ("cyberpunk", "neon saturado + scanlines"),
             ("brutalist", "papel branco, tinta preta"),
-            ("mecha", "HUD ambar"),
+            ("mecha", "HUD âmbar"),
             ("editorial", "papel creme, serif"),
         ],
         default="default",
@@ -152,7 +152,7 @@ def main() -> int:
     cfg["banner_mode"] = ask(
         "Banner",
         [
-            ("wide", "3 linhas, ADR-029 (padrao)"),
+            ("wide", "3 linhas, ADR-029 (padrão)"),
             ("compact", "1 linha mínima"),
             ("neofetch", "info-rich estilo neofetch"),
         ],
@@ -162,7 +162,7 @@ def main() -> int:
     cfg["model"] = ask(
         "Modelo Ollama",
         [
-            ("qwen2.5-coder:3b", "padrao -- rapido, PT-BR 100%, ~2GB VRAM"),
+            ("qwen2.5-coder:3b", "padrão -- rápido, PT-BR 100%, ~2GB VRAM"),
             ("qwen3:4b", "thinking -- pode degradar PT-BR; usar --4b"),
             ("qwen2.5-coder:7b", "qualidade maior, ~3GB VRAM, P95 alto"),
         ],
@@ -170,24 +170,24 @@ def main() -> int:
     )
 
     cfg["auto_approve"] = ask_yes_no(
-        "Auto-aprovar permissoes CONFIRM_ONCE (modo automacao)?",
+        "Auto-aprovar permissões CONFIRM_ONCE (modo automação)?",
         default=False,
     )
 
     say()
-    say(f"  {ANSI_DIM}Configuracao escolhida:{ANSI_RESET}")
+    say(f"  {ANSI_DIM}Configuração escolhida:{ANSI_RESET}")
     for k, v in cfg.items():
         say(f"    {ANSI_ACCENT_FG}{k:<14}{ANSI_RESET} = {v}")
     say()
 
-    if ask_yes_no("Salvar em ~/.nyx/config.toml e bootar?", default=True):
+    if ask_yes_no("Salvar em ~/.nyx/config.toml e inicializar?", default=True):
         write_config(cfg)
-        say(f"  {ANSI_SUCCESS_FG}configuracao salva.{ANSI_RESET}")
+        say(f"  {ANSI_SUCCESS_FG}configuração salva.{ANSI_RESET}")
         # stdout reservado para exports VAR=valor (run.sh source-a)
         if os.environ.get("NYX_MENU_EMIT") == "1":
             emit_env_exports(cfg)
         return 0
-    say(f"  {ANSI_DIM}configuracao descartada.{ANSI_RESET}")
+    say(f"  {ANSI_DIM}configuração descartada.{ANSI_RESET}")
     return 1
 
 
