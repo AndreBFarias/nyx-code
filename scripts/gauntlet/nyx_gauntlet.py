@@ -115,6 +115,8 @@ PHASE_GROUPS: dict[str, list[str]] = {
     "install": ["install"],
     "loop": ["loop"],
     "mcp": ["mcp"],
+    "plugins": ["plugins"],
+    "hooks_dynamic": ["hooks_dynamic"],
     "contexto": ["contexto"],
     "rapido": ["infra", "proxy", "visual", "config"],
     "port": ["parser", "robustez", "interface", "controle", "persistencia"],
@@ -234,6 +236,8 @@ PHASE_TIMEOUTS: dict[str, int] = {
     "install": 1200,
     "loop": 30,
     "mcp": 60,
+    "plugins": 60,
+    "hooks_dynamic": 60,
     "contexto": 180,
 }
 
@@ -743,6 +747,97 @@ class NyxGauntlet:
     # ═══════════════════════════════════════════════════════════════════
     # FASE: VISUAL (3 testes)
     # ═══════════════════════════════════════════════════════════════════
+
+    # ═══════════════════════════════════════════════════════════════════
+    # FASE: PLUGINS (2 testes -- PLUGINS-01/02)
+    # ═══════════════════════════════════════════════════════════════════
+
+    async def _phase_plugins(self) -> None:
+        import tempfile
+
+        t = time.monotonic()
+        try:
+            from nyx.agent.services.plugin_manager import PluginManager
+        except Exception as e:
+            self._add("PL-01", "import PluginManager", "plugins", False, 0, error=str(e))
+            return
+        self._add("PL-01", "PluginManager import + instanciacao", "plugins", True, time.monotonic() - t)
+
+        with tempfile.TemporaryDirectory(prefix="nyx-plugins-") as tmp:
+            tmp_path = Path(tmp)
+            ok_dir = tmp_path / "ok"
+            ok_dir.mkdir()
+            (ok_dir / "manifest.toml").write_text(
+                '[plugin]\nname = "ok"\nversion = "0.1.0"\ndescription = "teste"\n',
+                encoding="utf-8",
+            )
+            (ok_dir / "ok.py").write_text('"""docstring"""\ndef foo():\n    return 42\n', encoding="utf-8")
+
+            bad_dir = tmp_path / "bad"
+            bad_dir.mkdir()
+            (bad_dir / "manifest.toml").write_text(
+                '[plugin]\nname = "bad"\nversion = "0.1"\ndescription = "executa codigo"\n',
+                encoding="utf-8",
+            )
+            (bad_dir / "bad.py").write_text('print("arbitrary code")\n', encoding="utf-8")
+
+            t = time.monotonic()
+            pm = PluginManager(plugins_dir=tmp_path)
+            results = pm.load_all()
+            ok2 = results.get("ok") is True and results.get("bad") is False
+            self._add(
+                "PL-02",
+                "load_all: plugin valido carrega; plugin com top-level Expr eh rejeitado por AST check",
+                "plugins",
+                ok2,
+                time.monotonic() - t,
+                details=f"results={results}",
+            )
+
+    # ═══════════════════════════════════════════════════════════════════
+    # FASE: HOOKS_DYNAMIC (2 testes -- HOOKS-DYNAMIC-01/02)
+    # ═══════════════════════════════════════════════════════════════════
+
+    async def _phase_hooks_dynamic(self) -> None:
+        import tempfile
+
+        t = time.monotonic()
+        try:
+            from nyx.agent.services.hook_runtime import EVENTS, HookRuntime
+        except Exception as e:
+            self._add("HD-01", "import HookRuntime", "hooks_dynamic", False, 0, error=str(e))
+            return
+        self._add(
+            "HD-01",
+            f"HookRuntime import + {len(EVENTS)} eventos canonicos",
+            "hooks_dynamic",
+            len(EVENTS) == 4,
+            time.monotonic() - t,
+            details=f"events={EVENTS}",
+        )
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
+            f.write(
+                '{"hooks": {"PreToolUse": [{"command": "/bin/true", "matcher": "echo",'
+                ' "timeout": 5, "block_on_failure": false}]}}'
+            )
+            cfg_path = f.name
+
+        t = time.monotonic()
+        hr = HookRuntime(settings_path=cfg_path)
+        results = hr.run("PreToolUse", {"tool_name": "echo_test"})
+        ok2 = len(results) == 1 and results[0].ok
+        self._add(
+            "HD-02",
+            "run('PreToolUse', tool='echo_test') casa matcher 'echo' e executa /bin/true",
+            "hooks_dynamic",
+            ok2,
+            time.monotonic() - t,
+            details=f"len={len(results)} ok={results[0].ok if results else None}",
+        )
+        Path(cfg_path).unlink(missing_ok=True)
 
     # ═══════════════════════════════════════════════════════════════════
     # FASE: MCP (3 testes -- MCP-SERVER-01/02)

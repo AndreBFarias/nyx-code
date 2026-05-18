@@ -1,12 +1,12 @@
 {
-  "timestamp": "2026-05-17T22:46:58.131255",
+  "timestamp": "2026-05-17T22:48:26.448166",
   "model": "qwen2.5-coder:3b",
   "phases_done": [],
   "results": [
     {
-      "feature_id": "M-01",
-      "name": "imports MCP (McpClient/McpServer/load)",
-      "phase": "mcp",
+      "feature_id": "PL-01",
+      "name": "PluginManager import + instanciacao",
+      "phase": "plugins",
       "passed": true,
       "elapsed_s": 0.0,
       "tokens": 0,
@@ -14,23 +14,13 @@
       "error": ""
     },
     {
-      "feature_id": "M-02",
-      "name": "load_mcp_servers tolera config vazia",
-      "phase": "mcp",
+      "feature_id": "PL-02",
+      "name": "load_all: plugin valido carrega; plugin com top-level Expr eh rejeitado por AST check",
+      "phase": "plugins",
       "passed": true,
       "elapsed_s": 0.0,
       "tokens": 0,
-      "details": "len=0",
-      "error": ""
-    },
-    {
-      "feature_id": "M-03",
-      "name": "connect_all marca server invalido como falha + ping retorna False",
-      "phase": "mcp",
-      "passed": true,
-      "elapsed_s": 0.0,
-      "tokens": 0,
-      "details": "connect={'naoexiste': False} ping=False",
+      "details": "results={'bad': False, 'ok': True}",
       "error": ""
     }
   ],

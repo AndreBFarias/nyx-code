@@ -28,6 +28,6 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** BLOQUEADA
 **Data:** 2026-05-17
 **Origem:** anti-débito de UX-AGENCY-01
