@@ -111,11 +111,87 @@ def render_feature_map(data: dict) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+SPRINT_STUB_TEMPLATE = """# SPRINT FEAT-{fid}-TEST-01 — Cobrir feature {fid} com teste no Gauntlet
+
+## 0. SPEC
+
+```yaml
+sprint:
+  id: FEAT-{fid}-TEST-01
+  title: "Cobrir feature {fid} ({descricao}) com teste no Gauntlet"
+  onda: 23
+  bloco: 23.2 SBOM (auto-proposto)
+  prioridade: BAIXA
+  tipo: Test
+  dependencias: [SBOM-REGISTRY-03]
+  desbloqueia: []
+  origem: "Auto-proposto por sbom_sync.py --propose-sprints; status era 'desconhecido' em REGISTRY.yaml."
+
+  acceptance_criteria:
+    - "Feature {fid} ganha entry de teste no Gauntlet"
+    - "REGISTRY.yaml passa a ter status verde ou vermelho (não desconhecido) para {fid}"
+    - "Validação: '{validacao}'"
+```
+
+---
+
+**Status:** RASCUNHO
+**Data criação:** 2026-05-17
+**Origem:** sbom_sync.py --propose-sprints
+**Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
+"""
+
+
+def propose_sprints(data: dict, dry_run: bool = True) -> tuple[int, list[str]]:
+    """Lista features com status 'desconhecido' e propõe sprint stubs."""
+    candidates = [
+        f for f in data.get("features", [])
+        if (f.get("status") or "desconhecido") == "desconhecido"
+    ]
+    targets: list[str] = []
+    producao = REPO_ROOT / "dev-journey" / "06-sprints" / "producao"
+    for f in candidates:
+        fid = f["id"]
+        target = producao / f"SPRINT_FEAT_{fid.replace('-', '_')}_TEST_01.md"
+        if target.exists():
+            continue
+        targets.append(str(target))
+        if not dry_run:
+            target.write_text(
+                SPRINT_STUB_TEMPLATE.format(
+                    fid=fid,
+                    descricao=f.get("descricao", ""),
+                    validacao=f.get("validacao", ""),
+                ),
+                encoding="utf-8",
+            )
+    return len(targets), targets
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Regenera FEATURE_MAP.md de REGISTRY.yaml")
     parser.add_argument("--from-gauntlet", metavar="JSON", help="Atualiza REGISTRY com checkpoint do gauntlet")
     parser.add_argument("--check", action="store_true", help="Apenas valida, não escreve")
+    parser.add_argument(
+        "--propose-sprints",
+        action="store_true",
+        help="Cria specs RASCUNHO em producao/ para features 'desconhecido' (SBOM-REGISTRY-03)",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Combina com --propose-sprints: lista candidatos sem escrever",
+    )
     args = parser.parse_args()
+
+    if args.propose_sprints:
+        data = load_registry()
+        n, _ = propose_sprints(data, dry_run=args.dry_run)
+        if args.dry_run:
+            print(f"[dry-run] {n} sprint stub(s) proposta(s) (não escritas)")
+        else:
+            print(f"[ok] {n} sprint stub(s) criadas em producao/")
+        return 0
 
     data = load_registry()
     if args.from_gauntlet:
