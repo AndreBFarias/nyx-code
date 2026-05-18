@@ -381,19 +381,19 @@ def build_warming_label(model_state: str, started_monotonic: float) -> str:
     """Constrói label contextual do spinner durante request (UX-LOOP-VISIBILITY-01).
 
     Lógica por janela de duração, baseada em ADR-025 §"Tempos de feedback":
-      0-3s:   "◐ aquecendo modelo..."     (warming explícito, glifo ◐)
+      0-3s:   " aquecendo modelo..."     (warming explícito, glifo )
       3-10s:  "pensando..."                (cold→warm, mid-flight)
       10s+:   "pensando... (Ns)"           (cronômetro discreto)
 
     Se o estado é "warm" ou "cold", encurta para "pensando...".
 
-    Glifo ◐ (U+25D0) protegido pelo invariante #14 (sprint_invariants.sh).
+    Glifo  (U+25D0) protegido pelo invariante #14 (sprint_invariants.sh).
     """
     import time
 
     elapsed = time.monotonic() - started_monotonic
     if model_state == "warming" and elapsed < 3.0:
-        return "◐ aquecendo modelo..."
+        return " aquecendo modelo..."
     if elapsed < 10.0:
         return "pensando..."
     return f"pensando... ({int(elapsed)}s)"
@@ -595,18 +595,77 @@ def parse_todo_lines(text: str) -> list[tuple[bool, str]]:
 def render_todo_block(items: list[tuple[bool, str]]) -> None:
     """Renderiza lista de todos com checkboxes geometric shapes (TUI-REDESIGN-25-12).
 
-    Done: '◼' (U+25FC) + texto em muted (visual strikethrough sutil).
-    Pending: '◻' (U+25FB) + texto em ink. Glifos ADR-004 ok (não-emoji).
+    Done: '' (U+25FC) + texto em muted (visual strikethrough sutil).
+    Pending: '' (U+25FB) + texto em ink. Glifos ADR-004 ok (não-emoji).
     """
     if not items:
         return
     for done, label in items:
         if done:
-            glyph = "◼"
+            glyph = ""
             print(f"      {ANSI_ACCENT_FG}{glyph}{ANSI_RESET} {ANSI_MUTED_FG}{label}{ANSI_RESET}")
         else:
-            glyph = "◻"
+            glyph = ""
             print(f"      {ANSI_ACCENT_FG}{glyph}{ANSI_RESET} {label}")
+
+
+def _format_session_duration(seconds: float) -> str:
+    """Formata duração da sessão como '1m32s' ou '47s' (TUI-REDESIGN-25-14)."""
+    if seconds < 60:
+        return f"{int(seconds)}s"
+    minutes = int(seconds // 60)
+    sec = int(seconds % 60)
+    return f"{minutes}m{sec:02d}s"
+
+
+def render_session_stats_card(
+    iterations: int,
+    files_read: int,
+    files_modified: int,
+    duration_s: float,
+    tokens: int | None = None,
+    session_id: str | None = None,
+    saved_path: str | None = None,
+    project_root: str | None = None,
+) -> None:
+    """Renderiza card de encerramento com stats da sessão (TUI-REDESIGN-25-14).
+
+    Formato:
+      última sessão
+      ──────────────
+      iterações  3      arquivos lidos  2     arquivos modif  0
+      tempo      1m32s  tokens          1487  sessão          abc12
+      salvo em   ~/.nyx/sessions/abc12
+
+    Path abreviado via _shorten_path. Tokens e session_id opcionais
+    (omite linha se None). Cores: rótulos muted, valores dim, accent
+    no título.
+    """
+    print()
+    print(f"  {ANSI_ACCENT_FG}última sessão{ANSI_RESET}")
+    print(f"  {ANSI_ACCENT_FG}{'─' * 14}{ANSI_RESET}")
+    duration_lbl = _format_session_duration(duration_s)
+    short_id = (session_id[:6] if session_id else "—")
+    # Linha 1: 3 colunas (iterações, lidos, modif).
+    print(
+        f"  {ANSI_MUTED_FG}iterações{ANSI_RESET}  {ANSI_DIM}{iterations:<5}{ANSI_RESET}"
+        f"  {ANSI_MUTED_FG}arquivos lidos{ANSI_RESET}  {ANSI_DIM}{files_read:<4}{ANSI_RESET}"
+        f"  {ANSI_MUTED_FG}arquivos modif{ANSI_RESET}  {ANSI_DIM}{files_modified}{ANSI_RESET}"
+    )
+    # Linha 2: 3 colunas (tempo, tokens, sessão).
+    tokens_str = str(tokens) if tokens is not None else "—"
+    print(
+        f"  {ANSI_MUTED_FG}tempo     {ANSI_RESET} {ANSI_DIM}{duration_lbl:<5}{ANSI_RESET}"
+        f"  {ANSI_MUTED_FG}tokens         {ANSI_RESET} {ANSI_DIM}{tokens_str:<4}{ANSI_RESET}"
+        f"  {ANSI_MUTED_FG}sessão         {ANSI_RESET} {ANSI_DIM}{short_id}{ANSI_RESET}"
+    )
+    # Linha 3: caminho do save.
+    if saved_path:
+        short = _shorten_path(saved_path, project_root, 60)
+        print(f"  {ANSI_MUTED_FG}salvo em  {ANSI_RESET} {ANSI_DIM}{short}{ANSI_RESET}")
+    print()
+    print(f"  {ANSI_ACCENT_FG}até.{ANSI_RESET}")
+    print()
 
 
 def render_thinking_block(
@@ -617,7 +676,7 @@ def render_thinking_block(
 ) -> None:
     """Renderiza chain-of-thought recolhível (TUI-REDESIGN-25-09).
 
-    Collapsed (expanded=False): '▶ pensando · {d}s · {text[:60]}...'
+    Collapsed (expanded=False): ' pensando · {d}s · {text[:60]}...'
     Expanded (expanded=True): bloco completo entre divisores PURPLE.
 
     Texto único linha (preview): chama com expanded=False; texto longo
@@ -636,14 +695,14 @@ def render_thinking_block(
         if len(clean) > preview_chars:
             preview += "…"
         print(
-            f"  {ANSI_PURPLE_FG}▶{ANSI_RESET} {ANSI_DIM}pensando · "
+            f"  {ANSI_PURPLE_FG}{ANSI_RESET} {ANSI_DIM}pensando · "
             f"{duration_lbl} · {preview}{ANSI_RESET}"
         )
         return
     # Expanded: bloco entre divisores PURPLE.
     rule = "─" * 60
     print(f"  {ANSI_PURPLE_FG}{rule}{ANSI_RESET}")
-    print(f"  {ANSI_PURPLE_FG}▼{ANSI_RESET} {ANSI_DIM}pensando · {duration_lbl}{ANSI_RESET}")
+    print(f"  {ANSI_PURPLE_FG}{ANSI_RESET} {ANSI_DIM}pensando · {duration_lbl}{ANSI_RESET}")
     for line in text.splitlines() or [text]:
         print(f"  {ANSI_PURPLE_FG}│{ANSI_RESET} {line}")
     print(f"  {ANSI_PURPLE_FG}{rule}{ANSI_RESET}")
@@ -659,14 +718,14 @@ def render_tool_chip(
 ) -> None:
     """Renderiza tool call como chip de 1 linha (TUI-REDESIGN-25-10).
 
-    Formato: '● {name} {arg_preview}  {Nms}  {status}' em verde/vermelho.
+    Formato: ' {name} {arg_preview}  {Nms}  {status}' em verde/vermelho.
     Path encurtado via _shorten_path (~/.../basename ou … no meio).
     Se ``error_preview`` informado, adiciona linha extra de preview muted.
     Substitui o par render_tool_card_start/end (2 caixas de 4-6 linhas).
     """
     from nyx.themes.design_tokens import ANSI_ERROR_FG, ANSI_SUCCESS_FG
 
-    glyph = "●"
+    glyph = ""
     color = ANSI_ERROR_FG if status != "ok" else ANSI_SUCCESS_FG
     arg_preview = ""
     for key in PRIMARY_ARG_KEYS:

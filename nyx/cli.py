@@ -70,7 +70,7 @@ NC = ANSI_RESET
 # Glifos do estado do modelo (UX-BUG-02B).
 # Círculos da faixa Geometric Shapes (U+25CB/D0/CF) — não são emoji.
 # NÃO remover via sanitizer global: invariante #14 (sprint_invariants.sh) protege estes 3 caracteres.
-_STATE_GLYPHS = {"cold": "○", "warming": "◐", "warm": "●"}
+_STATE_GLYPHS = {"cold": "", "warming": "", "warm": ""}
 
 
 from nyx.agent.banner import build_banner as _build_banner  # noqa: E402
@@ -245,7 +245,7 @@ async def run_repl(
             Schema de secções (separadas por ' · '):
               [ctx]                     -- ctx X% (Ntok/Mtok) ou ctx X%
               [modelo · iter · lidos · modif]
-              [model_state]             -- ○ cold | ◐ warming | ● warm (UX-BUG-02B)
+              [model_state]             --  cold |  warming |  warm (UX-BUG-02B)
               [bypass]                  -- ON: fundo roxo; OFF: dica muted
 
             Contrato: cada secção é um FormattedText fragment. Extensões
@@ -278,7 +278,7 @@ async def run_repl(
             # UX-AGENCY-02: indicador de tool em curso (footer dinâmico)
             inflight = app_state.get("inflight_task")
             if inflight is not None and not inflight.done():
-                parts.append((f"fg:{NYX_ACCENT}", "  |  ◐ executando (Ctrl+C cancela)"))
+                parts.append((f"fg:{NYX_ACCENT}", "  |   executando (Ctrl+C cancela)"))
 
             if app_state.get("bypass"):
                 parts.append(("", "  "))
@@ -287,7 +287,7 @@ async def run_repl(
                     f" {BULLETS['bypass_on']} bypass ON (shift+tab) ",
                 ))
             else:
-                parts.append((f"fg:{NYX_MUTED}", "   ▸▸ shift+tab: bypass"))
+                parts.append((f"fg:{NYX_MUTED}", "    shift+tab: bypass"))
             return FormattedText(parts)
 
         import shutil as _sh
@@ -334,6 +334,8 @@ async def run_repl(
     # TUI-REDESIGN-25-04: nome do usuário via git config (silent, fallback "visitante").
     from nyx.agent.onboarding import resolve_user_display_name
     app_state["user_display_name"] = resolve_user_display_name()
+    # TUI-REDESIGN-25-14: marca início da sessão para card de stats no /quit.
+    app_state["session_started_monotonic"] = time.monotonic()
     image_counter: dict[str, int] = {"n": 0}
     image_map: dict[int, str] = {}
     tool_timers: dict[str, float] = {}
@@ -565,6 +567,37 @@ async def run_repl(
                 continue
 
             if result == "__quit__":
+                # TUI-REDESIGN-25-14: card de stats da sessão antes do shutdown.
+                from nyx.agent.output import render_session_stats_card
+                _sess = agent.session
+                _started = app_state.get("session_started_monotonic")
+                _duration = (
+                    time.monotonic() - float(_started)
+                    if isinstance(_started, (int, float))
+                    else 0.0
+                )
+                _sess_id = (
+                    getattr(_sess, "id", None)
+                    or getattr(_sess, "session_id", None)
+                )
+                _saved = (
+                    getattr(_sess, "path", None)
+                    or getattr(_sess, "save_path", None)
+                )
+                _tokens_raw = app_state.get("total_tokens") or 0
+                _tokens = int(_tokens_raw) if int(_tokens_raw) > 0 else None
+                render_session_stats_card(
+                    iterations=int(getattr(_sess, "iteration", 0) or 0),
+                    files_read=int(getattr(_sess, "files_read_count", 0) or 0),
+                    files_modified=int(
+                        getattr(_sess, "files_modified_count", 0) or 0
+                    ),
+                    duration_s=_duration,
+                    tokens=_tokens,
+                    session_id=str(_sess_id) if _sess_id else None,
+                    saved_path=str(_saved) if _saved else None,
+                    project_root=str(PROJECT_ROOT),
+                )
                 # UX-LIFECYCLE-01: shutdown explícito do proxy via loopback.
                 # Resposta volta antes do auto-SIGTERM do proxy, então usamos
                 # timeout curto e ignoramos falhas (run.sh trap cobre o resto).
@@ -580,9 +613,9 @@ async def run_repl(
             if result == "__clear__":
                 agent.reset()
                 if use_rich and output:
-                    output("ok", "● sessão limpa")
+                    output("ok", " sessão limpa")
                 else:
-                    print(f"  {SUCCESS}● sessão limpa{NC}")
+                    print(f"  {SUCCESS} sessão limpa{NC}")
                 continue
 
             if result == "__status__":
@@ -618,7 +651,7 @@ async def run_repl(
             if result == "__session_save__":
                 saved = save_session(agent.session, PROJECT_ROOT.name)
                 if saved:
-                    print(f"  {SUCCESS}● sessão salva{NC}: {saved.name}")
+                    print(f"  {SUCCESS} sessão salva{NC}: {saved.name}")
                 else:
                     _print_error(
                         "Falha ao salvar a sessão atual.",
@@ -632,7 +665,7 @@ async def run_repl(
                 loaded = load_latest_session(PROJECT_ROOT.name)
                 if loaded:
                     agent._session = loaded
-                    print(f"  {SUCCESS}● sessão restaurada{NC} ({len(loaded.history)} entradas)")
+                    print(f"  {SUCCESS} sessão restaurada{NC} ({len(loaded.history)} entradas)")
                 else:
                     _print_error(
                         "Nenhuma sessão salva para restaurar.",
@@ -668,7 +701,7 @@ async def run_repl(
                 inflight = app_state.get("inflight_task")
                 if inflight is not None and not inflight.done():
                     inflight.cancel()
-                    print(f"  {SUCCESS}● cancel sinalizado{NC} (asyncio.CancelledError despachado)")
+                    print(f"  {SUCCESS} cancel sinalizado{NC} (asyncio.CancelledError despachado)")
                 else:
                     print(
                         f"  {DIM}/cancel: nenhuma tool em curso. "
@@ -739,7 +772,7 @@ async def run_repl(
                     os.environ["NYX_ENTITY"] = e_id
                 final_a = app_state.get("aesthetic_id", "default")
                 final_e = app_state.get("entity_id", "nyx")
-                print(f"  {SUCCESS}● aesthetic{NC}: {final_a}:{final_e} (próxima invocação aplica)")
+                print(f"  {SUCCESS} aesthetic{NC}: {final_a}:{final_e} (próxima invocação aplica)")
                 continue
 
             if result == "__schema_list__":
@@ -784,7 +817,7 @@ async def run_repl(
                 app_state["schema_id"] = target
                 os.environ["NYX_SCHEMA"] = target
                 print(
-                    f"  {SUCCESS}● schema{NC}: {target} (próxima invocação aplica)"
+                    f"  {SUCCESS} schema{NC}: {target} (próxima invocação aplica)"
                 )
                 continue
 
@@ -1161,7 +1194,7 @@ async def run_repl(
             turn_state["token_buffer"] = ""
             # UX-LOOP-VISIBILITY-01: label dinâmico do spinner reflete o
             # estado do modelo (warming/warm) lido de app_state e a duração
-            # decorrida desde o Enter. Usuário vê "◐ aquecendo modelo..."
+            # decorrida desde o Enter. Usuário vê " aquecendo modelo..."
             # nos primeiros 3s quando model_state=="warming", depois transita
             # para "pensando..." e cronômetro discreto.
             request_started = time.monotonic()
@@ -1186,7 +1219,7 @@ async def run_repl(
                 _flush_buffer()
                 sys.stdout.write("\r\x1b[2K")
                 sys.stdout.flush()
-                print(f"\n  {SUCCESS}● cancelado{NC} (tool em curso interrompida)")
+                print(f"\n  {SUCCESS} cancelado{NC} (tool em curso interrompida)")
                 # Continua o REPL — usuário recupera controle.
                 app_state["inflight_task"] = None
                 continue
@@ -1262,7 +1295,7 @@ async def run_repl(
             _flush_buffer()
             sys.stdout.write("\r\x1b[2K")
             sys.stdout.flush()
-            print(f"\n  {SUCCESS}● cancelado{NC}")
+            print(f"\n  {SUCCESS} cancelado{NC}")
 
     elapsed = time.time() - session_start
 
@@ -1313,7 +1346,7 @@ async def run_repl(
         # DEPLOY-02 absorve O-04: feedback verde + path + dica /resume.
         from nyx.themes.design_tokens import ANSI_SUCCESS_FG
 
-        print(f"\n  {ANSI_SUCCESS_FG}● sessão salva{ANSI_RESET}")
+        print(f"\n  {ANSI_SUCCESS_FG} sessão salva{ANSI_RESET}")
         print(f"  {DIM}  {saved.resolve()}{NC}")
         print(f"  {DIM}  use /resume na próxima abertura para retomar{NC}")
 

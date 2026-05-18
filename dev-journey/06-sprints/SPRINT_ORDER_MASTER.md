@@ -176,7 +176,7 @@ P8-A (Analyze, Patch, MultiEdit), P8-B (Provider, ProjectContext). **+3 tools, +
 | # | Nome | Testes | Status | Deps |
 |---|------|--------|--------|------|
 | **TUI-01** | Higiene: silenciar logs, corrigir banner, formatar tool calls | +2 testes | CONCLUIDA (VALIDATE-ONDA-20 2026-04-20) | -- |
-| **TUI-02** | Boxes ╭─╮ no user input, tool calls com ⏺ └─ colapsável | +2 testes | CONCLUIDA (VALIDATE-ONDA-20 2026-04-20) | TUI-01 |
+| **TUI-02** | Boxes ╭─╮ no user input, tool calls com  └─ colapsável | +2 testes | CONCLUIDA (VALIDATE-ONDA-20 2026-04-20) | TUI-01 |
 | **TUI-03** | Footer 1 linha + popup navegável de slash command | +2 testes | CONCLUIDA (VALIDATE-ONDA-20 2026-04-20) | TUI-02 |
 | **CTX-01** | SessionSummarizer: resumo vivo injetado em compactação | +3 testes | CONCLUIDA (VALIDATE-ONDA-20 2026-04-20) | TUI-03 |
 | **CTX-02** | Memória persistente cross-session em ~/.nyx/memory/ | +3 testes | CONCLUIDA (VALIDATE-ONDA-20 2026-04-20) | CTX-01 |
@@ -320,7 +320,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 63 | **BANNER-TOOLS-COUNT-01** | 2.10 Higiene | MÉDIA | CONCLUIDA | INVENTORY-SYNC-01 |
 | 64 | **TAG-KEY-ACCENT-01** | 2.10 Higiene | BAIXA | CONCLUIDA | -- |
 | 65 | **STATUS-FILTER-HARDEN-01** | 2.10 Higiene | MÉDIA | CONCLUIDA | PRODUCAO-CLEANUP-01 |
-| 110 | **UX-LOOP-VISIBILITY-01** | 23.4 Gamedesigner | MÉDIA | CONCLUIDA (Estratégia A: spinner com Callable[[], str]; build_warming_label janelas 0-3s/3-10s/10s+; glifo ◐ em "aquecendo modelo..."; smoke ok + invariantes 14/14 + gauntlet rapido 18/18) | UX-BUG-02B |
+| 110 | **UX-LOOP-VISIBILITY-01** | 23.4 Gamedesigner | MÉDIA | CONCLUIDA (Estratégia A: spinner com Callable[[], str]; build_warming_label janelas 0-3s/3-10s/10s+; glifo  em "aquecendo modelo..."; smoke ok + invariantes 14/14 + gauntlet rapido 18/18) | UX-BUG-02B |
 | 111 | **UX-CLAUDE-PARITY-01** | 23.4 Gamedesigner | ALTA | CONCLUIDA (ADR-029; banner 9->3 linhas mantendo paleta D + glifos; toolbar separator . substituido por pipes; bypass off com prefix triangulo duplo paridade estrutural; identidade Nyx preservada) | UX-BUG-02B, UX-LOOP-VISIBILITY-01 |
 | 112 | **UX-LIFECYCLE-01** | 23.1 Estabilização | ALTA | CONCLUIDA (lock file + cleanup robusto SIGINT/TERM/HUP + /admin/shutdown loopback + VRAM check pré-inferência; gauntlet rápido 18/18 em 11s) | BOOT-VRAM-GUARD-01, TUI-SHUTDOWN-SILENT-01 |
 | 113 | **PERF-INFERENCE-01** | 23.0 Performance (NOVA FASE 1) | CRÍTICA | CONCLUIDA | -- |
