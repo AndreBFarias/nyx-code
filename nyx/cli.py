@@ -530,6 +530,12 @@ async def run_repl(
             if image_map and "[Image #" in user_input:
                 user_input = _expand_images(user_input, image_map)
             last_input_state["text"] = user_input
+            # TUI-REDESIGN-25-07: remove eco "nyx> X" do prompt_toolkit antes
+            # de renderizar a bubble. \033[1A move up, \r retorna ao início,
+            # \033[2K limpa a linha. Sem efeito em pipe/headless (stdout não-tty).
+            if sys.stdout.isatty():
+                sys.stdout.write("\033[1A\r\033[2K")
+                sys.stdout.flush()
             render_user_input(
                 user_input,
                 user_name=str(app_state.get("user_display_name", "você")),
