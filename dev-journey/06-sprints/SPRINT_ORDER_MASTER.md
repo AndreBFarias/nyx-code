@@ -486,14 +486,14 @@ Reorganização proposta priorizando meta v1.0 "Claude Code offline e opensource
 
 | # | Sprint | Bloco | Prioridade | Status | Depende de |
 |---|--------|-------|------------|--------|------------|
-| 133 | **VISUAL-LAYOUT-01** | 24.2 Visual Layout | ALTA | PENDENTE | -- |
-| 134 | **VISUAL-LAYOUT-02** | 24.2 Visual Layout | MÉDIA | PENDENTE | VISUAL-LAYOUT-01 |
-| 135 | **VISUAL-LAYOUT-03** | 24.2 Visual Layout | MÉDIA | PENDENTE | VISUAL-LAYOUT-01 |
-| 136 | **VISUAL-LAYOUT-04** | 24.2 Visual Layout | BAIXA | PENDENTE | VISUAL-LAYOUT-01, VISUAL-LAYOUT-03 |
-| 137 | **VISUAL-LAYOUT-05** | 24.2 Visual Layout | MÉDIA | PENDENTE | VISUAL-LAYOUT-01, VISUAL-LAYOUT-03 |
-| 138 | **VISUAL-LAYOUT-06** | 24.2 Visual Layout | BAIXA | PENDENTE | VISUAL-LAYOUT-05 |
-| 139 | **VISUAL-LAYOUT-07** | 24.2 Visual Layout | BAIXA | PENDENTE | VISUAL-LAYOUT-01, VISUAL-LAYOUT-03 |
-| 140 | **VISUAL-LAYOUT-08** | 24.2 Visual Layout | MÉDIA | PENDENTE | VISUAL-LAYOUT-01, VISUAL-LAYOUT-03 |
+| 133 | **VISUAL-LAYOUT-01** | 24.2 Visual Layout | ALTA | CONCLUIDA | -- |
+| 134 | **VISUAL-LAYOUT-02** | 24.2 Visual Layout | MÉDIA | ABSORVIDA_POR_ONDA_25 (-> TUI-REDESIGN-25-06) | VISUAL-LAYOUT-01 |
+| 135 | **VISUAL-LAYOUT-03** | 24.2 Visual Layout | MÉDIA | ABSORVIDA_POR_VL_CLI_CONSUME_01 | VISUAL-LAYOUT-01 |
+| 136 | **VISUAL-LAYOUT-04** | 24.2 Visual Layout | BAIXA | ABSORVIDA_POR_ONDA_25 (-> TUI-REDESIGN-25-15) | VISUAL-LAYOUT-01, VISUAL-LAYOUT-03 |
+| 137 | **VISUAL-LAYOUT-05** | 24.2 Visual Layout | MÉDIA | ABSORVIDA_POR_ONDA_25 (-> TUI-REDESIGN-25-15) | VISUAL-LAYOUT-01, VISUAL-LAYOUT-03 |
+| 138 | **VISUAL-LAYOUT-06** | 24.2 Visual Layout | BAIXA | MANTIDA paralela (cor real, ortogonal aos schemas) | VISUAL-LAYOUT-05 |
+| 139 | **VISUAL-LAYOUT-07** | 24.2 Visual Layout | BAIXA | ABSORVIDA_POR_ONDA_25 (-> TUI-REDESIGN-25-09) | VISUAL-LAYOUT-01, VISUAL-LAYOUT-03 |
+| 140 | **VISUAL-LAYOUT-08** | 24.2 Visual Layout | MÉDIA | CONCLUIDA | VISUAL-LAYOUT-01, VISUAL-LAYOUT-03 |
 | 141 | **INFRA-OOM-01** | 24.1 Infra resiliente | ALTA | PENDENTE | -- |
 | 142 | **INSTALL-SUDO-01** | 24.1 Infra resiliente | MÉDIA | PENDENTE | -- |
 | 143 | **INFRA-MODEL-AGNOSTIC-01** | 24.3 Resiliência arquitetural | MÉDIA | PENDENTE | MODEL-SWAP-01 |
@@ -548,6 +548,68 @@ Categorias (Pareto declarado em PROMPT_VALIDADOR_INTEGRADOR.md):
 Promoção em batch durante a Fase H do plano canônico da sessão 2026-05-18.
 
 <!-- MANUAL_OVERRIDE_ONDA_24_END -->
+
+<!-- MANUAL_OVERRIDE_ONDA_25_START -->
+
+### Bloco ONDA-25: Redesenho TUI a partir de auditoria de 15 problemas (2026-05-18)
+
+**Origem:** sessão Arquiteto de UX 2026-05-18 com Claude Opus 4.7 (1M). Material visual em `novo_layout/v2_referencias/` (audit.jsx, nyx-themes.jsx, session-data.jsx, nyx-session-render.jsx). Plano canônico: `~/.claude/plans/prompt-validador-integrador-md-leia-estu-starry-charm.md`.
+
+**Contexto:**
+- audit.jsx documenta 15 problemas (P01..P15) com antes/depois e nota de design.
+- nyx-themes.jsx propõe 4 variações de schema (Editorial, Arcano, Brutalist, Hybrid recomendada).
+- Decisão usuário (2026-05-18): construir os 4 schemas como camada de **estrutura/layout**; manter as 6 aesthetics como camada de **cor** e as 7 entities como override de **accent**.
+- Composição runtime: `compose(schema, aesthetic, entity)` => 4 × 6 × 7 = 168 combinações possíveis. Default = hybrid + default + nyx (Dracula refinada).
+
+**Decisões fechadas (2026-05-18):**
+- D1 Hybrid é schema canônico (default).
+- D2 4 schemas em INTERFACE_SCHEMAS dict; aesthetics e entities orthogonais.
+- D3 VL-02/04/05/07 absorvidas; VL-06 MANTIDA paralela (cor real).
+- D4 Sprint 25-01 (capitalização + acentuação) é gate de qualidade textual antes do redesenho visual.
+- D5 Sprints 25-15 e 25-16 (schemas + compose) executadas cedo porque blocos seguintes consomem schema.
+
+| # | Sprint | Bloco | Prioridade | Status | Depende de |
+|---|--------|-------|------------|--------|------------|
+| 146 | **TUI-REDESIGN-25-01** | 25.1 Fundamentos visuais | ALTA | PENDENTE | -- |
+| 147 | **TUI-REDESIGN-25-02** | 25.1 Fundamentos visuais | ALTA | PENDENTE | TUI-REDESIGN-25-01 |
+| 148 | **TUI-REDESIGN-25-03** | 25.1 Fundamentos visuais | ALTA | PENDENTE | TUI-REDESIGN-25-02 |
+| 149 | **TUI-REDESIGN-25-15** | 25.1 Fundamentos visuais | ALTA | PENDENTE | TUI-REDESIGN-25-03 |
+| 150 | **TUI-REDESIGN-25-16** | 25.1 Fundamentos visuais | ALTA | PENDENTE | TUI-REDESIGN-25-15 |
+| 151 | **TUI-REDESIGN-25-04** | 25.2 Onboarding & Banner | MÉDIA | PENDENTE | TUI-REDESIGN-25-01 |
+| 152 | **TUI-REDESIGN-25-05** | 25.2 Onboarding & Banner | ALTA | PENDENTE | TUI-REDESIGN-25-04 |
+| 153 | **TUI-REDESIGN-25-06** | 25.2 Onboarding & Banner | ALTA | PENDENTE | TUI-REDESIGN-25-02, TUI-REDESIGN-25-05 |
+| 154 | **TUI-REDESIGN-25-07** | 25.3 Diálogo | ALTA | PENDENTE | TUI-REDESIGN-25-03, TUI-REDESIGN-25-04 |
+| 155 | **TUI-REDESIGN-25-08** | 25.3 Diálogo | ALTA | PENDENTE | TUI-REDESIGN-25-03, TUI-REDESIGN-25-06 |
+| 156 | **TUI-REDESIGN-25-09** | 25.4 Thinking/tools/estrutura | ALTA | PENDENTE | TUI-REDESIGN-25-08 |
+| 157 | **TUI-REDESIGN-25-10** | 25.4 Thinking/tools/estrutura | ALTA | PENDENTE | TUI-REDESIGN-25-08 |
+| 158 | **TUI-REDESIGN-25-11** | 25.4 Thinking/tools/estrutura | ALTA | PENDENTE | TUI-REDESIGN-25-10 |
+| 159 | **TUI-REDESIGN-25-12** | 25.4 Thinking/tools/estrutura | MÉDIA | PENDENTE | TUI-REDESIGN-25-08 |
+| 160 | **TUI-REDESIGN-25-13** | 25.5 Comandos & encerramento | MÉDIA | PENDENTE | TUI-REDESIGN-25-01 |
+| 161 | **TUI-REDESIGN-25-14** | 25.5 Comandos & encerramento | MÉDIA | PENDENTE | TUI-REDESIGN-25-02 |
+
+**Bloco 25.1 (Fundamentos visuais):** 5 sprints — capitalização, glifos/divisores, bubble tokens, 4 schemas, compose runtime. Resolve P01, P02, P03, P09, P10, P14 e introduz a camada de schema.
+
+**Bloco 25.2 (Onboarding & Banner):** 3 sprints — boas-vindas com nome, wizard 5 passos com contador, header 3 linhas com agrupamento. Resolve P03, P04, P05.
+
+**Bloco 25.3 (Diálogo):** 2 sprints — remoção do eco do prompt, header inline Nyx + meta (tempo + tokens). Resolve P02, P07, P10.
+
+**Bloco 25.4 (Thinking, tools, estrutura):** 4 sprints — thinking recolhível, tool chip 1 linha, erros com 3 ações, TodoBlock visual. Resolve P06, P08, P11, P12.
+
+**Bloco 25.5 (Comandos & encerramento):** 2 sprints — /help 3 colunas categorizadas, /quit card stats grid. Resolve P13, P15.
+
+### Reconciliação com Onda 24 Visual Layout
+
+- VL-01 e VL-08 CONCLUIDAS (tokens extended + /aesthetic).
+- VL-02 (banner neofetch) ABSORVIDA -> TUI-REDESIGN-25-06 (header em 3 linhas).
+- VL-03 (theme engine) ABSORVIDA_POR_VL_CLI_CONSUME_01 (theme_manager.resolve_palette já existe).
+- VL-04 (glifos por aesthetic) ABSORVIDA -> TUI-REDESIGN-25-15 (glifos por schema, não por aesthetic).
+- VL-05 (arcano showcase) ABSORVIDA -> TUI-REDESIGN-25-15 (arcano é um dos 4 schemas).
+- VL-06 (4 aesthetics restantes) MANTIDA paralela — trata de paleta de cor real, ortogonal aos schemas.
+- VL-07 (spinner Braille + meter) ABSORVIDA -> TUI-REDESIGN-25-09 (ThinkingBlock recolhível).
+
+Arquivos das 4 absorvidas movidos para `concluidos/SPRINT_VISUAL_LAYOUT_<NN>_ABSORVIDA_POR_ONDA_25.md`.
+
+<!-- MANUAL_OVERRIDE_ONDA_25_END -->
 
 ---
 
@@ -611,6 +673,14 @@ Onda 23 (Cockpit + SBOM + Gamedesigner) -- PARALELA A ONDA 22 (2026-05-15):
   Bloco 23.4 (Gamedesigner - filosofia): UX-LOOP-01 (ALTA, ADR-025) -> UX-AGENCY-01 (ALTA, ADR-026) [paralelo] -> UX-PROGRESSION-01 (MÉDIA, ADR-027) -> UX-COCKPIT-EXPERIENCE-01 (MÉDIA)
   [Após UX-LOOP-01: critério "ADR-025 aplicado" vira invariante em toda sprint Onda 22 e 23]
   [Integração: VALIDATE-FINAL-01 ganha critério extra "Cockpit demonstrado via Chrome MCP screenshot"]
+
+Onda 25 (Redesenho TUI a partir de auditoria de 15 problemas) -- 2026-05-18:
+  Bloco 25.1 (Fundamentos visuais): TUI-REDESIGN-25-01 -> 25-02 -> 25-03 -> 25-15 -> 25-16
+  Bloco 25.2 (Onboarding & Banner): 25-04 -> 25-05 -> 25-06
+  Bloco 25.3 (Diálogo): 25-07 -> 25-08
+  Bloco 25.4 (Thinking/tools/estrutura): 25-09, 25-10 [paralelos pós 25-08] -> 25-11 (depende 25-10) -> 25-12 (depende 25-08)
+  Bloco 25.5 (Comandos & encerramento): 25-13, 25-14 [paralelos com 25-01/25-02 prontos]
+  Total: 16 sprints. 4 VL-LAYOUT (02/04/05/07) absorvidas; VL-06 MANTIDA paralela.
 ```
 
 **REGRA: Onda 10 (INFRA) é pré-requisito para TODAS as ondas seguintes.**
