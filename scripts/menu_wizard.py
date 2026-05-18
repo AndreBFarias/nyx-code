@@ -16,7 +16,13 @@ import os
 import sys
 from pathlib import Path
 
-from nyx.themes.design_tokens import (
+# Permitir invocação direta (./venv/bin/python scripts/menu_wizard.py).
+# Sem isso, sys.path não inclui o repo root e `import nyx.*` falha.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from nyx.themes.design_tokens import (  # noqa: E402
     ANSI_ACCENT_FG, ANSI_BOLD, ANSI_DIM, ANSI_PRIMARY_FG,
     ANSI_RESET, ANSI_SUCCESS_FG,
 )
@@ -24,14 +30,25 @@ from nyx.themes.design_tokens import (
 CONFIG_PATH = Path.home() / ".nyx" / "config.toml"
 
 
+def say(*args, **kwargs) -> None:
+    """Imprime no stderr (TTY do usuario), preservando stdout pros exports.
+
+    Necessario porque run.sh redireciona o stdout do wizard para
+    /tmp/nyx_menu_exports.sh. Sem isso, as perguntas iam pro arquivo.
+    """
+    kwargs.setdefault("file", sys.stderr)
+    kwargs.setdefault("flush", True)
+    print(*args, **kwargs)
+
+
 def banner() -> None:
     bold = ANSI_BOLD
     accent = ANSI_ACCENT_FG
     reset = ANSI_RESET
-    print()
-    print(f"  {bold}{accent}Nyx{reset} {ANSI_DIM}cockpit / menu{reset}")
-    print(f"  {ANSI_DIM}configure antes de bootar (Enter aceita default){reset}")
-    print()
+    say()
+    say(f"  {bold}{accent}Nyx{reset} {ANSI_DIM}cockpit / menu{reset}")
+    say(f"  {ANSI_DIM}configure antes de bootar (Enter aceita default){reset}")
+    say()
 
 
 def ask(prompt: str, choices: list[tuple[str, str]], default: str) -> str:
@@ -43,11 +60,11 @@ def ask(prompt: str, choices: list[tuple[str, str]], default: str) -> str:
     success = ANSI_SUCCESS_FG
     muted = ANSI_DIM
     reset = ANSI_RESET
-    print(f"  {accent}{prompt}{reset}")
+    say(f"  {accent}{prompt}{reset}")
     for i, (val, desc) in enumerate(choices, start=1):
         marker = f"{success}*{reset}" if val == default else " "
-        print(f"    {marker} {i}. {accent}{val:<16}{reset} {muted}{desc}{reset}")
-    print(f"  {muted}[Enter = {default}] >{reset} ", end="", flush=True)
+        say(f"    {marker} {i}. {accent}{val:<16}{reset} {muted}{desc}{reset}")
+    say(f"  {muted}[Enter = {default}] >{reset} ", end="")
     raw = input().strip()
     if not raw:
         return default
@@ -66,7 +83,7 @@ def ask_yes_no(prompt: str, default: bool = False) -> bool:
     reset = ANSI_RESET
     accent = ANSI_ACCENT_FG
     suffix = "[S/n]" if default else "[s/N]"
-    print(f"  {accent}{prompt}{reset} {muted}{suffix}>{reset} ", end="", flush=True)
+    say(f"  {accent}{prompt}{reset} {muted}{suffix}>{reset} ", end="")
     raw = input().strip().lower()
     if not raw:
         return default
@@ -157,20 +174,20 @@ def main() -> int:
         default=False,
     )
 
-    print()
-    print(f"  {ANSI_DIM}Configuracao escolhida:{ANSI_RESET}")
+    say()
+    say(f"  {ANSI_DIM}Configuracao escolhida:{ANSI_RESET}")
     for k, v in cfg.items():
-        print(f"    {ANSI_ACCENT_FG}{k:<14}{ANSI_RESET} = {v}")
-    print()
+        say(f"    {ANSI_ACCENT_FG}{k:<14}{ANSI_RESET} = {v}")
+    say()
 
     if ask_yes_no("Salvar em ~/.nyx/config.toml e bootar?", default=True):
         write_config(cfg)
-        print(f"  {ANSI_SUCCESS_FG}configuracao salva.{ANSI_RESET}")
-        # Emite exports para o run.sh source-ar via process substitution
+        say(f"  {ANSI_SUCCESS_FG}configuracao salva.{ANSI_RESET}")
+        # stdout reservado para exports VAR=valor (run.sh source-a)
         if os.environ.get("NYX_MENU_EMIT") == "1":
             emit_env_exports(cfg)
         return 0
-    print(f"  {ANSI_DIM}configuracao descartada.{ANSI_RESET}")
+    say(f"  {ANSI_DIM}configuracao descartada.{ANSI_RESET}")
     return 1
 
 
@@ -178,6 +195,6 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except (KeyboardInterrupt, EOFError):
-        print()
-        print(f"  {ANSI_DIM}/menu cancelado{ANSI_RESET}")
+        say()
+        say(f"  {ANSI_DIM}/menu cancelado{ANSI_RESET}")
         sys.exit(2)
