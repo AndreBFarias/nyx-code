@@ -110,6 +110,8 @@ def emit_env_exports(cfg: dict) -> None:
         print(f'export NYX_AESTHETIC="{cfg["aesthetic"]}"')
     if cfg.get("entity") and cfg["entity"] != "nyx":
         print(f'export NYX_ENTITY="{cfg["entity"]}"')
+    if cfg.get("schema") and cfg["schema"] != "hybrid":
+        print(f'export NYX_SCHEMA="{cfg["schema"]}"')
     if cfg.get("banner_mode") and cfg["banner_mode"] != "wide":
         print(f'export NYX_BANNER_MODE="{cfg["banner_mode"]}"')
     if cfg.get("model"):
@@ -147,6 +149,17 @@ def main() -> int:
             ("somn", "ciano     #8BE9FD"),
         ],
         default="nyx",
+    )
+
+    cfg["schema"] = ask(
+        "Schema de interface (estrutura e layout)",
+        [
+            ("hybrid", "padrão -- soft-box + side-rule (Dracula refinada)"),
+            ("editorial", "sentence-case + header bar + inline tools"),
+            ("arcano", "ornament-box + glow bar + ornament chips"),
+            ("brutalist", "CAIXA ALTA + bracket labels + table rows"),
+        ],
+        default="hybrid",
     )
 
     cfg["banner_mode"] = ask(

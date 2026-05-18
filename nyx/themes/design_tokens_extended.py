@@ -239,10 +239,12 @@ ENTITIES: dict[str, dict[str, Any]] = {
 
 
 def compose(aesthetic: str = "default", entity: str = "nyx") -> dict[str, Any]:
-    """Combina aesthetic + entity em paleta unificada.
+    """Combina aesthetic + entity em paleta unificada (assinatura 2-arg legada).
 
     Aesthetic define bg/ink/glyphs/type. Entity sobrescreve accent + glow.
     Fallback silencioso para 'default' + 'nyx' se nome desconhecido.
+
+    Para composição 3-camadas (schema + aesthetic + entity), use compose_full.
     """
     base = AESTHETICS.get(aesthetic, AESTHETICS["default"])
     ent = ENTITIES.get(entity, ENTITIES["nyx"])
@@ -266,12 +268,73 @@ def compose(aesthetic: str = "default", entity: str = "nyx") -> dict[str, Any]:
     }
 
 
+def compose_full(
+    schema: str = "hybrid",
+    aesthetic: str = "default",
+    entity: str = "nyx",
+) -> dict[str, Any]:
+    """Combina schema + aesthetic + entity em config runtime completa (TUI-REDESIGN-25-16).
+
+    Camada estrutura (schema) + camada cor (aesthetic) + camada accent (entity).
+    Retorna dict com prefixes, bubble_styles, tool_style, thinking_style,
+    divider, banner, heading_case + palette/accent/glow do aesthetic+entity.
+
+    Fallback silencioso para hybrid/default/nyx se nome desconhecido.
+    Sem argumentos, lê do ambiente: NYX_SCHEMA, NYX_AESTHETIC, NYX_ENTITY.
+    """
+    s = INTERFACE_SCHEMAS.get(schema, INTERFACE_SCHEMAS[DEFAULT_SCHEMA])
+    base = compose(aesthetic, entity)
+    return {
+        "schema_id": schema if schema in INTERFACE_SCHEMAS else DEFAULT_SCHEMA,
+        "aesthetic_id": base["aesthetic_id"],
+        "entity_id": base["entity_id"],
+        "prefixes": {"user": s["user_prefix"], "nyx": s["nyx_prefix"]},
+        "bubble_styles": {"user": s["user_bubble"], "nyx": s["nyx_bubble"]},
+        "tool_style": s["tool_style"],
+        "thinking_style": s["thinking_style"],
+        "divider": s["divider_style"],
+        "banner": s["banner_style"],
+        "heading_case": s["heading_case"],
+        "palette": base["palette"],
+        "accent": base["palette"]["accent"],
+        "glow": base["palette"].get("glow", ""),
+        "tagline": base.get("tagline", ""),
+        "glyphs": base["glyphs"],
+        "type": base["type"],
+    }
+
+
 def get_active() -> dict[str, Any]:
-    """Retorna paleta ativa lendo NYX_AESTHETIC e NYX_ENTITY do ambiente."""
+    """Retorna paleta ativa lendo NYX_AESTHETIC e NYX_ENTITY do ambiente.
+
+    Para resolução 3-camadas com schema, use get_active_full().
+    """
     return compose(
         os.environ.get("NYX_AESTHETIC", "default"),
         os.environ.get("NYX_ENTITY", "nyx"),
     )
+
+
+def get_active_full() -> dict[str, Any]:
+    """Resolve runtime config completa via env: NYX_SCHEMA + NYX_AESTHETIC + NYX_ENTITY."""
+    return compose_full(
+        os.environ.get("NYX_SCHEMA", DEFAULT_SCHEMA),
+        os.environ.get("NYX_AESTHETIC", "default"),
+        os.environ.get("NYX_ENTITY", "nyx"),
+    )
+
+
+def list_schemas() -> list[dict[str, str]]:
+    """Lista schemas disponíveis (id + heading_case + bubble defaults)."""
+    return [
+        {
+            "id": k,
+            "heading_case": v["heading_case"],
+            "user_bubble": v["user_bubble"],
+            "nyx_bubble": v["nyx_bubble"],
+        }
+        for k, v in INTERFACE_SCHEMAS.items()
+    ]
 
 
 def list_aesthetics() -> list[dict[str, str]]:
@@ -332,9 +395,52 @@ DEFAULT_USER_BUBBLE = "soft-box"
 DEFAULT_NYX_BUBBLE = "side-rule"
 
 
+# ── Interface schemas (TUI-REDESIGN-25-15) ──────────────────────────
+# Camada de ESTRUTURA/LAYOUT (separada de aesthetic = cor e entity = accent).
+# Cada schema define prefixes, bubbles, estilos de bloco e caso textual.
+# A composição runtime (compose_full com aesthetic+entity+schema) é feita em 25-16.
+# Caracteres ascii (>, *, +) abaixo são tokens nominais: a implementação
+# em design_tokens.py mapeia para glifos Unicode finais (sprints 25-07/08/15).
+
+INTERFACE_SCHEMAS: dict[str, dict[str, Any]] = {
+    "editorial": {
+        "user_prefix": ">",  "nyx_prefix": "*",
+        "user_bubble": "subtle-line", "nyx_bubble": "header-bar",
+        "tool_style": "inline", "thinking_style": "row",
+        "divider_style": "thin", "banner_style": "type",
+        "heading_case": "sentence",
+    },
+    "arcano": {
+        "user_prefix": "+",  "nyx_prefix": "+",
+        "user_bubble": "ornament-box", "nyx_bubble": "glow-bar",
+        "tool_style": "ornament-chip", "thinking_style": "ornament-row",
+        "divider_style": "ornament", "banner_style": "ascii-glow",
+        "heading_case": "sentence",
+    },
+    "brutalist": {
+        "user_prefix": ">",  "nyx_prefix": ">",
+        "user_bubble": "bracket-label", "nyx_bubble": "bracket-label",
+        "tool_style": "table-row", "thinking_style": "bracket-row",
+        "divider_style": "rule", "banner_style": "rule",
+        "heading_case": "upper",
+    },
+    "hybrid": {
+        "user_prefix": ">",  "nyx_prefix": "*",
+        "user_bubble": "soft-box", "nyx_bubble": "side-rule",
+        "tool_style": "chip", "thinking_style": "collapsible",
+        "divider_style": "thin", "banner_style": "card",
+        "heading_case": "sentence",
+    },
+}
+
+DEFAULT_SCHEMA = "hybrid"
+
+
 __all__ = [
     "AESTHETICS", "ENTITIES",
     "BUBBLE_STYLES", "DEFAULT_USER_BUBBLE", "DEFAULT_NYX_BUBBLE",
-    "compose", "get_active",
-    "list_aesthetics", "list_entities",
+    "INTERFACE_SCHEMAS", "DEFAULT_SCHEMA",
+    "compose", "compose_full",
+    "get_active", "get_active_full",
+    "list_aesthetics", "list_entities", "list_schemas",
 ]

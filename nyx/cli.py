@@ -712,6 +712,52 @@ async def run_repl(
                 print(f"  {SUCCESS}● aesthetic{NC}: {final_a}:{final_e} (próxima invocação aplica)")
                 continue
 
+            if result == "__schema_list__":
+                from nyx.themes.design_tokens_extended import (
+                    DEFAULT_SCHEMA,
+                    list_schemas,
+                )
+
+                cur = app_state.get(
+                    "schema_id",
+                    os.environ.get("NYX_SCHEMA", DEFAULT_SCHEMA),
+                )
+                print(f"  Schemas disponíveis (atual: {ACCENT}{cur}{NC}):")
+                for s in list_schemas():
+                    marker = f"{ACCENT}* {NC}" if s["id"] == cur else "  "
+                    print(
+                        f"    {marker}{ACCENT}{s['id']:<10}{NC} -- "
+                        f"case {s['heading_case']} · user {s['user_bubble']} · nyx {s['nyx_bubble']}"
+                    )
+                continue
+
+            if result == "__schema_get__":
+                from nyx.themes.design_tokens_extended import DEFAULT_SCHEMA
+
+                cur = app_state.get(
+                    "schema_id",
+                    os.environ.get("NYX_SCHEMA", DEFAULT_SCHEMA),
+                )
+                print(f"  Schema atual: {ACCENT}{cur}{NC}")
+                continue
+
+            if isinstance(result, str) and result.startswith("__schema_set__"):
+                from nyx.themes.design_tokens_extended import INTERFACE_SCHEMAS
+
+                target = result[len("__schema_set__"):].strip()
+                if target not in INTERFACE_SCHEMAS:
+                    _print_error(
+                        f"Schema '{target}' não existe.",
+                        hint="Use /schema list para ver opções.",
+                    )
+                    continue
+                app_state["schema_id"] = target
+                os.environ["NYX_SCHEMA"] = target
+                print(
+                    f"  {SUCCESS}● schema{NC}: {target} (próxima invocação aplica)"
+                )
+                continue
+
             if result == "__output_style_list__":
                 from nyx.agent.output_style import list_styles
 

@@ -22,12 +22,21 @@ import os
 from functools import lru_cache
 from typing import Any
 
-from nyx.themes.design_tokens_extended import compose
+from nyx.themes.design_tokens_extended import DEFAULT_SCHEMA, compose, compose_full
 
 
 def _env_keys() -> tuple[str, str]:
     """Le NYX_AESTHETIC e NYX_ENTITY com fallbacks canonicos."""
     return (
+        os.environ.get("NYX_AESTHETIC", "default"),
+        os.environ.get("NYX_ENTITY", "nyx"),
+    )
+
+
+def _env_keys_full() -> tuple[str, str, str]:
+    """Le NYX_SCHEMA + NYX_AESTHETIC + NYX_ENTITY com fallbacks (TUI-REDESIGN-25-16)."""
+    return (
+        os.environ.get("NYX_SCHEMA", DEFAULT_SCHEMA),
         os.environ.get("NYX_AESTHETIC", "default"),
         os.environ.get("NYX_ENTITY", "nyx"),
     )
@@ -39,6 +48,14 @@ def _compose_cached(aesthetic: str, entity: str) -> dict[str, Any]:
     return compose(aesthetic, entity)
 
 
+@lru_cache(maxsize=64)
+def _compose_full_cached(
+    schema: str, aesthetic: str, entity: str,
+) -> dict[str, Any]:
+    """Wrap puro de compose_full() cacheado (TUI-REDESIGN-25-16)."""
+    return compose_full(schema, aesthetic, entity)
+
+
 def resolve_palette() -> dict[str, Any]:
     """Retorna paleta ativa (aesthetic + entity) lendo ambiente.
 
@@ -47,6 +64,21 @@ def resolve_palette() -> dict[str, Any]:
     """
     aesthetic, entity = _env_keys()
     return _compose_cached(aesthetic, entity)
+
+
+def resolve_active() -> dict[str, Any]:
+    """Retorna config runtime completa (schema + aesthetic + entity) (TUI-REDESIGN-25-16).
+
+    Lê NYX_SCHEMA, NYX_AESTHETIC, NYX_ENTITY do ambiente. Cacheada via
+    lru_cache; clear_cache() a invalida junto com resolve_palette.
+    """
+    schema, aesthetic, entity = _env_keys_full()
+    return _compose_full_cached(schema, aesthetic, entity)
+
+
+def current_schema_id() -> str:
+    """Retorna id do schema ativo lendo NYX_SCHEMA (fallback DEFAULT_SCHEMA)."""
+    return os.environ.get("NYX_SCHEMA", DEFAULT_SCHEMA)
 
 
 def _hex_to_ansi_fg(hex_str: str) -> str:
@@ -90,10 +122,13 @@ def current_glyphs() -> dict[str, str]:
 def clear_cache() -> None:
     """Limpa o cache do lru. Util apos mudanca de env em runtime."""
     _compose_cached.cache_clear()
+    _compose_full_cached.cache_clear()
 
 
 __all__ = [
     "resolve_palette",
+    "resolve_active",
+    "current_schema_id",
     "current_ansi",
     "current_accent_hex",
     "current_glyphs",
