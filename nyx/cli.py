@@ -1206,7 +1206,22 @@ async def run_repl(
                 else:
                     print(f"  {DIM}[{state_label}]{NC}")
 
-            render_assistant_end()
+            # TUI-REDESIGN-25-08: meta inline (tempo + tokens) ao fim.
+            _meta_tokens: int | None = None
+            try:
+                usage = getattr(status, "usage", None) or {}
+                if isinstance(usage, dict):
+                    _meta_tokens = (
+                        usage.get("total_tokens")
+                        or usage.get("output_tokens")
+                        or usage.get("completion_tokens")
+                    )
+            except Exception:
+                _meta_tokens = None
+            render_assistant_end(
+                start_monotonic=request_started,
+                tokens=_meta_tokens,
+            )
 
             # UX-BUG-03: cancelar summarize anterior se ainda não terminou
             # antes de criar nova. Evita acúmulo de tasks pendentes em

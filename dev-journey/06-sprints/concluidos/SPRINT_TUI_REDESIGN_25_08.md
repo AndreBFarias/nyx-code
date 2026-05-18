@@ -40,9 +40,11 @@ sprint:
 
 # Sprint TUI-REDESIGN-25-08
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA_PARCIAL
 **Data criação:** 2026-05-18
+**Data conclusão:** 2026-05-18 (parcial)
 **Modelo obrigatório:** claude-opus-4-7
+**Nota:** Header + meta inline implementados. Faixa lateral em **cada linha da resposta** durante streaming requer interceptação do on_token (complexidade alta) e foi extraído para sprint nova **STREAMING-SIDE-RULE-01**.
 
 ## Contexto
 
