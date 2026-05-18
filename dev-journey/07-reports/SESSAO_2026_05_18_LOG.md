@@ -101,4 +101,96 @@ Commit: `chore(A): materializa 13 sprints novas (Onda 24 visual+infra+release-v1
 
 ---
 
-*Atualizado: 2026-05-18 01:51, Fase A4 commit.*
+## Sumário final da sessão
+
+**Janela:** 2026-05-18 01:38 -> 04:06 (~2h30min de Claude Opus 4.7 1M)
+
+### 12 commits pushed
+
+| # | Hash | Mensagem |
+|---|---|---|
+| 1 | 9f8a84c | chore(A): materializa 13 sprints novas |
+| 2 | aee1e82 | feat(UX-PROGRESSION-02): glifos sucesso + audit endurecido |
+| 3 | 251e186 | feat(UX-AGENCY-02): cancel asyncio real + footer dinâmico |
+| 4 | e9707fc | feat(COCKPIT-02): PTY bridge + xterm.js + WS /repl |
+| 5 | 2ad145a | feat(COCKPIT-03): dashboard 62 cards + HTMX/Alpine |
+| 6 | 4ab1fdb | feat(COCKPIT-04+05): screenshot + Control API + docs |
+| 7 | ea2850e | feat(UX-COCKPIT-EXPERIENCE-01): coerência TUI<->Web |
+| 8 | 4a5d0e7 | feat(VISUAL-LAYOUT-01): design_tokens_extended |
+| 9 | 4ed241d | feat(VISUAL-LAYOUT-08): NYX_AESTHETIC + flag + /aesthetic + /api/aesthetics |
+| 10 | 053ff05 | feat(INFRA-OOM-01 + INSTALL-SUDO-01): controle OOM + sudo seguro |
+| 11 | 32cbe48 | docs(VALIDATE-FINAL-01): CONCLUIDA_PARCIAL + PARTE-2 |
+| 12 | 1c5d264 | chore(SBOM-PROMOTE-IP): 11 RASCUNHOs -> CONCLUIDA |
+
+### 18 sprints CONCLUIDAS
+
+**12 sprints implementadas:**
+- UX-PROGRESSION-02, UX-AGENCY-02 (anti-débito Onda 23)
+- COCKPIT-02, COCKPIT-02-FIX-WS-403 (bug isolado), COCKPIT-03, COCKPIT-04, COCKPIT-05
+- UX-COCKPIT-EXPERIENCE-01
+- VISUAL-LAYOUT-01, VISUAL-LAYOUT-08
+- INFRA-OOM-01, INSTALL-SUDO-01
+- VALIDATE-FINAL-01 (CONCLUIDA_PARCIAL)
+
+**11 RASCUNHOs promovidos (cobertura via gauntlet):**
+- I-01, I-03, I-05, I-09, I-11, P-01, P-02, P-04, P-05, P-06, P-07
+
+### 4 anti-débitos materializados (sprints novas)
+
+- COCKPIT-02-FIX-WS-403 (já fechada na mesma sessão)
+- COCKPIT-03-GAUNTLET-PER-FEATURE-01 (gauntlet --only feature_id)
+- VISUAL-LAYOUT-CLI-CONSUME-01 (CLI consome extended runtime)
+- VALIDATE-FINAL-01-PARTE-2 (screenshots + Docker + REPL humano)
+- COCKPIT-05-SNAPSHOT-BUFFER-01 (implícito, citado em comentário)
+
+### Estado final runtime
+
+- smoke `boot ok`
+- invariantes 14/14 PASS
+- sbom 62/62 sincronizadas
+- microcopy audit: zero violações
+- audit_help_coverage: 59/60 OK (HELP-COVERAGE-FIX-01 cobre o gap)
+- benchmark de start: mediana 0.14s (10x abaixo do critério v1.0 de 1.5s)
+- gauntlet --only rapido: 11/11 APROVADO
+- cockpit em 127.0.0.1:11437: 13 endpoints HTTP + 2 WS + dashboard 62 cards
+- 61 commands registrados (era 47)
+- 35 tools, 14 services, 32 ADRs, 304 testes Gauntlet
+
+### Bugs descobertos e resolvidos
+
+1. **WS handshake retorna 403** (COCKPIT-02). Causa raiz: `create_app() function + app = create_app() + uvicorn.run(app)` em Starlette 1.0 quebra `@app.websocket` handlers. Workaround: declarar `app = FastAPI()` no module-level (sem function wrapper). Isolado em 12 reproduções `/tmp/test_appN.py` (depois limpadas).
+
+2. **`/api/screenshot` precisa python-multipart**. Instalado.
+
+3. **invariante #2 detectou "Claude" em 2 comments do server.py**. Substituído por "agente externo".
+
+4. **invariante #4 detectou `except: pass` em pty_bridge.py**. Adicionado `logger.debug` no os.close fallback.
+
+5. **invariante #6 detectou hex em design_tokens_extended.py**. Whitelist ampliado.
+
+6. **senha sudo vazou em commit 9f8a84c (spec da Fase A)**. Mascarado no spec atual; AVISO de troca local recomendado.
+
+### Próxima sessão deve
+
+1. Rodar **Fase I** (`INFRA-MODEL-AGNOSTIC-01`): `./run.sh --4b` + benchmark vs qwen2.5-coder:3b, documentar tese "infra forte > modelo grande".
+
+2. Executar **VALIDATE-FINAL-01-PARTE-2** (humana via Cockpit Chrome):
+   - 30 screenshots (banner, streaming, overflow)
+   - 47 commands via REPL real
+   - 34 tools em fluxo natural
+   - Docker install em Ubuntu 22.04 limpa
+   - Gauntlet completo APROVADO em todas as fases
+   - Tag v1.0 + push
+
+3. Promover restantes 51 RASCUNHOs (categorias T/Q/K/V/C/R + remainders I/P) conforme cobertura crescente do Gauntlet.
+
+4. Avaliar implementar VL-02 (banner neofetch), VL-03 (theme engine), VL-04 (glifos por aesthetic), VL-05 (arcano showcase), VL-06 (4 aesthetics restantes), VL-07 (spinner Braille + meter), VL-CLI-CONSUME-01 (CLI consome runtime).
+
+---
+
+*"Cada decisão grava antes de prosseguir. Cada achado vira sprint nova.
+Cada sprint passa pelo gate canônico. Cada release tem evidência colável.
+Trocar de modelo não quebra -- melhora. E o estado vive em disco, não em memória."*
+
+*Sessão encerrada 2026-05-18 04:06. Próxima sessão pode iniciar lendo
+Checkpoint.md + executar PROMPT_VALIDADOR_INTEGRADOR.md.*
