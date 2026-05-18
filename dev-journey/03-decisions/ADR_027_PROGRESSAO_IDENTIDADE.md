@@ -1,8 +1,8 @@
 # ADR-027 — Progressão & Identidade Nyx
 
-**Status:** PROPOSTO
-**Data:** 2026-05-15
-**Contexto da Onda:** 23, Bloco 23.4, UX-PROGRESSION-01
+**Status:** ACEITO (UX-PROGRESSION-01 ACEITO_PARCIAL -> ACEITO completo via UX-PROGRESSION-02, 2026-05-18)
+**Data:** 2026-05-15 (proposto) / 2026-05-18 (aceito completo)
+**Contexto da Onda:** 23, Bloco 23.4, UX-PROGRESSION-01 + UX-PROGRESSION-02 (Onda 24)
 
 ## Contexto
 
@@ -89,12 +89,16 @@ sistemático** das mensagens (erro, sucesso, prompts) do Nyx:
 
 ## Verificação
 
-Sprint UX-PROGRESSION-01 implementa:
+Sprint UX-PROGRESSION-01 implementa (ACEITO_PARCIAL 2026-05-17):
 1. MICROCOPY.md criado com audit das mensagens atuais.
-2. Refactor das mensagens conforme tabela.
-3. Test no Gauntlet: `--only microcopy` valida ausência de placeholders
-   genéricos (lista negra: "ok", "loading", "error", "done", "success"
-   isolados).
+2. Refactor MVP das mensagens.
+3. `scripts/microcopy_audit.py --check` detecta padrões base.
+
+Sprint UX-PROGRESSION-02 fecha (ACEITO completo 2026-05-18):
+1. Refactor cirúrgico das mensagens de sessão (`[ok] Sessão salva` -> `● sessão salva`).
+2. Expansão do audit script: detecta `Sucesso!`/`Pronto!`/`Ok!` isolados, `Adeus`/`Tchau`/`Goodbye`/`Bye`.
+3. MICROCOPY.md ganha seção de glifos canônicos (○ ◐ ●) com regras de uso.
+4. Tabela ampliada com 3 entradas novas + 1 caso revisado.
 
 ## Referências
 

@@ -21,18 +21,31 @@
 | Contexto | Atual | Proposta | Motivação |
 |----------|-------|----------|-----------|
 | Boot ok | `boot ok` | `boot ok` | Smoke literal -- não mudar |
-| Sessão salva | `Sessão salva: <path>` | `● sessão salva` + path + dica /resume | Verde + ação seguinte (DEPLOY-02) |
+| Sessão salva | `[ok] Sessão salva: <path>` | `● sessão salva: <path>` | Glifo verde + minúscula (UX-PROGRESSION-02) |
+| Sessão restaurada | `[ok] Sessão restaurada (N entradas)` | `● sessão restaurada (N entradas)` | Mesmo padrão (UX-PROGRESSION-02) |
+| Sessão limpa | `[ok] Sessão limpa.` | `● sessão limpa` | Glifo + remover ponto final (UX-PROGRESSION-02) |
 | Tutorial primeiro uso | `Tutorial rápido — 30 segundos` | igual | Já em PT-BR + sóbrio |
-| Cancel placeholder | `tools em curso só podem ser interrompidas via Ctrl+C` | igual | Explica limitação MVP |
+| Cancel placeholder | `tools em curso só podem ser interrompidas via Ctrl+C` | igual | Explica limitação MVP (UX-AGENCY-02 resolve) |
 | Erro generic | `Erro!` | `<contexto>: <causa breve>` | Substituir placeholders |
 | Pull modelo | `Baixando moondream (pode demorar)...` | `Baixando moondream (5-15min em rede média)` | Estima tempo |
 | Dry-run aviso | `[dry-run] nenhum comando destrutivo executado` | igual | Já claro |
+| Saída do REPL | `Adeus` / `Tchau` | `Até.` | Voz Nyx sóbria (ADR-027) |
+| Sucesso vazio | `Sucesso!`, `Pronto!`, `Ok!` | `● <ação>` ou contexto específico | Glifo > exclamação genérica |
 
 ## Casos proibidos
 
-- `Loading...`, `Saving...`, `Done!`, `Yay!` — inglês ou floreio.
-- `Erro!`, `Ops!`, `Algo deu errado` — placeholder sem contexto.
+- `Loading...`, `Saving...`, `Done!`, `Yay!`, `Bye!`, `Goodbye` — inglês ou floreio.
+- `Erro!`, `Ops!`, `Algo deu errado`, `Tchau!`, `Adeus` — placeholder sem contexto.
+- `Sucesso!`, `Pronto!`, `Ok!`, `Concluído!` isolados — substituir por `● <ação>` ou contexto específico.
 - `Não pode fazer isso.` sem dizer por quê.
+
+## Glifos canônicos de estado (invariante #14, NÃO emoji)
+
+- `○` (U+25CB) — cold, vazio, neutro
+- `◐` (U+25D0) — warming, em progresso, parcial
+- `●` (U+25CF) — warm, sucesso, completo
+
+Usar `●` em vez de `[ok]` quando o feedback é puramente positivo (ex: "● sessão salva"). Manter `[ok]` quando ação é técnica e precisa de tag (ex: "[ok] modelo trocado para X").
 
 ## Audit automatizado
 

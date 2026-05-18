@@ -23,24 +23,43 @@ SCAN_DIRS = ["nyx"]
 # técnicos legítimos (tool names, kwargs).
 ENGLISH_UX = re.compile(
     r'"\s*(Loading\.\.\.|Saving\.\.\.|Done!|Yay!|Oops!|Click here|Press any key|'
-    r'Hello, world)\s*"',
+    r'Hello, world|Good ?bye|Bye!)\s*"',
     re.IGNORECASE,
 )
 
 # Placeholders genéricos isolados (entre aspas, sozinhos)
-PLACEHOLDER = re.compile(r'"\s*(Erro!|Ops!|Algo deu errado|Algo errado)\s*"')
+PLACEHOLDER = re.compile(r'"\s*(Erro!|Ops!|Algo deu errado|Algo errado|Tchau!|Adeus)\s*"')
+
+# UX-PROGRESSION-02: substantivos "festejando" sucesso sem contexto.
+# Detecta strings só com confirmacao genérica em maiúscula + bang.
+# Ex: "Sucesso!", "Pronto!", "Concluído!". OK quando seguido de ":" ou outras palavras.
+SUCESSO_VAZIO = re.compile(
+    r'"\s*(Sucesso|Pronto|Concluído|Ok|OK|Feito|Conclui)\s*[!.]?\s*"'
+)
 
 
 def scan_file(path: Path) -> list[tuple[int, str]]:
-    """Retorna lista de (linha, snippet) com violações."""
+    """Retorna lista de (linha, snippet) com violações.
+
+    Heurística anti-falso-positivo: pula linhas com `logger.`, `if `
+    ternário ou tags internas de registro (`tag = "OK"` etc.), porque
+    são contextos não user-facing.
+    """
     hits: list[tuple[int, str]] = []
     try:
         text = path.read_text(encoding="utf-8")
     except OSError:
         return hits
     for n, line in enumerate(text.splitlines(), start=1):
-        if ENGLISH_UX.search(line) or PLACEHOLDER.search(line):
-            hits.append((n, line.strip()[:120]))
+        stripped = line.strip()
+        # Skip de contextos internos (logger, tags de registry, condicionais ternárias)
+        if "logger." in stripped or stripped.startswith("tag ="):
+            continue
+        if " if " in stripped and " else " in stripped:
+            # Linha tipo: tag = "OK" if success else "ERRO" -- interno
+            continue
+        if ENGLISH_UX.search(line) or PLACEHOLDER.search(line) or SUCESSO_VAZIO.search(line):
+            hits.append((n, stripped[:120]))
     return hits
 
 

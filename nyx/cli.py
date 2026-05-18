@@ -51,6 +51,7 @@ from nyx.themes.design_tokens import (  # noqa: E402
     ANSI_DIM,
     ANSI_PRIMARY_FG,
     ANSI_RESET,
+    ANSI_SUCCESS_FG,
     BULLETS,
     NYX_ACCENT,
     NYX_MUTED,
@@ -62,6 +63,7 @@ ACCENT = ANSI_ACCENT_FG
 PRIMARY = ANSI_PRIMARY_FG
 DIM = ANSI_DIM
 BOLD = ANSI_BOLD
+SUCCESS = ANSI_SUCCESS_FG
 NC = ANSI_RESET
 
 
@@ -543,9 +545,9 @@ async def run_repl(
             if result == "__clear__":
                 agent.reset()
                 if use_rich and output:
-                    output("ok", "Sessão limpa.")
+                    output("ok", "● sessão limpa")
                 else:
-                    print(f"  {DIM}Sessão limpa.{NC}")
+                    print(f"  {SUCCESS}● sessão limpa{NC}")
                 continue
 
             if result == "__status__":
@@ -581,7 +583,7 @@ async def run_repl(
             if result == "__session_save__":
                 saved = save_session(agent.session, PROJECT_ROOT.name)
                 if saved:
-                    print(f"  {ACCENT}[ok]{NC} Sessão salva: {saved.name}")
+                    print(f"  {SUCCESS}● sessão salva{NC}: {saved.name}")
                 else:
                     _print_error(
                         "Falha ao salvar a sessão atual.",
@@ -595,7 +597,7 @@ async def run_repl(
                 loaded = load_latest_session(PROJECT_ROOT.name)
                 if loaded:
                     agent._session = loaded
-                    print(f"  {ACCENT}[ok]{NC} Sessão restaurada ({len(loaded.history)} entradas)")
+                    print(f"  {SUCCESS}● sessão restaurada{NC} ({len(loaded.history)} entradas)")
                 else:
                     _print_error(
                         "Nenhuma sessão salva para restaurar.",
