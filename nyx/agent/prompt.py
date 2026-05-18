@@ -41,6 +41,7 @@ def build_system_prompt(
     repo_map: str = "",
     session_summary: str = "",
     compact: bool = False,
+    output_style: str = "default",
 ) -> str:
     """Constrói system prompt com contexto do projeto.
 
@@ -49,6 +50,9 @@ def build_system_prompt(
 
     compact=True devolve a variante curta (sem schema de tools, sem blocos
     dinamicos). Use para turnos sem tools (PERF-INFERENCE-01).
+
+    output_style (OUTPUT-STYLES-01): "default" | "concise" | "learning";
+    injeta hint_prompt no bloco final. ADRs invariantes em todos os estilos.
     """
     if compact:
         return build_system_prompt_compact(project_root)
@@ -66,6 +70,18 @@ def build_system_prompt(
         sections.append(f"### Sessão em andamento\n{session_summary.strip()}\n---")
 
     dynamic_block = ("\n\n" + "\n\n".join(sections) + "\n") if sections else ""
+
+    # OUTPUT-STYLES-01: hint do estilo entra na cauda do prompt.
+    style_block = ""
+    if output_style and output_style != "default":
+        from nyx.agent.output_style import get_style
+
+        style = get_style(output_style)
+        if style.hint_prompt:
+            style_block = (
+                f"\n\nEstilo de saída ativo ({style.name}): "
+                f"{style.hint_prompt}\n"
+            )
 
     return f"""Sou Nyx. Codificadora silenciosa. Vivo no terminal.
 
@@ -109,7 +125,7 @@ NUNCA repita a mesma tool com os mesmos argumentos.
 Se executou tools numa tarefa real: termine com done(summary="o que foi feito").
 Se só respondeu em texto: não precisa done().
 
-Código limpo não é arte. É higiene."""
+Código limpo não é arte. É higiene.{style_block}"""
 
 
 def build_guide_md_context(project_root: str) -> str:

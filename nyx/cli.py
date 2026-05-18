@@ -711,6 +711,35 @@ async def run_repl(
                     )
                 continue
 
+            if result == "__output_style_list__":
+                from nyx.agent.output_style import list_styles
+
+                current = str(app_state.get("output_style", "default"))
+                print("  Estilos de saída:")
+                for st in list_styles():
+                    marker = f"{ACCENT}* {NC}" if st.name == current else "  "
+                    print(f"    {marker}{ACCENT}{st.name:<10}{NC} -- {st.description}")
+                continue
+
+            if result == "__output_style_get__":
+                current = str(app_state.get("output_style", "default"))
+                print(f"  Estilo atual: {ACCENT}{current}{NC}")
+                continue
+
+            if isinstance(result, str) and result.startswith("__output_style_set__"):
+                from nyx.agent.output_style import STYLES
+
+                target = result[len("__output_style_set__"):].strip()
+                if target not in STYLES:
+                    _print_error(
+                        f"Estilo '{target}' não existe.",
+                        hint="Use /output-style list para ver opções.",
+                    )
+                    continue
+                app_state["output_style"] = target
+                print(f"  {ACCENT}[ok]{NC} estilo trocado para {target} (próxima request usa)")
+                continue
+
             if result == "__plugin_list__":
                 from nyx.agent.services.plugin_manager import PluginManager
 
