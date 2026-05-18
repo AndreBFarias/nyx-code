@@ -79,6 +79,7 @@ DEBUG=0
 HEADLESS=0
 GAUNTLET=0
 GAUNTLET_ONLY="completo"
+COCKPIT_BG=0
 EXTRA_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -128,6 +129,31 @@ while [[ $# -gt 0 ]]; do
         --entity)
             export NYX_ENTITY="$2"
             shift 2 ;;
+        --menu)
+            # NYX-MENU-WIZARD-01: TUI wizard interativo antes do exec.
+            # Salva config em ~/.nyx/config.toml + exporta env vars.
+            NYX_MENU_EMIT=1 "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/scripts/menu_wizard.py" \
+                > /tmp/nyx_menu_exports.sh
+            wizard_rc=$?
+            if [ $wizard_rc -eq 0 ] && [ -s /tmp/nyx_menu_exports.sh ]; then
+                # shellcheck source=/dev/null
+                source /tmp/nyx_menu_exports.sh
+                rm -f /tmp/nyx_menu_exports.sh
+            else
+                rm -f /tmp/nyx_menu_exports.sh
+                if [ $wizard_rc -ne 0 ]; then
+                    echo "  ${ORANGE}[nyx]${NC} menu cancelado; bootando com defaults"
+                fi
+            fi
+            shift ;;
+        --web|--cockpit)
+            # Sobe o cockpit FastAPI (COCKPIT-01..05) e abre o browser default.
+            # Bind 127.0.0.1:11437 (ADR-001 Local First).
+            COCKPIT_BG=1
+            shift ;;
+        --auto-approve)
+            export NYX_AUTO_APPROVE=1
+            shift ;;
         *)
             EXTRA_ARGS+=("$1")
             shift ;;
@@ -559,6 +585,28 @@ if curl -sf "http://127.0.0.1:${NYX_PROXY_PORT}/v1/models" > /dev/null 2>&1; the
 else
     log_err "Proxy não iniciou. Verifique logs/proxy.log"
     exit 1
+fi
+
+# ─── COCKPIT (--web / --cockpit) ──────────────────────────
+if [ "$COCKPIT_BG" -eq 1 ]; then
+    log_boot "Subindo cockpit em 127.0.0.1:11437..."
+    "$SCRIPT_DIR/venv/bin/python" -m nyx.cockpit.server \
+        >> "$SCRIPT_DIR/logs/cockpit.log" 2>&1 &
+    COCKPIT_PID=$!
+    disown "$COCKPIT_PID" 2>/dev/null || true
+    sleep 2
+    if curl -sf http://127.0.0.1:11437/health > /dev/null 2>&1; then
+        log_boot "Cockpit pronto (PID: $COCKPIT_PID)"
+        # Abre browser default (xdg-open no Linux). Best-effort.
+        if command -v xdg-open >/dev/null 2>&1; then
+            xdg-open http://127.0.0.1:11437/ > /dev/null 2>&1 &
+            log_nyx "browser aberto em http://127.0.0.1:11437/"
+        else
+            log_nyx "abra http://127.0.0.1:11437/ no browser"
+        fi
+    else
+        log_warn "Cockpit falhou. Veja logs/cockpit.log"
+    fi
 fi
 
 # Warmup duplo via proxy (chamada curta + chamada com tools).

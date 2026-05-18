@@ -20,15 +20,98 @@ Em caso de sessão Claude cair, próxima sessão Claude deve:
 
 ## Linha de retomada (sempre atualizada)
 
-- **Fase atual:** **SESSÃO CONCLUÍDA**. Próxima sessão pode iniciar Fase I (INFRA-MODEL-AGNOSTIC-01) ou abrir VALIDATE-FINAL-01-PARTE-2 (captura visual humana).
-- **Sprint atual:** -- (idle)
-- **Status:** Fases A/B/C/D/E/F/G/H CONCLUIDAS na janela 2026-05-18 01:38 -> 04:05. 12 commits pushed. Tag v1.0 ainda NÃO cortada (aguarda PARTE-2).
-- **Último commit:** 1c5d264 (2026-05-18 04:05, "chore(SBOM-PROMOTE-IP): 11 RASCUNHOs cobertos pelo gauntlet -> CONCLUIDA")
-- **Próxima ação humana:** abrir Cockpit em Chrome (`./venv/bin/python -m nyx.cockpit.server` + http://127.0.0.1:11437/), seguir SPRINT_VALIDATE_FINAL_01_PARTE_2.md para 30 screenshots + Docker install + 47cmds + 34tools em REPL real. Tag v1.0 após.
-- **Próxima ação Claude:** rodar `INFRA-MODEL-AGNOSTIC-01` (Fase I do plano original — validar tese "infra forte eleva qualquer modelo" comparando qwen3:4b vs qwen2.5-coder:3b em mesma infra). Demora ~3-5 min de Gauntlet com cada modelo.
-- **Estado runtime final:** smoke=`boot ok` | invariantes=14/14 | sbom=62/62 | gauntlet rapido=11/11 APROVADO | benchmark P50=0.14s
-- **tmux sessões persistidas:** `cockpit` (porta 11437; pode ser morto ou reaproveitado)
-- **TaskList:** 7 COMPLETED + 1 PENDING (Fase I). Sessão pode encerrar.
+- **Fase atual:** **SESSÃO CONCLUÍDA 05:15.** Próxima sessão pode rodar Fase I (INFRA-MODEL-AGNOSTIC-01), executar VALIDATE-FINAL-01-PARTE-2 (captura visual humana), ou implementar as 6 anti-débitos pendentes.
+- **Último commit:** pendente push final desta entrega (`NYX-MENU-WIZARD-01` + atualizações Checkpoint).
+- **Próxima ação humana:** `./run.sh --web` abre cockpit + browser; ou `./run.sh --menu` para wizard de config; ou seguir prompt em ANEXO ao fim deste arquivo para continuar via Claude.
+- **Estado runtime final:** smoke=`boot ok` | invariantes=14/14 | sbom=62/62 | gauntlet rapido=11/11 APROVADO | benchmark P50=0.14s | cockpit 13 endpoints HTTP + 2 WS + dashboard 62 cards | --menu/--web/--auto-approve flags ativas
+- **tmux sessões persistidas:** `cockpit` (porta 11437; pode reaproveitar via `tmux attach -t cockpit`)
+- **6 sprints anti-débito pendentes em `producao/`** (a próxima sessão pode dispatch executor-sprint em paralelo):
+  - NYX-AUTO-APPROVE-01 (ALTA) — destrava automação via PTY
+  - PTY-PERMISSION-FLOW-01 (MÉDIA) — UI cockpit aprovar
+  - COCKPIT-LIFECYCLE-FIX-01 (ALTA) — evita cascata de kill
+  - NYX-NO-HALLUCINATE-TOOL-01 (ALTA) — validator anti-alucinação
+  - HELP-COVERAGE-FIX-02 (BAIXA) — /aesthetic com 3 exemplos
+  - VALIDATE-FINAL-01-PARTE-2 (CRÍTICA, humana) — screenshots/Docker/47cmds
+- **TaskList:** Todas as 14 tasks completed. Task #9 (Fase I) ainda PENDING formal.
+
+---
+
+## ANEXO — Prompt para continuação em Claude Code
+
+Cole o bloco abaixo como primeira mensagem em uma sessão nova de Claude Opus 4.7
+(modelo `claude-opus-4-7`) com pwd em `/home/andrefarias/Desenvolvimento/Nyx-Code`:
+
+```text
+Voce assume os papeis Validador / Integrador / Despachador no projeto Nyx-Code.
+Modelo obrigatorio: claude-opus-4-7. SEM emoji em codigo/commits/docs/respostas.
+PT-BR acentuado em tudo user-facing. ADR-005: sem mencao a IA externa.
+
+Estado herdado (sessao 2026-05-18, 17+ commits, 24+ sprints CONCLUIDAS):
+- smoke ok, invariantes 14/14, sbom 62/62
+- cockpit operacional em 127.0.0.1:11437 (HTTP + WS + dashboard 62 cards)
+- 6 sprints anti-debito em `dev-journey/06-sprints/producao/` aguardando execucao
+- novas flags em run.sh: --menu (wizard), --web (cockpit + browser), --auto-approve
+- 51 RASCUNHOs em producao/ (categorias T/Q/K/V/C/R + remainders)
+- 14 sprints PENDENTES nao-RASCUNHO (varias da Onda 22/23)
+
+Leia em ordem:
+1. cat Checkpoint.md (este arquivo)
+2. cat PROMPT_VALIDADOR_INTEGRADOR.md
+3. cat EXECUTAR_SPRINT.md
+4. ls dev-journey/06-sprints/producao/ | grep -v FEAT
+5. bash scripts/sprint_invariants.sh | tail -5
+6. ./run.sh --smoke
+
+Em seguida, escolha um dos caminhos:
+
+CAMINHO A -- "completar a sessao anterior":
+  Dispatch 3 executor-sprint em paralelo (run_in_background=true):
+    - NYX-AUTO-APPROVE-01    (ALTA, destrava automacao)
+    - COCKPIT-LIFECYCLE-FIX-01 (ALTA, evita cascata kill)
+    - NYX-NO-HALLUCINATE-TOOL-01 (ALTA, confianca)
+  Quando os 3 completarem, dispatch PTY-PERMISSION-FLOW-01 +
+  HELP-COVERAGE-FIX-02 em paralelo.
+
+CAMINHO B -- "Fase I do plano original":
+  Rodar INFRA-MODEL-AGNOSTIC-01 (compara qwen3:4b vs qwen2.5-coder:3b
+  com mesma infra Nyx). Gera relatorio em
+  dev-journey/07-reports/RELATORIO_INFRA_RESILIENTE_MODELO_01.md.
+
+CAMINHO C -- "Validate final para tag v1.0":
+  Executar VALIDATE-FINAL-01-PARTE-2 via cockpit Control API:
+    1. ./run.sh --web --auto-approve (sobe cockpit + auto-approve)
+    2. Para cada feature in REGISTRY.yaml: POST /control/feature/{id}/run + poll
+    3. POST /api/screenshot a cada teste relevante (30 screenshots)
+    4. docker run ubuntu:22.04 + ./install.sh em VM limpa
+    5. Atualizar RELATORIO_VALIDATE_FINAL_01.md + CHECKLIST_PARIDADE_CLAUDE_CODE.md
+    6. git tag -a v1.0 + git push origin v1.0
+
+CAMINHO D -- "promocao acelerada dos 51 RASCUNHOs":
+  Rodar `./run.sh --gauntlet` (completo, ~10 min) + script Python que itera
+  producao/SPRINT_FEAT_*.md e move pra concluidos/ os que aparecem como [OK]
+  no gauntlet output. Espelha o que fez SBOM-PROMOTE-IP (commit 1c5d264) mas
+  com cobertura completa, nao so 'rapido'.
+
+Recomendacao: CAMINHO A (anti-debitos primeiro -- desbloqueia C).
+
+Cadencia obrigatoria por sprint (memoria feedback_smoke_boot.md +
+feedback_write_through_apagao.md):
+  pre  -> ./run.sh --smoke + bash scripts/sprint_invariants.sh > /tmp/inv_before.txt
+  impl -> Edit/Write cirurgico
+  pos  -> smoke + invariantes; FAIL_AFTER <= FAIL_BEFORE
+  log  -> atualizar Checkpoint.md (entry [hh:mm] sprint <ID> CONCLUIDA hash)
+  move -> producao/ -> concluidos/
+  next -> ./venv/bin/python scripts/update_next_sprint.py
+  commit -> 1-2 atomicos: 'feat(<ID>): descricao' SEM emoji
+  push  -> origin main; sem --force, sem --no-verify
+
+Anti-debito rigoroso: achado colateral durante exec vira sprint NOVA
+com ID enumerado em producao/. Nunca absorver implicitamente.
+
+Aja.
+```
+
+Fim do anexo.
 
 ## Mensagens do usuário recebidas durante a sessão
 
@@ -55,9 +138,9 @@ Em caso de sessão Claude cair, próxima sessão Claude deve:
 - [2026-05-18 01:51] Smoke + invariantes + sbom pós-A3 OK (14/14, 62/62).
 - [2026-05-18 01:55] A4: commit 9f8a84c pushed (20 arquivos, +1799/-3). 13 specs em producao/ + MASTER v5.1 + SESSAO_LOG + proofs/A1_baseline/.
 - [2026-05-18 01:55] **Fase A CONCLUIDA.** Transição: Task #1 completed, Task #2 (Fase B) in_progress. Iniciando UX-PROGRESSION-02.
-- [2026-05-18 02:00-02:10] B1: UX-PROGRESSION-02 implementada. 3 mensagens de sessão migradas para glifo ●. microcopy_audit.py endurecido com 3 padrões novos (Goodbye/Bye, Adeus/Tchau, Sucesso!/Pronto!/Ok!/Concluido! isolados) + heurística anti-falso-positivo. MICROCOPY.md ganhou 3 entradas + seção de glifos. ADR-027 PROPOSTO -> ACEITO.
+- [2026-05-18 02:00-02:10] B1: UX-PROGRESSION-02 implementada. 3 mensagens de sessão migradas para glifo . microcopy_audit.py endurecido com 3 padrões novos (Goodbye/Bye, Adeus/Tchau, Sucesso!/Pronto!/Ok!/Concluido! isolados) + heurística anti-falso-positivo. MICROCOPY.md ganhou 3 entradas + seção de glifos. ADR-027 PROPOSTO -> ACEITO.
 - [2026-05-18 02:11] B1 commit `aee1e82` pushed. UX-PROGRESSION-02 movida producao -> concluidos. EXECUTAR_SPRINT.md agora aponta VISUAL-LAYOUT-01 (24 pendentes). Iniciando B2: UX-AGENCY-02.
-- [2026-05-18 02:15-02:25] B2: UX-AGENCY-02 implementada. agent.run wrappado em asyncio.create_task com tracking em app_state["inflight_task"]. Handler /cancel agora chama .cancel() de verdade. KeyboardInterrupt também cancela explicitamente. Footer dinâmico mostra "◐ executando (Ctrl+C cancela)" quando inflight. ADR-026 PROPOSTO -> ACEITO.
+- [2026-05-18 02:15-02:25] B2: UX-AGENCY-02 implementada. agent.run wrappado em asyncio.create_task com tracking em app_state["inflight_task"]. Handler /cancel agora chama .cancel() de verdade. KeyboardInterrupt também cancela explicitamente. Footer dinâmico mostra " executando (Ctrl+C cancela)" quando inflight. ADR-026 PROPOSTO -> ACEITO.
 - [2026-05-18 02:26] B2 commit `251e186` pushed. UX-AGENCY-02 movida producao -> concluidos. **Fase B CONCLUIDA.** Iniciando Fase C: Cockpit (COCKPIT-02..05).
 - [2026-05-18 02:30-03:30] C1: COCKPIT-02 implementação. xterm.js + xterm.css vendored em static/vendor/ (curl unpkg, 288KB total). pty_bridge.py criado (~140L: PtyBridge async com pty.openpty, read/write/resize/close idempotente). server.py extendido com @app.websocket("/repl").
 - [2026-05-18 02:35-03:30] **BUG isolado em 12 reproduções `/tmp/test_appN.py`:** combinação `create_app() function + uvicorn.run(app obj)` em Starlette 1.0 quebra WS handshake (retorna 403 sem chamar handler). Documentado em sprint nova `COCKPIT-02-FIX-WS-403`.
@@ -77,7 +160,12 @@ Em caso de sessão Claude cair, próxima sessão Claude deve:
 - [2026-05-18 04:05] **Fase G CONCLUIDA_PARCIAL**. PARTE-2 pendente humana.
 - [2026-05-18 04:05] H light: 11 RASCUNHOs já cobertos pelo gauntlet rapido (I-01/03/05/09/11 + P-01/02/04/05/06/07) promovidos RASCUNHO -> CONCLUIDA. 51 RASCUNHOs restantes em producao/. Commit `1c5d264`.
 - [2026-05-18 04:05] **Fase H light CONCLUIDA.** Fase I (INFRA-MODEL-AGNOSTIC-01) pendente para próxima sessão.
-- [2026-05-18 04:06] **SESSÃO CONCLUÍDA.** Total: 12 commits pushed em ~2h30min. 18 sprints CONCLUIDAS (12 da sessão + 1 anti-débito materializada COCKPIT-02-FIX-WS-403 + 11 RASCUNHOs CONCLUIDOS). 4 anti-débitos materializadas (COCKPIT-03-GAUNTLET-PER-FEATURE-01, VISUAL-LAYOUT-CLI-CONSUME-01, VALIDATE-FINAL-01-PARTE-2, COCKPIT-05-SNAPSHOT-BUFFER-01 implicita). Estado: smoke=ok, inv=14/14, sbom=62/62.
+- [2026-05-18 04:06] **Fase H light CONCLUIDA.** Marcador anterior. Sessão segue.
+- [2026-05-18 04:30-05:00] Validacao via Playwright/Chrome MCP: cockpit dashboard 62 cards OK, terminal.html PTY conectado, Nyx responde "oi" em PT-BR. 3 agentes executor-sprint disparados em paralelo (HELP-COVERAGE-FIX-01, COCKPIT-03-GAUNTLET-PER-FEATURE-01, VISUAL-LAYOUT-CLI-CONSUME-01).
+- [2026-05-18 05:00] 5 achados de uso real materializados como sprints anti-débito: HELP-COVERAGE-FIX-02 (/aesthetic > max 3), NYX-AUTO-APPROVE-01 (CONFIRM_ONCE em PTY), PTY-PERMISSION-FLOW-01 (UI aprovar), COCKPIT-LIFECYCLE-FIX-01 (lock colide com cockpit), NYX-NO-HALLUCINATE-TOOL-01 (modelo afirmou sucesso sem tool real).
+- [2026-05-18 05:00] 3 agentes completaram: commits 2c87ae2, f12be5d, 3b7eb79. Pushed.
+- [2026-05-18 05:10] NYX-MENU-WIZARD-01 implementada: scripts/menu_wizard.py + run.sh `--menu` / `--web` / `--auto-approve`. README seção "Wizard" e "Cockpit Web". Sprint CONCLUIDA direto.
+- [2026-05-18 05:15] **SESSÃO CONCLUÍDA.** Total: ~17 commits pushed em ~3h30min. ~24 sprints CONCLUIDAS (15 implementação + 11 RASCUNHOs cobertos + 5 anti-débitos materializados + 1 wizard). Estado: smoke=ok, inv=14/14, sbom=62/62, cockpit operacional, dashboard renderizado em Chrome.
 
 ---
 

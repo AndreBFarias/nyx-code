@@ -79,12 +79,41 @@ run.sh ─────> Ollama (:11435) ──> GPU (num_gpu=12, qwen2.5-coder:3
 ## Começando
 
 ```bash
-./install.sh          # Ollama, venv, modelos (~8GB)
-./run.sh              # Inicia com qwen2.5-coder:3b (default, ADR-031)
-./run.sh --7b         # qwen2.5-coder:7b
-./run.sh --debug      # Logs detalhados
-./run.sh --gauntlet   # Validação completa
+./install.sh             # Ollama, venv, modelos (~8GB)
+./run.sh                 # Inicia com qwen2.5-coder:3b (default, ADR-031)
+./run.sh --menu          # Wizard interativo (aesthetic, modelo, banner, auto-approve)
+./run.sh --web           # Sobe Cockpit + abre browser em 127.0.0.1:11437
+./run.sh --7b            # qwen2.5-coder:7b
+./run.sh --4b            # qwen3:4b (legacy, thinking)
+./run.sh --debug         # Logs detalhados
+./run.sh --gauntlet      # Validação completa
+./run.sh --auto-approve  # Pula CONFIRM_ONCE (CI/automação)
+./run.sh --aesthetic arcano  # Paleta arcana
+./run.sh --aesthetic arcano:luna  # arcano + entidade luna (#BD93F9)
 ```
+
+### Wizard (`--menu`)
+
+Configura antes de bootar:
+
+- **Aesthetic** (5 alternativas + default): arcano, cyberpunk, brutalist, mecha, editorial
+- **Entidade** (7 opções): nyx, eris, juno, lars, luna, mars, somn (sobrescreve accent)
+- **Banner**: compact | wide | neofetch
+- **Modelo**: qwen2.5-coder:3b (padrão) | qwen3:4b | qwen2.5-coder:7b
+- **Auto-aprovar permissões**: sim | não
+
+Persiste em `~/.nyx/config.toml`. Próximo boot já adota.
+
+### Cockpit Web (`--web`)
+
+Sobe o servidor FastAPI local (`127.0.0.1:11437`, ADR-001 Local First) e abre o browser default:
+
+- `/` -- dashboard com 62 features (cards reativos via Alpine.js + HTMX)
+- `/static/terminal.html` -- REPL Nyx embedded via PTY + xterm.js
+- `/api/{features,tokens,microcopy,aesthetics,evidencia}` -- introspecção
+- `/control/{gauntlet,feature,repl,registry}` -- automação por agente externo
+
+Documentação completa: [dev-journey/05-guides/COCKPIT_API.md](dev-journey/05-guides/COCKPIT_API.md).
 
 ## Validação
 
