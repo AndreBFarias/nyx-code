@@ -71,16 +71,16 @@ BOX_CHARS = {
 
 # NÃO remover círculos abaixo via sanitizer global: ADR-004 exceção (Geometric Shapes Unicode); invariante #14 protege.
 BULLETS = {
-    "tool": "●",         # círculo cheio -- tool em execução/concluída
-    "tool_ok": "●",
-    "tool_err": "●",
+    "tool": "",         # círculo cheio -- tool em execução/concluída
+    "tool_ok": "",
+    "tool_err": "",
     "result": "└─",
     "note": "·",
     "arrow": "→",
     "bypass_on": "[!]",  # substitui U+26A1 (emoji)
     "bypass_off": "[ ]",
-    "ready": "●",
-    "working": "○",
+    "ready": "",
+    "working": "",
     "prompt": ">",
 }
 
@@ -112,6 +112,26 @@ PREFIX_USER = ">"
 PREFIX_NYX = "·"
 
 
+# ── Glyphs por tool (TUI-REDESIGN-26-03) ────────────────────────────
+# Cada tool ganha um glyph distintivo no chip de execução. Geometric
+# shapes (U+25*) + Mathematical operators (U+22*) + ASCII safe. Nenhum
+# emoji (ADR-004; invariante #14 protege ○ ◐ ●).
+
+TOOL_GLYPHS: dict[str, str] = {
+    "Read": "≡",         # listar/ler (mathematical identical to)
+    "Write": "+",        # criar (ASCII)
+    "Edit": "*",         # modificar (ASCII)
+    "MultiEdit": "*",
+    "Bash": "▸",         # executar (geometric right triangle)
+    "Grep": "?",         # busca textual (ASCII placeholder)
+    "Glob": "◇",         # busca arquivos (geometric white diamond)
+    "Multi": "◆",        # tool composta (geometric black diamond)
+    "ask_user": "?",     # pergunta interativa
+    "WebFetch": "↗",     # rede (arrow upper right)
+    "WebSearch": "?",
+}
+
+
 __all__ = [
     "NYX_ACCENT", "NYX_ACCENT_DIM", "NYX_PURPLE", "NYX_PURPLE_DIM",
     "NYX_PRIMARY", "NYX_MUTED", "NYX_BG", "NYX_BG_SOFT",
@@ -122,6 +142,7 @@ __all__ = [
     "BOX_CHARS", "BULLETS", "SPINNER_FRAMES",
     "GLYPHS_BOOT", "GLYPHS_SESSAO",
     "SIDE_RULE_USER", "SIDE_RULE_NYX", "PREFIX_USER", "PREFIX_NYX",
+    "TOOL_GLYPHS",
     "hex_to_ansi_fg", "hex_to_ansi_bg",
 ]
 

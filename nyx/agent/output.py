@@ -723,9 +723,12 @@ def render_tool_chip(
     Se ``error_preview`` informado, adiciona linha extra de preview muted.
     Substitui o par render_tool_card_start/end (2 caixas de 4-6 linhas).
     """
-    from nyx.themes.design_tokens import ANSI_ERROR_FG, ANSI_SUCCESS_FG
+    from nyx.themes.design_tokens import (
+        ANSI_ERROR_FG, ANSI_SUCCESS_FG, TOOL_GLYPHS,
+    )
 
-    glyph = ""
+    # TUI-REDESIGN-26-03: glyph por tool. Fallback "●" (geometric, ADR-004 ok).
+    glyph = TOOL_GLYPHS.get(name, "●")
     color = ANSI_ERROR_FG if status != "ok" else ANSI_SUCCESS_FG
     arg_preview = ""
     for key in PRIMARY_ARG_KEYS:
