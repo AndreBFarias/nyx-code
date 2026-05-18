@@ -549,6 +549,27 @@ Promoção em batch durante a Fase H do plano canônico da sessão 2026-05-18.
 
 <!-- MANUAL_OVERRIDE_ONDA_24_END -->
 
+<!-- MANUAL_OVERRIDE_ONDA_26_START -->
+
+### Bloco ONDA-26: Polimento visual fiel aos mockups + cockpit --web real + onboarding nome (2026-05-18)
+
+**Origem:** Pedido do usuário pós-Onda 25 (commits `e17c084`..`c34916e`). Comparação screenshots vs mockups (`novo_layout/v2_referencias/audit.jsx` + `nyx-session-render.jsx`) evidenciou que TUI ficou estruturalmente correto mas visualmente raso. Plano canônico: `~/.claude/plans/voc-o-generic-beacon.md`.
+
+| # | Sprint | Bloco | Prioridade | Status | Depende de |
+|---|--------|-------|------------|--------|------------|
+| 162 | **COCKPIT-WEB-REDESIGN-01** | 26.2 Cockpit --web reformulado | ALTA | CONCLUIDA (2026-05-18) | SPRINT_ORDER-OVERRIDE-FIX-01 |
+| 163 | **COCKPIT-WEB-REDESIGN-02** | 26.2 Cockpit --web reformulado | ALTA | PENDENTE | COCKPIT-WEB-REDESIGN-01 |
+| 164 | **COCKPIT-WEB-REDESIGN-03** | 26.2 Cockpit --web reformulado | MÉDIA | PENDENTE | COCKPIT-WEB-REDESIGN-02 |
+| 165 | **TUI-REDESIGN-26-01** | 26.1 Fidelidade visual | ALTA | PENDENTE | COCKPIT-WEB-REDESIGN-03 |
+| 166 | **TUI-REDESIGN-26-02** | 26.1 Fidelidade visual | ALTA | PENDENTE | TUI-REDESIGN-26-01 |
+| 167 | **TUI-REDESIGN-26-03** | 26.1 Fidelidade visual | ALTA | PENDENTE | TUI-REDESIGN-26-02 |
+| 168 | **TUI-REDESIGN-26-04** | 26.1 Fidelidade visual | ALTA | PENDENTE | TUI-REDESIGN-26-03 |
+| 169 | **TUI-REDESIGN-26-05** | 26.3 Onboarding nome | MÉDIA | PENDENTE | TUI-REDESIGN-26-04 |
+
+Ordem de execução: Fase 1 (M1 SPRINT_ORDER-OVERRIDE-FIX-01) -> Fase 2 (26.2 cockpit --web) -> Fase 3 (26.1 fidelidade visual) -> Fase 4 (M2 STREAMING-SIDE-RULE-01 + M3 TUI-REDESIGN-25-09-PARTE-2) -> Fase 5 (26.3 onboarding nome).
+
+<!-- MANUAL_OVERRIDE_ONDA_26_END -->
+
 <!-- MANUAL_OVERRIDE_ONDA_25_START -->
 
 ### Bloco ONDA-25: Redesenho TUI a partir de auditoria de 15 problemas (2026-05-18)

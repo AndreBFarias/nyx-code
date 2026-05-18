@@ -418,10 +418,25 @@ async def static_files(path: str):
 
 @app.get("/", response_class=HTMLResponse)
 async def root() -> str:
+    """COCKPIT-WEB-REDESIGN-01: rota / serve o terminal Nyx live (TUI no browser).
+
+    Dashboard de gauntlet migrou para GET /dashboard. Workflow esperado:
+    `./run.sh --web` abre browser em /, terminal xterm.js conecta no WS /repl
+    e mostra a sessão Nyx interativa.
+    """
+    term = STATIC_DIR / "terminal.html"
+    if term.is_file():
+        return term.read_text(encoding="utf-8")
+    return "<h1>Nyx Cockpit -- terminal.html ausente</h1>"
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard() -> str:
+    """COCKPIT-WEB-REDESIGN-01: dashboard de gauntlet (legacy / em GET /)."""
     idx = STATIC_DIR / "index.html"
     if idx.is_file():
         return idx.read_text(encoding="utf-8")
-    return "<h1>Nyx Cockpit</h1>"
+    return "<h1>Nyx Cockpit -- index.html ausente</h1>"
 
 
 @app.websocket("/stream")
