@@ -13,12 +13,17 @@ from typing import TYPE_CHECKING
 
 from nyx.__version__ import __version__ as NYX_VERSION
 from nyx.themes.design_tokens import (
-    ANSI_ACCENT_FG,
     ANSI_DIM,
-    ANSI_MUTED_FG,
     ANSI_RESET,
     BOX_CHARS,
 )
+from nyx.themes.theme_manager import current_ansi
+
+# VISUAL-LAYOUT-CLI-CONSUME-01: accent/muted resolvidos em import-time via
+# theme_manager. Honra NYX_AESTHETIC + NYX_ENTITY. Default = paleta D.
+_ANSI = current_ansi()
+ANSI_ACCENT_FG = _ANSI["accent"]
+ANSI_MUTED_FG = _ANSI["muted"]
 
 if TYPE_CHECKING:
     from nyx.config.settings import NyxSettings

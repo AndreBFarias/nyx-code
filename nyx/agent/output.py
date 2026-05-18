@@ -17,16 +17,22 @@ if TYPE_CHECKING:
 
 from nyx.agent.services.logging_service import get_logger
 from nyx.themes.design_tokens import (
-    ANSI_ACCENT_FG,
     ANSI_DIM,
-    ANSI_ERROR_FG,
-    ANSI_MUTED_FG,
     ANSI_RESET,
     BOX_CHARS,
     BULLETS,
-    NYX_ACCENT,
     SPINNER_FRAMES,
 )
+from nyx.themes.theme_manager import current_accent_hex, current_ansi
+
+# VISUAL-LAYOUT-CLI-CONSUME-01: accent/muted/error resolvidos em import-time
+# via theme_manager. Honra NYX_AESTHETIC + NYX_ENTITY do ambiente. Default
+# (paleta D) preservado quando vars ausentes.
+_ANSI = current_ansi()
+ANSI_ACCENT_FG = _ANSI["accent"]
+ANSI_MUTED_FG = _ANSI["muted"]
+ANSI_ERROR_FG = _ANSI["error"]
+NYX_ACCENT = current_accent_hex()
 
 logger = get_logger("nyx.output")
 
@@ -345,8 +351,8 @@ def render_progress_bar(label: str, current: int, total: int, width: int = 30) -
     Idempotente no mesmo line via ``\\r\\x1b[2K``; chamar
     :func:`render_progress_end` quando terminar para pular linha.
     """
-    from nyx.themes.design_tokens import ANSI_ACCENT_FG, ANSI_MUTED_FG, ANSI_RESET
-
+    # Reaproveita modulo-level constants resolvidas via theme_manager
+    # (VISUAL-LAYOUT-CLI-CONSUME-01). Import local removido.
     pct = 0.0 if total <= 0 else min(current / total, 1.0)
     filled = int(pct * width)
     bar = "█" * filled + "░" * (width - filled)
