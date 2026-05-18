@@ -711,6 +711,70 @@ async def run_repl(
                     )
                 continue
 
+            if result == "__plugin_list__":
+                from nyx.agent.services.plugin_manager import PluginManager
+
+                pm = PluginManager()
+                plugins = pm.list()
+                if not plugins:
+                    _print_error(
+                        "Nenhum plugin em ~/.nyx/plugins/.",
+                        hint="Use /plugin install <path> para instalar um.",
+                    )
+                    continue
+                print(f"  Plugins ({len(plugins)}):")
+                for p in plugins:
+                    status = f"{DIM}({p.error}){NC}" if p.error else f"{ACCENT}OK{NC}"
+                    print(
+                        f"    {ACCENT}{p.name}{NC} v{p.version} [{status}] "
+                        f"-- tools={len(p.tools)} cmds={len(p.commands)}"
+                    )
+                    if p.description:
+                        print(f"      {DIM}{p.description}{NC}")
+                continue
+
+            if result == "__plugin_reload__":
+                from nyx.agent.services.plugin_manager import PluginManager
+
+                pm = PluginManager()
+                results = pm.reload()
+                ok = sum(1 for v in results.values() if v)
+                print(
+                    f"  {ACCENT}[ok]{NC} plugins recarregados: "
+                    f"{ok}/{len(results)} OK"
+                )
+                continue
+
+            if isinstance(result, str) and result.startswith("__plugin_install__"):
+                src = result[len("__plugin_install__"):].strip()
+                from nyx.agent.services.plugin_manager import PluginManager
+
+                pm = PluginManager()
+                name = pm.install(src)
+                if name:
+                    print(f"  {ACCENT}[ok]{NC} plugin '{name}' instalado")
+                else:
+                    _print_error(
+                        f"Falha ao instalar plugin a partir de {src!r}.",
+                        hint="Confirme que o diretório existe e contém manifest.toml válido.",
+                    )
+                continue
+
+            if isinstance(result, str) and result.startswith("__plugin_uninstall__"):
+                name = result[len("__plugin_uninstall__"):].strip()
+                from nyx.agent.services.plugin_manager import PluginManager
+
+                pm = PluginManager()
+                pm.discover()
+                if pm.uninstall(name):
+                    print(f"  {ACCENT}[ok]{NC} plugin '{name}' removido")
+                else:
+                    _print_error(
+                        f"Plugin '{name}' não encontrado.",
+                        hint="Use /plugin list para ver instalados.",
+                    )
+                continue
+
             if result == "__mcp_list__":
                 # MCP-SERVER-01: lista servers + tools de ~/.nyx/mcp.json
                 from nyx.agent.services.mcp_client import McpClient

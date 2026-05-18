@@ -325,7 +325,7 @@ Se `FAIL_AFTER > FAIL_BEFORE`, sprint introduziu regressão. **Reverter e refaze
 | 112 | **UX-LIFECYCLE-01** | 23.1 Estabilização | ALTA | CONCLUIDA (lock file + cleanup robusto SIGINT/TERM/HUP + /admin/shutdown loopback + VRAM check pré-inferência; gauntlet rápido 18/18 em 11s) | BOOT-VRAM-GUARD-01, TUI-SHUTDOWN-SILENT-01 |
 | 113 | **PERF-INFERENCE-01** | 23.0 Performance (NOVA FASE 1) | CRÍTICA | CONCLUIDA | -- |
 | 114 | **MCP-SERVER-01** | 23.5 Feature parity | ALTA | CONCLUIDA (ADR-030; McpClient stdio JSON-RPC com timeouts; /mcp list/reload/test; NYX_MCP_CONFIG em defaults; boot tolerante; MCP-SERVER-02 anti-debito para ToolRegistry+HTTP+Gauntlet) | PERF-INFERENCE-01 |
-| 115 | **PLUGINS-01** | 23.5 Feature parity Claude Code | MÉDIA | PENDENTE | MCP-SERVER-01 |
+| 115 | **PLUGINS-01** | 23.5 Feature parity | MÉDIA | CONCLUIDA (PluginManager com discover/load/install/uninstall + AST check anti-codigo-arbitrario; /plugin list/reload/install/uninstall; NYX_PLUGINS_DIR; PLUGIN_API.md; PLUGINS-02 anti-debito para auto-registro+Gauntlet) | MCP-SERVER-01 |
 | 116 | **OUTPUT-STYLES-01** | 23.5 Feature parity Claude Code | MÉDIA | PENDENTE | PERF-INFERENCE-01 |
 | 117 | **HOOKS-DYNAMIC-01** | 23.5 Feature parity Claude Code | MÉDIA | PENDENTE | PERF-INFERENCE-01 |
 | 118 | **LANG-ENFORCE-01** | 23.0 Performance | ALTA | CONCLUIDA (lang_pt_br_rate=100% com qwen2.5-coder:3b) | PERF-INFERENCE-01, MODEL-SWAP-01 |

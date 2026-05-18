@@ -17,6 +17,12 @@ NYX_MCP_CONFIG: str = os.environ.get(
     str(__import__("pathlib").Path.home() / ".nyx" / "mcp.json"),
 )
 
+# Plugins instaláveis (PLUGINS-01). Cada subdiretório é um plugin com manifest.toml.
+NYX_PLUGINS_DIR: str = os.environ.get(
+    "NYX_PLUGINS_DIR",
+    str(__import__("pathlib").Path.home() / ".nyx" / "plugins"),
+)
+
 OLLAMA_PORT: int = 11435
 PROXY_PORT: int = 11436
 # Contrato dual:
