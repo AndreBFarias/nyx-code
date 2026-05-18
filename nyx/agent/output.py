@@ -3,6 +3,14 @@
 Port de Luna src/skills/code_agent/rich_output.py.
 Cores vêm de nyx.themes.design_tokens (fonte única, ADR-023).
 Fallback: se Rich não estiver instalado, funciona com ANSI puro.
+
+Convenção boot vs sessão (TUI-REDESIGN-25-02):
+  Boot (run.sh, log_boot, log_nyx) usa prefixo [nyx] -- diagnóstico,
+  monológico. Sessão REPL usa Nyx standalone (render_assistant_start
+  imprime "Nyx" sem brackets) -- diálogo. Catálogos canônicos vivem em
+  design_tokens.py: GLYPHS_BOOT, GLYPHS_SESSAO, PREFIX_NYX. Aplicação
+  fina dos glifos em cada bloco é responsabilidade das sprints 25-06
+  até 25-14. Ver MICROCOPY.md seção "Vocabulário visual".
 """
 
 from __future__ import annotations

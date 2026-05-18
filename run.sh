@@ -646,6 +646,14 @@ if [ "$GAUNTLET" -eq 1 ]; then
     exit "$EXIT_CODE"
 fi
 
+# ─── TUI-REDESIGN-25-02: marca explícita de fim do log de boot ───
+# Renderiza apenas em terminal interativo (TTY, não headless, não gauntlet).
+# Glifos vêm de design_tokens.py GLYPHS_BOOT["endmark"]. Aqui replicamos
+# literal para evitar dependência Python adicional em bash boot.
+if [ "$HEADLESS" -eq 0 ] && [ "$GAUNTLET" -eq 0 ] && [ -t 1 ]; then
+    echo -e "  ${COMMENT}─── sessão iniciada ───${NC}"
+fi
+
 # ─── INICIAR NYX CLI (Python) ─────────────────────────────
 log_boot "Iniciando Nyx CLI..."
 "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/nyx/cli.py"

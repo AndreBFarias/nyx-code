@@ -88,6 +88,30 @@ SPINNER_FRAMES = ("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇",
 # Braille Patterns (U+2800-U+28FF) -- símbolo técnico, não emoji.
 
 
+# ── Vocabulário visual: boot vs sessão (TUI-REDESIGN-25-02) ─────────
+# Separação canônica entre fase de boot (log diagnóstico, prefixo
+# [nyx]) e fase de sessão REPL (diálogo, prefixo Nyx standalone).
+# Documentado em MICROCOPY.md seção "Vocabulário visual".
+
+GLYPHS_BOOT = {
+    "prefix": "[nyx]",
+    "rule": "─",
+    "endmark": "─── sessão iniciada ───",
+}
+
+GLYPHS_SESSAO = {
+    "prefix_nyx": "Nyx",
+    "prefix_user": "você",
+    "rule_thin": "─",
+    "rule_thick": "━",
+}
+
+SIDE_RULE_USER = "│"
+SIDE_RULE_NYX = "│"
+PREFIX_USER = ">"
+PREFIX_NYX = "·"
+
+
 __all__ = [
     "NYX_ACCENT", "NYX_ACCENT_DIM", "NYX_PURPLE", "NYX_PURPLE_DIM",
     "NYX_PRIMARY", "NYX_MUTED", "NYX_BG", "NYX_BG_SOFT",
@@ -96,6 +120,8 @@ __all__ = [
     "ANSI_ERROR_FG", "ANSI_SUCCESS_FG", "ANSI_WARNING_FG",
     "ANSI_DIM", "ANSI_BOLD", "ANSI_RESET",
     "BOX_CHARS", "BULLETS", "SPINNER_FRAMES",
+    "GLYPHS_BOOT", "GLYPHS_SESSAO",
+    "SIDE_RULE_USER", "SIDE_RULE_NYX", "PREFIX_USER", "PREFIX_NYX",
     "hex_to_ansi_fg", "hex_to_ansi_bg",
 ]
 

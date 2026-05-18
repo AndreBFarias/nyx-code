@@ -2,7 +2,7 @@
 
 > **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
 > Copie o bloco abaixo e cole em uma session nova de Claude Opus 4.7.
-> Restam **32** sprints PENDENTE(S) na fila.
+> Restam **31** sprints PENDENTE(S) na fila.
 
 ---
 

@@ -90,6 +90,56 @@ Acentuação em comentários técnicos é não-bloqueante (Onda 26 se reaparecer
 
 ---
 
+## Vocabulário visual
+
+Canonizado em **TUI-REDESIGN-25-02** (Onda 25). Separa visualmente as
+duas fases da experiência: **boot** (log diagnóstico) e **sessão** (REPL
+interativo). Catálogo runtime em `nyx/themes/design_tokens.py`:
+`GLYPHS_BOOT`, `GLYPHS_SESSAO`, `SIDE_RULE_USER`, `SIDE_RULE_NYX`,
+`PREFIX_USER`, `PREFIX_NYX`.
+
+### Fase boot (pré-sessão)
+
+Sistema fala, usuário não responde. Tudo é log diagnóstico.
+
+| Elemento | Forma canônica | Origem |
+|---|---|---|
+| Prefixo de linha | `[nyx]` em PRIMARY | `log_nyx` / `log_ok` / `log_warn` / `log_err` (run.sh) |
+| Divisor fino | `─` | banner do CLI (`_build_banner`) |
+| Marca de fim do boot | `─── sessão iniciada ───` em COMMENT dim | run.sh imediatamente antes de exec do CLI |
+
+### Fase sessão (REPL interativo)
+
+Dialógico. Cada turno é par (usuário fala, Nyx responde). Prefixo `[nyx]`
+é **proibido** durante REPL.
+
+| Elemento | Forma canônica | Origem |
+|---|---|---|
+| Cabeçalho da Nyx | `Nyx` em ACCENT bold (sem brackets) | `render_assistant_start` (output.py) |
+| Divisor abaixo do header | `───` em ACCENT | idem |
+| Eco do usuário | painel `╭─ você ─╮` em ACCENT | `render_user_input` (output.py) |
+| Marcador inline curto | `>` (PREFIX_USER) | prompts secundários |
+| Marcador meta-evento | `·` (PREFIX_NYX) em muted | `render_compaction_event` e similares |
+| Footer | `── ctx X% · modelo · iter N ──` em DIM ACCENT | `render_footer` (output.py) |
+
+### Regra de ouro
+
+- Linha **diagnóstica de inicialização** → `[nyx]`.
+- Linha **resposta do agente ao usuário** → `Nyx` standalone.
+- Linha **meta-evento durante REPL** (compactação, cancelamento, hint) → `·` em muted.
+
+Glifos canônicos `○ ◐ ●` (invariante #14) representam estados de
+progressão (cold/warming/warm) e são **ortogonais** à fase boot/sessão —
+podem aparecer em ambas.
+
+### Anti-débito
+
+Aplicação fina dos novos glifos em cada bloco (header inline com meta,
+tool chip 1 linha, TodoBlock visual, etc.) fica para as sprints
+**TUI-REDESIGN-25-06** até **TUI-REDESIGN-25-14**.
+
+---
+
 ## Tabela canônica (em construção)
 
 | Contexto | Atual | Proposta | Motivação |
