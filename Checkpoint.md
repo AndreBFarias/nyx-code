@@ -235,4 +235,4 @@ Fim do anexo.
 
 ## Append-only log (sprints executadas)
 
-- [22:59] sprint TUI-REDESIGN-28-02 CONCLUIDA hash <pending-commit>
+- [22:59] sprint TUI-REDESIGN-28-02 CONCLUIDA hash d9df1ff
