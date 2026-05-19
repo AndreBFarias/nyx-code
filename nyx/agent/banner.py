@@ -3,12 +3,14 @@
 Consome design_tokens (ADR-023) como fonte única de cores e glifos.
 Dois modos:
   - Compacto (cols < 80): 1 linha do block "$ nyx.code" + 1 linha info.
-  - Amplo (cols >= 80): block "$ nyx.code▌" + box ╭─╮│╰╯ com 3 linhas
-    (versão, offline, modelo/projeto/rede, tools/comandos/memória/tipo).
+  - Amplo (cols >= 80): grid 2-col — coluna esquerda com "$ nyx.code▌"
+    centralizado verticalmente; coluna direita com 3 rows (versão+offline,
+    MODELO+PROJETO, TOOLS+COMANDOS+MEMÓRIA), separadas por ├─┤ horizontais
+    e seções de cada row separadas por │ verticais.
 
-TUI-REDESIGN-28-06: banner reescrito como bloco textual com cursor + box
-info, mantendo paleta turquesa+roxo+verde (não migra para roxo claro do
-mockup HTML de referência).
+TUI-REDESIGN-28-06: bloco textual com cursor + box info de 3 linhas.
+TUI-REDESIGN-28-09: refatorado para grid 2-col fiel ao mockup; rótulos
+em CAPS; "Memória ativa" fixo; paleta turquesa+roxo+verde preservada.
 """
 
 from __future__ import annotations
@@ -24,6 +26,12 @@ from nyx.themes.design_tokens import (
     ANSI_SUCCESS_FG,
     BOX_CHARS,
 )
+
+# TUI-REDESIGN-28-09: glifos de junção para grid 2-col (tjoin/bjoin/ljoin/rjoin)
+_TJOIN = BOX_CHARS["tjoin"]
+_BJOIN = BOX_CHARS["bjoin"]
+_LJOIN = BOX_CHARS["ljoin"]
+_RJOIN = BOX_CHARS["rjoin"]
 from nyx.themes.theme_manager import current_ansi
 
 # VISUAL-LAYOUT-CLI-CONSUME-01: accent/muted resolvidos em import-time via
@@ -165,90 +173,128 @@ def _build_wide(
     h: str,
     v: str,
 ) -> str:
-    """Block '$ nyx.code▌' + box info de 3 linhas (TUI-REDESIGN-28-06).
+    """Grid 2-col: '$ nyx.code▌' à esquerda + box info à direita (TUI-REDESIGN-28-09).
 
-    Layout (cols >= 80, largura interna fixa = 66 chars + bordas):
+    Layout (cols >= 80, largura interna total fixa = 70):
 
-        $ nyx.code▌
-        ╭──────────────────────────────────────────────────────────────────╮
-        │  v1.2.0    ● 100% offline                                        │
-        │  Modelo X   Projeto Y   Rede :p1/:p2                             │
-        │  Tools N   Comandos M   Memória ativa   Tipo REPL                │
-        ╰──────────────────────────────────────────────────────────────────╯
+        ╭──────────────────┬───────────────────────────────────────────────────╮
+        │                  │  v1.2.0      ●  100% offline                      │
+        │                  ├───────────────────────────────────────────────────┤
+        │   $ nyx.code▌    │  MODELO qwen2.5-coder:3b │ PROJETO Nyx-Code        │
+        │                  ├───────────────────────────────────────────────────┤
+        │                  │  TOOLS 35 │ COMANDOS 62 │ MEMÓRIA ativa            │
+        ╰──────────────────┴───────────────────────────────────────────────────╯
 
     Cores:
       - '$ ' roxo, 'nyx' primary, '.' roxo, 'code' primary, '▌' roxo.
-      - Bordas ╭─╮│╰╯ accent.
+      - Bordas ╭─╮│╰╯ e junções ┬├┤┴ accent.
       - '●' accent. '100% offline' verde NYX_SUCCESS.
-      - Rótulos muted; valores primary; versão dim.
+      - Rótulos CAPS muted; valores primary; versão dim.
+      - Pipes internos │ entre seções em muted (mais discretos que as bordas).
+      - 'Memória ativa' fixo, independente de memory_count.
+
+    Coluna esquerda fixa em 18 chars, separador vertical em accent,
+    coluna direita = inner_w - 18 - 1.
     """
     purple = ANSI_PURPLE_FG
     primary = ANSI_PRIMARY_FG
     success = ANSI_SUCCESS_FG
 
-    mem_str = (
-        f"{memory_count} entradas" if memory_count is not None else "ativa"
-    )
-    # Compactar portas dentro do box (sem espaços ao redor do '/').
+    # Compactar portas (sem espaços ao redor do '/').
     ports_box = ports_short.replace(" / ", "/")
 
-    # Largura interna do box (entre as bordas │ │). Fixa em 66 para layout
-    # estável; padding lateral de 2 chars (mesmo do padding "  " externo).
-    inner_w = 66
+    # Largura total interna entre │ esquerda e │ direita.
+    inner_w = 70
+    left_w = 18  # coluna do "$ nyx.code▌"
+    right_w = inner_w - left_w - 1  # 1 char do separador │ vertical
 
-    # ---- block "$ nyx.code▌" ----
-    block_line = (
-        f"  {purple}$ {primary}nyx{purple}.{primary}code{purple}▌{nc}"
+    # ---- conteúdo da coluna esquerda ----
+    # "$ nyx.code▌" tem 11 chars visíveis; centralizado horizontalmente
+    # dentro de left_w=18 e verticalmente na linha 3 (centro de 5 linhas).
+    nyx_visible = "$ nyx.code▌"  # 11 chars
+    nyx_text = (
+        f"{purple}$ {primary}nyx{purple}.{primary}code{purple}▌{nc}"
+    )
+    left_pad_total = left_w - len(nyx_visible)
+    left_pad_l = left_pad_total // 2
+    left_pad_r = left_pad_total - left_pad_l
+    left_filled = f"{' ' * left_pad_l}{nyx_text}{' ' * left_pad_r}"
+    left_empty = " " * left_w
+
+    # ---- topo do box (com ┬ na junção de colunas) ----
+    topo = (
+        f"  {accent}{tl}{h * left_w}{_TJOIN}{h * right_w}{tr}{nc}"
     )
 
-    # ---- topo do box ----
-    topo = f"  {accent}{tl}{h * inner_w}{tr}{nc}"
+    # ---- separadores horizontais entre rows da direita (┤ na borda esquerda interna, ┤ direita) ----
+    # Esquerda fica intacta (sem horizontal), só a direita recebe ── e termina em ┤.
+    sep_mid = (
+        f"  {accent}{v}{nc}{left_empty}{accent}{_LJOIN}{h * right_w}{_RJOIN}{nc}"
+    )
 
-    # ---- linha 1 do box: versão + offline ----
-    # plain: "  v1.2.0    ● 100% offline" -> visible len = 2 + len(v...) + 4 + 2 + len("100% offline")
-    plain1 = f"  v{NYX_VERSION}    ● 100% offline"
-    pad1 = max(1, inner_w - len(plain1))
-    linha1 = (
-        f"  {accent}{v}{nc}  "
-        f"{dim}v{NYX_VERSION}{nc}    "
-        f"{accent}●{nc} "
+    # ---- row 1 (direita): versão + offline ----
+    # plain visible: "  v1.2.0      ●  100% offline" within right_w
+    plain_r1 = f"  v{NYX_VERSION}      ●  100% offline"
+    pad_r1 = max(1, right_w - len(plain_r1))
+    row1_right = (
+        f"  {dim}v{NYX_VERSION}{nc}      "
+        f"{accent}●{nc}  "
         f"{success}100% offline{nc}"
-        f"{' ' * pad1}"
-        f"{accent}{v}{nc}"
+        f"{' ' * pad_r1}"
+    )
+    linha_r1 = (
+        f"  {accent}{v}{nc}{left_empty}{accent}{v}{nc}{row1_right}{accent}{v}{nc}"
     )
 
-    # ---- linha 2 do box: Modelo / Projeto / Rede ----
-    plain2 = f"  Modelo {model}   Projeto {project}   Rede {ports_box}"
-    pad2 = max(1, inner_w - len(plain2))
-    linha2 = (
-        f"  {accent}{v}{nc}  "
-        f"{muted}Modelo{nc} {primary}{model}{nc}   "
-        f"{muted}Projeto{nc} {primary}{project}{nc}   "
-        f"{muted}Rede{nc} {primary}{ports_box}{nc}"
-        f"{' ' * pad2}"
-        f"{accent}{v}{nc}"
+    # ---- row 2 (direita): MODELO + PROJETO (separados por │ muted) ----
+    plain_r2 = f"  MODELO {model} | PROJETO {project}"
+    pad_r2 = max(1, right_w - len(plain_r2))
+    row2_right = (
+        f"  {muted}MODELO{nc} {primary}{model}{nc} "
+        f"{muted}{v}{nc} "
+        f"{muted}PROJETO{nc} {primary}{project}{nc}"
+        f"{' ' * pad_r2}"
+    )
+    # Linha 3 da grid (centro): aqui mostra o "$ nyx.code▌" na esquerda.
+    linha_r2 = (
+        f"  {accent}{v}{nc}{left_filled}{accent}{v}{nc}{row2_right}{accent}{v}{nc}"
     )
 
-    # ---- linha 3 do box: Tools / Comandos / Memória / Tipo ----
-    plain3 = (
-        f"  Tools {tools_count}   Comandos {commands_count}   "
-        f"Memória {mem_str}   Tipo {session_type}"
+    # ---- row 3 (direita): TOOLS + COMANDOS + MEMÓRIA ativa ----
+    plain_r3 = (
+        f"  TOOLS {tools_count} | COMANDOS {commands_count} | MEMÓRIA ativa"
     )
-    pad3 = max(1, inner_w - len(plain3))
-    linha3 = (
-        f"  {accent}{v}{nc}  "
-        f"{muted}Tools{nc} {primary}{tools_count}{nc}   "
-        f"{muted}Comandos{nc} {primary}{commands_count}{nc}   "
-        f"{muted}Memória{nc} {primary}{mem_str}{nc}   "
-        f"{muted}Tipo{nc} {primary}{session_type}{nc}"
-        f"{' ' * pad3}"
-        f"{accent}{v}{nc}"
+    pad_r3 = max(1, right_w - len(plain_r3))
+    row3_right = (
+        f"  {muted}TOOLS{nc} {primary}{tools_count}{nc} "
+        f"{muted}{v}{nc} "
+        f"{muted}COMANDOS{nc} {primary}{commands_count}{nc} "
+        f"{muted}{v}{nc} "
+        f"{muted}MEMÓRIA{nc} {primary}ativa{nc}"
+        f"{' ' * pad_r3}"
+    )
+    linha_r3 = (
+        f"  {accent}{v}{nc}{left_empty}{accent}{v}{nc}{row3_right}{accent}{v}{nc}"
     )
 
-    # ---- rodape do box ----
-    base = f"  {accent}{bl}{h * inner_w}{br}{nc}"
+    # ---- rodape do box (com ┴ na junção de colunas) ----
+    base = (
+        f"  {accent}{bl}{h * left_w}{_BJOIN}{h * right_w}{br}{nc}"
+    )
 
-    return "\n".join(["", block_line, topo, linha1, linha2, linha3, base, ""])
+    return "\n".join(
+        [
+            "",
+            topo,
+            linha_r1,
+            sep_mid,
+            linha_r2,
+            sep_mid,
+            linha_r3,
+            base,
+            "",
+        ]
+    )
 
 
 # "A forma segue a função." -- Louis Sullivan

@@ -165,10 +165,13 @@ async def run_repl(
             ink_muted = pal.get("ink_muted", _D_MUTED)
             bg = pal.get("bg", _D_BG)
             bg_soft = pal.get("bg_soft", _D_BG_SOFT)
+            # TUI-REDESIGN-28-09: popup do completion adota bg do terminal
+            # (bg:default) para integrar com o fundo, preservando o destaque
+            # do item selecionado (.current) com bg:{accent}.
             return _PtkStyle.from_dict({
-                "completion-menu.completion":                f"bg:{accent_lo} fg:{ink}",
+                "completion-menu.completion":                f"bg:default fg:{ink}",
                 "completion-menu.completion.current":        f"bg:{accent} fg:{bg} bold",
-                "completion-menu.meta.completion":           f"bg:{bg_soft} fg:{ink_muted}",
+                "completion-menu.meta.completion":           f"bg:default fg:{ink_muted}",
                 "completion-menu.meta.completion.current":   f"bg:{accent_lo} fg:{ink}",
                 "bottom-toolbar":                            f"fg:{ink_muted}",
                 "bottom-toolbar.text":                       f"fg:{ink_muted}",

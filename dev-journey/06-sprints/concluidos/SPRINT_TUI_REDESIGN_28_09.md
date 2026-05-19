@@ -109,9 +109,33 @@ sprint:
 
 # Sprint TUI-REDESIGN-28-09
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-18
+**Data conclusão:** 2026-05-19
 **Modelo obrigatório:** claude-opus-4-7
+
+## Resultado
+
+4 frentes entregues em commit atômico:
+
+1. `nyx/agent/banner.py` — `_build_wide()` reescrito como grid 2-col (inner_w=70, left_w=18, right_w=51). Junções `┬├┤┴`, pipes `│` internos em muted, rótulos CAPS, "MEMÓRIA ativa" fixo. `_build_compact()` preservado intacto. Assinatura de `build_banner()` inalterada.
+2. `nyx/cli.py` — `completion-menu.completion` e `completion-menu.meta.completion` migrados de `bg:{accent_lo}` para `bg:default`. `.current` preserva `bg:{accent}` para destaque do item selecionado.
+3. `run.sh:646-652` — bloco de eco do endmark `─── Sessão Iniciada ───` removido. Token `GLYPHS_BOOT["endmark"]` preservado em `design_tokens.py` para uso programático.
+4. `design_tokens.py` — sem alteração (token permanece como contrato).
+
+## Proof-of-work
+
+- Smoke: `./run.sh --smoke` → boot ok
+- Invariantes: 14/14 (FAIL=0)
+- Render standalone: `/tmp/banner_28_09.txt` (grid 2-col confirmado)
+- Acentuação periférica: 0 violações nos 3 arquivos modificados
+- Screenshot kitty + import: `dev-journey/07-reports/proofs/TUI_28_RETOQUE/tui_banner_28_09_VALIDADO.png`
+  - sha256: `69c17b392ec52241253cb90ff14e7634ec3713578ed5c5e5e8610e9a584ea59d`
+  - Validação multimodal: grid 2-col fiel ao mockup, rótulos CAPS, cursor roxo `▌`, paleta turquesa+roxo+verde preservada (forbidden #1 respeitado)
+
+## Nota de divergência (resolução)
+
+O `tests[3]` do spec pedia `grep -c 'Memória ativa' /tmp/banner_28_09.txt == 1` (Title Case), enquanto `acceptance_criteria[3]` e `desenho_alvo` (linhas 95-96) pediam `MEMÓRIA` em CAPS (alinhado com MODELO, PROJETO, TOOLS, COMANDOS). Resolução: seguiu-se `acceptance_criteria` + `desenho_alvo` (CAPS = `MEMÓRIA ativa`). Verificação efetiva no plain-text stripado de ANSI: `MEMÓRIA ativa` aparece 1 vez como string contígua.
 
 ## Rollback
 
