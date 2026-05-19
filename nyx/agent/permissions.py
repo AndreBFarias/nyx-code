@@ -9,11 +9,17 @@ Port de Luna src/skills/code_agent/permissions.py.
 - deny: bloqueia sempre
 
 Config em ~/.nyx/permissions.json.
+
+Override por env (NYX-AUTO-APPROVE-01):
+- NYX_AUTO_APPROVE=1 promove CONFIRM_ONCE -> AUTO (executa sem prompt).
+  DENY permanece ativo. Uso: cockpit Control API e automação sem TTY.
+  Opt-in: nada acontece por default; precisa setar a env explicitamente.
 """
 
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -80,8 +86,16 @@ class PermissionChecker:
         if path and self._is_path_denied(path):
             return PermissionLevel.DENY
 
+        # NYX-AUTO-APPROVE-01: env-driven bypass de CONFIRM_ONCE em automação.
+        # DENY já bloqueou acima; aqui só promovemos confirmações silenciáveis.
+        # ALWAYS_CONFIRM permanece exigindo prompt (intenção do usuário ao
+        # marcar tool como sempre-confirmar é nunca-automatizar).
+        auto_approve_env = os.environ.get("NYX_AUTO_APPROVE") == "1"
+
         if action_type in self._config.get("confirm_once", []):
             if action_type in self._confirmed_actions:
+                return PermissionLevel.AUTO
+            if auto_approve_env:
                 return PermissionLevel.AUTO
             return PermissionLevel.CONFIRM_ONCE
 

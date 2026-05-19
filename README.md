@@ -1,4 +1,4 @@
-![CI](https://github.com/AndreBFarias/nyx-code/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/[REDACTED]/nyx-code/actions/workflows/ci.yml/badge.svg)
 
 # Nyx-Code
 
@@ -69,7 +69,7 @@ run.sh ─────> Ollama (:11435) ──> GPU (num_gpu=12, qwen2.5-coder:3
   +────────> Nyx CLI (nyx/cli.py)
               - REPL interativo com Rich output + prompt-toolkit
               - 34 tools via ToolRegistry
-              - 61 slash commands
+              - 62 slash commands
               - AgentLoop: plan-execute-observe (até 30 iterações)
               - ActionParser: 7 níveis de fallback
               - ContextBudget: compactação progressiva
@@ -114,6 +114,24 @@ Sobe o servidor FastAPI local (`127.0.0.1:11437`, ADR-001 Local First) e abre o 
 - `/control/{gauntlet,feature,repl,registry}` -- automação por agente externo
 
 Documentação completa: [dev-journey/05-guides/COCKPIT_API.md](dev-journey/05-guides/COCKPIT_API.md).
+
+### Modo automatizado (`--auto-approve` / `NYX_AUTO_APPROVE=1`)
+
+Para automação via Cockpit Control API, CI ou scripts não-interativos (sem TTY para responder prompts):
+
+```bash
+./run.sh --auto-approve                  # seta NYX_AUTO_APPROVE=1 antes do exec
+NYX_AUTO_APPROVE=1 ./run.sh --headless   # equivalente via env direto
+```
+
+Comportamento:
+
+- `CONFIRM_ONCE` (`write_file`, `edit_file`, `create_file`, `patch`) é silenciosamente aprovado.
+- `ALWAYS_CONFIRM` (`run_command`, `write_memory`) **continua exigindo prompt** — intenção do usuário ao marcar tool como sempre-confirmar é nunca-automatizar.
+- `DENY` continua bloqueando (regras de segurança preservadas, ex.: `rm -rf *`, `sudo *`).
+- Logado em stderr no boot: `[warning] NYX_AUTO_APPROVE=1 ativo: ...`.
+
+**ATENÇÃO:** tools que tocam filesystem rodam sem prompt. Use apenas em ambientes controlados (CI, dev, sandbox, cockpit local). Sem persistência: opt-in vale só pela duração do processo.
 
 ## Validação
 
@@ -184,7 +202,7 @@ Servidor local FastAPI em `127.0.0.1:11437` (bind loopback-only, ADR-001):
 |---|---|
 | `GET /` | Dashboard reativo com 62 cards (Alpine.js + HTMX vendored, sem CDN) |
 | `GET /static/terminal.html` | REPL Nyx embedded via PTY + xterm.js |
-| `WS /repl` | Bridge PTY ↔ WebSocket (bidirecional, com resize JSON-meta) |
+| `WS /repl` | Bridge PTY  WebSocket (bidirecional, com resize JSON-meta) |
 | `GET /api/features` | REGISTRY.yaml (62 features) |
 | `GET /api/tokens` | Paleta D do design_tokens.py (frontend hidrata CSS vars) |
 | `GET /api/microcopy` | MICROCOPY.md + 25 strings PT-BR canônicas |
@@ -323,7 +341,7 @@ nyx/
     loop/              # AgentLoop split (_core + _iteration)
     parser.py          # ActionParser (7 níveis)
     banner.py          # 3 modos (compact/wide/neofetch)
-    commands/          # 61 slash commands (incl. /aesthetic, /cancel)
+    commands/          # 62 slash commands (incl. /aesthetic, /cancel)
     output.py          # Rich + theme_manager
     tools/             # 35 tools registradas
     services/          # 14 services (incl. hook_runtime, plugin_manager, mcp_client)

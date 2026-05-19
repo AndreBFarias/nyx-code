@@ -501,6 +501,8 @@ Reorganização proposta priorizando meta v1.0 "Claude Code offline e opensource
 | 145 | **HELP-COVERAGE-FIX-01** | 24.4 Higiene | BAIXA | PENDENTE | -- (achado A1) |
 | 146 | **COCKPIT-LIFECYCLE-FIX-01** | 24.3 Cockpit | ALTA | CONCLUIDA (2026-05-19) | COCKPIT-02, UX-LIFECYCLE-01 (achado real 2026-05-18: 2ª sessão PTY causava cascata de kill em proxy 11436) |
 | 147 | **COCKPIT-ACENTUACAO-FIX-01** | 24.3 Cockpit | BAIXA | PENDENTE | -- (achado colateral durante COCKPIT-LIFECYCLE-FIX-01: 5 violações pré-existentes em server.py) |
+| 148 | **NYX-AUTO-APPROVE-01** | 24.6 Infra resiliente | ALTA | CONCLUIDA (2026-05-19) | -- (achado real 2026-05-18: CONFIRM_ONCE em PTY/cockpit deadlocka sem canal de resposta; env NYX_AUTO_APPROVE=1 + flag --auto-approve promovem CONFIRM_ONCE -> AUTO; DENY preservado) |
+| 149 | **MASTER-ACENTUACAO-FIX-01** | 24.4 Higiene | BAIXA | PENDENTE | -- (achado colateral durante NYX-AUTO-APPROVE-01: 12 violações pré-existentes de acentuação em SPRINT_ORDER_MASTER.md introduzidas em commits anteriores) |
 
 **Bloco 24.1 (Infra resiliente):** 2 sprints — controle OOM no run.sh + senha sudo via env var. Pré-requisito para VALIDATE-FINAL-01 estável em sessões longas.
 
@@ -509,6 +511,8 @@ Reorganização proposta priorizando meta v1.0 "Claude Code offline e opensource
 **Bloco 24.3 (Resiliência arquitetural):** 1 sprint — INFRA-MODEL-AGNOSTIC-01 valida empiricamente que infra do Nyx eleva qualquer modelo (qwen3:4b legacy vs qwen2.5-coder:3b default em métricas equivalentes).
 
 **Bloco 24.4 (Higiene):** 2 sprints — refresh do MASTER (esta) + correção do `/?` (achado A1).
+
+**Bloco 24.6 (Infra resiliente, automação):** 1 sprint — NYX-AUTO-APPROVE-01 destrava cockpit/CI: env `NYX_AUTO_APPROVE=1` ou flag `--auto-approve` em run.sh promovem `CONFIRM_ONCE` para auto-aprovado em `PermissionChecker.check()` (nyx/agent/permissions.py); DENY e ALWAYS_CONFIRM preservados. Log de warning no boot via cli.run_repl e cli.run_headless. README seção "Modo automatizado".
 
 ### Notas de reconciliação (commits 5bc4354..decd858 que estavam fora do MASTER)
 

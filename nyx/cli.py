@@ -109,6 +109,15 @@ async def run_repl(
 
     settings = load_settings()
 
+    # NYX-AUTO-APPROVE-01: alerta visível quando modo automatizado está ativo.
+    # CONFIRM_ONCE será silenciosamente aprovado em PermissionChecker.check.
+    # DENY continua bloqueando. Usar somente em automação confiável (CI, cockpit).
+    if os.environ.get("NYX_AUTO_APPROVE") == "1":
+        logger.warning(
+            "NYX_AUTO_APPROVE=1 ativo: CONFIRM_ONCE auto-aprovado. "
+            "Use somente em automação confiável."
+        )
+
     # UX-BUG-03: Analytics() sai do caminho síncrono pré-banner. Mantemos
     # referência mutável (analytics_ref[0]) para que o shutdown leia mesmo
     # se a task de warm-up não tiver completado — neste caso end_session
@@ -1637,6 +1646,14 @@ async def run_headless() -> int:
     if not proxy_url.startswith("http"):
         proxy_url = settings.proxy_url
     model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", settings.model))
+
+    # NYX-AUTO-APPROVE-01: em headless via cockpit/CI o prompt CONFIRM_ONCE
+    # deadlocka sem TTY. Log de aviso visível em stderr para auditoria.
+    if os.environ.get("NYX_AUTO_APPROVE") == "1":
+        logger.warning(
+            "NYX_AUTO_APPROVE=1 ativo (headless): CONFIRM_ONCE auto-aprovado. "
+            "Use somente em automação confiável."
+        )
 
     def on_tool(name: str, args: dict) -> None:
         msg = _json.dumps({"type": "tool_use", "tool": name, "args": args}, ensure_ascii=False)
