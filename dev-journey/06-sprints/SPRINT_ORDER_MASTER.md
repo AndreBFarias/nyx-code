@@ -492,7 +492,7 @@ Reorganização proposta priorizando meta v1.0 "Claude Code offline e opensource
 | 135 | **VISUAL-LAYOUT-03** | 24.2 Visual Layout | MÉDIA | ABSORVIDA_POR_VL_CLI_CONSUME_01 | VISUAL-LAYOUT-01 |
 | 136 | **VISUAL-LAYOUT-04** | 24.2 Visual Layout | BAIXA | ABSORVIDA_POR_ONDA_25 (-> TUI-REDESIGN-25-15) | VISUAL-LAYOUT-01, VISUAL-LAYOUT-03 |
 | 137 | **VISUAL-LAYOUT-05** | 24.2 Visual Layout | MÉDIA | ABSORVIDA_POR_ONDA_25 (-> TUI-REDESIGN-25-15) | VISUAL-LAYOUT-01, VISUAL-LAYOUT-03 |
-| 138 | **VISUAL-LAYOUT-06** | 24.2 Visual Layout | BAIXA | MANTIDA paralela (cor real, ortogonal aos schemas) | VISUAL-LAYOUT-05 |
+| 138 | **VISUAL-LAYOUT-06** | 24.2 Visual Layout | BAIXA | CONCLUIDA (2026-05-19; 4 aesthetics restantes documentadas com smoke OK em cyberpunk/brutalist/mecha/editorial; 4 PNGs em assets/aesthetics/ via render_aesthetic_showcase.py mostrando paleta+glifos crus de cada; galeria SHOWCASE_AESTHETICS_GALLERY.md com tabela das 5 + showcases; achado colateral: banner ainda consome accent da entity e glifos hardcoded BOX_CHARS — proposto VISUAL-LAYOUT-09 ao planejador-sprint) | VISUAL-LAYOUT-05 |
 | 139 | **VISUAL-LAYOUT-07** | 24.2 Visual Layout | BAIXA | ABSORVIDA_POR_ONDA_25 (-> TUI-REDESIGN-25-09) | VISUAL-LAYOUT-01, VISUAL-LAYOUT-03 |
 | 140 | **VISUAL-LAYOUT-08** | 24.2 Visual Layout | MÉDIA | CONCLUIDA | VISUAL-LAYOUT-01, VISUAL-LAYOUT-03 |
 | 141 | **INFRA-OOM-01** | 24.1 Infra resiliente | ALTA | PENDENTE | -- |

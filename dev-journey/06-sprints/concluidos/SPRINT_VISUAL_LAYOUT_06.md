@@ -41,9 +41,19 @@ sprint:
 
 # Sprint VISUAL-LAYOUT-06 — Aesthetics restantes
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-18
+**Data conclusão:** 2026-05-19
 **Modelo obrigatório:** claude-opus-4-7
+**PNGs (paths absolutos):**
+- /home/andrefarias/Desenvolvimento/Nyx-Code/assets/aesthetics/cyberpunk_boot.png
+- /home/andrefarias/Desenvolvimento/Nyx-Code/assets/aesthetics/brutalist_boot.png
+- /home/andrefarias/Desenvolvimento/Nyx-Code/assets/aesthetics/mecha_boot.png
+- /home/andrefarias/Desenvolvimento/Nyx-Code/assets/aesthetics/editorial_boot.png
+
+**Galeria:** /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/07-reports/SHOWCASE_AESTHETICS_GALLERY.md
+**Script:** /home/andrefarias/Desenvolvimento/Nyx-Code/scripts/visual/render_aesthetic_showcase.py
+**Achado colateral:** Banner ainda consome accent da ENTITY e glifos hardcoded BOX_CHARS; sprint VISUAL-LAYOUT-09 proposta.
 
 ---
 
