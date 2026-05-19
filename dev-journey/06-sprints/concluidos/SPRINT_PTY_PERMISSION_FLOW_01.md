@@ -41,8 +41,9 @@ sprint:
 
 # Sprint PTY-PERMISSION-FLOW-01
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (2026-05-19)
 **Data criação:** 2026-05-18 (achado de uso real via cockpit/REPL)
+**Data conclusão:** 2026-05-19
 **Modelo obrigatório:** claude-opus-4-7
 
 ---

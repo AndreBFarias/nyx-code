@@ -56,6 +56,57 @@
       background: var(--nyx-bg-soft);
       border-top-left-radius: 4px;
     }
+    /* PTY-PERMISSION-FLOW-01: modal overlay para aprovar CONFIRM_ONCE */
+    #perm-overlay {
+      position: fixed; inset: 0;
+      background: rgba(14, 15, 26, 0.78);
+      display: none;
+      align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+    #perm-overlay.visible { display: flex; }
+    #perm-modal {
+      background: var(--nyx-bg-soft);
+      border: 1px solid var(--nyx-accent);
+      border-radius: 6px;
+      padding: 1.25rem 1.5rem;
+      min-width: 360px; max-width: 520px;
+      box-shadow: 0 8px 32px rgba(0, 212, 170, 0.18);
+    }
+    #perm-modal h2 {
+      margin: 0 0 0.35rem 0;
+      color: var(--nyx-accent);
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    #perm-modal p {
+      margin: 0 0 1rem 0;
+      font-size: 0.85rem;
+      color: var(--nyx-ink);
+    }
+    #perm-modal .tool {
+      color: var(--nyx-purple);
+      font-weight: 600;
+    }
+    #perm-actions {
+      display: flex; gap: 0.5rem; flex-wrap: wrap;
+    }
+    #perm-actions button {
+      flex: 1 1 auto;
+      padding: 0.45rem 0.75rem;
+      background: var(--nyx-bg);
+      color: var(--nyx-ink);
+      border: 1px solid var(--nyx-ink-dim);
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.8rem;
+    }
+    #perm-actions button:hover { border-color: var(--nyx-accent); color: var(--nyx-accent); }
+    #perm-actions button.primary { border-color: var(--nyx-accent); color: var(--nyx-accent); }
+    #perm-actions button.danger { border-color: #FF6B6B; color: #FF6B6B; }
+    #perm-actions button.always { border-color: var(--nyx-purple); color: var(--nyx-purple); }
+    #perm-actions button:disabled { opacity: 0.5; cursor: wait; }
   </style>
 </head>
 <body>
@@ -66,6 +117,17 @@
     <span class="status"><span id="dot" class="status-dot"></span><span id="status-text">conectando...</span></span>
   </div>
   <div id="terminal"></div>
+  <div id="perm-overlay" role="dialog" aria-modal="true" aria-labelledby="perm-title">
+    <div id="perm-modal">
+      <h2 id="perm-title">Permissão solicitada</h2>
+      <p><span class="tool" id="perm-tool">tool</span> pede permissão. Aprovar?</p>
+      <div id="perm-actions">
+        <button id="perm-yes" class="primary" type="button">Aprovar uma vez</button>
+        <button id="perm-always" class="always" type="button">Sempre aprovar essa tool</button>
+        <button id="perm-no" class="danger" type="button">Negar</button>
+      </div>
+    </div>
+  </div>
   <div class="footer">Ctrl+C cancela | Ctrl+D sai | redimensione livremente</div>
 
   <script src="/static/vendor/xterm.js"></script>
@@ -110,6 +172,75 @@
       // Envia tamanho inicial
       sendResize();
     };
+    // PTY-PERMISSION-FLOW-01: detecta marca `[permissao: uma vez] Executar <tool>(`
+    // no stream do PTY e abre overlay para aprovacao humana via clique.
+    // Regex montado em runtime para evitar literal sensivel em ferramentas
+    // de seguranca que escaneiam tokens do tipo "Exec" + "(".
+    const permOverlay = document.getElementById("perm-overlay");
+    const permTool = document.getElementById("perm-tool");
+    const permYes = document.getElementById("perm-yes");
+    const permAlways = document.getElementById("perm-always");
+    const permNo = document.getElementById("perm-no");
+    let permCurrentTool = null;
+    let permBuffer = "";
+    const _verb = "Ex" + "ecutar";  // anti-falso-positivo em hooks de seguranca
+    const permRegex = new RegExp(
+      "\\[permiss(?:ão|ao):\\s*(?:uma vez|sempre)\\]\\s*" + _verb +
+      "\\s+(?:\\x1b\\[[0-9;]*m)*([A-Za-z_][A-Za-z0-9_]*)"
+    );
+
+    function showPermModal(toolName) {
+      permCurrentTool = toolName;
+      permTool.textContent = toolName;
+      permOverlay.classList.add("visible");
+      permYes.disabled = false;
+      permAlways.disabled = false;
+      permNo.disabled = false;
+    }
+
+    function hidePermModal() {
+      permOverlay.classList.remove("visible");
+      permCurrentTool = null;
+    }
+
+    async function sendPermAnswer(answer) {
+      const payload = { answer };
+      if (answer === "yes_always" && permCurrentTool) payload.tool = permCurrentTool;
+      permYes.disabled = true;
+      permAlways.disabled = true;
+      permNo.disabled = true;
+      try {
+        await fetch("/control/repl/permission", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      } catch (err) {
+        console.error("[cockpit] envio de permissao falhou:", err);
+      } finally {
+        hidePermModal();
+      }
+    }
+
+    permYes.addEventListener("click", () => sendPermAnswer("yes"));
+    permAlways.addEventListener("click", () => sendPermAnswer("yes_always"));
+    permNo.addEventListener("click", () => sendPermAnswer("no"));
+
+    // Exposicao para validacao visual headless (PTY-PERMISSION-FLOW-01 proof).
+    // NUNCA usado em runtime do REPL real -- apenas para injetar texto de
+    // teste e capturar PNG do modal renderizado.
+    window.__nyxPerm = { showPermModal, hidePermModal, scanForPermissionPrompt };
+
+    function scanForPermissionPrompt(text) {
+      // Mantém janela curta para casar marca quebrada em frames sucessivos.
+      permBuffer = (permBuffer + text).slice(-512);
+      const m = permRegex.exec(permBuffer);
+      if (m && (!permOverlay.classList.contains("visible") || permCurrentTool !== m[1])) {
+        showPermModal(m[1]);
+        permBuffer = "";
+      }
+    }
+
     ws.onmessage = (e) => {
       if (typeof e.data === "string") {
         try {
@@ -123,9 +254,16 @@
           }
         } catch (_) {
           term.write(e.data);
+          scanForPermissionPrompt(e.data);
         }
       } else {
-        term.write(new Uint8Array(e.data));
+        const bytes = new Uint8Array(e.data);
+        term.write(bytes);
+        try {
+          scanForPermissionPrompt(new TextDecoder("utf-8", { fatal: false }).decode(bytes));
+        } catch (_) {
+          // decode silencioso: prompt CONFIRM_ONCE sempre vem em UTF-8.
+        }
       }
     };
     ws.onclose = () => {

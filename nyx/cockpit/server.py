@@ -382,6 +382,49 @@ async def control_repl_send(payload: dict[str, Any]) -> dict[str, Any]:
     return {"sent_bytes": len(text.encode("utf-8")), "ok": True}
 
 
+@app.post("/control/repl/permission")
+async def control_repl_permission(payload: dict[str, Any]) -> dict[str, Any]:
+    """PTY-PERMISSION-FLOW-01: aprova/nega prompt CONFIRM_ONCE no PTY ativo.
+
+    Frontend (terminal.html) detecta a marca `[permissão: uma vez]` no stream
+    do xterm e dispara POST com:
+      - {"answer": "yes"}                -> envia 'S\\n' (uma vez)
+      - {"answer": "yes_always", "tool": "write_file"} -> 'S\\n' + '/permissions add write_file\\n'
+      - {"answer": "no"}                 -> envia 'n\\n'
+
+    NÃO aprova sem clique humano: a rota só responde à requisição explícita
+    (forbidden #1 do spec). NÃO persiste resposta padrão (forbidden #2).
+    """
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="payload deve ser objeto JSON")
+    answer = payload.get("answer")
+    tool_name = payload.get("tool")
+    if answer not in ("yes", "yes_always", "no"):
+        raise HTTPException(status_code=400, detail="answer inválido (use yes|yes_always|no)")
+    if _active_pty is None:
+        raise HTTPException(status_code=409, detail="nenhuma sessão PTY ativa")
+
+    try:
+        if answer == "yes":
+            _active_pty.write(b"S\n")
+        elif answer == "no":
+            _active_pty.write(b"n\n")
+        elif answer == "yes_always":
+            # Aprova esta vez primeiro (libera a tool call em curso) e em
+            # seguida promove a tool a auto via slash command do REPL.
+            _active_pty.write(b"S\n")
+            if isinstance(tool_name, str) and tool_name.strip():
+                # Aceita apenas identificadores [A-Za-z_][A-Za-z0-9_]* para
+                # evitar injeção de slash command extra via newline/sep.
+                import re as _re
+                m = _re.match(r"[A-Za-z_][A-Za-z0-9_]*", tool_name.strip())
+                if m:
+                    _active_pty.write(f"/permissions add {m.group(0)}\n".encode("utf-8"))
+    except Exception as exc:  # noqa: BLE001 -- write best-effort
+        raise HTTPException(status_code=500, detail="write falhou: " + str(exc))
+    return {"sent": answer, "tool": tool_name if answer == "yes_always" else None, "ok": True}
+
+
 @app.get("/control/repl/snapshot")
 async def control_repl_snapshot(lines: int = 50) -> dict[str, Any]:
     """COCKPIT-05: retorna últimas N linhas do REPL ativo (via output buffer).
