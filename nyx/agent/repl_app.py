@@ -3,7 +3,7 @@
 Layout HSplit:
   - output_window  (FormattedTextControl + ANSI, ocupa altura disponível - 3 linhas)
   - separator      (1 linha, opcional)
-  - input_window   (BufferControl, min 1 max 8 linhas)
+  - input_window   (BufferControl, min 1 max 5 linhas)
   - toolbar_window (FormattedTextControl, 1 linha)
 
 TUI-REDESIGN-28-08c-PARTE-3: output_buffer (Buffer) é o storage canônico;
@@ -400,7 +400,7 @@ def build_app(
     )
     input_window = Window(
         content=input_control,
-        height=Dimension(min=1, max=8),
+        height=Dimension(min=1, max=5),
         wrap_lines=True,
     )
     toolbar_window = Window(
