@@ -21,7 +21,7 @@ Em caso de sessão Claude cair, próxima sessão Claude deve:
 ## Linha de retomada (sempre atualizada)
 
 - **Fase atual:** **Onda 28 em curso (2026-05-18).** 28-07 CONCLUIDA: cursor `▌` do banner `$ nyx.code` agora pisca 4 ciclos on/off (~1.5s) em roxo via `nyx/agent/banner_blink.py::blink_cursor_at` antes de ceder ao prompt. Skip silencioso em não-TTY (gauntlet/CI/pipe) e quando `NYX_NO_ANIMATION=1`. Wire-up em `nyx/cli.py:524` após o `print(_build_banner(...))`, em try/except best-effort com fallback `logger.debug`. ANSI CSI `\033[NA\033[NG` para subir 7 linhas / col 13 (modo wide; `\033[s` / `\033[u` para save/restore). Tratamento de `asyncio.CancelledError` restaura glifo final. Smoke ok / invariantes 14/14 / TTY simulado mediu 1.526s. **Anterior 28-06 CONCLUIDA**: banner virou block ASCII com box info de 3 linhas.
-- **Último commit (push ok):** `<pendente este commit>` (TUI-REDESIGN-28-07). Anterior: `49b5ef7 feat(TUI-REDESIGN-28-06)`.
+- **Último commit (push ok):** `5697216 feat(TUI-REDESIGN-28-07)`. Anterior: `49b5ef7 feat(TUI-REDESIGN-28-06)`.
 - **Próxima ação:** TUI-REDESIGN-28-08 (próxima sprint da onda 28; 4 sub-sprints a/b/c/d).
 - **Estado runtime final:** smoke=`boot ok` | invariantes=14/14 | sbom=62/62 | gauntlet rapido=11/11 APROVADO | benchmark P50=0.14s | cockpit 13 endpoints HTTP + 2 WS + dashboard 62 cards | --menu/--web/--auto-approve flags ativas
 - **tmux sessões persistidas:** `cockpit` (porta 11437; pode reaproveitar via `tmux attach -t cockpit`)
