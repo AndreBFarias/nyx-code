@@ -79,7 +79,10 @@ sprint:
 
 # Sprint TUI-REDESIGN-28-08c-PARTE-2
 
-**Status:** DEFERIDA
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-18
+**Data conclusão:** 2026-05-19
 **Modelo obrigatório:** claude-opus-4-7
 **Motivo da deferência:** sub-sprint 28_08c (migração de render_*) concluída; ativação do Application em runtime requer redesenho do loop REPL com mitigação de boot logs, banner overlap e captura de subprocess, fora do escopo de "migrar render_*" original.
+**Promoção 2026-05-19:** DEFERIDA → PENDENTE para execução com arquitetura herdada de 28_08a/b/c (build_app, run_repl_app_async, set_repl_app_output, _emit) já presente.
+**Resultado:** Switch runtime ativo. Em TTY + NYX_LEGACY_REPL!=1: build_app uma vez, set_repl_app_output ativa routing _emit, app.run_async() reaproveitado por iteração. Pre-populate de banner com strip ANSI imediato (mitigação até PARTE-3 trocar BufferControl por FormattedTextControl). Smoke ok (TTY + NYX_LEGACY_REPL=1), invariantes 14/14, gauntlet rápido APROVADO, self-test repl_app ok. Achado colateral: BufferControl não interpreta ANSI → SPRINT_TUI_REDESIGN_28_08c_PARTE_3.md criada em producao/.

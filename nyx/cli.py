@@ -424,17 +424,23 @@ async def run_repl(
     def _flush_buffer() -> None:
         buf = turn_state.get("token_buffer", "")
         if buf:
-            from nyx.agent.output import wrap_token_with_side_rule
+            from nyx.agent.output import _emit, wrap_token_with_side_rule
             wrapped = wrap_token_with_side_rule(buf, side_rule_state)
-            sys.stdout.write(wrapped)
-            sys.stdout.flush()
+            # TUI-REDESIGN-28-08c-PARTE-2: routing via _emit quando Application
+            # ativo (repl_app_active=True). Em legacy/headless, _emit cai em
+            # sys.stdout.write + flush, preservando comportamento anterior.
+            _emit(wrapped)
             turn_state["token_buffer"] = ""
 
     def on_token(token: str) -> None:
         if not turn_state["streamed_text"]:
             _stop_spinner()
-            sys.stdout.write("\r\x1b[2K")
-            sys.stdout.flush()
+            # TUI-REDESIGN-28-08c-PARTE-2: clear ANSI só faz sentido em stdout
+            # direto (terminal raw). Em Application ativo, output_buffer não
+            # interpreta ANSI cursor; o append_to_buffer recebe texto puro.
+            if not app_state.get("repl_app_active"):
+                sys.stdout.write("\r\x1b[2K")
+                sys.stdout.flush()
             # STREAMING-SIDE-RULE-01: reset state no início do turno.
             side_rule_state.clear()
         turn_state["streamed_text"] += token
@@ -603,6 +609,62 @@ async def run_repl(
     session_start = time.time()
     total_iterations = 0
 
+    # TUI-REDESIGN-28-08c-PARTE-2: switch runtime entre Application e PromptSession.
+    # use_application = True quando TTY real + NYX_LEGACY_REPL != "1" + prompt_session
+    # disponível. Application full-screen ancora input no rodapé e output rolando
+    # acima. NYX_LEGACY_REPL=1 mantém PromptSession (fallback de emergência).
+    _legacy_env = os.environ.get("NYX_LEGACY_REPL", "").strip() == "1"
+    use_application = (
+        sys.stdin.isatty() and not _legacy_env and prompt_session is not None
+    )
+    repl_app: object | None = None
+    repl_output_buffer: object | None = None
+    repl_input_buffer: object | None = None
+    if use_application:
+        try:
+            from nyx.agent.output import set_repl_app_output
+            from nyx.agent.repl_app import append_to_buffer, build_app
+
+            repl_app, repl_output_buffer, repl_input_buffer = build_app(
+                app_state=app_state,
+                completer=completer,
+                history=FileHistory(str(history_path)),
+                last_input_state=last_input_state,
+                image_map=image_map,
+                image_counter=image_counter,
+                prompt_text="  > ",
+            )
+            # Pre-popula banner no output_buffer: como Application full_screen
+            # ocupa toda a tela, o banner impresso anteriormente por print() já
+            # foi para o terminal cru — ao entrar em alternate screen ele fica
+            # invisível. Reaplicar via append_to_buffer garante presença no topo.
+            # BufferControl do prompt_toolkit não interpreta ANSI escapes (apenas
+            # FormattedTextControl). Para evitar vazamento ^[[38;... no output,
+            # removemos sequências CSI antes de gravar. Mitigação imediata até
+            # 28_08c-PARTE-3 trocar a base do output_window para FormattedText.
+            try:
+                import re as _re_ansi
+                from nyx.agent.banner import build_banner as _bb
+                _banner_str = _bb(model, agent.tools_count, PROJECT_ROOT.name, settings=settings)
+                _ansi_re = _re_ansi.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+                _banner_plain = _ansi_re.sub("", _banner_str)
+                append_to_buffer(repl_output_buffer, _banner_plain + "\n")
+            except Exception as _bexc:
+                logger.debug("pre-populate banner falhou: %s", _bexc)
+            # Ativa routing global do _emit para o buffer da Application.
+            set_repl_app_output(repl_output_buffer, app_state)
+            app_state["repl_app_active"] = True
+        except Exception as _aexc:
+            logger.warning(
+                "Application repl_app indisponível, fallback PromptSession: %s",
+                _aexc,
+            )
+            use_application = False
+            repl_app = None
+            repl_output_buffer = None
+            repl_input_buffer = None
+            app_state["repl_app_active"] = False
+
     while True:
         try:
             ctx_info = agent.get_context_info()
@@ -630,7 +692,26 @@ async def run_repl(
             else:
                 _body = f"> {_u_name} "
             prompt_str = f"  {ACCENT}{BOLD}{_body}{NC} "
-            if prompt_session:
+            if use_application and repl_app is not None and repl_input_buffer is not None:
+                # TUI-REDESIGN-28-08c-PARTE-2: roda mesmo Application a cada turno.
+                # accept_handler chama app.exit(result=text); reset entre iterações
+                # via run_async() interno faz self.reset(). Input limpo manualmente
+                # para evitar re-submit do texto anterior.
+                prefill = str(app_state.pop("prefill", "") or "")
+                if prefill:
+                    repl_input_buffer.text = prefill
+                    repl_input_buffer.cursor_position = len(prefill)
+                else:
+                    repl_input_buffer.text = ""
+                    repl_input_buffer.cursor_position = 0
+                _raw_result = await repl_app.run_async()  # type: ignore[attr-defined]
+                if _raw_result is None:
+                    raise EOFError()
+                user_input = str(_raw_result).strip()
+                # Limpa input para próxima iteração (Application reusa o buffer).
+                repl_input_buffer.text = ""
+                repl_input_buffer.cursor_position = 0
+            elif prompt_session:
                 # UX-EXTRA-01: prefill via /edit pré-popula próximo prompt_async.
                 prefill = str(app_state.pop("prefill", "") or "")
                 user_input = (
@@ -656,7 +737,9 @@ async def run_repl(
             # TUI-REDESIGN-25-07: remove eco "nyx> X" do prompt_toolkit antes
             # de renderizar a bubble. \033[1A move up, \r retorna ao início,
             # \033[2K limpa a linha. Sem efeito em pipe/headless (stdout não-tty).
-            if sys.stdout.isatty():
+            # TUI-REDESIGN-28-08c-PARTE-2: pular em Application (input no buffer
+            # não gera eco no stdout; \033[1A corromperia output_buffer/banner).
+            if sys.stdout.isatty() and not app_state.get("repl_app_active"):
                 sys.stdout.write("\033[1A\r\033[2K")
                 sys.stdout.flush()
             render_user_input(
@@ -1393,8 +1476,10 @@ async def run_repl(
             except asyncio.CancelledError:
                 _stop_spinner()
                 _flush_buffer()
-                sys.stdout.write("\r\x1b[2K")
-                sys.stdout.flush()
+                # TUI-REDESIGN-28-08c-PARTE-2: clear ANSI só em legacy stdout.
+                if not app_state.get("repl_app_active"):
+                    sys.stdout.write("\r\x1b[2K")
+                    sys.stdout.flush()
                 print(f"\n  {SUCCESS} cancelado{NC} (tool em curso interrompida)")
                 # Continua o REPL — usuário recupera controle.
                 app_state["inflight_task"] = None
@@ -1469,8 +1554,12 @@ async def run_repl(
                 _inflight.cancel()
             _stop_spinner()
             _flush_buffer()
-            sys.stdout.write("\r\x1b[2K")
-            sys.stdout.flush()
+            # TUI-REDESIGN-28-08c-PARTE-2: clear ANSI só em legacy stdout. No
+            # Application, append_to_buffer recebe texto puro; sequência cursor
+            # corromperia o output_buffer.
+            if not app_state.get("repl_app_active"):
+                sys.stdout.write("\r\x1b[2K")
+                sys.stdout.flush()
             print(f"\n  {SUCCESS} cancelado{NC}")
 
     elapsed = time.time() - session_start
