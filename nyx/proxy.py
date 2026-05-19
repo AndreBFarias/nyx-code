@@ -47,6 +47,7 @@ from nyx.config.defaults import OLLAMA_PORT as _DEFAULT_OLLAMA_PORT  # noqa: E40
 from nyx.config.defaults import OLLAMA_URL as _DEFAULT_OLLAMA_URL  # noqa: E402
 from nyx.config.defaults import PROXY_PORT as _DEFAULT_PROXY_PORT  # noqa: E402
 from nyx.config.defaults import model_supports_thinking as _model_supports_thinking  # noqa: E402
+from nyx.config.defaults import num_predict_for as _num_predict_for  # noqa: E402
 
 OLLAMA_URL = _DEFAULT_OLLAMA_URL
 NUM_CTX = _DEFAULT_NUM_CTX
@@ -128,12 +129,16 @@ def openai_to_ollama(body: dict, num_gpu: int) -> tuple[dict, str]:
     Retorna tupla (body_ollama, intent) para que o caller decida se aplica
     guardrail de idioma (LANG-ENFORCE-01).
 
-    Gating por intent (PERF-INFERENCE-01):
-    - intent=saudacao/chat: tools=[]; think=false; num_predict=NUM_PREDICT_CHAT.
-    - intent=tool-needed: mantém tools do request; think condicionado ao modelo
-      (qwen3 aceita; qwen2.5-coder rejeita com HTTP 400); num_predict=NUM_PREDICT_TOOL.
-    - intent=comando: idêntico a chat (proxy não trata /command, mas o caso é raro
-      pois CLI intercepta antes do payload).
+    Gating por intent (PERF-INFERENCE-01 + NYX-OUTPUT-LIMITS-01):
+    - num_predict resolvido por nyx.config.defaults.num_predict_for(intent, override).
+    - Override explicito do request (max_tokens / max_completion_tokens) tem
+      precedencia sobre o mapa por intent; ainda assim e capado por
+      NUM_PREDICT_HARD_CAP (anti-runaway em CPU-bound).
+    - Override via env NYX_NUM_PREDICT_OVERRIDE permite debug rapido sem editar
+      codigo (ver run.sh --num-predict N).
+    - Suprime tools quando intent não precisa (saudacao/chat/comando).
+    - think=true so quando o modelo suporta chain-of-thought nativa
+      (GAUNTLET-RAPIDO-FIXES-01 P-07).
     """
     messages = _normalize_messages(body.get("messages", []))
     last_user = _last_user_text(messages)
@@ -151,6 +156,14 @@ def openai_to_ollama(body: dict, num_gpu: int) -> tuple[dict, str]:
     model_name = body.get("model", _DEFAULT_MODEL)
     use_thinking = has_tools and _model_supports_thinking(model_name)
 
+    # NYX-OUTPUT-LIMITS-01: num_predict adaptativo.
+    # Mapeia o intent canonico para a chave do dict: quando ha tools no payload
+    # final, usa orcamento de 'tool' (resposta tipicamente envolve tool_call +
+    # resumo); senao usa o intent classificado pelo input do usuario.
+    intent_for_budget = "tool" if has_tools else intent
+    max_tok_override = body.get("max_tokens") or body.get("max_completion_tokens")
+    num_predict = _num_predict_for(intent_for_budget, max_tok_override)
+
     result: dict = {
         "model": model_name,
         "messages": messages,
@@ -160,19 +173,17 @@ def openai_to_ollama(body: dict, num_gpu: int) -> tuple[dict, str]:
         "options": {
             "num_gpu": num_gpu,
             "num_ctx": NUM_CTX,
+            "num_predict": num_predict,
         },
     }
     if has_tools:
         result["tools"] = body["tools"]
-        result["options"]["num_predict"] = _NUM_PREDICT_TOOL
-    else:
-        result["options"]["num_predict"] = _NUM_PREDICT_CHAT
     if body.get("temperature") is not None:
         result["options"]["temperature"] = body["temperature"]
-    # max_tokens explícito do request sobrescreve heurística.
-    max_tok = body.get("max_tokens") or body.get("max_completion_tokens")
-    if max_tok:
-        result["options"]["num_predict"] = max_tok
+    logger.info(
+        "intent=%s tools=%s num_predict=%d (override=%s)",
+        intent, has_tools, num_predict, bool(max_tok_override),
+    )
     return result, intent
 
 

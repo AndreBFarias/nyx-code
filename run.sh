@@ -154,6 +154,11 @@ while [[ $# -gt 0 ]]; do
         --auto-approve)
             export NYX_AUTO_APPROVE=1
             shift ;;
+        --num-predict)
+            # NYX-OUTPUT-LIMITS-01: override de num_predict para debug.
+            # Capado em 8192 dentro do proxy (anti-runaway CPU-bound).
+            export NYX_NUM_PREDICT_OVERRIDE="$2"
+            shift 2 ;;
         *)
             EXTRA_ARGS+=("$1")
             shift ;;

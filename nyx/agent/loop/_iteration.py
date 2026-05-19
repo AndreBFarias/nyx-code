@@ -32,6 +32,22 @@ from nyx.providers.base import ProviderError
 logger = get_logger("nyx.agent")
 
 
+# NYX-OUTPUT-LIMITS-01: heuristica de truncate em resposta de chat.
+# Disparada por terminacoes abruptas (virgula, hifen aberto, parenteses aberto)
+# em respostas com ao menos 100 caracteres; ignora outputs curtos onde a
+# terminacao pode ser legitima ('ok,' '-' rotulos etc.).
+_TRUNCATE_SUFFIXES = (",", "-", "(", "—", ":", ";")
+
+
+def _detect_truncate(text: str) -> bool:
+    if not text:
+        return False
+    stripped = text.rstrip()
+    if len(stripped) < 100:
+        return False
+    return stripped.endswith(_TRUNCATE_SUFFIXES)
+
+
 class _IterationMixin:
     """Métodos de iteração/LLM extraídos de AgentLoop."""
 
@@ -322,6 +338,14 @@ class _IterationMixin:
             msg = data["choices"][0]["message"]
             tc = msg.get("tool_calls", [])
             content = msg.get("content", "")
+
+            # NYX-OUTPUT-LIMITS-01: log warning se resposta parece truncada.
+            # Heuristica passiva (so loga); não reissue para não bloquear ciclo.
+            if content and not tc and _detect_truncate(content):
+                logger.warning(
+                    "[loop] possivel truncate (sufixo abrupto): '...%s'",
+                    content.rstrip()[-50:],
+                )
 
             if self._collector and content:
                 self._collector.reset()

@@ -74,8 +74,59 @@ NUM_GPU_3B: int = -1
 # Orcamento de tokens de saida por categoria de turno (PERF-INFERENCE-01).
 # Em CPU-bound (RTX 3050 4GB com 25/37 layers em RAM) o modelo gera ~16 tok/s,
 # entao cada token de "thinking" inutil custa caro. Cap agressivo p/ chat.
-NUM_PREDICT_CHAT: int = 80
-NUM_PREDICT_TOOL: int = 512
+#
+# NYX-OUTPUT-LIMITS-01: num_predict adaptativo por intent.
+# - saudacao: oi/ola, respostas <50 tok
+# - comando : slash hibrido, eventualmente precisa breve resposta
+# - chat    : explicacao curta
+# - tool    : tool call + resumo subsequente
+# - code    : geracao de codigo (write_file, edit_file)
+# - plan    : /plan, refactor amplo, documentacao tecnica
+# - default : qualquer intent não mapeado
+NUM_PREDICT_BY_INTENT: dict[str, int] = {
+    "saudacao": 80,
+    "comando": 120,
+    "chat": 512,
+    "tool": 2048,
+    "tool-needed": 2048,
+    "code": 4096,
+    "plan": 8192,
+    "default": 1024,
+}
+
+# Hard cap anti-runaway. Mesmo override explicito do request não ultrapassa.
+NUM_PREDICT_HARD_CAP: int = 8192
+
+# Compatibilidade retroativa: codigo existente (e gauntlet/perf fixtures) ainda
+# importa estes nomes. Permanecem espelhando os defaults pre-OUTPUT-LIMITS-01.
+NUM_PREDICT_CHAT: int = NUM_PREDICT_BY_INTENT["chat"]
+NUM_PREDICT_TOOL: int = NUM_PREDICT_BY_INTENT["tool"]
+
+
+def num_predict_for(intent: str, override: int | None = None) -> int:
+    """Resolve num_predict por intent. Override (env ou request) tem precedencia.
+
+    Precedencia:
+    1. override numerico explicito (max_tokens do request).
+    2. NYX_NUM_PREDICT_OVERRIDE no env (debug/CLI).
+    3. mapa NUM_PREDICT_BY_INTENT[intent].
+    4. NUM_PREDICT_BY_INTENT['default'] (fallback).
+
+    Aplicar NUM_PREDICT_HARD_CAP sempre, mesmo em overrides, evita runaway
+    em CPU-bound (RTX 3050 4GB gera ~16 tok/s; 32k tokens = 33 minutos).
+    """
+    if isinstance(override, bool):
+        override = None  # bool e subtipo de int; evitar True=1 silencioso
+    if isinstance(override, int) and override > 0:
+        return min(override, NUM_PREDICT_HARD_CAP)
+    if isinstance(override, str) and override.isdigit():
+        return min(int(override), NUM_PREDICT_HARD_CAP)
+    env_override = os.environ.get("NYX_NUM_PREDICT_OVERRIDE", "").strip()
+    if env_override.isdigit():
+        return min(int(env_override), NUM_PREDICT_HARD_CAP)
+    key = (intent or "").lower().strip()
+    return NUM_PREDICT_BY_INTENT.get(key, NUM_PREDICT_BY_INTENT["default"])
+
 # Manter modelo carregado em VRAM entre chamadas evita o load_duration de
 # ~7s que ocorre no cold start.
 OLLAMA_KEEP_ALIVE: str = "30m"
