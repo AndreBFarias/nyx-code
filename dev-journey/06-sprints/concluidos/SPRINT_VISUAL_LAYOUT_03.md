@@ -48,7 +48,8 @@ sprint:
 
 # Sprint VISUAL-LAYOUT-03 — Theme engine
 
-**Status:** PENDENTE
+**Status:** ABSORVIDA_POR_VL_CLI_CONSUME_01
+**Data conclusão:** 2026-05-18 (theme_manager.resolve_palette já existe; MASTER linha 492 registra absorção — sincronizado em SPRINT_ORDER-REFRESH-01 2026-05-19)
 **Data criação:** 2026-05-18
 **Modelo obrigatório:** claude-opus-4-7
 

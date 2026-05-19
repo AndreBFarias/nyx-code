@@ -42,7 +42,7 @@ sprint:
 
 **Status:** CONCLUIDA_PARCIAL
 **Data criação:** 2026-05-18 (achado durante TUI-REDESIGN-25-09)
-**Data conclusão:** 2026-05-18 (parcial — Tab keybinding feito; captura real do `response.message.thinking` pendente, requer mudança no proxy + loop/_iteration.py)
+**Data conclusão:** 2026-05-18 (Tab keybinding feito; captura real do thinking extraída para PARTE-3 DEFERIDA — sincronizado em SPRINT_ORDER-REFRESH-01 2026-05-19)
 **Modelo obrigatório:** claude-opus-4-7
 
 ## Contexto
@@ -103,7 +103,7 @@ como "thinking surrogate".
 ```bash
 ./run.sh --4b
 # pedir "explique recursão em 3 passos"
-# após resposta, ver linha " pensando · Ns · prévia"
+# após resposta, ver linha "▶ pensando · Ns · prévia"
 # digitar Tab (prompt vazio) → expande
 # digitar Tab de novo → colapsa
 bash scripts/sprint_invariants.sh

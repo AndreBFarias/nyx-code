@@ -41,7 +41,7 @@ sprint:
 
 **Status:** CONCLUIDA
 **Data criação:** 2026-05-18
-**Data conclusão:** 2026-05-18
+**Data conclusão:** 2026-05-18 (sincronizado em SPRINT_ORDER-REFRESH-01 2026-05-19)
 **Modelo obrigatório:** claude-opus-4-7
 
 ## Rollback

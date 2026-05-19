@@ -45,7 +45,7 @@ sprint:
 
 **Status:** CONCLUIDA_PARCIAL
 **Data criação:** 2026-05-18
-**Data conclusão:** 2026-05-18 (parcial — glyph-per-tool feito; alinhamento à direita das ações ficou abaixo do chip por simplicidade; refinamento opcional em sprint futura)
+**Data conclusão:** 2026-05-18 (glyph-per-tool feito, alinhamento ações à direita pendente refinamento — sincronizado em SPRINT_ORDER-REFRESH-01 2026-05-19)
 **Modelo obrigatório:** claude-opus-4-7
 
 ## Rollback

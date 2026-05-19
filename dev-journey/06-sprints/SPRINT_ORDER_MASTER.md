@@ -1,7 +1,7 @@
 # Sprint Order Master -- Nyx-Code
 
-**Versão:** v5.2
-**Data:** 2026-05-18 (bump em ONDA-28 materializa 8 specs de TUI paridade Claude Code; v5.1 refresh em SPRINT_ORDER-REFRESH-01)
+**Versão:** v5.3
+**Data:** 2026-05-19 (bump em SPRINT_ORDER-REFRESH-01 fecha auditoria do dia: 18 sprints CONCLUIDAS 2026-05-19 + reconciliação 10 sprints concluídas pendentes em producao/ + 1 duplicata removida + TUI-INPUT-HEIGHT fix-tag-along registrado; v5.2 ONDA-28 2026-05-18; v5.1 SPRINT_ORDER-REFRESH-01 2026-05-18)
 **Modelo obrigatório:** Opus 4.7 (claude-opus-4-7) -- sem subagentes (planejador-sprint/executor-sprint/validador-sprint apenas no fluxo /sprint-ciclo; implementação direta no normal)
 
 ---
@@ -498,7 +498,7 @@ Reorganização proposta priorizando meta v1.0 "Claude Code offline e opensource
 | 141 | **INFRA-OOM-01** | 24.1 Infra resiliente | ALTA | PENDENTE | -- |
 | 142 | **INSTALL-SUDO-01** | 24.1 Infra resiliente | MÉDIA | PENDENTE | -- |
 | 143 | **INFRA-MODEL-AGNOSTIC-01** | 24.3 Resiliência arquitetural | MÉDIA | PENDENTE | MODEL-SWAP-01 |
-| 144 | **SPRINT_ORDER-REFRESH-01** | 24.4 Higiene | MÉDIA | EM ANDAMENTO (auto-fulfill desta edição) | -- |
+| 144 | **SPRINT_ORDER-REFRESH-01** | 24.4 Higiene | MÉDIA | CONCLUIDA (2026-05-19; auditoria do dia: 18 sprints CONCLUIDAS hoje confirmadas presentes em concluidos/ e MASTER; 10 inconsistências PRODUCAO=PENDENTE vs MASTER=CONCLUIDA corrigidas via Status update + mv para concluidos/; 1 duplicata SHIFT_TAB_CYCLE_01 em producao/ removida — versão canônica preservada em concluidos/; TUI-INPUT-HEIGHT registrado como fix-tag-along de TUI-REDESIGN-28-08c; bump v5.2 → v5.3 com data 2026-05-19; smoke + invariantes 14/14) | -- |
 | 145 | **HELP-COVERAGE-FIX-01** | 24.4 Higiene | BAIXA | PENDENTE | -- (achado A1) |
 | 145b | **HELP-COVERAGE-FIX-02** | 24.4 Higiene | BAIXA | CONCLUIDA (2026-05-19) | -- (achado colateral durante HELP-COVERAGE-FIX-01: /aesthetic tinha 4 exemplos, audit_help_coverage aceita máximo 3; removido `/aesthetic get` preservando list + set arcano + set cyberpunk:luna; 66/66 OK; 14/14 invariantes; acentuação do docstring corrigida em mesma edição) |
 | 146 | **COCKPIT-LIFECYCLE-FIX-01** | 24.3 Cockpit | ALTA | CONCLUIDA (2026-05-19) | COCKPIT-02, UX-LIFECYCLE-01 (achado real 2026-05-18: 2ª sessão PTY causava cascata de kill em proxy 11436) |
@@ -521,6 +521,14 @@ Reorganização proposta priorizando meta v1.0 "Claude Code offline e opensource
 **Bloco 24.3 (Resiliência arquitetural):** 1 sprint — INFRA-MODEL-AGNOSTIC-01 valida empiricamente que infra do Nyx eleva qualquer modelo (qwen3:4b legacy vs qwen2.5-coder:3b default em métricas equivalentes).
 
 **Bloco 24.4 (Higiene):** 2 sprints — refresh do MASTER (esta) + correção do `/?` (achado A1).
+
+**Nota de reconciliação 2026-05-19 (SPRINT_ORDER-REFRESH-01 auto-fulfill):** auditoria do dia identificou 11 inconsistências entre filesystem e MASTER, todas corrigidas como parte do escopo do refresh:
+
+1. **Status divergente em 10 arquivos** (PRODUCAO=PENDENTE vs MASTER=CONCLUIDA): SPRINT_COCKPIT_WEB_REDESIGN_02/03, SPRINT_TUI_REDESIGN_25_09_PARTE_2 (+ PARTE_3 DEFERIDA), SPRINT_TUI_REDESIGN_26_02/03/04, SPRINT_TUI_REDESIGN_27_02/03, SPRINT_VISUAL_LAYOUT_03. Após atualizar `**Status:**` de cada spec com data conclusão 2026-05-18, arquivos foram movidos para `concluidos/`.
+2. **Duplicatas removidas** em `producao/`: SPRINT_SHIFT_TAB_CYCLE_01.md (3757 bytes, PENDENTE) — canônica em `concluidos/` (5681 bytes, CONCLUIDA com proof-of-work do executor); SPRINT_STREAMING_SIDE_RULE_01.md (106 linhas, PENDENTE) — canônica em `concluidos/` (107 linhas, CONCLUIDA com Data conclusão 2026-05-18).
+3. **TUI-INPUT-HEIGHT** (commit 5732120 hoje) é um fix-tag-along de 4 linhas em `nyx/agent/repl_app.py` sem arquivo de spec formal. Registrado como entry 182b no bloco Onda 28 — sem criar sprint nova pois trivial e mesma origem (Onda 28 TUI redesign).
+
+Estado final 2026-05-19: 17 sprints CONCLUIDAS hoje já registradas + TUI-INPUT-HEIGHT registrado + SPRINT_ORDER-REFRESH-01 marcada CONCLUIDA. 7 sprints restantes em `producao/` (todas legítimas PENDENTE/OPCIONAL): CTX-04 (OPCIONAL), INFRA-CLI-SPLIT-02, INFRA-MODEL-AGNOSTIC-01, PTY-PERMISSION-FLOW-01, VALIDATE-FINAL-01-PARTE-2 (humana), VISUAL-LAYOUT-06. Total `concluidos/`: 282 → 292 arquivos. `producao/` non-RASCUNHO: 19 → 7.
 
 **Bloco 24.6 (Infra resiliente, automação):** 2 sprints — NYX-AUTO-APPROVE-01 destrava cockpit/CI: env `NYX_AUTO_APPROVE=1` ou flag `--auto-approve` em run.sh promovem `CONFIRM_ONCE` para auto-aprovado em `PermissionChecker.check()` (nyx/agent/permissions.py); DENY e ALWAYS_CONFIRM preservados. Log de warning no boot via cli.run_repl e cli.run_headless. README seção "Modo automatizado". NYX-NO-HALLUCINATE-TOOL-01 fecha o vetor inverso: modelo afirmando sucesso sem tool. `nyx/agent/validator.detect_forged_success()` casa regex FORGE_PATTERNS contra texto final em `AgentLoop.run()`; se não há tool de escrita OK em `session.history[-4:]`, injeta sufixo de alerta e `_diagnostics.record_warning("forge", ...)`. Prompt hardening em `nyx/agent/prompt.build_system_prompt` proíbe a afirmação. Gambiarra #21 catalogada em GAMBIARRAS_POR_SPRINT.md.
 
@@ -593,6 +601,7 @@ Promoção em batch durante a Fase H do plano canônico da sessão 2026-05-18.
 | M5  | **DOCS-MICROCOPY-SESSAO-INICIADA-01** | 28.meta Anti-débito de docs | BAIXA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-28-01 (achado: MICROCOPY.md:109 ainda cita 'sessão iniciada' minúsculo após capitalização do código) |
 | M6  | **INFRA-ACENTO-FIX-01** | 28.2 dívida técnica | BAIXA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-28-05 (achado: scripts/menu_wizard.py 3 violações de acentuação) |
 | 182 | **TUI-REDESIGN-28-09** | 28.1 TUI paridade Claude Code (retoque) | ALTA | CONCLUIDA (2026-05-19) | TUI-REDESIGN-28-06 (achado pós-validação visual playwright 2026-05-18 noite: banner não fiel ao mockup grid 2-col + 'Sessão Iniciada' a remover + popup bg ainda diferente do terminal + 'Memória ativa' label fixo) |
+| 182b | **TUI-INPUT-HEIGHT** | 28.1 TUI paridade Claude Code (hotfix) | BAIXA | CONCLUIDA (2026-05-19, commit 5732120; fix-tag-along sem spec formal — diff 4 linhas em nyx/agent/repl_app.py: reduz altura máxima do input box de 8 para 5 linhas para melhor visibilidade do output durante digitação multilinha; registrado em SPRINT_ORDER-REFRESH-01) | TUI-REDESIGN-28-08c-PARTE-3 |
 
 Ordem: 28-01..28-05 independentes (paralelizáveis via executor-sprint) -> 28-06 (depende de 28-02) -> 28-07 (depende de 28-06) -> 28-08 sequencial em 4 sub-sprints (a/b/c/d). M5/M6 anti-débito concluídos. 28-09 retoque visual CONCLUIDA 2026-05-19 (banner grid 2-col + endmark removido + popup bg:default + MEMÓRIA ativa fixo). Onda 28 fechada.
 
