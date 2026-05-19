@@ -39,7 +39,7 @@ sprint:
 
 # Sprint NYX-NO-HALLUCINATE-TOOL-01
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (2026-05-19)
 **Data criação:** 2026-05-18 (achado real Playwright)
 **Modelo obrigatório:** claude-opus-4-7
 

@@ -37,6 +37,7 @@ from nyx.agent.session import CodeSession
 from nyx.agent.streaming import StreamingCollector
 from nyx.agent.summarizer import SessionSummarizer
 from nyx.agent.tools.registry import ToolRegistry
+from nyx.agent.validator import detect_forged_success
 from nyx.config.defaults import DEFAULT_MODEL as _DEFAULT_MODEL
 from nyx.config.defaults import MAX_ITERATIONS as MAX_ITERATIONS_DEFAULT
 from nyx.config.defaults import PROXY_URL as _DEFAULT_PROXY_URL
@@ -288,11 +289,17 @@ class AgentLoop(_IterationMixin):
                         return status
                     continue
 
-                self._session.add_assistant(content)
+                forge = detect_forged_success(content, self._session.history)
+                final_content = content
+                if forge.warnings:
+                    self._diagnostics.record_warning("forge", forge.warnings[0])
+                    aviso = "[atenção: resposta não verificada por tool]"
+                    final_content = f"{content}\n\n{aviso}"
+                self._session.add_assistant(final_content)
                 return SessionStatus(
                     state=SessionState.DONE,
                     iterations=i + 1,
-                    summary=content,
+                    summary=final_content,
                 )
 
         return SessionStatus(

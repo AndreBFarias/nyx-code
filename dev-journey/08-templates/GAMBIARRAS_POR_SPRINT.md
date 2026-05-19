@@ -47,6 +47,10 @@ Toda sprint é vulnerável a pelo menos um destes. A IA executora que fizer qual
 19. **Feature flag falsa.** Esconder código incompleto atrás de `if FEATURE_X: ...` que nunca é True. **Regra:** novos flags precisam de teste que ativa True E False; se só testa False, não está implementado.
 20. **Checkpoint marcado sem verificar.** `- [x] critério X` sem rodar o comando de verificação. **Regra:** IA executora **deve colar o output** do comando de verificação junto do checkbox marcado.
 
+### Burlas do modelo (alucinações de execução)
+
+21. **Sucesso forjado sem tool real.** Modelo responde "Arquivo criado com sucesso" sem ter chamado `write_file`/`edit_file`/`create_file`/`multi_edit`/`patch` no turno corrente. Origem: NYX-NO-HALLUCINATE-TOOL-01 (sessão 2026-05-18 via Playwright; modelo afirmou execução após preflight bloquear /tmp). **Regra:** `nyx/agent/validator.detect_forged_success()` é chamado em `AgentLoop.run()` antes de `SessionState.DONE` em turnos só-texto; se padrão `FORGE_PATTERNS` casa e nenhuma tool de escrita aparece em `session.history[-4:]` com result OK, a resposta recebe sufixo `[atenção: resposta não verificada por tool]` e o evento é registrado em `_diagnostics.record_warning("forge", ...)`. System prompt em `nyx/agent/prompt.build_system_prompt` proíbe explicitamente a afirmação. Detecção dupla: validador pega o que o prompt deixou passar.
+
 ---
 
 ---
@@ -99,7 +103,7 @@ diff /tmp/inv_before.txt /tmp/inv_after.txt
 | INFRA-GAUNTLET-01 | — (valida todos; refresca baseline) |
 | VALIDATE-ONDA-20 | preservar; valida 7 sprints em limbo |
 | VALIDATE-ONDA-21 | preservar; valida 7 sprints em limbo |
-| UX-DESIGN-01 | **#1** emoji ⚡; **#6** hex hardcoded |
+| UX-DESIGN-01 | **#1** emoji ; **#6** hex hardcoded |
 | UX-LAYOUT-01/02/03 | preservar todos; não reintroduzir |
 | UX-BUG-01/02/03 | preservar; não adicionar sleep (#18 do catálogo geral) |
 | VISION-01/02/03 | preservar |
@@ -179,10 +183,10 @@ Invariante #5 do `sprint_invariants.sh` vigia regressão futura.
 
 - **Tokens criados mas hex vivos em outros arquivos:**
   - **Detectar:** invariante #6 do script.
-- **⚡ removido só em 1 dos 2 lugares:**
+- ** removido só em 1 dos 2 lugares:**
   - **Detectar:** invariante #1 do script (detecta Unicode emoji por faixa).
-- **BULLETS['bypass_on'] = '⚡':** IA declara token mas usa o próprio emoji.
-  - **Detectar:** `grep "⚡\|\\\\u26A1" nyx/themes/design_tokens.py` vazio.
+- **BULLETS['bypass_on'] = '':** IA declara token mas usa o próprio emoji.
+  - **Detectar:** `grep "\|\\\\u26A1" nyx/themes/design_tokens.py` vazio.
 - **ANSI sem derivação:** IA define `NYX_ACCENT = "#00D4AA"` mas `ANSI_ACCENT_FG = "\033[38;2;1;1;1m"` (valor fake).
   - **Detectar:** `python -c "from nyx.themes.design_tokens import NYX_ACCENT, ANSI_ACCENT_FG, hex_to_ansi_fg; assert ANSI_ACCENT_FG == hex_to_ansi_fg(NYX_ACCENT)"`.
 

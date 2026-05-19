@@ -503,6 +503,8 @@ Reorganização proposta priorizando meta v1.0 "Claude Code offline e opensource
 | 147 | **COCKPIT-ACENTUACAO-FIX-01** | 24.3 Cockpit | BAIXA | PENDENTE | -- (achado colateral durante COCKPIT-LIFECYCLE-FIX-01: 5 violações pré-existentes em server.py) |
 | 148 | **NYX-AUTO-APPROVE-01** | 24.6 Infra resiliente | ALTA | CONCLUIDA (2026-05-19) | -- (achado real 2026-05-18: CONFIRM_ONCE em PTY/cockpit deadlocka sem canal de resposta; env NYX_AUTO_APPROVE=1 + flag --auto-approve promovem CONFIRM_ONCE -> AUTO; DENY preservado) |
 | 149 | **MASTER-ACENTUACAO-FIX-01** | 24.4 Higiene | BAIXA | PENDENTE | -- (achado colateral durante NYX-AUTO-APPROVE-01: 12 violações pré-existentes de acentuação em SPRINT_ORDER_MASTER.md introduzidas em commits anteriores) |
+| 150 | **NYX-NO-HALLUCINATE-TOOL-01** | 24.6 Infra resiliente | ALTA | CONCLUIDA (2026-05-19) | -- (achado real 2026-05-18 via Playwright: modelo respondeu "Arquivo criado com sucesso" sem tool após preflight bloquear /tmp; validator.detect_forged_success + system prompt hardening + sufixo "[atenção: resposta não verificada por tool]" em AgentLoop.run) |
+| 151 | **GAMBIARRAS-ACENTUACAO-FIX-01** | 24.4 Higiene | BAIXA | PENDENTE | -- (achado colateral durante NYX-NO-HALLUCINATE-TOOL-01: 1 violação pré-existente em dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md:334 — "funcao" sem acento) |
 
 **Bloco 24.1 (Infra resiliente):** 2 sprints — controle OOM no run.sh + senha sudo via env var. Pré-requisito para VALIDATE-FINAL-01 estável em sessões longas.
 
@@ -512,7 +514,7 @@ Reorganização proposta priorizando meta v1.0 "Claude Code offline e opensource
 
 **Bloco 24.4 (Higiene):** 2 sprints — refresh do MASTER (esta) + correção do `/?` (achado A1).
 
-**Bloco 24.6 (Infra resiliente, automação):** 1 sprint — NYX-AUTO-APPROVE-01 destrava cockpit/CI: env `NYX_AUTO_APPROVE=1` ou flag `--auto-approve` em run.sh promovem `CONFIRM_ONCE` para auto-aprovado em `PermissionChecker.check()` (nyx/agent/permissions.py); DENY e ALWAYS_CONFIRM preservados. Log de warning no boot via cli.run_repl e cli.run_headless. README seção "Modo automatizado".
+**Bloco 24.6 (Infra resiliente, automação):** 2 sprints — NYX-AUTO-APPROVE-01 destrava cockpit/CI: env `NYX_AUTO_APPROVE=1` ou flag `--auto-approve` em run.sh promovem `CONFIRM_ONCE` para auto-aprovado em `PermissionChecker.check()` (nyx/agent/permissions.py); DENY e ALWAYS_CONFIRM preservados. Log de warning no boot via cli.run_repl e cli.run_headless. README seção "Modo automatizado". NYX-NO-HALLUCINATE-TOOL-01 fecha o vetor inverso: modelo afirmando sucesso sem tool. `nyx/agent/validator.detect_forged_success()` casa regex FORGE_PATTERNS contra texto final em `AgentLoop.run()`; se não há tool de escrita OK em `session.history[-4:]`, injeta sufixo de alerta e `_diagnostics.record_warning("forge", ...)`. Prompt hardening em `nyx/agent/prompt.build_system_prompt` proíbe a afirmação. Gambiarra #21 catalogada em GAMBIARRAS_POR_SPRINT.md.
 
 ### Notas de reconciliação (commits 5bc4354..decd858 que estavam fora do MASTER)
 

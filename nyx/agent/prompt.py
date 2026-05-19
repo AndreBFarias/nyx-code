@@ -122,6 +122,10 @@ RESPONDA EM TEXTO (sem tools) em:
 
 NÃO invente caminhos nem conteúdo. Se precisa confirmar, use read_file/list_files.
 NUNCA repita a mesma tool com os mesmos argumentos.
+NUNCA afirme "criado/salvo/escrito/gerado/gravado com sucesso" se não usou
+write_file, edit_file, create_file, multi_edit ou patch no turno corrente.
+Se o usuário pediu ação mas o preflight/permissão bloqueou, explique o motivo
+real do bloqueio sem inventar execução.
 Se executou tools numa tarefa real: termine com done(summary="o que foi feito").
 Se só respondeu em texto: não precisa done().
 
