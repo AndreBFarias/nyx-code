@@ -575,8 +575,9 @@ Promoção em batch durante a Fase H do plano canônico da sessão 2026-05-18.
 | 181 | **TUI-REDESIGN-28-08c-PARTE-2** | 28.1 TUI paridade Claude Code | MEDIA | DEFERIDA (2026-05-18; switch runtime Application/PromptSession) | 28-08a, 28-08b, 28-08c |
 | M5  | **DOCS-MICROCOPY-SESSAO-INICIADA-01** | 28.meta Anti-débito de docs | BAIXA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-28-01 (achado: MICROCOPY.md:109 ainda cita 'sessão iniciada' minúsculo após capitalização do código) |
 | M6  | **INFRA-ACENTO-FIX-01** | 28.2 dívida técnica | BAIXA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-28-05 (achado: scripts/menu_wizard.py 3 violações de acentuação) |
+| 182 | **TUI-REDESIGN-28-09** | 28.1 TUI paridade Claude Code (retoque) | ALTA | PENDENTE | TUI-REDESIGN-28-06 (achado pós-validação visual playwright 2026-05-18 noite: banner não fiel ao mockup grid 2-col + 'Sessão Iniciada' a remover + popup bg ainda diferente do terminal + 'Memória ativa' label fixo) |
 
-Ordem: 28-01..28-05 independentes (paralelizáveis via executor-sprint) -> 28-06 (depende de 28-02) -> 28-07 (depende de 28-06) -> 28-08 sequencial em 4 sub-sprints (a/b/c/d). M5 anti-débito executa após 28-08 ou em lote final.
+Ordem: 28-01..28-05 independentes (paralelizáveis via executor-sprint) -> 28-06 (depende de 28-02) -> 28-07 (depende de 28-06) -> 28-08 sequencial em 4 sub-sprints (a/b/c/d). M5/M6 anti-débito concluídos. 28-09 retoque visual pós-validação aguarda execução em sessão fresca.
 
 Plano canônico: `~/.claude/plans/a-rea-de-input-replicated-lynx.md`.
 
