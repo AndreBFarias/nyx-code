@@ -42,10 +42,32 @@ sprint:
 
 # Sprint INFRA-ACENTO-FIX-01
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-18
+**Data conclusão:** 2026-05-18
 **Modelo obrigatório:** claude-opus-4-7
 
 ## Rollback
 
 `git reset --hard HEAD~1`
+
+## Proof-of-work (executor 2026-05-18)
+
+Substituições aplicadas em `scripts/menu_wizard.py` (3 violações pré-existentes):
+
+- Linha 8 (docstring de módulo): `auto-approve (sim | nao)` → `auto-approve (sim | não)`
+- Linha 64 (docstring `ask`): `(valor, descricao)` → `(valor, descrição)`
+- Linha 119 (rótulo de exibição em `ask_yes_no`): `"sim" if default else "nao"` → `"sim" if default else "não"`
+
+A literal `"nao"` da linha 119 é apenas rótulo (`say(f"...'{default_label}'...")`); a aceitação real continua em `raw in ("s", "sim", "y", "yes")`. Mudança cosmética, sem alterar lógica. Linha 135 (`render_summary`) já usa `"não"`; substituição alinha estética entre prompt e summary.
+
+Validação runtime:
+
+| Check | Antes | Depois |
+|---|---|---|
+| `validar-acentuacao --paths scripts/menu_wizard.py` | 3 violações | 0 violações |
+| `./run.sh --smoke` | boot ok / exit 0 | boot ok / exit 0 |
+| `bash scripts/sprint_invariants.sh` | PASS 12 / FAIL 2 (pré-existente, fora escopo) | PASS 14 / FAIL 0 |
+| Import sanity (`from scripts.menu_wizard import main`) | -- | ok |
+
+`FAIL_AFTER (0) <= FAIL_BEFORE (2)` — invariante respeitado. Os 2 FAILs da baseline (`print() fora de cli.py/output.py` e `except silencioso`) não estão em `scripts/menu_wizard.py`; possível resolução por agente paralelo.

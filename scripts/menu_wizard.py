@@ -5,7 +5,7 @@ Roda antes de exec do CLI quando `./run.sh --menu` e configura:
 - aesthetic + entity (paleta D + 5 alternativas; nyx + 6 entidades)
 - modelo (qwen2.5-coder:3b | qwen3:4b | qwen2.5-coder:7b)
 - banner mode (compact | wide | neofetch)
-- auto-approve (sim | nao)
+- auto-approve (sim | não)
 
 Persiste em ~/.nyx/config.toml (mesmo arquivo do /config setup).
 """
@@ -61,7 +61,7 @@ def ask(
 ) -> str:
     """Mostra choices numeradas; aceita numero ou Enter pro default.
 
-    choices: lista de (valor, descricao).
+    choices: lista de (valor, descrição).
     TUI-REDESIGN-25-05: contador 'XX/YY' opcional + hint contextual + footer
     '↵ Enter aceita default'.
     """
@@ -116,7 +116,7 @@ def ask_yes_no(
     if hint:
         say(f"  {muted}{hint}{reset}")
     suffix = "[S/n]" if default else "[s/N]"
-    default_label = "sim" if default else "nao"
+    default_label = "sim" if default else "não"
     say(f"  {muted}↵ Enter aceita '{default_label}' {suffix} >{reset} ", end="")
     raw = input().strip().lower()
     if not raw:
