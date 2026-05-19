@@ -17,25 +17,85 @@ logger = get_logger("nyx.onboarding")
 
 NYX_HOME = Path.home() / ".nyx"
 FIRST_RUN_MARKER = NYX_HOME / ".first_run_done"
+CONFIG_PATH = NYX_HOME / "config.toml"
 PAUSE_TIMEOUT_S = 60
 
 
-def resolve_user_display_name() -> str:
-    """Lê git config user.name silenciosamente; fallback 'visitante' (TUI-REDESIGN-25-04).
+def _read_persisted_user_name() -> str | None:
+    """Lê user_display_name de ~/.nyx/config.toml (TUI-REDESIGN-26-05).
 
-    Timeout 2s. Qualquer falha (git ausente, config vazio, OSError)
-    retorna 'visitante'. Sem prompt interativo: a decisão é silenciosa
-    e respeita usuários sem git instalado.
+    Retorna None se o arquivo não existir, chave ausente, ou parse falhar.
+    Usa tomllib (Python 3.11+).
     """
+    if not CONFIG_PATH.is_file():
+        return None
+    try:
+        import tomllib
+        with CONFIG_PATH.open("rb") as f:
+            data = tomllib.load(f)
+        val = data.get("user_display_name")
+        if isinstance(val, str) and val.strip():
+            return val.strip()
+    except Exception as exc:  # noqa: BLE001 -- parse silencioso
+        logger.debug("config.toml parse falhou: %s", exc)
+    return None
+
+
+def _persist_user_name(name: str) -> None:
+    """Persiste user_display_name em ~/.nyx/config.toml (TUI-REDESIGN-26-05).
+
+    Preserva outras chaves existentes (merge não-destrutivo). Escrita
+    manual em TOML simples (chave = "valor"); stdlib não tem tomli-w.
+    """
+    try:
+        NYX_HOME.mkdir(parents=True, exist_ok=True)
+        existing: dict = {}
+        if CONFIG_PATH.is_file():
+            try:
+                import tomllib
+                with CONFIG_PATH.open("rb") as f:
+                    existing = tomllib.load(f)
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("config.toml read p/ merge falhou: %s", exc)
+                existing = {}
+        existing["user_display_name"] = name
+        lines = ["# ~/.nyx/config.toml (gerado por nyx)", ""]
+        for k, v in existing.items():
+            if isinstance(v, bool):
+                v_s = "true" if v else "false"
+            elif isinstance(v, (int, float)):
+                v_s = str(v)
+            else:
+                v_s = f'"{v}"'
+            lines.append(f"{k} = {v_s}")
+        CONFIG_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    except OSError as exc:
+        logger.warning("não foi possível persistir user_display_name: %s", exc)
+
+
+def _git_user_name() -> str:
+    """Helper isolado: git config user.name (timeout 2s, fallback ''')."""
     try:
         out = subprocess.run(
             ["git", "config", "--get", "user.name"],
             capture_output=True, text=True, timeout=2, check=False,
         )
-        name = out.stdout.strip()
-        return name if name else "visitante"
+        return out.stdout.strip()
     except (FileNotFoundError, OSError, subprocess.TimeoutExpired):
-        return "visitante"
+        return ""
+
+
+def resolve_user_display_name() -> str:
+    """Resolve nome do usuário com prioridade: config.toml -> git config -> 'visitante'.
+
+    TUI-REDESIGN-25-04 (inicial): git config; TUI-REDESIGN-26-05: config.toml
+    vira fonte primária para permitir que o usuário customize via onboarding.
+    """
+    persisted = _read_persisted_user_name()
+    if persisted:
+        return persisted
+    git_name = _git_user_name()
+    return git_name if git_name else "visitante"
 
 
 def _build_steps(user_name: str) -> tuple[tuple[str, str], ...]:
@@ -115,15 +175,29 @@ def run_first_time_tutorial(user_name: str | None = None) -> None:
     """Roda tutorial de 5 steps com pausas timeoutadas. Marca .first_run_done ao fim.
 
     TUI-REDESIGN-25-04: aceita user_name opcional para personalizar a
-    primeira tela. Se None, resolve via resolve_user_display_name() (lê
-    git config user.name silenciosamente; fallback 'visitante').
+    primeira tela. Se None, resolve via resolve_user_display_name().
+
+    TUI-REDESIGN-26-05: se config.toml ainda não tem user_display_name,
+    pergunta interativamente (git config como hint default) e persiste.
     """
     if not sys.stdin.isatty():
         mark_done()
         return
 
     if user_name is None:
-        user_name = resolve_user_display_name()
+        persisted = _read_persisted_user_name()
+        if persisted:
+            user_name = persisted
+        else:
+            git_hint = _git_user_name()
+            default = git_hint or "visitante"
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+            response = _timed_input(
+                f"  Como devo te chamar? [Enter = '{default}']: "
+            )
+            user_name = (response or "").strip() or default
+            _persist_user_name(user_name)
     steps = _build_steps(user_name)
 
     out = sys.stdout
