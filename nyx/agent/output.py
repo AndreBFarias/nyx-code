@@ -447,7 +447,7 @@ def build_warming_label(model_state: str, started_monotonic: float) -> str:
     """Constrói label contextual do spinner durante request (UX-LOOP-VISIBILITY-01).
 
     Lógica por janela de duração, baseada em ADR-025 §"Tempos de feedback":
-      0-3s:   " aquecendo modelo..."     (warming explícito, glifo )
+      0-3s:   " aquecendo modelo..."     (warming explícito, glifo ◐)
       3-10s:  "pensando..."                (cold→warm, mid-flight)
       10s+:   "pensando... (Ns)"           (cronômetro discreto)
 

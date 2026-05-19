@@ -72,7 +72,7 @@ NC = ANSI_RESET
 # Glifos do estado do modelo (UX-BUG-02B).
 # Círculos da faixa Geometric Shapes (U+25CB/D0/CF) — não são emoji.
 # NÃO remover via sanitizer global: invariante #14 (sprint_invariants.sh) protege estes 3 caracteres.
-_STATE_GLYPHS = {"cold": "", "warming": "", "warm": ""}
+_STATE_GLYPHS = {"cold": "○", "warming": "◐", "warm": "●"}
 
 
 # SHIFT-TAB-CYCLE-01: Shift+Tab cicla 4 modos em vez de toggle binário.
