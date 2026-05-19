@@ -104,7 +104,50 @@ wc -l nyx/cli.py                              # <800
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data:** 2026-05-19
 **Origem:** anti-débito de INFRA-CLI-SPLIT-02 (corte parcial; chegamos a 1328L; meta 800L)
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
+
+---
+
+## 4. Proof-of-work (2026-05-19)
+
+### Aritmética
+
+| Arquivo | Antes | Depois | Delta |
+|---------|-------|--------|-------|
+| nyx/cli.py | 1328L | 792L | -536L (-40%) |
+| nyx/cli_headless.py | — | 298L | +298L (novo) |
+| nyx/cli_boot.py | — | 263L | +263L (novo) |
+| nyx/cli_callbacks.py | — | 150L | +150L (novo) |
+
+Meta: `wc -l nyx/cli.py < 800` — **ATINGIDA (792 < 800)**. Margem 8L.
+
+### Módulos novos
+
+1. **`nyx/cli_headless.py`** — `run_headless(project_root, logger)` integral (sandbox init + signals + JSON protocol + slash commands). Re-export em cli.py preserva `from nyx.cli import run_headless`.
+2. **`nyx/cli_boot.py`** — 6 helpers: `init_sandbox_roots`, `compute_prompt_str`, `render_quit_card`, `run_quit_shutdown`, `run_select_modal` (modal aesthetic/schema/theme), `shutdown_repl` (cancel tasks + Analytics + save_session).
+3. **`nyx/cli_callbacks.py`** — `build_render_callbacks(...)` factory que retorna dict com `on_token`/`on_tool`/`on_tool_result`/`on_compaction`/`on_model_state` + `stop_spinner`/`flush_buffer`. Closures sobre estados mutáveis (turn_state, spinner_state, tool_args_cache) preservam semântica original.
+
+### Validação runtime
+
+| Check | Comando | Resultado |
+|-------|---------|-----------|
+| Smoke boot | `./run.sh --smoke` | `boot ok` (exit 0) |
+| Invariantes | `bash scripts/sprint_invariants.sh` | PASS 14/FAIL 0 |
+| Gauntlet rapido | `./run.sh --gauntlet --only rapido` | 18/18 APROVADO |
+| Gauntlet interface | `./run.sh --gauntlet --only interface` | 5/5 APROVADO |
+| Gauntlet proxy | `./run.sh --gauntlet --only proxy` | 6/6 APROVADO |
+| Headless ping | `echo '{"type":"ping"}' \| nyx/cli.py --headless` | `{"type":"pong","tools":35}` |
+| Headless status | `echo '{"type":"status"}' \| nyx/cli.py --headless` | status JSON OK |
+| Headless slash | `echo '/sandbox list' \| nyx/cli.py --headless` | Roots autorizados listados |
+| Import sanity | `from nyx.cli import run_headless` | OK (re-export do cli_headless) |
+| Acentuação | `validar-acentuacao.py --paths nyx/cli*.py` | sem violações |
+
+### Zero quebras
+
+- `--headless` continua funcional (ping/status/session/tools/request/reset + /sandbox/list/add/remove/cd).
+- Application full-screen + PromptSession switch preservados.
+- Re-exports `run_headless` + helpers acessíveis via `from nyx.cli import *`.
+- Sem import circular: cli_headless.py / cli_boot.py / cli_callbacks.py importam apenas `nyx.agent.*`, `nyx.config.*`, `nyx.themes.*`.

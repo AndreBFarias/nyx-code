@@ -107,6 +107,19 @@ from nyx.cli_keybindings import (  # noqa: E402
 )
 from nyx.cli_handlers import HandlerCtx, dispatch_async, dispatch_sync  # noqa: E402
 
+# INFRA-CLI-SPLIT-03: run_headless + boot pieces saem para módulos próprios.
+# Re-exports preservam compatibilidade (`from nyx.cli import run_headless`).
+from nyx.cli_boot import (  # noqa: E402
+    compute_prompt_str,
+    init_sandbox_roots,
+    render_quit_card,
+    run_quit_shutdown,
+    run_select_modal,
+    shutdown_repl,
+)
+from nyx.cli_callbacks import build_render_callbacks  # noqa: E402
+from nyx.cli_headless import run_headless  # noqa: E402, F401 -- re-export
+
 
 if TYPE_CHECKING:
     from nyx.agent.services.vision_service import VisionService
@@ -124,32 +137,13 @@ async def run_repl(
 ) -> int:
     from nyx.agent.commands import handle_command
     from nyx.agent.loop import AgentLoop
-    from nyx.agent.persistence import save_session
     from nyx.config.settings import load_settings
 
     settings = load_settings()
 
-    # PROJECT-ROOTS-MULTI-01: inicializa sandbox roots no módulo base.
-    # _ACTIVE_ROOT recebe o project_root atual; extras do env/toml entram
-    # via add_extra_root() (idempotente). Paths inexistentes são logados
-    # e ignorados -- sandbox preserva strictness (não autoriza fantasmas).
-    try:
-        from nyx.agent.tools.base import add_extra_root, set_active_project_root
-
-        set_active_project_root(str(PROJECT_ROOT))
-        for raw in settings.extra_roots:
-            try:
-                cand = Path(raw).expanduser()
-                if cand.exists() and cand.is_dir():
-                    add_extra_root(cand)
-                else:
-                    logger.warning(
-                        "NYX_EXTRA_ROOTS ignorou caminho inválido: %s", cand
-                    )
-            except Exception as _exc:  # noqa: BLE001 -- boot best-effort
-                logger.warning("extra root %s falhou: %s", raw, _exc)
-    except Exception as _exc:  # noqa: BLE001 -- boot best-effort
-        logger.warning("inicialização de sandbox roots falhou: %s", _exc)
+    # PROJECT-ROOTS-MULTI-01: inicialização extraída para cli_boot.py
+    # (INFRA-CLI-SPLIT-03). Sandbox preserva strictness (não autoriza fantasmas).
+    init_sandbox_roots(settings, PROJECT_ROOT, logger)
 
     # NYX-AUTO-APPROVE-01: alerta visível quando modo automatizado está ativo.
     # CONFIRM_ONCE será silenciosamente aprovado em PermissionChecker.check.
@@ -276,137 +270,48 @@ async def run_repl(
     from nyx.agent.context import render_context_bar
     from nyx.agent.output import (
         build_warming_label,
-        is_tool_error,
         nyx_spinner,
         render_assistant_end,
         render_assistant_start,
-        render_compaction_event,
         render_user_input,
     )
 
-    TOKEN_FLUSH_CHARS = 32
     # STREAMING-SIDE-RULE-01: estado da faixa lateral entre flushes.
+    # TUI-REDESIGN-25-10: tool_args_cache mantém args entre on_tool e on_tool_result.
     side_rule_state: dict = {}
     tool_timers: dict[str, float] = {}
-
-    def _stop_spinner() -> None:
-        sp = spinner_state.get("active")
-        if sp is not None:
-            sp.stop()  # type: ignore[union-attr]
-            spinner_state["active"] = None
-
-    def _flush_buffer() -> None:
-        buf = turn_state.get("token_buffer", "")
-        if buf:
-            from nyx.agent.output import _emit, wrap_token_with_side_rule
-            wrapped = wrap_token_with_side_rule(buf, side_rule_state)
-            # TUI-REDESIGN-28-08c-PARTE-2: routing via _emit quando Application
-            # ativo (repl_app_active=True). Em legacy/headless, _emit cai em
-            # sys.stdout.write + flush, preservando comportamento anterior.
-            _emit(wrapped)
-            turn_state["token_buffer"] = ""
-
-    def on_token(token: str) -> None:
-        if not turn_state["streamed_text"]:
-            _stop_spinner()
-            # TUI-REDESIGN-28-08c-PARTE-2: clear ANSI só faz sentido em stdout
-            # direto (terminal raw). Em Application ativo, output_buffer não
-            # interpreta ANSI cursor; o append_to_buffer recebe texto puro.
-            if not app_state.get("repl_app_active"):
-                sys.stdout.write("\r\x1b[2K")
-                sys.stdout.flush()
-            # STREAMING-SIDE-RULE-01: reset state no início do turno.
-            side_rule_state.clear()
-        turn_state["streamed_text"] += token
-        turn_state["token_buffer"] += token
-        if len(turn_state["token_buffer"]) >= TOKEN_FLUSH_CHARS or "\n" in token:
-            _flush_buffer()
-
-    # TUI-REDESIGN-25-10: tool_args_cache mantém args entre on_tool e
-    # on_tool_result para render_tool_chip ter acesso ao arg_preview.
     tool_args_cache: dict[str, dict] = {}
 
-    def on_tool(name: str, args: dict) -> None:
-        _stop_spinner()
-        turn_state["streamed_text"] = ""
-        tool_timers[name] = time.monotonic()
-        tool_args_cache[name] = args or {}
-
-    def on_tool_result(name: str, result: str) -> None:
-        if name == "ask_user":
-            import json as _json
-
-            try:
-                payload = _json.loads(result) if isinstance(result, str) and result.startswith("{") else {}
-            except _json.JSONDecodeError:
-                payload = {}
-            if payload.get("kind") == "question":
-                from nyx.agent.output import render_ask_user
-
-                render_ask_user(payload.get("question", ""), payload.get("options", []))
-                try:
-                    answer = input("  Resposta: ").strip()
-                except (EOFError, KeyboardInterrupt):
-                    answer = ""
-                if answer:
-                    idx_opts = payload.get("options", []) or []
-                    if answer.isdigit():
-                        idx = int(answer) - 1
-                        if 0 <= idx < len(idx_opts):
-                            answer = idx_opts[idx].get("label", answer)
-                    agent.session.add_user(f"[resposta] {answer}")
-                tool_args_cache.pop(name, None)
-                return
-        started = tool_timers.pop(name, None)
-        duration_ms = int((time.monotonic() - started) * 1000) if started else 0
-        first_line = next((ln.strip() for ln in (result or "").splitlines() if ln.strip()), "")
-        is_err = is_tool_error(first_line)
-        from nyx.agent.output import (
-            classify_error_actions,
-            render_tool_chip,
-        )
-        # TUI-REDESIGN-26-03-PARTE-2: ações classificadas vão para chip,
-        # que alinha à direita da mesma linha quando há largura.
-        err_actions = (
-            classify_error_actions(first_line) if is_err and first_line else None
-        )
-        render_tool_chip(
-            name=name,
-            args=tool_args_cache.pop(name, {}),
-            status="erro" if is_err else "ok",
-            duration_ms=duration_ms,
-            error_preview=first_line if is_err else None,
-            project_root=str(PROJECT_ROOT),
-            error_actions=err_actions,
-        )
-
-    def on_compaction(level: int, tokens_removed: int, pct_before: float, pct_after: float) -> None:
-        render_compaction_event(level, tokens_removed, pct_before, pct_after)
-
-    from nyx.agent.commands._observability import on_model_state_log
-
-    def on_model_state(state: str) -> None:
-        """Consumidor visual de transições cold/warming/warm (UX-BUG-02B).
-
-        Grava em app_state para que _bottom_toolbar leia no próximo render.
-        Mantém o log de debug do stub anterior intacto para auditoria.
-        """
-        app_state["model_state"] = state
-        on_model_state_log(state)
+    # INFRA-CLI-SPLIT-03: callbacks de render extraídos para cli_callbacks.
+    # agent_ref é mutável para permitir closure capturar agent (instanciado abaixo).
+    agent_ref: list = [None]
+    callbacks = build_render_callbacks(
+        agent_ref=agent_ref,
+        app_state=app_state,
+        spinner_state=spinner_state,
+        turn_state=turn_state,
+        side_rule_state=side_rule_state,
+        tool_timers=tool_timers,
+        tool_args_cache=tool_args_cache,
+        project_root=PROJECT_ROOT,
+    )
+    _stop_spinner = callbacks["stop_spinner"]
+    _flush_buffer = callbacks["flush_buffer"]
 
     agent = AgentLoop(
         project_root=project_root,
         proxy_url=proxy_url,
         model=model,
-        on_token=on_token if streaming else None,
-        on_tool=on_tool,
-        on_tool_result=on_tool_result,
+        on_token=callbacks["on_token"] if streaming else None,
+        on_tool=callbacks["on_tool"],
+        on_tool_result=callbacks["on_tool_result"],
         on_permission=_make_ask_permission(app_state),
-        on_compaction=on_compaction,
-        on_model_state=on_model_state,
+        on_compaction=callbacks["on_compaction"],
+        on_model_state=callbacks["on_model_state"],
         streaming=streaming,
         settings=settings,
     )
+    agent_ref[0] = agent
 
     print(_build_banner(model, agent.tools_count, PROJECT_ROOT.name, settings=settings))
 
@@ -561,24 +466,9 @@ async def run_repl(
             app_state["iter_n"] = agent.session.iteration
             app_state["reads"] = agent.session.files_read_count
             app_state["mods"] = agent.session.files_modified_count
-            # TUI-REDESIGN-27-02: prompt customizado com nome + template opcional.
-            # Default: "  > {nome} " (mockup-faithful). NYX_PROMPT_TEMPLATE
-            # aceita placeholders {user_name}/{schema}/{model}; rejeita
-            # template com escape ANSI inline (anti-injection).
-            _u_name = str(app_state.get("user_display_name") or "visitante")
-            _schema_now = os.environ.get("NYX_SCHEMA", "hybrid")
-            _model_now = os.environ.get("NYX_MODEL", "qwen2.5-coder:3b")
-            _tpl = os.environ.get("NYX_PROMPT_TEMPLATE", "").strip()
-            if _tpl and "\033" not in _tpl and "\\033" not in _tpl:
-                try:
-                    _body = _tpl.format(
-                        user_name=_u_name, schema=_schema_now, model=_model_now,
-                    )
-                except (KeyError, IndexError, ValueError):
-                    _body = f"> {_u_name} "
-            else:
-                _body = f"> {_u_name} "
-            prompt_str = f"  {ACCENT}{BOLD}{_body}{NC} "
+            # TUI-REDESIGN-27-02: prompt customizado extraído para cli_boot.py
+            # (INFRA-CLI-SPLIT-03). Default "  > {nome} " (mockup-faithful).
+            prompt_str = compute_prompt_str(app_state, ACCENT, BOLD, NC)
             if use_application and repl_app is not None and repl_input_buffer is not None:
                 # TUI-REDESIGN-28-08c-PARTE-2: roda mesmo Application a cada turno.
                 # accept_handler chama app.exit(result=text); reset entre iterações
@@ -641,53 +531,9 @@ async def run_repl(
                 continue
 
             if result == "__quit__":
-                # TUI-REDESIGN-25-14: card de stats da sessão antes do shutdown.
-                from nyx.agent.output import render_session_stats_card
-                _sess = agent.session
-                _started = app_state.get("session_started_monotonic")
-                _duration = (
-                    time.monotonic() - float(_started)
-                    if isinstance(_started, (int, float))
-                    else 0.0
-                )
-                _sess_id = (
-                    getattr(_sess, "id", None)
-                    or getattr(_sess, "session_id", None)
-                )
-                _saved = (
-                    getattr(_sess, "path", None)
-                    or getattr(_sess, "save_path", None)
-                )
-                _tokens_raw = app_state.get("total_tokens") or 0
-                _tokens = int(_tokens_raw) if int(_tokens_raw) > 0 else None
-                render_session_stats_card(
-                    iterations=int(getattr(_sess, "iteration", 0) or 0),
-                    files_read=int(getattr(_sess, "files_read_count", 0) or 0),
-                    files_modified=int(
-                        getattr(_sess, "files_modified_count", 0) or 0
-                    ),
-                    duration_s=_duration,
-                    tokens=_tokens,
-                    session_id=str(_sess_id) if _sess_id else None,
-                    saved_path=str(_saved) if _saved else None,
-                    project_root=str(PROJECT_ROOT),
-                )
-                # SUDO-MODE-01: wipe da senha cacheada no /quit.
-                try:
-                    from nyx.agent.tools import sudo_session as _sudo_quit
-                    _sudo_quit.wipe()
-                except Exception as _exc:  # noqa: BLE001 -- shutdown best-effort
-                    logger.debug("sudo wipe best-effort falhou: %s", _exc)
-                # UX-LIFECYCLE-01: shutdown explícito do proxy via loopback.
-                # Resposta volta antes do auto-SIGTERM do proxy, então usamos
-                # timeout curto e ignoramos falhas (run.sh trap cobre o resto).
-                try:
-                    import httpx as _httpx_quit
-
-                    async with _httpx_quit.AsyncClient(timeout=2.0) as _qs:
-                        await _qs.post(f"{proxy_url}/admin/shutdown")
-                except Exception as _exc:  # noqa: BLE001 -- shutdown best-effort
-                    logger.debug("admin/shutdown best-effort falhou: %s", _exc)
+                # INFRA-CLI-SPLIT-03: card + wipe + admin/shutdown saíram para cli_boot.
+                render_quit_card(agent, app_state, PROJECT_ROOT)
+                await run_quit_shutdown(proxy_url, logger)
                 break
 
             # INFRA-CLI-SPLIT-02: handlers de sentinela ficam em cli_handlers.py.
@@ -717,77 +563,13 @@ async def run_repl(
                     project_root = new_pr
                 continue
 
-            # TUI-REDESIGN-27-03: 3 modais radiolist para escolha interativa.
+            # TUI-REDESIGN-27-03: modal radiolist movido para cli_boot.run_select_modal.
             if result in ("__aesthetic_select__", "__schema_select__", "__theme_select__"):
-                try:
-                    from prompt_toolkit.shortcuts import radiolist_dialog
-                except ImportError:
-                    _print_error(
-                        "prompt_toolkit indisponível para modal interativo.",
-                        hint="Use /aesthetic set <id> (ou /schema set / /theme <id>).",
-                    )
-                    continue
-
                 kind = result.replace("__", "").replace("_select", "")
-                title = {"aesthetic": "Aesthetic", "schema": "Schema", "theme": "Theme"}.get(kind, kind)
-                values: list[tuple[str, str]] = []
-                default_val: str | None = None
-                if kind == "aesthetic":
-                    from nyx.themes.design_tokens_extended import list_aesthetics
-                    default_val = str(app_state.get("aesthetic_id") or os.environ.get("NYX_AESTHETIC", "default"))
-                    values = [(a["id"], f"{a['name']} -- {a['tagline']}") for a in list_aesthetics()]
-                elif kind == "schema":
-                    from nyx.themes.design_tokens_extended import list_schemas, DEFAULT_SCHEMA
-                    default_val = str(app_state.get("schema_id") or os.environ.get("NYX_SCHEMA", DEFAULT_SCHEMA))
-                    values = [
-                        (s["id"], f"{s['id']} -- case {s['heading_case']} · user {s['user_bubble']}")
-                        for s in list_schemas()
-                    ]
-                elif kind == "theme":
-                    try:
-                        from nyx.themes import ThemeManager
-                        _tm = ThemeManager()
-                        default_val = str(app_state.get("theme_id") or "nyx")
-                        values = [
-                            (t["id"], f"{t.get('name', t['id'])} -- {t.get('description', '').strip()[:60]}")
-                            for t in _tm.list_themes()
-                        ]
-                    except Exception as exc:
-                        _print_error(f"ThemeManager indisponível: {exc}")
-                        continue
-
-                if not values:
-                    _print_error(f"Sem opções para {kind}.")
-                    continue
-
-                try:
-                    choice = await radiolist_dialog(
-                        title=title,
-                        text="Use as setas para navegar, Enter para confirmar, Esc para cancelar.",
-                        values=values,
-                        default=default_val,
-                        style=build_prompt_style(),
-                    ).run_async()
-                except Exception as exc:  # noqa: BLE001 -- modal best-effort
-                    _print_error(
-                        f"Modal {kind} falhou: {exc}",
-                        hint=f"Use /{kind} set <id> como fallback.",
-                    )
-                    continue
-
-                if not choice:
-                    print(f"  {DIM}/{kind} select cancelado{NC}")
-                    continue
-
-                if kind == "aesthetic":
-                    app_state["aesthetic_id"] = choice
-                    os.environ["NYX_AESTHETIC"] = choice
-                elif kind == "schema":
-                    app_state["schema_id"] = choice
-                    os.environ["NYX_SCHEMA"] = choice
-                elif kind == "theme":
-                    app_state["theme_id"] = choice
-                print(f"  {SUCCESS} {kind}{NC}: {choice} (próxima invocação aplica)")
+                await run_select_modal(
+                    kind, app_state, build_prompt_style, _print_error,
+                    DIM, SUCCESS, NC,
+                )
                 continue
 
             # Handlers async (MCP).
@@ -930,46 +712,9 @@ async def run_repl(
     else:
         print(f"\n  {ACCENT}[sessão]{NC} {session_summary}\n")
 
-    # UX-BUG-03: shutdown ordenado.
-    # 1) Cancela todas as tasks pendentes (exceto a corrente). Inclui:
-    #    warmup_task (se ainda não terminou), summarize_task (última),
-    #    qualquer task spawnada por handlers via run_in_terminal etc.
-    # 2) Aguarda finalização com gather(return_exceptions=True) para
-    #    drenar CancelledError sem propagar. Timeout curto via wait_for
-    #    para não travar o shutdown se uma task ignorar cancelamento.
-    # 3) end_session() só se Analytics() já foi criado pela warmup task.
-    # SUDO-MODE-01: garantia final de wipe. Cobre Ctrl+D, EOF e exceptions
-    # que pulam o /quit explícito. Idempotente: wipe sem cache vira no-op.
-    try:
-        from nyx.agent.tools import sudo_session as _sudo_final
-        _sudo_final.wipe()
-    except Exception as _exc:  # noqa: BLE001 -- shutdown best-effort
-        logger.debug("sudo wipe final falhou: %s", _exc)
-
-    pending = [
-        t for t in asyncio.all_tasks()
-        if t is not asyncio.current_task() and not t.done()
-    ]
-    for task in pending:
-        task.cancel()
-    if pending:
-        try:
-            await asyncio.wait_for(
-                asyncio.gather(*pending, return_exceptions=True),
-                timeout=2.0,
-            )
-        except asyncio.TimeoutError:
-            logger.warning("shutdown: %d task(s) ignoraram cancel em 2s", len(pending))
-
-    analytics = analytics_ref[0]
-    if analytics is not None:
-        try:
-            analytics.end_session()
-        except Exception as exc:  # noqa: BLE001 -- shutdown best-effort
-            logger.warning("Analytics.end_session falhou: %s", exc)
-
-    project_name = PROJECT_ROOT.name
-    saved = save_session(agent.session, project_name)
+    # INFRA-CLI-SPLIT-03: shutdown ordenado movido para cli_boot.shutdown_repl.
+    # Wipe sudo + cancel pending tasks + Analytics.end_session + save_session.
+    saved = await shutdown_repl(agent, analytics_ref, PROJECT_ROOT, logger)
     if saved:
         # DEPLOY-02 absorve O-04: feedback verde + path + dica /resume.
         from nyx.themes.design_tokens import ANSI_SUCCESS_FG
@@ -977,287 +722,6 @@ async def run_repl(
         print(f"\n  {ANSI_SUCCESS_FG} sessão salva{ANSI_RESET}")
         print(f"  {DIM}  {saved.resolve()}{NC}")
         print(f"  {DIM}  use /resume na próxima abertura para retomar{NC}")
-
-    await agent.close()
-    return 0
-
-
-async def run_headless() -> int:
-    """Modo headless: lê JSON de stdin, responde JSON em stdout.
-
-    Protocolo:
-      Input:  {"type": "request", "content": "..."}
-      Output: {"type": "response", "state": "done", "summary": "...", "iterations": N}
-      Output: {"type": "tool_use", "tool": "...", "args": {...}}
-      Output: {"type": "error", "message": "..."}
-    """
-    import json as _json
-
-    from nyx.agent.loop import AgentLoop
-    from nyx.agent.persistence import save_session
-    from nyx.config.settings import load_settings
-
-    settings = load_settings()
-    project_root = str(PROJECT_ROOT)
-    proxy_url = os.environ.get("OPENAI_BASE_URL", settings.proxy_v1_url)
-    proxy_url = proxy_url.replace("/v1", "").rstrip("/")
-    if not proxy_url.startswith("http"):
-        proxy_url = settings.proxy_url
-    model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", settings.model))
-
-    # PROJECT-ROOTS-MULTI-01: mesma inicialização do REPL para sandbox.
-    try:
-        from nyx.agent.tools.base import add_extra_root, set_active_project_root
-
-        set_active_project_root(str(PROJECT_ROOT))
-        for raw in settings.extra_roots:
-            try:
-                cand = Path(raw).expanduser()
-                if cand.exists() and cand.is_dir():
-                    add_extra_root(cand)
-            except Exception as _exc:  # noqa: BLE001
-                logger.warning("headless extra root %s falhou: %s", raw, _exc)
-    except Exception as _exc:  # noqa: BLE001
-        logger.warning("headless boot de sandbox roots falhou: %s", _exc)
-
-    # NYX-AUTO-APPROVE-01: em headless via cockpit/CI o prompt CONFIRM_ONCE
-    # deadlocka sem TTY. Log de aviso visível em stderr para auditoria.
-    if os.environ.get("NYX_AUTO_APPROVE") == "1":
-        logger.warning(
-            "NYX_AUTO_APPROVE=1 ativo (headless): CONFIRM_ONCE auto-aprovado. "
-            "Use somente em automação confiável."
-        )
-
-    def on_tool(name: str, args: dict) -> None:
-        msg = _json.dumps({"type": "tool_use", "tool": name, "args": args}, ensure_ascii=False)
-        sys.stdout.write(msg + "\n")
-        sys.stdout.flush()
-
-    agent = AgentLoop(
-        project_root=project_root,
-        proxy_url=proxy_url,
-        model=model,
-        on_tool=on_tool,
-        streaming=False,
-        settings=settings,
-    )
-
-    shutdown_requested = False
-
-    def _headless_shutdown(signum: int, frame: object) -> None:
-        nonlocal shutdown_requested
-        if shutdown_requested:
-            return
-        shutdown_requested = True
-        saved = save_session(agent.session, PROJECT_ROOT.name)
-        msg = _json.dumps(
-            {
-                "type": "shutdown",
-                "session_saved": saved.name if saved else None,
-            },
-            ensure_ascii=False,
-        )
-        sys.stdout.write(msg + "\n")
-        sys.stdout.flush()
-
-    signal.signal(signal.SIGINT, _headless_shutdown)
-    signal.signal(signal.SIGTERM, _headless_shutdown)
-
-    for line in sys.stdin:
-        line = line.strip()
-        if not line:
-            continue
-
-        # PROJECT-ROOTS-MULTI-01: aceita slash command direto em headless.
-        # Conveniência para scripts/testes (ex.: smoke do spec) que enviam
-        # "/sandbox list" sem encapsular em JSON. Resposta sai como linha
-        # de output cru (mesma semântica do REPL).
-        if line.startswith("/"):
-            from nyx.agent.commands import handle_command
-
-            cmd_result = handle_command(line, project_root)
-            if cmd_result is None:
-                continue
-            if cmd_result == "__sandbox_list__":
-                from nyx.agent.tools.base import (
-                    get_active_project_root,
-                    list_extra_roots,
-                )
-                active = get_active_project_root() or PROJECT_ROOT
-                extras = list_extra_roots()
-                lines_out = ["Roots autorizados:", f"  [ativo] {active}"]
-                if extras:
-                    for r in extras:
-                        lines_out.append(f"  [extra] {r}")
-                else:
-                    lines_out.append(
-                        "  (nenhum extra; use /sandbox add <path>)"
-                    )
-                sys.stdout.write("\n".join(lines_out) + "\n")
-                sys.stdout.flush()
-                continue
-            if isinstance(cmd_result, str) and cmd_result.startswith("__sandbox_add__"):
-                from nyx.agent.tools.base import add_extra_root
-
-                raw_path = cmd_result[len("__sandbox_add__"):]
-                cand = Path(raw_path).expanduser()
-                if not cand.exists() or not cand.is_dir():
-                    sys.stdout.write(
-                        f"erro: '{raw_path}' não é diretório válido\n"
-                    )
-                else:
-                    added = add_extra_root(cand)
-                    sys.stdout.write(f"ok: root autorizado {added}\n")
-                sys.stdout.flush()
-                continue
-            if isinstance(cmd_result, str) and cmd_result.startswith("__sandbox_remove__"):
-                from nyx.agent.tools.base import (
-                    get_active_project_root,
-                    remove_extra_root,
-                )
-                raw_path = cmd_result[len("__sandbox_remove__"):]
-                cand = Path(raw_path).expanduser().resolve()
-                active = get_active_project_root() or PROJECT_ROOT
-                if cand == Path(active).resolve():
-                    sys.stdout.write(
-                        f"erro: project_root ativo {active} não pode ser removido\n"
-                    )
-                elif remove_extra_root(cand):
-                    sys.stdout.write(f"ok: root removido {cand}\n")
-                else:
-                    sys.stdout.write(f"erro: root {cand} não estava na lista\n")
-                sys.stdout.flush()
-                continue
-            if isinstance(cmd_result, str) and cmd_result.startswith("__cd__"):
-                from nyx.agent.tools.base import (
-                    add_extra_root,
-                    get_active_project_root,
-                    set_active_project_root,
-                )
-                raw_path = cmd_result[len("__cd__"):]
-                cand = Path(raw_path).expanduser()
-                if not cand.exists() or not cand.is_dir():
-                    sys.stdout.write(f"erro: '{raw_path}' inválido para /cd\n")
-                else:
-                    old_root = get_active_project_root() or PROJECT_ROOT
-                    new_root = set_active_project_root(cand)
-                    add_extra_root(old_root)
-                    project_root = str(new_root)
-                    agent._project_root = project_root
-                    agent._tools.project_root = project_root
-                    sys.stdout.write(f"ok: project_root agora {new_root}\n")
-                sys.stdout.flush()
-                continue
-            if isinstance(cmd_result, str) and cmd_result.startswith("__error__"):
-                payload = cmd_result[len("__error__"):]
-                msg_err = payload.split("||")[0]
-                sys.stdout.write(f"erro: {msg_err}\n")
-                sys.stdout.flush()
-                continue
-            # Comandos não suportados em headless ainda assim retornam algo.
-            sys.stdout.write(str(cmd_result) + "\n")
-            sys.stdout.flush()
-            continue
-
-        try:
-            msg = _json.loads(line)
-        except _json.JSONDecodeError:
-            err = _json.dumps({"type": "error", "message": "JSON inválido"}, ensure_ascii=False)
-            sys.stdout.write(err + "\n")
-            sys.stdout.flush()
-            continue
-
-        msg_type = msg.get("type", "")
-        content = msg.get("content", "")
-
-        if msg_type == "ping":
-            resp = _json.dumps({"type": "pong", "tools": agent.tools_count}, ensure_ascii=False)
-            sys.stdout.write(resp + "\n")
-            sys.stdout.flush()
-            continue
-
-        if msg_type == "status":
-            resp = _json.dumps(
-                {
-                    "type": "status",
-                    "tools": agent.tools_count,
-                    "history": len(agent.session.history),
-                    "model": model,
-                    "files_read": agent.session.files_read_count,
-                    "files_modified": agent.session.files_modified_count,
-                    "iteration": agent.session.iteration,
-                },
-                ensure_ascii=False,
-            )
-            sys.stdout.write(resp + "\n")
-            sys.stdout.flush()
-            continue
-
-        if msg_type == "tools":
-            tool_names = [t["function"]["name"] for t in agent._tools.tool_defs]
-            resp = _json.dumps(
-                {
-                    "type": "tools",
-                    "list": sorted(tool_names),
-                    "count": len(tool_names),
-                },
-                ensure_ascii=False,
-            )
-            sys.stdout.write(resp + "\n")
-            sys.stdout.flush()
-            continue
-
-        if msg_type == "session":
-            resp = _json.dumps(
-                {
-                    "type": "session",
-                    "files_read": agent.session.files_read_count,
-                    "files_modified": agent.session.files_modified_count,
-                    "iterations": agent.session.iteration,
-                    "history_entries": len(agent.session.history),
-                    "context": agent.session.get_files_context(),
-                },
-                ensure_ascii=False,
-            )
-            sys.stdout.write(resp + "\n")
-            sys.stdout.flush()
-            continue
-
-        if msg_type == "request" and content:
-            try:
-                status = await agent.run(content)
-                resp = _json.dumps(
-                    {
-                        "type": "response",
-                        "state": status.state.value,
-                        "summary": status.summary,
-                        "iterations": status.iterations,
-                        "files_read": agent.session.files_read_count,
-                        "files_modified": agent.session.files_modified_count,
-                    },
-                    ensure_ascii=False,
-                )
-            except Exception as e:
-                resp = _json.dumps({"type": "error", "message": str(e)}, ensure_ascii=False)
-            sys.stdout.write(resp + "\n")
-            sys.stdout.flush()
-            continue
-
-        if msg_type == "reset":
-            agent.reset()
-            resp = _json.dumps({"type": "ok", "message": "Sessão resetada"}, ensure_ascii=False)
-            sys.stdout.write(resp + "\n")
-            sys.stdout.flush()
-            continue
-
-        err = _json.dumps(
-            {"type": "error", "message": f"Tipo desconhecido: {msg_type}"},
-            ensure_ascii=False,
-        )
-        sys.stdout.write(err + "\n")
-        sys.stdout.flush()
-
-    await agent.close()
     return 0
 
 
@@ -1295,7 +759,7 @@ def main() -> None:
         sys.exit(0)
 
     if args.headless:
-        sys.exit(asyncio.run(run_headless()))
+        sys.exit(asyncio.run(run_headless(PROJECT_ROOT, logger)))
     else:
         # ONBOARDING-01 + TUI-REDESIGN-28-05: wizard de primeiro uso (7 passos)
         # antes do REPL: nome + aesthetic + entity + schema + banner + model + auto_approve.
