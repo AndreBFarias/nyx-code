@@ -143,6 +143,16 @@ def _emit(text: str, *, end: str = "") -> None:
         logger.debug("_emit flush falhou: %s", exc)
 
 
+def _eprint(*args: object, sep: str = " ", end: str = "\n") -> None:
+    """Equivalente a print() roteado via _emit (TUI-REDESIGN-28-08c).
+
+    Usado em render_* migrados: mantém semântica do print() embutindo
+    sep+end e fazendo routing para output_buffer ou stdout via _emit.
+    """
+    text = sep.join(str(a) for a in args) + end
+    _emit(text)
+
+
 _DIFF_LINE_PATTERN = re.compile(r"^[+-@]")
 
 TAG_STYLES: dict[str, str] = {
@@ -560,8 +570,8 @@ def render_tool_card_start(
     tail_pad = max(2, 66 - len(header) - len(" executando "))
     line1 = f"  {ANSI_ACCENT_FG}{tl}{h}{header}{h * tail_pad}{h} executando {h}{tr}{ANSI_RESET}"
     args_line = f"  {ANSI_ACCENT_FG}{v}{ANSI_RESET}  {ANSI_DIM}{args_preview}{ANSI_RESET}"
-    print(line1)
-    print(args_line)
+    _eprint(line1)
+    _eprint(args_line)
 
 
 # TUI-REDESIGN-25-11: classificação de erros conhecidos -> ações sugeridas.
@@ -685,25 +695,25 @@ def _render_stats_inline(
     project_root: str | None,
 ) -> None:
     """Versão linhas-inline para terminais < 80 cols (fallback 25-14)."""
-    print()
-    print(f"  {ANSI_ACCENT_FG}Última Sessão{ANSI_RESET}")
-    print(f"  {ANSI_ACCENT_FG}{'─' * 14}{ANSI_RESET}")
-    print(
+    _eprint()
+    _eprint(f"  {ANSI_ACCENT_FG}Última Sessão{ANSI_RESET}")
+    _eprint(f"  {ANSI_ACCENT_FG}{'─' * 14}{ANSI_RESET}")
+    _eprint(
         f"  {ANSI_MUTED_FG}Iterações{ANSI_RESET}  {ANSI_DIM}{iterations:<5}{ANSI_RESET}"
         f"  {ANSI_MUTED_FG}Lidos{ANSI_RESET}  {ANSI_DIM}{files_read:<4}{ANSI_RESET}"
         f"  {ANSI_MUTED_FG}Modificados{ANSI_RESET}  {ANSI_DIM}{files_modified}{ANSI_RESET}"
     )
-    print(
+    _eprint(
         f"  {ANSI_MUTED_FG}Tempo     {ANSI_RESET} {ANSI_DIM}{duration_lbl:<5}{ANSI_RESET}"
         f"  {ANSI_MUTED_FG}Tokens         {ANSI_RESET} {ANSI_DIM}{tokens_str:<4}{ANSI_RESET}"
         f"  {ANSI_MUTED_FG}Sessão         {ANSI_RESET} {ANSI_DIM}{short_id}{ANSI_RESET}"
     )
     if saved_path:
         short = _shorten_path(saved_path, project_root, 60)
-        print(f"  {ANSI_MUTED_FG}salvo em  {ANSI_RESET} {ANSI_DIM}{short}{ANSI_RESET}")
-    print()
-    print(f"  {ANSI_ACCENT_FG}até.{ANSI_RESET}")
-    print()
+        _eprint(f"  {ANSI_MUTED_FG}salvo em  {ANSI_RESET} {ANSI_DIM}{short}{ANSI_RESET}")
+    _eprint()
+    _eprint(f"  {ANSI_ACCENT_FG}até.{ANSI_RESET}")
+    _eprint()
 
 
 def render_session_stats_card(
@@ -775,19 +785,19 @@ def render_session_stats_card(
         cell("Sessão", short_id),
     ]
 
-    print()
-    print(f"  {accent}Última Sessão{reset}")
-    print(f"  {accent}{top}{reset}")
-    print(f"  {accent}│{reset}{row1_cells[0]}{accent}│{reset}{row1_cells[1]}{accent}│{reset}{row1_cells[2]}{accent}│{reset}")
-    print(f"  {accent}{mid}{reset}")
-    print(f"  {accent}│{reset}{row2_cells[0]}{accent}│{reset}{row2_cells[1]}{accent}│{reset}{row2_cells[2]}{accent}│{reset}")
-    print(f"  {accent}{bot}{reset}")
+    _eprint()
+    _eprint(f"  {accent}Última Sessão{reset}")
+    _eprint(f"  {accent}{top}{reset}")
+    _eprint(f"  {accent}│{reset}{row1_cells[0]}{accent}│{reset}{row1_cells[1]}{accent}│{reset}{row1_cells[2]}{accent}│{reset}")
+    _eprint(f"  {accent}{mid}{reset}")
+    _eprint(f"  {accent}│{reset}{row2_cells[0]}{accent}│{reset}{row2_cells[1]}{accent}│{reset}{row2_cells[2]}{accent}│{reset}")
+    _eprint(f"  {accent}{bot}{reset}")
     if saved_path:
         short = _shorten_path(saved_path, project_root, 60)
-        print(f"  {muted}salvo em  {reset} {dim}{short}{reset}")
-    print()
-    print(f"  {accent}até.{reset}")
-    print()
+        _eprint(f"  {muted}salvo em  {reset} {dim}{short}{reset}")
+    _eprint()
+    _eprint(f"  {accent}até.{reset}")
+    _eprint()
 
 
 def render_thinking_block(
@@ -817,7 +827,7 @@ def render_thinking_block(
         if len(clean) > preview_chars:
             preview += "…"
         # HOTFIX-GLYPHS-01: ▶ = ▶ (collapsed indicator)
-        print(
+        _eprint(
             f"  {ANSI_PURPLE_FG}▶{ANSI_RESET} {ANSI_DIM}pensando · "
             f"{duration_lbl} · {preview}{ANSI_RESET}"
         )
@@ -825,11 +835,11 @@ def render_thinking_block(
     # Expanded: bloco entre divisores PURPLE.
     rule = "─" * 60
     # HOTFIX-GLYPHS-01: ▼ = ▼ (expanded indicator)
-    print(f"  {ANSI_PURPLE_FG}{rule}{ANSI_RESET}")
-    print(f"  {ANSI_PURPLE_FG}▼{ANSI_RESET} {ANSI_DIM}pensando · {duration_lbl}{ANSI_RESET}")
+    _eprint(f"  {ANSI_PURPLE_FG}{rule}{ANSI_RESET}")
+    _eprint(f"  {ANSI_PURPLE_FG}▼{ANSI_RESET} {ANSI_DIM}pensando · {duration_lbl}{ANSI_RESET}")
     for line in text.splitlines() or [text]:
-        print(f"  {ANSI_PURPLE_FG}│{ANSI_RESET} {line}")
-    print(f"  {ANSI_PURPLE_FG}{rule}{ANSI_RESET}")
+        _eprint(f"  {ANSI_PURPLE_FG}│{ANSI_RESET} {line}")
+    _eprint(f"  {ANSI_PURPLE_FG}{rule}{ANSI_RESET}")
 
 
 def _strip_ansi(text: str) -> int:
@@ -946,10 +956,10 @@ def render_tool_card_end(
         body_lines.append(f"  {border}{v}{ANSI_RESET}")
     bottom = f"  {border}{bl}{h * 70}{br}{ANSI_RESET}"
 
-    print(top)
+    _eprint(top)
     for line in body_lines:
-        print(line)
-    print(bottom)
+        _eprint(line)
+    _eprint(bottom)
 
 
 def make_ask_permission(state: dict) -> "callable":
@@ -1002,7 +1012,7 @@ def render_compaction_event(
     """
     before_pct = int(pct_before * 100) if pct_before <= 1 else int(pct_before)
     after_pct = int(pct_after * 100) if pct_after <= 1 else int(pct_after)
-    print(
+    _eprint(
         f"  {ANSI_MUTED_FG}{BULLETS['note']} compactação nível {level}: "
         f"-{tokens_removed} tokens (ctx {before_pct}% → {after_pct}%){ANSI_RESET}"
     )
@@ -1026,13 +1036,13 @@ def _render_user_soft_box(display_text: str, user_name: str) -> None:
     bottom = "╰" + "─" * inner_w + "╯"
     accent = ANSI_ACCENT_FG
     reset = ANSI_RESET
-    print()
-    print(f"  {accent}{top}{reset}")
+    _eprint()
+    _eprint(f"  {accent}{top}{reset}")
     for line in raw_lines:
         pad = " " * (inner_w - len(line) - 2)
-        print(f"  {accent}│{reset} {line}{pad} {accent}│{reset}")
-    print(f"  {accent}{bottom}{reset}")
-    print()
+        _eprint(f"  {accent}│{reset} {line}{pad} {accent}│{reset}")
+    _eprint(f"  {accent}{bottom}{reset}")
+    _eprint()
 
 
 def render_user_input(
@@ -1082,16 +1092,16 @@ def render_user_input(
         logger.debug("schema_id lookup falhou: %s", exc)
 
     if console_width < 80 or not RICH_AVAILABLE:
-        print()
+        _eprint()
         for line in display_text.splitlines() or [display_text]:
-            print(f"  {ANSI_ACCENT_FG}>{ANSI_RESET} {line}")
-        print()
+            _eprint(f"  {ANSI_ACCENT_FG}>{ANSI_RESET} {line}")
+        _eprint()
         return
     try:
         console = _get_console()
         if console is None:
             for line in display_text.splitlines() or [display_text]:
-                print(f"  {ANSI_ACCENT_FG}>{ANSI_RESET} {line}")
+                _eprint(f"  {ANSI_ACCENT_FG}>{ANSI_RESET} {line}")
             return
         console.print()
         console.print(
@@ -1148,7 +1158,7 @@ def render_assistant_start() -> None:
     from nyx.themes.design_tokens import ANSI_BOLD, ANSI_PURPLE_FG
 
     # HOTFIX-GLYPHS-01: ◆ = ◆ (black diamond, header da Nyx)
-    print(f"\n  {ANSI_PURPLE_FG}◆{ANSI_RESET} {ANSI_ACCENT_FG}{ANSI_BOLD}Nyx{ANSI_RESET}")
+    _eprint(f"\n  {ANSI_PURPLE_FG}◆{ANSI_RESET} {ANSI_ACCENT_FG}{ANSI_BOLD}Nyx{ANSI_RESET}")
 
 
 def render_assistant_end(
@@ -1163,7 +1173,7 @@ def render_assistant_end(
     Sem dados, mantém comportamento antigo (linha em branco).
     """
     if start_monotonic is None and tokens is None:
-        print()
+        _eprint()
         return
 
     from nyx.themes.design_tokens import ANSI_PURPLE_FG
@@ -1176,10 +1186,10 @@ def render_assistant_end(
     if tokens is not None:
         parts.append(f"{tokens} tokens")
     meta = " · ".join(parts) if parts else ""
-    print(
+    _eprint(
         f"  {ANSI_PURPLE_FG}└──{ANSI_RESET} {ANSI_DIM}{meta}{ANSI_RESET}"
     )
-    print()
+    _eprint()
 
 
 def render_footer(
