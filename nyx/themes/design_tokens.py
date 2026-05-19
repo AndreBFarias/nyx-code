@@ -133,7 +133,7 @@ TOOL_GLYPHS: dict[str, str] = {
     "Glob": "◇",         # ◇ busca arquivos (geometric white diamond)
     "Multi": "◆",        # ◆ tool composta (geometric black diamond)
     "ask_user": "?",          # pergunta interativa
-    "WebFetch": "",     #  rede (arrow upper right)
+    "WebFetch": "↗",     # ↗ rede (arrow upper right)
     "WebSearch": "?",
 }
 
