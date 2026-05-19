@@ -56,11 +56,24 @@ class Lifecycle:
         return self._pidfile
 
     def acquire(self) -> bool:
-        """Lock file. Mata anterior gracefully se PID vivo. Retorna True sempre."""
+        """Lock file. Mata anterior gracefully se PID vivo. Retorna True sempre.
+
+        COCKPIT-LIFECYCLE-FIX-01: respeita env `NYX_LIFECYCLE_TAKEOVER`.
+        - takeover=1 (default): comportamento legado, mata anterior.
+        - takeover=0: aborta se anterior vivo (retorna False sem mexer no PID file).
+        Cockpit usa takeover=0 para não causar cascata de kill no proxy.
+        """
+        takeover = os.environ.get("NYX_LIFECYCLE_TAKEOVER", "1").strip()
         self._pidfile.parent.mkdir(parents=True, exist_ok=True)
         if self._pidfile.exists():
             old_pid = self._read_pid()
             if old_pid and self._pid_alive(old_pid):
+                if takeover == "0":
+                    logger.info(
+                        "instância anterior PID=%d viva e NYX_LIFECYCLE_TAKEOVER=0; abortando",
+                        old_pid,
+                    )
+                    return False
                 logger.info("matando instância anterior PID=%d", old_pid)
                 self._terminate_gracefully(old_pid)
             elif old_pid:

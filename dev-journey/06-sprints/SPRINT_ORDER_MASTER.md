@@ -499,6 +499,8 @@ Reorganização proposta priorizando meta v1.0 "Claude Code offline e opensource
 | 143 | **INFRA-MODEL-AGNOSTIC-01** | 24.3 Resiliência arquitetural | MÉDIA | PENDENTE | MODEL-SWAP-01 |
 | 144 | **SPRINT_ORDER-REFRESH-01** | 24.4 Higiene | MÉDIA | EM ANDAMENTO (auto-fulfill desta edição) | -- |
 | 145 | **HELP-COVERAGE-FIX-01** | 24.4 Higiene | BAIXA | PENDENTE | -- (achado A1) |
+| 146 | **COCKPIT-LIFECYCLE-FIX-01** | 24.3 Cockpit | ALTA | CONCLUIDA (2026-05-19) | COCKPIT-02, UX-LIFECYCLE-01 (achado real 2026-05-18: 2ª sessão PTY causava cascata de kill em proxy 11436) |
+| 147 | **COCKPIT-ACENTUACAO-FIX-01** | 24.3 Cockpit | BAIXA | PENDENTE | -- (achado colateral durante COCKPIT-LIFECYCLE-FIX-01: 5 violações pré-existentes em server.py) |
 
 **Bloco 24.1 (Infra resiliente):** 2 sprints — controle OOM no run.sh + senha sudo via env var. Pré-requisito para VALIDATE-FINAL-01 estável em sessões longas.
 

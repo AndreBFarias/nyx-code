@@ -511,6 +511,24 @@ async def repl(ws: WebSocket):
         # Propaga env vars de configuração da Onda 25/26 (NYX_SCHEMA etc).
         env = dict(os.environ)
         bridge = PtyBridge(cmd, cwd=str(REPO_ROOT), env=env)
+
+        # COCKPIT-LIFECYCLE-FIX-01: detecta NYX_PID_FILE antes de spawnar.
+        # Se instância anterior viva, recusa em vez de causar cascata
+        # de kill via UX-LIFECYCLE-01. Lock stale é limpo pelo preflight.
+        preflight = bridge.preflight()
+        if preflight.get("state") == "alive":
+            pid_anterior = preflight.get("pid")
+            logger.info(
+                "PTY recusado: sessão Nyx ativa em outro lugar (PID=%s)", pid_anterior,
+            )
+            await ws.send_text(json.dumps({
+                "type": "busy",
+                "reason": "sessão Nyx ativa em outro lugar",
+                "pid": pid_anterior,
+            }))
+            await ws.close(code=1013)
+            return
+
         _active_pty = bridge
         try:
             bridge.start()

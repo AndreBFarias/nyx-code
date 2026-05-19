@@ -3,6 +3,12 @@
 Spawna subprocess em pseudo-terminal e expõe leitura/escrita assíncrona
 para a rota WebSocket `/repl`. Apenas 1 sessão por cockpit (segunda
 conexão recebe 'busy').
+
+COCKPIT-LIFECYCLE-FIX-01 (2026-05-19): integra com NYX_PID_FILE para
+detectar instância anterior viva antes de spawnar. Se PID anterior
+está vivo, retorna estado 'busy' em vez de causar cascata de kill
+no UX-LIFECYCLE-01. Se PID stale (processo morto), limpa lock e
+prossegue.
 """
 
 from __future__ import annotations
@@ -15,13 +21,75 @@ import signal
 import struct
 import subprocess
 import termios
+from pathlib import Path
 from typing import AsyncIterator
 
 from nyx.agent.services.logging_service import get_logger
+from nyx.config.defaults import NYX_PID_FILE
 
 logger = get_logger("nyx.cockpit.pty")
 
 DEFAULT_READ_BYTES = 4096
+
+
+def _pid_alive(pid: int) -> bool:
+    """Espelha Lifecycle._pid_alive para evitar import circular leve."""
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        # Processo existe mas pertence a outro UID. Assume vivo.
+        return True
+    except OSError:
+        return False
+    return True
+
+
+def inspect_pid_file(path: str | os.PathLike[str] | None = None) -> dict:
+    """Inspeciona NYX_PID_FILE antes de spawnar PTY.
+
+    Retorno:
+        {"state": "free"}                                 — sem lock
+        {"state": "alive", "pid": <N>}                    — instância viva
+        {"state": "stale", "pid": <N>, "cleaned": True}   — lock removido
+        {"state": "invalid", "cleaned": True}             — conteúdo inválido removido
+
+    Em qualquer estado != 'alive' o caminho fica livre para nova instância.
+    """
+    target = Path(path if path is not None else NYX_PID_FILE)
+    if not target.exists():
+        return {"state": "free"}
+    try:
+        raw = target.read_text(encoding="utf-8").strip()
+    except OSError as exc:
+        logger.debug("inspect_pid_file: erro ao ler %s: %s", target, exc)
+        return {"state": "free"}
+    if not raw:
+        try:
+            target.unlink()
+        except OSError as exc:
+            logger.debug("inspect_pid_file: falha ao limpar lock vazio: %s", exc)
+        return {"state": "invalid", "cleaned": True}
+    try:
+        pid = int(raw)
+    except ValueError:
+        try:
+            target.unlink()
+        except OSError as exc:
+            logger.debug("inspect_pid_file: falha ao limpar lock inválido: %s", exc)
+        return {"state": "invalid", "cleaned": True}
+    if _pid_alive(pid):
+        return {"state": "alive", "pid": pid}
+    try:
+        target.unlink()
+        logger.info("PtyBridge: lock stale (PID=%d morto) removido", pid)
+        return {"state": "stale", "pid": pid, "cleaned": True}
+    except OSError as exc:
+        logger.warning("PtyBridge: falha ao limpar lock stale PID=%d: %s", pid, exc)
+        return {"state": "stale", "pid": pid, "cleaned": False}
 
 
 class PtyBridge:
@@ -29,6 +97,10 @@ class PtyBridge:
 
     Uso:
         bridge = PtyBridge(["./run.sh"])
+        state = bridge.preflight()
+        if state["state"] == "alive":
+            # sessão já ativa em outro lugar
+            return
         bridge.start()
         async for data in bridge.read():
             await ws.send_bytes(data)
@@ -41,6 +113,15 @@ class PtyBridge:
         self.proc: subprocess.Popen | None = None
         self.master_fd: int | None = None
         self._closed = False
+
+    def preflight(self) -> dict:
+        """COCKPIT-LIFECYCLE-FIX-01: inspeciona NYX_PID_FILE antes de spawn.
+
+        Chamada antes de `start()`. Resultado deve ser checado pelo caller:
+        - state='alive' → não spawnar (sessão ativa em outro lugar).
+        - state='free'/'stale'/'invalid' → spawn liberado.
+        """
+        return inspect_pid_file()
 
     def start(self) -> None:
         """Cria pty + spawna processo (não-bloqueante)."""
