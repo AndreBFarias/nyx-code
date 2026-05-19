@@ -106,7 +106,7 @@ Sistema fala, usuário não responde. Tudo é log diagnóstico.
 |---|---|---|
 | Prefixo de linha | `[nyx]` em PRIMARY | `log_nyx` / `log_ok` / `log_warn` / `log_err` (run.sh) |
 | Divisor fino | `─` | banner do CLI (`_build_banner`) |
-| Marca de fim do boot | `─── sessão iniciada ───` em COMMENT dim | run.sh imediatamente antes de exec do CLI |
+| Marca de fim do boot | `─── Sessão Iniciada ───` em COMMENT dim | run.sh imediatamente antes de exec do CLI |
 
 ### Fase sessão (REPL interativo)
 

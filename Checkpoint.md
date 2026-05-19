@@ -236,3 +236,5 @@ Fim do anexo.
 ## Append-only log (sprints executadas)
 
 - [22:59] sprint TUI-REDESIGN-28-02 CONCLUIDA hash d9df1ff
+- [M6] sprint INFRA-ACENTO-FIX-01 CONCLUIDA — 3 violações de acentuação corrigidas em `scripts/menu_wizard.py` (linhas 8/64/119: `nao`→`não` x2, `descricao`→`descrição`). validar-acentuacao 3→0, smoke ok, invariantes 14/14, import sanity ok
+- [M5] sprint DOCS-MICROCOPY-SESSAO-INICIADA-01 CONCLUIDA — capitaliza `sessão iniciada`→`Sessão Iniciada` em `dev-journey/05-guides/MICROCOPY.md:109` (paridade com `nyx/themes/design_tokens.py` e `run.sh`). microcopy_audit zero violações, smoke ok, invariantes 14/14, grep `Sessão Iniciada` retorna 1

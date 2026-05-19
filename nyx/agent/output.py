@@ -87,6 +87,62 @@ def _reset_console_cache() -> None:
     _console_cache = None
 
 
+# TUI-REDESIGN-28-08b: routing de output (stdout vs Application buffer).
+# _OUTPUT_BUFFER_REF guarda referência ao Buffer do repl_app quando ativo.
+# _APP_STATE_REF guarda app_state injetado por cli.py para detectar modo.
+_OUTPUT_BUFFER_REF: object | None = None
+_APP_STATE_REF: dict | None = None
+
+
+def set_repl_app_output(buffer: object, app_state: dict) -> None:
+    """Registra o output_buffer do repl_app e o app_state para routing.
+
+    Chamado por cli.py logo após build_app. Quando app_state['repl_app_active']
+    é True, _emit roteia para o buffer; senão, escreve em stdout.
+    """
+    global _OUTPUT_BUFFER_REF, _APP_STATE_REF
+    _OUTPUT_BUFFER_REF = buffer
+    _APP_STATE_REF = app_state
+
+
+def clear_repl_app_output() -> None:
+    """Limpa as referências do repl_app (rollback/legacy fallback)."""
+    global _OUTPUT_BUFFER_REF, _APP_STATE_REF
+    _OUTPUT_BUFFER_REF = None
+    _APP_STATE_REF = None
+
+
+def _emit(text: str, *, end: str = "") -> None:
+    """Routing helper: escreve em output_buffer (Application) ou stdout.
+
+    Comportamento:
+      - app_state['repl_app_active'] == True E buffer registrado:
+        append no buffer + app.invalidate() via append_to_buffer.
+      - Caso contrário: sys.stdout.write(text + end); flush.
+
+    Mantém compatibilidade com headless e legacy NYX_LEGACY_REPL=1.
+    """
+    payload = text + end
+    if not payload:
+        return
+    if (
+        _APP_STATE_REF is not None
+        and _APP_STATE_REF.get("repl_app_active")
+        and _OUTPUT_BUFFER_REF is not None
+    ):
+        try:
+            from nyx.agent.repl_app import append_to_buffer
+            append_to_buffer(_OUTPUT_BUFFER_REF, payload)  # type: ignore[arg-type]
+            return
+        except Exception as exc:
+            logger.debug("_emit fallback para stdout: %s", exc)
+    sys.stdout.write(payload)
+    try:
+        sys.stdout.flush()
+    except Exception as exc:
+        logger.debug("_emit flush falhou: %s", exc)
+
+
 _DIFF_LINE_PATTERN = re.compile(r"^[+-@]")
 
 TAG_STYLES: dict[str, str] = {

@@ -392,7 +392,13 @@ async def run_repl(
     spinner_state: dict[str, object | None] = {"active": None}
     turn_state: dict[str, str] = {"streamed_text": "", "token_buffer": ""}
     # app_state: bool para flags, str para estados ("model_state": cold/warming/warm — UX-BUG-02B).
-    app_state: dict[str, object] = {"bypass": False, "model_state": "cold"}
+    # TUI-REDESIGN-28-08b: repl_app_active sinaliza routing para output_buffer
+    # da Application (False = comportamento legacy via stdout/PromptSession).
+    app_state: dict[str, object] = {
+        "bypass": False,
+        "model_state": "cold",
+        "repl_app_active": False,
+    }
     # TUI-REDESIGN-25-04: nome do usuário via git config (silent, fallback "visitante").
     from nyx.agent.onboarding import resolve_user_display_name
     app_state["user_display_name"] = resolve_user_display_name()
