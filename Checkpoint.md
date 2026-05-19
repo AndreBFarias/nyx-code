@@ -186,7 +186,7 @@ Fim do anexo.
 - [2026-05-18 05:00] 3 agentes completaram: commits 2c87ae2, f12be5d, 3b7eb79. Pushed.
 - [2026-05-18 05:10] NYX-MENU-WIZARD-01 implementada: scripts/menu_wizard.py + run.sh `--menu` / `--web` / `--auto-approve`. README seção "Wizard" e "Cockpit Web". Sprint CONCLUIDA direto.
 - [2026-05-18 05:15] **SESSÃO CONCLUÍDA.** Total: ~17 commits pushed em ~3h30min. ~24 sprints CONCLUIDAS (15 implementação + 11 RASCUNHOs cobertos + 5 anti-débitos materializados + 1 wizard). Estado: smoke=ok, inv=14/14, sbom=62/62, cockpit operacional, dashboard renderizado em Chrome.
-- [22:52] sprint TUI-REDESIGN-28-01 CONCLUIDA hash <PENDENTE-COMMIT> — boot silencioso (6 mensagens [nyx] viraram log_boot) + endmark capitalizado "Sessão Iniciada" em run.sh:654 e design_tokens.py:103.
+- [22:52] sprint TUI-REDESIGN-28-01 CONCLUIDA hash 916adc5 — boot silencioso (6 mensagens [nyx] viraram log_boot) + endmark capitalizado "Sessão Iniciada" em run.sh:654 e design_tokens.py:103.
 
 ---
 
