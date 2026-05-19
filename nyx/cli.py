@@ -427,8 +427,12 @@ async def run_repl(
         is_err = is_tool_error(first_line)
         from nyx.agent.output import (
             classify_error_actions,
-            render_error_with_actions,
             render_tool_chip,
+        )
+        # TUI-REDESIGN-26-03-PARTE-2: ações classificadas vão para chip,
+        # que alinha à direita da mesma linha quando há largura.
+        err_actions = (
+            classify_error_actions(first_line) if is_err and first_line else None
         )
         render_tool_chip(
             name=name,
@@ -437,12 +441,8 @@ async def run_repl(
             duration_ms=duration_ms,
             error_preview=first_line if is_err else None,
             project_root=str(PROJECT_ROOT),
+            error_actions=err_actions,
         )
-        # TUI-REDESIGN-25-11: erros conhecidos ganham bloco de ações sugeridas.
-        if is_err and first_line:
-            actions = classify_error_actions(first_line)
-            if actions:
-                render_error_with_actions(first_line, actions=actions)
 
     def on_compaction(level: int, tokens_removed: int, pct_before: float, pct_after: float) -> None:
         render_compaction_event(level, tokens_removed, pct_before, pct_after)

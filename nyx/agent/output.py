@@ -776,6 +776,11 @@ def render_thinking_block(
     print(f"  {ANSI_PURPLE_FG}{rule}{ANSI_RESET}")
 
 
+def _strip_ansi(text: str) -> int:
+    """Comprimento visível ignorando escapes ANSI (TUI-REDESIGN-26-03-PARTE-2)."""
+    return len(re.sub(r"\033\[[0-9;]*[A-Za-z]", "", text))
+
+
 def render_tool_chip(
     name: str,
     args: dict,
@@ -783,20 +788,25 @@ def render_tool_chip(
     duration_ms: int,
     error_preview: str | None = None,
     project_root: str | None = None,
+    error_actions: list[tuple[str, str, str]] | None = None,
 ) -> None:
-    """Renderiza tool call como chip de 1 linha (TUI-REDESIGN-25-10).
+    """Renderiza tool call como chip de 1 linha (TUI-REDESIGN-25-10 + 26-03 PARTE-2).
 
-    Formato: ' {name} {arg_preview}  {Nms}  {status}' em verde/vermelho.
+    Formato: '{glyph} {name} {arg_preview}  {Nms}  {status}' em verde/vermelho.
     Path encurtado via _shorten_path (~/.../basename ou … no meio).
     Se ``error_preview`` informado, adiciona linha extra de preview muted.
-    Substitui o par render_tool_card_start/end (2 caixas de 4-6 linhas).
+
+    TUI-REDESIGN-26-03-PARTE-2: ``error_actions`` (lista [(key, label, cmd)])
+    renderiza chips à direita da MESMA linha se cols >= 80 e há largura
+    suficiente. Fallback: render abaixo via render_error_with_actions.
     """
     from nyx.themes.design_tokens import (
         ANSI_ERROR_FG, ANSI_SUCCESS_FG, TOOL_GLYPHS,
     )
+    import shutil
 
-    # TUI-REDESIGN-26-03: glyph por tool. Fallback "" (geometric, ADR-004 ok).
-    glyph = TOOL_GLYPHS.get(name, "")
+    # TUI-REDESIGN-26-03: glyph por tool. Fallback "●" (geometric, ADR-004 ok).
+    glyph = TOOL_GLYPHS.get(name, "●")
     color = ANSI_ERROR_FG if status != "ok" else ANSI_SUCCESS_FG
     arg_preview = ""
     for key in PRIMARY_ARG_KEYS:
@@ -812,9 +822,37 @@ def render_tool_chip(
         parts.append(f"{ANSI_DIM}{arg_preview}{ANSI_RESET}")
     parts.append(f"{ANSI_MUTED_FG}{duration}{ANSI_RESET}")
     parts.append(f"{color}{status}{ANSI_RESET}")
-    print(" ".join(parts))
+    chip_line = " ".join(parts)
+
+    # TUI-REDESIGN-26-03-PARTE-2: chips de ações à direita se cabem.
+    actions_chip = ""
+    actions_above = False
+    if error_actions:
+        cols = shutil.get_terminal_size(fallback=(80, 24)).columns
+        chips_parts = [
+            f"{ANSI_ACCENT_FG}[{k}]{ANSI_RESET} {ANSI_DIM}{lbl}{ANSI_RESET}"
+            for k, lbl, _cmd in error_actions
+        ]
+        actions_chip = "  ".join(chips_parts)
+        chip_visible = _strip_ansi(chip_line)
+        actions_visible = _strip_ansi(actions_chip)
+        # Precisa de pelo menos 4 chars de gap.
+        if cols >= chip_visible + actions_visible + 4:
+            pad = " " * (cols - chip_visible - actions_visible - 2)
+            chip_line = chip_line + pad + actions_chip
+        else:
+            actions_above = True
+
+    print(chip_line)
     if error_preview:
         print(f"      {ANSI_DIM}{error_preview[:120]}{ANSI_RESET}")
+    if actions_above and error_actions:
+        # Fallback: chips em linha separada abaixo, indentado.
+        chips_parts = [
+            f"{ANSI_ACCENT_FG}[{k}]{ANSI_RESET} {ANSI_DIM}{lbl}{ANSI_RESET}"
+            for k, lbl, _cmd in error_actions
+        ]
+        print("      " + "  ".join(chips_parts))
 
 
 def render_tool_card_end(
