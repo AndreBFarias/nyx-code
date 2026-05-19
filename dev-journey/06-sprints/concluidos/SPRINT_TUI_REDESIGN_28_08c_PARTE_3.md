@@ -79,7 +79,19 @@ sprint:
 
 # Sprint TUI-REDESIGN-28-08c-PARTE-3
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-19
+**Data conclusão:** 2026-05-19
 **Modelo obrigatório:** claude-opus-4-7
 **Origem:** materializada durante execução de TUI-REDESIGN-28-08c-PARTE-2 (achado colateral em validação visual).
+
+## Resultado
+
+- `nyx/agent/repl_app.py`: `output_control` agora é `FormattedTextControl(text=lambda: ANSI(output_buffer.text))`; o `output_buffer` (Buffer) segue como armazenamento canônico append-only; `_scroll_to_bottom` no `get_vertical_scroll` mantém auto-scroll.
+- `nyx/cli.py`: removido strip ANSI no pre-populate do banner; banner volta a ser injetado com escapes ANSI brutos e é renderizado COM CORES pelo parser nativo do prompt_toolkit.
+- Banner renderiza com bordas turquesa, cursor roxo de blink no `nyx.code`, `100% offline` verde, toolbar turquesa dim. Verificado em captura kitty 130x30 (`dev-journey/07-reports/proofs/TUI_28_08c_PARTE_3/banner_com_ansi_VALIDADO.png`, sha256 `97f6ef34...e1052e`).
+- Smoke (`./run.sh --smoke`): boot ok. Smoke legacy (`NYX_LEGACY_REPL=1`): boot ok. Self-test (`python -m nyx.agent.repl_app --self-test`): build_app ok, buffers ok, layout ok. Invariantes: PASS 14/14. Gauntlet rápido: APROVADO (7/7 OK, 15.4s).
+
+## Achados colaterais
+
+- Nenhum (PARTE-2 já havia materializado PARTE-3; nenhuma nova pegadinha detectada).

@@ -1,10 +1,15 @@
 """REPL Application (TUI-REDESIGN-28-08): input ancorado no rodapé.
 
 Layout HSplit:
-  - output_window  (BufferControl, ocupa altura disponível - 3 linhas)
+  - output_window  (FormattedTextControl + ANSI, ocupa altura disponível - 3 linhas)
   - separator      (1 linha, opcional)
   - input_window   (BufferControl, min 1 max 8 linhas)
   - toolbar_window (FormattedTextControl, 1 linha)
+
+TUI-REDESIGN-28-08c-PARTE-3: output_buffer (Buffer) é o storage canônico;
+o display usa FormattedTextControl(lambda: ANSI(buffer.text)) para que
+escapes ANSI vindos do banner pré-populado e do streaming via _emit sejam
+renderizados como cores/estilos (não impressos como texto cru ^[[38;2;...).
 
 A função `build_app` retorna uma `Application` configurada com KeyBindings
 espelhando o PromptSession do `nyx/cli.py`. O wrapper `run_repl_app_async`
@@ -32,7 +37,7 @@ from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.completion import Completer
 from prompt_toolkit.document import Document
-from prompt_toolkit.formatted_text import FormattedText
+from prompt_toolkit.formatted_text import ANSI, FormattedText
 from prompt_toolkit.history import FileHistory, History
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import HSplit, Layout, Window
@@ -347,7 +352,19 @@ def build_app(
         event.app.exit(exception=KeyboardInterrupt())
 
     # ── Layout ───────────────────────────────────────────────────────────
-    output_control = BufferControl(buffer=output_buffer, focusable=False)
+    # TUI-REDESIGN-28-08c-PARTE-3: output_control via FormattedTextControl +
+    # ANSI parser para que escapes \x1b[...m (cores, bold, dim) do banner e
+    # do streaming via _emit sejam renderizados, não impressos como texto cru.
+    # output_buffer (Buffer) permanece como armazenamento canônico append-only;
+    # append_to_buffer continua editando buffer.text e chamando invalidate().
+    # O callable é chamado a cada render → re-parse de output_buffer.text.
+    def _ansi_output() -> ANSI:
+        return ANSI(output_buffer.text)
+
+    output_control = FormattedTextControl(
+        text=_ansi_output,
+        focusable=False,
+    )
     input_control = BufferControl(
         buffer=input_buffer,
         focusable=True,
@@ -358,11 +375,23 @@ def build_app(
         focusable=False,
     )
 
+    # Auto-scroll: manter última linha visível. get_vertical_scroll devolve
+    # max(0, n_linhas_total - altura_visivel), garantindo que novo conteúdo
+    # appendado fique no rodapé do output_window.
+    def _scroll_to_bottom(window: Window) -> int:
+        try:
+            total = output_buffer.text.count("\n") + 1
+            visible = window.render_info.window_height if window.render_info else 0
+            return max(0, total - visible)
+        except Exception:
+            return 0
+
     output_window = Window(
         content=output_control,
         wrap_lines=True,
         always_hide_cursor=True,
         style="class:output",
+        get_vertical_scroll=_scroll_to_bottom,
     )
     separator_window = Window(
         height=1,

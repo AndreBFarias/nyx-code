@@ -638,17 +638,13 @@ async def run_repl(
             # ocupa toda a tela, o banner impresso anteriormente por print() já
             # foi para o terminal cru — ao entrar em alternate screen ele fica
             # invisível. Reaplicar via append_to_buffer garante presença no topo.
-            # BufferControl do prompt_toolkit não interpreta ANSI escapes (apenas
-            # FormattedTextControl). Para evitar vazamento ^[[38;... no output,
-            # removemos sequências CSI antes de gravar. Mitigação imediata até
-            # 28_08c-PARTE-3 trocar a base do output_window para FormattedText.
+            # TUI-REDESIGN-28-08c-PARTE-3: output_window agora usa
+            # FormattedTextControl(ANSI(buffer.text)); banner com escapes ANSI
+            # é renderizado COM CORES pelo parser nativo do prompt_toolkit.
             try:
-                import re as _re_ansi
                 from nyx.agent.banner import build_banner as _bb
                 _banner_str = _bb(model, agent.tools_count, PROJECT_ROOT.name, settings=settings)
-                _ansi_re = _re_ansi.compile(r"\x1b\[[0-9;]*[A-Za-z]")
-                _banner_plain = _ansi_re.sub("", _banner_str)
-                append_to_buffer(repl_output_buffer, _banner_plain + "\n")
+                append_to_buffer(repl_output_buffer, _banner_str + "\n")
             except Exception as _bexc:
                 logger.debug("pre-populate banner falhou: %s", _bexc)
             # Ativa routing global do _emit para o buffer da Application.
