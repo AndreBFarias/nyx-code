@@ -558,7 +558,7 @@ Promoção em batch durante a Fase H do plano canônico da sessão 2026-05-18.
 | # | Sprint | Bloco | Prioridade | Status | Depende de |
 |---|--------|-------|------------|--------|------------|
 | 170 | **TUI-REDESIGN-27-01** | 27.1 Refinamento prompt_toolkit | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-26-05 |
-| 171 | **TUI-REDESIGN-27-02** | 27.1 Refinamento prompt_toolkit | ALTA | PENDENTE | TUI-REDESIGN-27-01 |
+| 171 | **TUI-REDESIGN-27-02** | 27.1 Refinamento prompt_toolkit | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-27-01 |
 | 172 | **TUI-REDESIGN-27-03** | 27.1 Refinamento prompt_toolkit | MÉDIA | PENDENTE | TUI-REDESIGN-27-01 |
 
 Ordem: Fase 0 (materializar specs) → Fase 1 (27-01 suggester theme) → Fase 2 (27-02 prompt customizado) → Fase 3 (27-03 listas navegáveis).

@@ -589,7 +589,24 @@ async def run_repl(
             app_state["iter_n"] = agent.session.iteration
             app_state["reads"] = agent.session.files_read_count
             app_state["mods"] = agent.session.files_modified_count
-            prompt_str = f"{ACCENT}{BOLD}nyx>{NC} "
+            # TUI-REDESIGN-27-02: prompt customizado com nome + template opcional.
+            # Default: "  > {nome} " (mockup-faithful). NYX_PROMPT_TEMPLATE
+            # aceita placeholders {user_name}/{schema}/{model}; rejeita
+            # template com escape ANSI inline (anti-injection).
+            _u_name = str(app_state.get("user_display_name") or "visitante")
+            _schema_now = os.environ.get("NYX_SCHEMA", "hybrid")
+            _model_now = os.environ.get("NYX_MODEL", "qwen2.5-coder:3b")
+            _tpl = os.environ.get("NYX_PROMPT_TEMPLATE", "").strip()
+            if _tpl and "\033" not in _tpl and "\\033" not in _tpl:
+                try:
+                    _body = _tpl.format(
+                        user_name=_u_name, schema=_schema_now, model=_model_now,
+                    )
+                except (KeyError, IndexError, ValueError):
+                    _body = f"> {_u_name} "
+            else:
+                _body = f"> {_u_name} "
+            prompt_str = f"  {ACCENT}{BOLD}{_body}{NC} "
             if prompt_session:
                 # UX-EXTRA-01: prefill via /edit pré-popula próximo prompt_async.
                 prefill = str(app_state.pop("prefill", "") or "")
