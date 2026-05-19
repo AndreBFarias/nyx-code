@@ -69,7 +69,7 @@ run.sh ─────> Ollama (:11435) ──> GPU (num_gpu=12, qwen2.5-coder:3
   +────────> Nyx CLI (nyx/cli.py)
               - REPL interativo com Rich output + prompt-toolkit
               - 34 tools via ToolRegistry
-              - 65 slash commands
+              - 66 slash commands
               - AgentLoop: plan-execute-observe (até 30 iterações)
               - ActionParser: 7 níveis de fallback
               - ContextBudget: compactação progressiva
@@ -372,7 +372,7 @@ nyx/
     loop/              # AgentLoop split (_core + _iteration)
     parser.py          # ActionParser (7 níveis)
     banner.py          # 3 modos (compact/wide/neofetch)
-    commands/          # 65 slash commands (incl. /aesthetic, /cancel)
+    commands/          # 66 slash commands (incl. /aesthetic, /cancel)
     output.py          # Rich + theme_manager
     tools/             # 35 tools registradas
     services/          # 14 services (incl. hook_runtime, plugin_manager, mcp_client)

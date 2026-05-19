@@ -56,9 +56,27 @@ sprint:
 
 # Sprint VALIDATE-FINAL-01-PARTE-2
 
-**Status:** PENDENTE (humana)
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-18 (anti-débito de VALIDATE-FINAL-01)
-**Modelo obrigatório:** claude-opus-4-7 + intervenção humana para Docker host
+**Data conclusão:** 2026-05-19 (sessão Executor automatizado)
+**Modelo obrigatório:** claude-opus-4-7 (sessão automatizada cobriu Docker + screenshots via kitty/xdotool/import)
+
+**Resumo de execução:**
+
+- Frente 2: 66 commands únicos / 89 com aliases via dispatcher direto (tabela em `dev-journey/07-reports/proofs/G_validate_final/commands_table.md`).
+- Frente 3: 35 tools via ToolRegistry com args validados (tabela em `dev-journey/07-reports/proofs/G_validate_final/tools_table.md`).
+- Frente 4: Docker run em ubuntu:22.04 limpa -- venv + deps + smoke `boot ok`. Ollama install falha por falta de `zstd` na imagem base (não é regressão Nyx). Log em `dev-journey/07-reports/proofs/G_validate_final/docker_install_ubuntu22_04.log`.
+- Frente 5: 30 PNGs em `assets/validate_final/screenshot_01..30_<label>.png` via kitty + xdotool + import.
+- Frente 6: gauntlet completo (53 fases, 220 testes) 207/220 = 94%; gate REPROVADO formal por 13 falhas todas qualificadas (sandbox /tmp em test fixtures + VRAM externa). Zero regressão funcional. Log em `gauntlet_completo_2026_05_19.log`.
+
+**Tag v1.0 NÃO cortada.** Decisão de produto delegada explicitamente ao usuário humano (instrução do briefing PARTE-2).
+
+**Anti-débito materializado** (sprints novas registradas no MASTER):
+
+- GAUNTLET-FIXTURES-SANDBOX-01: migrar test fixtures de /tmp para tmpdir autorizado.
+- K08-VRAM-RUNNER-ISOLATION-01: gauntlet checa VRAM disponível antes de rodar tests sensíveis.
+- INFRA-INSTALL-ZSTD-FALLBACK-01: install.sh detecta zstd ausente e instala antes do ollama bootstrap.
+- VALIDATE-VISUAL-MIDFRAME-01: capturas de scenes com output streaming intermediário (não bloqueia v1.0).
 
 ---
 

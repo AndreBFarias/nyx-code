@@ -1,0 +1,32 @@
+0 added, 0 removed; done.
+Running hooks in /etc/ca-certificates/update.d...
+done.
+===CLONE OK===
+
+  _   _                ____          _
+ | \ | |_   ___  __   / ___|___   __| | ___
+ |  \| | | | \ \/ /  | |   / _ \ / _` |/ _ \
+ | |\  | |_| |>  <   | |__| (_) | (_| |  __/
+ |_| \_|\__, /_/\_\   \____\___/ \__,_|\___|
+        |___/
+
+Instalador idempotente Nyx-Code (DEPLOY-01A)
+
+[0/11] Requisitos mínimos (Python >=3.10, distro)
+    OK   Python 3.10
+    OK   Distro: gerenciador apt-get
+[1/11] Ambiente virtual Python
+    OK   venv criado
+[2/11] Dependências Python (pip install)
+    OK   requirements.txt instalado
+[3/11] Instalação do Ollama
+    AVISO ollama ausente -- instalando via script oficial
+>>> Installing ollama to /usr/local
+ERROR: This version requires zstd for extraction. Please install zstd and try again:
+  - Debian/Ubuntu: sudo apt-get install zstd
+  - RHEL/CentOS/Fedora: sudo dnf install zstd
+  - Arch: sudo pacman -S zstd
+    ERRO Falha ao instalar Ollama. Veja https://ollama.com/download
+===SMOKE===
+boot ok
+===EXIT 0===

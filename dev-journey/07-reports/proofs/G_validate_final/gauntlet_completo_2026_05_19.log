@@ -1,0 +1,94 @@
+  [nyx] Matando instância anterior (PID 1804067)...
+  [nyx] Executando Gauntlet (fase: completo)...
+03:49:46 [gauntlet] INFO: Gauntlet -- fases: ['infra', 'proxy', 'tools', 'qualidade', 'performance', 'visual', 'config', 'resiliencia', 'parser', 'robustez', 'interface', 'slash_bypass', 'controle', 'persistencia', 'e2e', 'p2_tools', 'p2_advanced', 'p2_commands', 'p2_services', 'p3_tools', 'p3_commands', 'p3_robustez', 'p3_headless', 'e2e_real', 'headless_protocol', 'p4_utility', 'p4_worktree', 'p4_tasks', 'p4_discovery', 'p5_git', 'p5_config', 'p5_session', 'p5_execution', 'p6_memoria', 'p6_qualidade', 'p8_edicao', 'p8_provider', 'infra_scaffold', 'coverage', 'infra_sync', 'gpu_tune', 'portabilidade', 'robustez_boot', 'p7_tui', 'p7_completion', 'p7_visual', 'p10_projeto', 'p10_debug', 'p10_memoria', 'p10_avancado', 'p10_root', 'p11_infra', 'contexto'], modelo: qwen2.5-coder:3b, gpu: NVIDIA GeForce RTX 3050 Laptop GPU
+03:49:46 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11435/api/version "HTTP/1.1 200 OK"
+03:49:46 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11435/api/version "HTTP/1.1 200 OK"
+03:49:46 [gauntlet] INFO: [OK] I-01 Ollama respondendo (0.0s, 0tok)
+03:49:46 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11435/api/version "HTTP/1.1 200 OK"
+03:49:46 [gauntlet] INFO: [OK] I-03 Versão Ollama (0.0s, 0tok)
+03:49:50 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+03:49:50 [gauntlet] INFO: [OK] I-05 Warmup do modelo (4.3s, 107tok)
+03:49:50 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11435/api/tags "HTTP/1.1 200 OK"
+03:49:50 [gauntlet] INFO: [OK] I-09 Modelo qwen2.5-coder:3b presente (0.0s, 0tok)
+03:49:50 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11436/v1/models "HTTP/1.1 200 OK"
+03:49:50 [gauntlet] INFO: [OK] I-11 Proxy respondendo (0.0s, 0tok)
+03:49:50 [gauntlet] INFO: Report: /home/andrefarias/Desenvolvimento/Nyx-Code/GAUNTLET_REPORT.md (APROVADO)
+03:49:50 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11435/api/version "HTTP/1.1 200 OK"
+03:49:51 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+03:49:51 [gauntlet] INFO: [OK] P-01 Request via proxy (0.4s, 38tok)
+03:49:51 [gauntlet] INFO: [OK] P-02 think=false injetado (0.0s, 0tok)
+03:49:51 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+03:49:51 [gauntlet] INFO: [OK] P-04 Content array normalizado (0.3s, 38tok)
+03:49:54 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+03:49:54 [gauntlet] INFO: [OK] P-05 Formato OpenAI correto (2.8s, 0tok)
+03:49:54 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11436/v1/models "HTTP/1.1 200 OK"
+03:49:54 [gauntlet] INFO: [OK] P-06 Listagem /v1/models (0.0s, 0tok)
+03:49:57 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+03:49:57 [gauntlet] INFO: [OK] P-07 tool_calls propagam (3.2s, 180tok)
+03:49:57 [gauntlet] INFO: Report: /home/andrefarias/Desenvolvimento/Nyx-Code/GAUNTLET_REPORT.md (APROVADO)
+03:49:57 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11435/api/version "HTTP/1.1 200 OK"
+03:50:04 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+03:50:04 [gauntlet] INFO: [OK] T-01 Read arquivo (6.8s, 436tok)
+03:50:07 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+03:50:07 [gauntlet] INFO: [OK] T-03 Write criar arquivo (3.0s, 472tok)
+03:50:10 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+03:50:10 [gauntlet] INFO: [OK] T-05 Edit editar arquivo (3.1s, 479tok)
+03:50:11 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+03:50:11 [gauntlet] INFO: [OK] T-06 Bash executar (1.5s, 436tok)
+03:50:13 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+03:50:13 [gauntlet] INFO: [OK] T-08 Glob buscar .sh (1.7s, 439tok)
+03:50:15 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+03:50:15 [gauntlet] INFO: [OK] T-09 Grep buscar proxy (1.9s, 447tok)
+03:50:15 [gauntlet] INFO: Report: /home/andrefarias/Desenvolvimento/Nyx-Code/GAUNTLET_REPORT.md (APROVADO)
+03:50:15 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11435/api/version "HTTP/1.1 200 OK"
+03:50:17 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+03:50:17 [gauntlet] INFO: [OK] Q-02 Identidade (sem Qwen/GPT) (1.9s, 74tok)
+03:50:21 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+03:50:21 [gauntlet] INFO: [OK] Q-04 Uso proativo de tools (4.2s, 194tok)
+03:50:21 [gauntlet] INFO: [OK] Q-05 Precisão de argumentos (0.0s, 0tok)
+03:50:23 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+03:50:23 [gauntlet] INFO: [OK] Q-06 Sem emojis (2.3s, 82tok)
+03:50:27 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+03:50:27 [gauntlet] INFO: [OK] Q-07 Sem hallucination de paths (3.3s, 0tok)
+03:50:27 [gauntlet] INFO: Report: /home/andrefarias/Desenvolvimento/Nyx-Code/GAUNTLET_REPORT.md (APROVADO)
+03:50:27 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11435/api/version "HTTP/1.1 200 OK"
+03:50:27 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11435/api/version "HTTP/1.1 200 OK"
+03:50:27 [gauntlet] INFO: [OK] K-01 Boot Ollama (0.0s, 0tok)
+03:50:27 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+03:50:27 [gauntlet] INFO: [OK] K-03 TTFR chat (0.4s, 36tok)
+03:50:31 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+03:50:31 [gauntlet] INFO: [OK] K-04 TTFR tool call (3.9s, 192tok)
+03:50:31 [gauntlet] INFO: [FAIL] K-08 VRAM em uso (0.0s, 0tok)
+03:50:31 [gauntlet] INFO: [OK] K-10 Tempo total gauntlet (0.0s, 0tok)
+03:50:31 [gauntlet] INFO: Report: /home/andrefarias/Desenvolvimento/Nyx-Code/GAUNTLET_REPORT.md (REPROVADO)
+03:50:31 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11435/api/version "HTTP/1.1 200 OK"
+03:50:36 [gauntlet] INFO: HTTP Request: GET https://httpbin.org/get "HTTP/1.1 200 OK"
+03:50:36 [gauntlet] INFO: response: https://pt.wikipedia.org/w/api.php?action=opensearch&profile=fuzzy&limit=1&search=Python%20programming%20language 200
+03:50:37 [gauntlet] INFO: response: https://grokipedia.com/api/typeahead?query=Python+programming+language&limit=1 200
+03:50:37 [gauntlet] INFO: response: https://www.mojeek.com/search?q=Python+programming+language 403
+03:50:38 [gauntlet] INFO: response: https://www.google.com/search?q=Python+programming+language&filter=0&start=0&hl=pt-BR&lr=lang_pt&cr=countryBR 200
+03:50:39 [gauntlet] INFO: response: https://yandex.com/search/site/?text=Python+programming+language&web=1&searchid=3997021 200
+03:50:39 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11435/api/version "HTTP/1.1 200 OK"
+03:50:39 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11436/v1/models "HTTP/1.1 200 OK"
+[2K  [38;2;0;212;170m⠋[0m  [2mteste[0m[2K03:50:46 [gauntlet] INFO: HTTP Request: GET http://127.0.0.1:11435/api/version "HTTP/1.1 200 OK"
+03:50:57 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+03:52:37 [gauntlet] INFO: HTTP Request: POST http://127.0.0.1:11436/v1/chat/completions "HTTP/1.1 200 OK"
+  [nyx] Atualizando docs...
+
+==================================================
+  Estado real do código
+==================================================
+  Tools:     35
+  Commands:  66
+  Services:  15
+  Testes:    304
+  ADRs:      32
+  Sprints:   290 concluídas | 54 pendentes | 5 backlog
+  Próxima:   UX-BUG-02C
+
+  Docs já estão atualizados.
+
+
+  [nyx] Desconectando...
+  [nyx] Parando Ollama (PID: 1808975)...
+  [nyx] Fim.
