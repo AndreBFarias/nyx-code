@@ -31,6 +31,7 @@ from nyx.agent.permissions import PermissionChecker
 from nyx.agent.prompt import build_guide_md_context, build_system_prompt, build_system_prompt_compact
 from nyx.agent.repomap import RepoMap
 from nyx.agent.services.diagnostics import DiagnosticTracking
+from nyx.agent.services.gsd_writer import GsdWriter
 from nyx.agent.services.logging_service import get_logger
 from nyx.agent.services.tool_use_summary import ToolUseSummary
 from nyx.agent.session import CodeSession
@@ -111,6 +112,10 @@ class AgentLoop(_IterationMixin):
 
         self._summarizer = SessionSummarizer(proxy_url=proxy_url, model=model)
         self._session_id: str = f"{Path(project_root).name}_{int(__import__('time').time())}"
+
+        # NYX-GSD-CHECKPOINTS-01: progress.md write-through por sessão.
+        # GsdWriter e best-effort: falhas de I/O não derrubam o agente.
+        self._gsd = GsdWriter(self._session_id, Path(project_root).name)
 
         self._repomap = RepoMap(project_root)
         try:
@@ -194,6 +199,9 @@ class AgentLoop(_IterationMixin):
         self._session.iteration = 0
         self._consecutive_skips = 0
         self._has_results = False
+
+        # NYX-GSD-CHECKPOINTS-01: registra pedido inicial em progress.md.
+        self._gsd.user_input(user_input)
 
         if self._model_state != "warm":
             self._emit_state("warming")
@@ -296,17 +304,28 @@ class AgentLoop(_IterationMixin):
                     aviso = "[atenção: resposta não verificada por tool]"
                     final_content = f"{content}\n\n{aviso}"
                 self._session.add_assistant(final_content)
+                self._gsd_record_turn_state("done")
                 return SessionStatus(
                     state=SessionState.DONE,
                     iterations=i + 1,
                     summary=final_content,
                 )
 
+        self._gsd_record_turn_state("max_iter")
         return SessionStatus(
             state=SessionState.MAX_ITERATIONS,
             iterations=self._max_iterations,
             summary=f"Atingiu limite de {self._max_iterations} iterações",
         )
+
+    def _gsd_record_turn_state(self, label: str = "turn") -> None:
+        """NYX-GSD-CHECKPOINTS-01: registra snapshot do estado runtime no progress.md."""
+        s = self._session
+        msg = (
+            f"{label} iter={s.iteration} lidos={s.files_read_count} "
+            f"modif={s.files_modified_count}"
+        )
+        self._gsd.session(msg)
 
     def _build_force_done_summary(self) -> str:
         """Gera resumo real do que foi feito ao forçar done."""

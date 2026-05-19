@@ -663,10 +663,15 @@ async def run_repl(
     # SESSION-RESUME-01: --resume <id> ou prompt de retomada pós-banner.
     if resume_id:
         from nyx.agent.persistence import load_session_by_id
+        from nyx.agent.services.gsd_writer import load_progress_tail
 
         loaded = load_session_by_id(resume_id)
         if loaded:
             agent._session = loaded
+            # NYX-GSD-CHECKPOINTS-01: anexa progress tail ao --resume.
+            extra = load_progress_tail(resume_id, n=50)
+            if extra:
+                loaded.add_user(f"[contexto-anterior]\n{extra}")
             print(
                 f"  {ACCENT}[ok]{NC} Sessão {resume_id} restaurada "
                 f"({len(loaded.history)} entradas)"
@@ -964,10 +969,16 @@ async def run_repl(
 
             if result == "__session_load__":
                 from nyx.agent.persistence import load_latest_session
+                from nyx.agent.services.gsd_writer import load_progress_tail
 
                 loaded = load_latest_session(PROJECT_ROOT.name)
                 if loaded:
                     agent._session = loaded
+                    # NYX-GSD-CHECKPOINTS-01: anexa tail do progress.md como contexto.
+                    sid = getattr(agent, "_session_id", "") or ""
+                    extra = load_progress_tail(sid, n=50) if sid else ""
+                    if extra:
+                        loaded.add_user(f"[contexto-anterior]\n{extra}")
                     print(f"  {SUCCESS} sessão restaurada{NC} ({len(loaded.history)} entradas)")
                 else:
                     _print_error(
@@ -980,10 +991,15 @@ async def run_repl(
                 # SESSION-RESUME-01: /resume <prefixo>
                 prefix = result[len("__session_load_id__"):]
                 from nyx.agent.persistence import load_session_by_id
+                from nyx.agent.services.gsd_writer import load_progress_tail
 
                 loaded = load_session_by_id(prefix)
                 if loaded:
                     agent._session = loaded
+                    # NYX-GSD-CHECKPOINTS-01: anexa tail do progress.md ao reattach.
+                    extra = load_progress_tail(prefix, n=50)
+                    if extra:
+                        loaded.add_user(f"[contexto-anterior]\n{extra}")
                     print(
                         f"  {ACCENT}[ok]{NC} Sessão {prefix} restaurada "
                         f"({len(loaded.history)} entradas)"
@@ -1580,6 +1596,25 @@ async def run_repl(
             if isinstance(result, str) and result.startswith("__replay__"):
                 from nyx.agent.commands._observability import render_replay
                 print(render_replay(Path(project_root), result.replace("__replay__", "")))
+                continue
+
+            if isinstance(result, str) and result.startswith("__progress_tail__"):
+                # NYX-GSD-CHECKPOINTS-01: mostra tail do progress.md da sessão.
+                from nyx.agent.services.gsd_writer import load_progress_tail
+
+                try:
+                    n = int(result.replace("__progress_tail__", "") or "30")
+                except ValueError:
+                    n = 30
+                sid = getattr(agent, "_session_id", "") or ""
+                tail = load_progress_tail(sid, n=n) if sid else ""
+                if tail:
+                    print(tail)
+                else:
+                    _print_error(
+                        "Nenhum progresso registrado ainda.",
+                        hint="O progress.md e criado no primeiro turno; faça uma pergunta primeiro.",
+                    )
                 continue
 
             if result == "__trace__":

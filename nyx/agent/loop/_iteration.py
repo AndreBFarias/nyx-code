@@ -116,6 +116,12 @@ class _IterationMixin:
                 is_key=name in ("write_file", "edit_file", "create_file", "run_command"),
             )
             self._session.track_files(result.files_read, result.files_modified)
+            # NYX-GSD-CHECKPOINTS-01: write-through do tool call em progress.md.
+            self._gsd.tool(
+                name,
+                args,
+                result.output if result.success else result.error,
+            )
             self._last_action = action
             self._consecutive_skips = 0
             if result.success:
@@ -189,6 +195,12 @@ class _IterationMixin:
             is_key=tool_name in ("write_file", "edit_file", "create_file", "run_command"),
         )
         self._session.track_files(result.files_read, result.files_modified)
+        # NYX-GSD-CHECKPOINTS-01: write-through do tool call (parser fallback).
+        self._gsd.tool(
+            tool_name,
+            remapped,
+            result.output if result.success else result.error,
+        )
         self._last_action = action
         self._consecutive_skips = 0
         if result.success:
