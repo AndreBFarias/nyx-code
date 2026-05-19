@@ -135,8 +135,47 @@ async def run_repl(
         from prompt_toolkit.history import FileHistory
         from prompt_toolkit.key_binding import KeyBindings
         from prompt_toolkit.shortcuts import CompleteStyle
+        from prompt_toolkit.styles import Style as _PtkStyle
 
         from nyx.agent.completer import create_completer
+
+        def _build_prompt_style() -> "_PtkStyle":
+            """TUI-REDESIGN-27-01: Style do prompt_toolkit a partir do theme_manager.
+
+            Mapeia classes (completion-menu, bottom-toolbar, scrollbar) para
+            hex da paleta ativa (NYX_AESTHETIC + NYX_ENTITY) via resolve_palette.
+            Fallback para constantes de design_tokens.py se theme_manager falhar.
+            """
+            from nyx.themes.design_tokens import (
+                NYX_ACCENT as _D_ACCENT,
+                NYX_ACCENT_DIM as _D_ACCENT_LO,
+                NYX_BG as _D_BG,
+                NYX_BG_SOFT as _D_BG_SOFT,
+                NYX_MUTED as _D_MUTED,
+                NYX_PRIMARY as _D_INK,
+            )
+            try:
+                from nyx.themes.theme_manager import resolve_palette
+                pal = resolve_palette().get("palette", {}) or {}
+            except Exception:
+                pal = {}
+            accent = pal.get("accent", _D_ACCENT)
+            accent_lo = pal.get("accent_lo", _D_ACCENT_LO)
+            ink = pal.get("ink", _D_INK)
+            ink_muted = pal.get("ink_muted", _D_MUTED)
+            bg = pal.get("bg", _D_BG)
+            bg_soft = pal.get("bg_soft", _D_BG_SOFT)
+            return _PtkStyle.from_dict({
+                "completion-menu.completion":                f"bg:{accent_lo} fg:{ink}",
+                "completion-menu.completion.current":        f"bg:{accent} fg:{bg} bold",
+                "completion-menu.meta.completion":           f"bg:{bg_soft} fg:{ink_muted}",
+                "completion-menu.meta.completion.current":   f"bg:{accent_lo} fg:{ink}",
+                "bottom-toolbar":                            f"bg:{bg_soft} fg:{ink_muted}",
+                "bottom-toolbar.text":                       f"bg:{bg_soft} fg:{ink_muted}",
+                "scrollbar.background":                      f"bg:{bg_soft}",
+                "scrollbar.button":                          f"bg:{accent_lo}",
+                "completion.header":                         f"fg:{accent} bold",
+            })
 
         history_path = Path.home() / ".nyx" / "history"
         history_path.parent.mkdir(parents=True, exist_ok=True)
@@ -319,6 +358,9 @@ async def run_repl(
             complete_style=_style,
             bottom_toolbar=_bottom_toolbar,
             auto_suggest=AutoSuggestFromHistory(),
+            # TUI-REDESIGN-27-01: style customizado puxa cores Nyx para popup
+            # de completion e bottom toolbar (substitui amarelo/cinza default).
+            style=_build_prompt_style(),
         )
         logger.info("prompt-toolkit ativo (histórico: %s)", history_path)
     except ImportError:

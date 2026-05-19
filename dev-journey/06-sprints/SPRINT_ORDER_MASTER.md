@@ -549,6 +549,22 @@ Promoção em batch durante a Fase H do plano canônico da sessão 2026-05-18.
 
 <!-- MANUAL_OVERRIDE_ONDA_24_END -->
 
+<!-- MANUAL_OVERRIDE_ONDA_27_START -->
+
+### Bloco ONDA-27: Refinamento visual prompt_toolkit (suggester theme + prompt + listas navegáveis) (2026-05-18)
+
+**Origem:** Feedback do usuário pós-Onda 26 (commits `9fc2cb7`..`fcb2b17`) sobre 3 dívidas visuais visíveis na imagem 6: (1) popup de slash command com cores amarelo/cinza padrão, (2) prompt `nyx>` hardcoded sem identidade, (3) listas (`/aesthetic`, `/theme`, `/schema`) só texto, sem navegação por setinhas.
+
+| # | Sprint | Bloco | Prioridade | Status | Depende de |
+|---|--------|-------|------------|--------|------------|
+| 170 | **TUI-REDESIGN-27-01** | 27.1 Refinamento prompt_toolkit | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-26-05 |
+| 171 | **TUI-REDESIGN-27-02** | 27.1 Refinamento prompt_toolkit | ALTA | PENDENTE | TUI-REDESIGN-27-01 |
+| 172 | **TUI-REDESIGN-27-03** | 27.1 Refinamento prompt_toolkit | MÉDIA | PENDENTE | TUI-REDESIGN-27-01 |
+
+Ordem: Fase 0 (materializar specs) → Fase 1 (27-01 suggester theme) → Fase 2 (27-02 prompt customizado) → Fase 3 (27-03 listas navegáveis).
+
+<!-- MANUAL_OVERRIDE_ONDA_27_END -->
+
 <!-- MANUAL_OVERRIDE_ONDA_26_START -->
 
 ### Bloco ONDA-26: Polimento visual fiel aos mockups + cockpit --web real + onboarding nome (2026-05-18)
