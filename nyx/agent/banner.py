@@ -2,9 +2,13 @@
 
 Consome design_tokens (ADR-023) como fonte única de cores e glifos.
 Dois modos:
-  - Compacto (cols < 80): 3 linhas com modelo, projeto, portas, atalho.
-  - Amplo (cols >= 80): banner completo com modelo, projeto, rede, visão,
-    memória, atalho.
+  - Compacto (cols < 80): 1 linha do block "$ nyx.code" + 1 linha info.
+  - Amplo (cols >= 80): block "$ nyx.code▌" + box ╭─╮│╰╯ com 3 linhas
+    (versão, offline, modelo/projeto/rede, tools/comandos/memória/tipo).
+
+TUI-REDESIGN-28-06: banner reescrito como bloco textual com cursor + box
+info, mantendo paleta turquesa+roxo+verde (não migra para roxo claro do
+mockup HTML de referência).
 """
 
 from __future__ import annotations
@@ -14,7 +18,10 @@ from typing import TYPE_CHECKING
 from nyx.__version__ import __version__ as NYX_VERSION
 from nyx.themes.design_tokens import (
     ANSI_DIM,
+    ANSI_PRIMARY_FG,
+    ANSI_PURPLE_FG,
     ANSI_RESET,
+    ANSI_SUCCESS_FG,
     BOX_CHARS,
 )
 from nyx.themes.theme_manager import current_ansi
@@ -119,11 +126,23 @@ def _build_compact(
     h: str,
     v: str,
 ) -> str:
-    """3 linhas — mínimo essencial para cols < 80."""
-    topo = f"  {accent}{tl}{h} Nyx · {model} · {project} {h}{tr}{nc}"
-    meio = f"  {accent}{v}{nc}   {muted}{ports_line}{nc}"
-    base = f"  {accent}{bl}{h} {muted}/help · Ctrl+D{accent} {h * 6}{br}{nc}"
-    return "\n".join(["", topo, meio, base, ""])
+    """Versão estreita (cols < 80): block '$ nyx.code' + 1 linha info.
+
+    Sem box; só o block textual + dados essenciais agrupados.
+    """
+    purple = ANSI_PURPLE_FG
+    primary = ANSI_PRIMARY_FG
+    success = ANSI_SUCCESS_FG
+    block = (
+        f"  {purple}$ {primary}nyx{purple}.{primary}code{purple}▌{nc}"
+    )
+    info = (
+        f"  {dim}v{NYX_VERSION}{nc}  "
+        f"{accent}●{nc} {success}100% offline{nc}  "
+        f"{muted}Modelo{nc} {primary}{model}{nc}  "
+        f"{muted}Rede{nc} {primary}{ports_line}{nc}"
+    )
+    return "\n".join(["", block, info, ""])
 
 
 def _build_wide(
@@ -146,38 +165,90 @@ def _build_wide(
     h: str,
     v: str,
 ) -> str:
-    """Header de sessão em 3 linhas com agrupamento (TUI-REDESIGN-25-06).
+    """Block '$ nyx.code▌' + box info de 3 linhas (TUI-REDESIGN-28-06).
 
-    Linha 1: Nyx vX                 100% offline (direita)
-    Linha 2: Modelo X   Projeto Y   Rede :p1 / :p2
-    Linha 3: Tools N   Comandos M   Memória K   Tipo Z
+    Layout (cols >= 80, largura interna fixa = 66 chars + bordas):
 
-    Rótulos em ink_muted, valores em ink_dim, accent só no nome 'Nyx'.
-    Sem hint /help aqui — o discoverability fica para o REPL.
+        $ nyx.code▌
+        ╭──────────────────────────────────────────────────────────────────╮
+        │  v1.2.0    ● 100% offline                                        │
+        │  Modelo X   Projeto Y   Rede :p1/:p2                             │
+        │  Tools N   Comandos M   Memória ativa   Tipo REPL                │
+        ╰──────────────────────────────────────────────────────────────────╯
+
+    Cores:
+      - '$ ' roxo, 'nyx' primary, '.' roxo, 'code' primary, '▌' roxo.
+      - Bordas ╭─╮│╰╯ accent.
+      - '●' accent. '100% offline' verde NYX_SUCCESS.
+      - Rótulos muted; valores primary; versão dim.
     """
+    purple = ANSI_PURPLE_FG
+    primary = ANSI_PRIMARY_FG
+    success = ANSI_SUCCESS_FG
+
     mem_str = (
         f"{memory_count} entradas" if memory_count is not None else "ativa"
     )
-    # Linha 1: logo + offline pin.
-    title = f"{accent}Nyx{nc} {dim}v{NYX_VERSION}{nc}"
-    right_tag = f"{muted}100% offline{nc}"
-    pad = max(2, cols - len(f"Nyx v{NYX_VERSION}") - len("100% offline") - 4)
-    linha_logo = f"  {title}{' ' * pad}{right_tag}"
-    # Linha 2: agrupamento por rótulo (Modelo | Projeto | Rede).
-    linha_ctx = (
-        f"  {muted}Modelo{nc} {dim}{model}{nc}"
-        f"   {muted}Projeto{nc} {dim}{project}{nc}"
-        f"   {muted}Rede{nc} {dim}{ports_short}{nc}"
-    )
-    # Linha 3: estatísticas (Tools | Comandos | Memória | Tipo).
-    linha_stats = (
-        f"  {muted}Tools{nc} {dim}{tools_count}{nc}"
-        f"   {muted}Comandos{nc} {dim}{commands_count}{nc}"
-        f"   {muted}Memória{nc} {dim}{mem_str}{nc}"
-        f"   {muted}Tipo{nc} {dim}{session_type}{nc}"
+    # Compactar portas dentro do box (sem espaços ao redor do '/').
+    ports_box = ports_short.replace(" / ", "/")
+
+    # Largura interna do box (entre as bordas │ │). Fixa em 66 para layout
+    # estável; padding lateral de 2 chars (mesmo do padding "  " externo).
+    inner_w = 66
+
+    # ---- block "$ nyx.code▌" ----
+    block_line = (
+        f"  {purple}$ {primary}nyx{purple}.{primary}code{purple}▌{nc}"
     )
 
-    return "\n".join(["", linha_logo, linha_ctx, linha_stats, ""])
+    # ---- topo do box ----
+    topo = f"  {accent}{tl}{h * inner_w}{tr}{nc}"
+
+    # ---- linha 1 do box: versão + offline ----
+    # plain: "  v1.2.0    ● 100% offline" -> visible len = 2 + len(v...) + 4 + 2 + len("100% offline")
+    plain1 = f"  v{NYX_VERSION}    ● 100% offline"
+    pad1 = max(1, inner_w - len(plain1))
+    linha1 = (
+        f"  {accent}{v}{nc}  "
+        f"{dim}v{NYX_VERSION}{nc}    "
+        f"{accent}●{nc} "
+        f"{success}100% offline{nc}"
+        f"{' ' * pad1}"
+        f"{accent}{v}{nc}"
+    )
+
+    # ---- linha 2 do box: Modelo / Projeto / Rede ----
+    plain2 = f"  Modelo {model}   Projeto {project}   Rede {ports_box}"
+    pad2 = max(1, inner_w - len(plain2))
+    linha2 = (
+        f"  {accent}{v}{nc}  "
+        f"{muted}Modelo{nc} {primary}{model}{nc}   "
+        f"{muted}Projeto{nc} {primary}{project}{nc}   "
+        f"{muted}Rede{nc} {primary}{ports_box}{nc}"
+        f"{' ' * pad2}"
+        f"{accent}{v}{nc}"
+    )
+
+    # ---- linha 3 do box: Tools / Comandos / Memória / Tipo ----
+    plain3 = (
+        f"  Tools {tools_count}   Comandos {commands_count}   "
+        f"Memória {mem_str}   Tipo {session_type}"
+    )
+    pad3 = max(1, inner_w - len(plain3))
+    linha3 = (
+        f"  {accent}{v}{nc}  "
+        f"{muted}Tools{nc} {primary}{tools_count}{nc}   "
+        f"{muted}Comandos{nc} {primary}{commands_count}{nc}   "
+        f"{muted}Memória{nc} {primary}{mem_str}{nc}   "
+        f"{muted}Tipo{nc} {primary}{session_type}{nc}"
+        f"{' ' * pad3}"
+        f"{accent}{v}{nc}"
+    )
+
+    # ---- rodape do box ----
+    base = f"  {accent}{bl}{h * inner_w}{br}{nc}"
+
+    return "\n".join(["", block_line, topo, linha1, linha2, linha3, base, ""])
 
 
 # "A forma segue a função." -- Louis Sullivan
