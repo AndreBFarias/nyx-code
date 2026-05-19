@@ -455,7 +455,7 @@ Reorganização proposta priorizando meta v1.0 "Claude Code offline e opensource
 
 **Bloco 23.3 (Web Cockpit):** 5 sprints. Servidor local FastAPI em :11437 com REPL embedded via PTY, dashboard de features, captura de evidência e control API. Permite Claude pilotar via Chrome MCP.
 
-**Bloco 23.4 (Pilar gamedesigner — filosofia):** 4 sprints. Materializa 4 princípios canônicos como ADRs (025 Loop, 026 Agência, 027 Progressão & Identidade) aplicados ao loop Nyx; sprint final garante coerência TUI↔Web. **Após UX-LOOP-01, toda sprint Onda 22 e Onda 23 passa a ter critério de aceite "princípios do ADR-025 aplicados".**
+**Bloco 23.4 (Pilar gamedesigner — filosofia):** 4 sprints. Materializa 4 princípios canônicos como ADRs (025 Loop, 026 Agência, 027 Progressão & Identidade) aplicados ao loop Nyx; sprint final garante coerência TUIWeb. **Após UX-LOOP-01, toda sprint Onda 22 e Onda 23 passa a ter critério de aceite "princípios do ADR-025 aplicados".**
 
 **Status: PENDENTE.** Specs serão criadas em `producao/` na sequência da Semana 1 do plano. Promoção para PENDENTE só após review.
 
@@ -595,6 +595,7 @@ Ordem de execução: Fase 1 (M1 SPRINT_ORDER-OVERRIDE-FIX-01) -> Fase 2 (26.2 co
 | M1  | **SPRINT_ORDER-OVERRIDE-FIX-01** | 25.meta Anti-débito de pipeline | ALTA | CONCLUIDA (2026-05-18) | -- (achado durante 25-01: `update_next_sprint.py` não respeita este bloco MANUAL_OVERRIDE) |
 | M2  | **STREAMING-SIDE-RULE-01** | 25.meta Anti-débito de UX | MÉDIA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-25-08 (achado: faixa lateral em cada linha da resposta streamada -- requer wrap on_token; extraído por complexidade) |
 | M3  | **TUI-REDESIGN-25-09-PARTE-2** | 25.meta Anti-débito de UX | MÉDIA | CONCLUIDA_PARCIAL (2026-05-18; Tab keybinding feito; captura real do thinking via proxy+_iteration pendente) | TUI-REDESIGN-25-09 (achado: captura real do thinking + Tab keybinding extraídos -- helper visual já em 25-09) |
+| M4  | **TUI-REDESIGN-25-09-PARTE-3** | 25.meta Anti-débito de UX | BAIXA | DEFERIDA (2026-05-18; captura real do thinking via proxy+_iteration -- requer mudança em proxy.py:296 que limpa content em tool_calls + teste com qwen3:4b) | TUI-REDESIGN-25-09-PARTE-2 |
 | 147 | **TUI-REDESIGN-25-02** | 25.1 Fundamentos visuais | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-25-01 |
 | 148 | **TUI-REDESIGN-25-03** | 25.1 Fundamentos visuais | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-25-02 |
 | 149 | **TUI-REDESIGN-25-15** | 25.1 Fundamentos visuais | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-25-03 |
