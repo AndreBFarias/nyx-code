@@ -141,4 +141,43 @@ def build_guide_md_context(project_root: str) -> str:
     return ""
 
 
+def build_reminder(
+    session,
+    project_root: str,
+    original_input: str | None = None,
+    extra: str | None = None,
+) -> str:
+    """Bloco <system-reminder> com estado canônico do turno.
+
+    NYX-PROMPT-REINJECT-01: reinjetado periodicamente no histórico para
+    contrariar drift de modelos pequenos (qwen2.5-coder:3b) em tarefas
+    multi-turno. Padrão: bloco <system-reminder> reaparece entre tool
+    results para reafirmar pedido original, estado e invariantes.
+
+    - session: CodeSession (lê iteration, files_read_count, files_modified_count).
+    - project_root: caminho absoluto do sandbox vigente.
+    - original_input: pedido original do usuário do turno atual.
+    - extra: linha opcional anexada antes de </system-reminder> (drift hints).
+    """
+    meta = (original_input or "(pedido não registrado)").replace("\n", " ")[:200]
+    iter_n = getattr(session, "iteration", 0)
+    lidos = getattr(session, "files_read_count", 0)
+    modif = getattr(session, "files_modified_count", 0)
+    lines = [
+        "<system-reminder>",
+        f"Pedido original: {meta}",
+        f"Estado: iter={iter_n}, lidos={lidos}, modif={modif}",
+        "Invariantes vigentes (lembrar SEMPRE):",
+        "- Você é Nyx-Code. Sem menção a IA externa.",
+        "- Responda em PT-BR acentuado.",
+        "- Sem emoji em código/output user-facing.",
+        "- Use tools (write_file/edit_file/run_command) -- NUNCA afirme sucesso sem tool call real.",
+        f"- Sandbox: pode tocar apenas {project_root} (e roots extra opt-in).",
+    ]
+    if extra:
+        lines.append(extra)
+    lines.append("</system-reminder>")
+    return "\n".join(lines)
+
+
 # "O prompt é o contrato entre humano e máquina." -- desconhecido

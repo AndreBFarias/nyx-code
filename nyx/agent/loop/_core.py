@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 import httpx
 
 from nyx.agent.context import ContextBudget
-from nyx.agent.loop._iteration import _IterationMixin
+from nyx.agent.loop._iteration import _IterationMixin, _reminder_every
 from nyx.agent.loop._types import PermissionCallback
 from nyx.agent.memory import NyxMemory
 from nyx.agent.models import (
@@ -101,6 +101,16 @@ class AgentLoop(_IterationMixin):
         self._last_action: AgentAction | None = None
         self._consecutive_skips: int = 0
         self._has_results: bool = False
+        # NYX-PROMPT-REINJECT-01: estado da reinjeção de system-reminders.
+        # Cadência configurável via env NYX_REMINDER_EVERY (default 3).
+        self._reminder_every: int = _reminder_every()
+        self._tool_calls_count: int = 0
+        self._tool_calls_this_turn: int = 0
+        self._last_reminder_at_count: int = -1
+        self._lang_drift_streak: int = 0
+        self._force_reminder: bool = False
+        self._reminder_extra: str | None = None
+        self._original_input: str | None = None
 
         self._collector = StreamingCollector(on_token=on_token) if streaming and on_token else None
         self._http_client: httpx.AsyncClient | None = None
@@ -199,6 +209,13 @@ class AgentLoop(_IterationMixin):
         self._session.iteration = 0
         self._consecutive_skips = 0
         self._has_results = False
+        # NYX-PROMPT-REINJECT-01: preserva o pedido original do turno para o
+        # reminder periodico. tool_calls_count Não reseta entre turnos: cadencia
+        # se mantem ao longo da sessão (mais drift quanto mais longa a sessão).
+        self._original_input = user_input
+        self._lang_drift_streak = 0
+        self._force_reminder = False
+        self._reminder_extra = None
 
         # NYX-GSD-CHECKPOINTS-01: registra pedido inicial em progress.md.
         self._gsd.user_input(user_input)
@@ -208,6 +225,9 @@ class AgentLoop(_IterationMixin):
 
         for i in range(self._max_iterations):
             self._session.iteration = i + 1
+            # NYX-PROMPT-REINJECT-01: zera tool calls da iteração para drift
+            # de alucinação (afirmar sucesso sem tool no turno corrente).
+            self._tool_calls_this_turn = 0
             logger.info("[loop] iteração %d/%d", i + 1, self._max_iterations)
 
             if self._budget.should_compact(self._session):
@@ -284,6 +304,17 @@ class AgentLoop(_IterationMixin):
 
             content = response.get("content", "")
             if content:
+                # NYX-PROMPT-REINJECT-01: detecta drift de idioma/alucinação
+                # no texto do assistente antes do parser fallback. Drift força
+                # reminder no próximo _call_llm.
+                try:
+                    drifted, hint = self._detect_drift(content)
+                    if drifted:
+                        self._force_reminder = True
+                        self._reminder_extra = hint
+                        logger.info("[reinject] drift detectado: %s", (hint or "")[:80])
+                except Exception as exc:  # noqa: BLE001 -- drift e best-effort
+                    logger.debug("[reinject] _detect_drift erro: %s", exc)
                 parse_result = self._parser.parse(content)
                 if parse_result.success and parse_result.action:
                     action = parse_result.action
@@ -379,6 +410,14 @@ class AgentLoop(_IterationMixin):
         self._last_action = None
         self._consecutive_skips = 0
         self._has_results = False
+        # NYX-PROMPT-REINJECT-01: reset zera contadores da sessão.
+        self._tool_calls_count = 0
+        self._tool_calls_this_turn = 0
+        self._last_reminder_at_count = -1
+        self._lang_drift_streak = 0
+        self._force_reminder = False
+        self._reminder_extra = None
+        self._original_input = None
 
     async def maybe_summarize(self) -> bool:
         """Atualiza o resumo da sessão se o batch fechou. Fire-and-forget friendly."""

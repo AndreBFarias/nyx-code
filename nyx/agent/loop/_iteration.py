@@ -9,11 +9,13 @@ _on_permission, _last_action, _consecutive_skips, _has_results, etc.).
 from __future__ import annotations
 
 import json
+import os
 from typing import Any
 
 import httpx
 
 from nyx.agent.intent import classify as _classify_intent
+from nyx.agent.lang_check import is_pt_br
 from nyx.agent.loop._constants import ACTION_TO_TOOL, CORE_TOOLS, LLM_TIMEOUT, TOOL_KEYWORDS, _remap_params
 from nyx.agent.models import (
     ActionType,
@@ -23,10 +25,11 @@ from nyx.agent.models import (
 )
 from nyx.agent.permissions import PermissionLevel
 from nyx.agent.preflight import check as preflight_check
+from nyx.agent.prompt import build_reminder
 from nyx.agent.repetition import SkipStrategy, get_skip_strategy
 from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tools.plan_mode import is_tool_allowed_in_plan_mode
-from nyx.agent.validator import validate as post_validate
+from nyx.agent.validator import FORGE_PATTERNS, validate as post_validate
 from nyx.providers.base import ProviderError
 
 logger = get_logger("nyx.agent")
@@ -46,6 +49,26 @@ def _detect_truncate(text: str) -> bool:
     if len(stripped) < 100:
         return False
     return stripped.endswith(_TRUNCATE_SUFFIXES)
+
+
+# NYX-PROMPT-REINJECT-01: cadência default de reinjeção de system-reminder
+# canônico no histórico. Sobrescrita via env NYX_REMINDER_EVERY (int > 0).
+# Cadência 3 escolhida empiricamente: turnos típicos de qwen2.5-coder:3b com
+# tarefa multi-passo encadeiam 3-5 tool calls; reminder a cada 3 mantém
+# pedido original e invariantes vivos sem inflar input em chats curtos.
+_REMINDER_EVERY_DEFAULT = 3
+
+
+def _reminder_every() -> int:
+    """Lê NYX_REMINDER_EVERY se válido (int >= 1); senão default 3."""
+    raw = os.environ.get("NYX_REMINDER_EVERY", "")
+    if not raw:
+        return _REMINDER_EVERY_DEFAULT
+    try:
+        n = int(raw)
+    except ValueError:
+        return _REMINDER_EVERY_DEFAULT
+    return n if n >= 1 else _REMINDER_EVERY_DEFAULT
 
 
 class _IterationMixin:
@@ -138,6 +161,10 @@ class _IterationMixin:
                 args,
                 result.output if result.success else result.error,
             )
+            # NYX-PROMPT-REINJECT-01: contador de tool calls dispara reinjeção
+            # periódica em _call_llm. Conta no turno e na sessão.
+            self._tool_calls_count = getattr(self, "_tool_calls_count", 0) + 1
+            self._tool_calls_this_turn = getattr(self, "_tool_calls_this_turn", 0) + 1
             self._last_action = action
             self._consecutive_skips = 0
             if result.success:
@@ -217,6 +244,9 @@ class _IterationMixin:
             remapped,
             result.output if result.success else result.error,
         )
+        # NYX-PROMPT-REINJECT-01: contador de tool calls (fallback via parser).
+        self._tool_calls_count = getattr(self, "_tool_calls_count", 0) + 1
+        self._tool_calls_this_turn = getattr(self, "_tool_calls_this_turn", 0) + 1
         self._last_action = action
         self._consecutive_skips = 0
         if result.success:
@@ -256,6 +286,92 @@ class _IterationMixin:
 
         return None
 
+    def _maybe_inject_reminder(self) -> None:
+        """NYX-PROMPT-REINJECT-01: injeta <system-reminder> periodicamente.
+
+        Cadência primaria por tool calls (cada REMINDER_EVERY). Drift detectado
+        (idioma ou alucinacao) força injeção imediata via flag _force_reminder.
+        Skip se histórico ainda não tem turno fechado (iter==0/sem tool count).
+        """
+        force = getattr(self, "_force_reminder", False)
+        count = getattr(self, "_tool_calls_count", 0)
+        every = getattr(self, "_reminder_every", _REMINDER_EVERY_DEFAULT)
+        if not force:
+            if count == 0:
+                return
+            if count % every != 0:
+                return
+            # Evita reinjetar no mesmo tick (idempotente por turno).
+            if getattr(self, "_last_reminder_at_count", -1) == count:
+                return
+        try:
+            reminder = build_reminder(
+                self._session,
+                self._project_root,
+                original_input=getattr(self, "_original_input", None),
+                extra=getattr(self, "_reminder_extra", None),
+            )
+        except Exception as exc:  # noqa: BLE001 -- reminder e best-effort, não derruba loop
+            logger.warning("[reinject] build_reminder falhou: %s", exc)
+            return
+        # System role no histórico via add_user evitaria conflito de schema; usamos
+        # add_user com prefixo canônico para que to_messages preserve role=user
+        # mas o conteúdo entregue ao modelo seja o bloco system-reminder cru.
+        # Modelos OpenAI-compatible aceitam role=user com bloco <system-reminder>;
+        # o que importa é a presença visual do bloco no contexto reduzido.
+        self._session.add_user(reminder)
+        self._last_reminder_at_count = count
+        self._force_reminder = False
+        self._reminder_extra = None
+        if getattr(self, "_gsd", None):
+            try:
+                origem = "drift" if force else f"cadencia/{count}"
+                self._gsd.write("reminder", f"injetado ({origem})")
+            except Exception as exc:  # noqa: BLE001 -- gsd e best-effort
+                logger.debug("[reinject] gsd write falhou: %s", exc)
+        logger.info(
+            "[reinject] system-reminder injetado (tool_calls=%d, force=%s)",
+            count,
+            force,
+        )
+
+    def _detect_drift(self, last_assistant_text: str) -> tuple[bool, str | None]:
+        """Detecta drift de idioma (2x EN consecutivo) ou alucinação de sucesso.
+
+        Retorna (drift_detectado, hint_extra) para o próximo reminder. hint vazio
+        quando não houve drift.
+        """
+        text = (last_assistant_text or "").strip()
+        if not text:
+            return (False, None)
+
+        # Lang drift: 2 turnos consecutivos não-PT-BR.
+        try:
+            pt_ok = is_pt_br(text)
+        except Exception:  # noqa: BLE001 -- detector e heuristico
+            pt_ok = True
+        if not pt_ok:
+            self._lang_drift_streak = getattr(self, "_lang_drift_streak", 0) + 1
+            if self._lang_drift_streak >= 2:
+                return (
+                    True,
+                    "- DRIFT DE IDIOMA detectado: responda em PT-BR acentuado SEMPRE.",
+                )
+        else:
+            self._lang_drift_streak = 0
+
+        # Hallucination drift: afirma sucesso sem tool no turno.
+        tool_calls_this_turn = getattr(self, "_tool_calls_this_turn", 0)
+        if tool_calls_this_turn == 0:
+            for pattern in FORGE_PATTERNS:
+                if pattern.search(text):
+                    return (
+                        True,
+                        "- NYX-NO-HALLUCINATE: não afirme sucesso sem write_file/edit_file/create_file.",
+                    )
+
+        return (False, None)
+
     async def _call_llm(self) -> dict[str, Any]:
         """Envia request ao proxy com histórico e tools.
 
@@ -264,6 +380,10 @@ class _IterationMixin:
         - Iteração 2+: apenas últimas 4 mensagens (user + tool_call + result + resposta)
         - Compactação se budget > 40%
         """
+        # NYX-PROMPT-REINJECT-01: reinjeta <system-reminder> antes da request,
+        # com base em contagem de tool calls ou drift detectado no turno anterior.
+        self._maybe_inject_reminder()
+
         # UX-LIFECYCLE-01: VRAM check pré-inferência em cold start.
         # Só roda uma vez por sessão. Em CPU mode (_OOM_DEGRADED pelo proxy)
         # ou sem nvidia-smi, retorna ok=True silenciosamente.
