@@ -171,6 +171,79 @@ def mark_done() -> None:
         logger.warning("não foi possível marcar first_run_done: %s", exc)
 
 
+def run_first_run_wizard() -> None:
+    """First-run completo (TUI-REDESIGN-28-05): nome + 6 passos do menu_wizard.
+
+    Sequência integrada de 7 passos:
+
+      01/07  Como devo te chamar? (default git config user.name, fallback 'visitante')
+      02/07  Aesthetic visual    (menu_wizard.main)
+      03/07  Entidade            (menu_wizard.main)
+      04/07  Schema de interface (menu_wizard.main)
+      05/07  Banner mode         (menu_wizard.main)
+      06/07  Modelo Ollama       (menu_wizard.main)
+      07/07  Auto-aprovar?       (menu_wizard.main)
+
+    Pula em ambiente não-tty (CI/pipe) e em segunda execução
+    (``.first_run_done`` bloqueia via ``should_run_tutorial``).
+
+    Persiste tudo em ``~/.nyx/config.toml`` (merge não-destrutivo) e marca
+    ``.first_run_done`` ao final, idempotente.
+    """
+    if not sys.stdin.isatty():
+        mark_done()
+        return
+
+    # Passo 01/07 -- nome do usuário
+    persisted = _read_persisted_user_name()
+    if persisted:
+        user_name = persisted
+    else:
+        git_hint = _git_user_name()
+        default = git_hint or "visitante"
+        sys.stdout.write("\n")
+        sys.stdout.write("  ── Configuração inicial — Nyx-Code ──\n\n")
+        sys.stdout.write(f"  01/07 · Como devo te chamar? [Enter = '{default}']: ")
+        sys.stdout.flush()
+        response = _timed_input("")
+        user_name = (response or "").strip() or default
+        _persist_user_name(user_name)
+
+    # Passos 02-07/07 -- menu_wizard.main()
+    # Importação local: dependência menu_wizard só vive aqui (forbidden global).
+    import os as _os
+
+    PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+    scripts_dir = str(PROJECT_ROOT / "scripts")
+    if scripts_dir not in sys.path:
+        sys.path.insert(0, scripts_dir)
+
+    prev_emit = _os.environ.get("NYX_MENU_EMIT")
+    prev_first_run = _os.environ.get("NYX_MENU_FIRST_RUN")
+    _os.environ["NYX_MENU_EMIT"] = "0"
+    _os.environ["NYX_MENU_FIRST_RUN"] = "1"
+    try:
+        from scripts.menu_wizard import main as _wizard_main
+        try:
+            _wizard_main(existing_name=user_name)
+        except (KeyboardInterrupt, EOFError):
+            sys.stdout.write("\n  wizard cancelado; ajustes manuais via /config setup.\n")
+            sys.stdout.flush()
+    except Exception as exc:  # noqa: BLE001 -- wizard é best-effort
+        logger.warning("menu_wizard falhou (%s); first-run segue só com nome.", exc)
+    finally:
+        if prev_emit is None:
+            _os.environ.pop("NYX_MENU_EMIT", None)
+        else:
+            _os.environ["NYX_MENU_EMIT"] = prev_emit
+        if prev_first_run is None:
+            _os.environ.pop("NYX_MENU_FIRST_RUN", None)
+        else:
+            _os.environ["NYX_MENU_FIRST_RUN"] = prev_first_run
+
+    mark_done()
+
+
 def run_first_time_tutorial(user_name: str | None = None) -> None:
     """Roda tutorial de 5 steps com pausas timeoutadas. Marca .first_run_done ao fim.
 

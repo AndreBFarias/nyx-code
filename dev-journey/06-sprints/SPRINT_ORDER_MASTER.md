@@ -568,11 +568,12 @@ Promoção em batch durante a Fase H do plano canônico da sessão 2026-05-18.
 | 174 | **TUI-REDESIGN-28-02** | 28.1 TUI paridade Claude Code | ALTA | CONCLUIDA (2026-05-18) | -- |
 | 175 | **TUI-REDESIGN-28-03** | 28.1 TUI paridade Claude Code | MÉDIA | CONCLUIDA (2026-05-18) | -- |
 | 176 | **TUI-REDESIGN-28-04** | 28.1 TUI paridade Claude Code | MÉDIA | CONCLUIDA (2026-05-18) | -- |
-| 177 | **TUI-REDESIGN-28-05** | 28.1 TUI paridade Claude Code | ALTA | PENDENTE | -- |
+| 177 | **TUI-REDESIGN-28-05** | 28.1 TUI paridade Claude Code | ALTA | CONCLUIDA (2026-05-18) | first-run wizard 7 passos |
 | 178 | **TUI-REDESIGN-28-06** | 28.1 TUI paridade Claude Code | ALTA | PENDENTE | TUI-REDESIGN-28-02 |
 | 179 | **TUI-REDESIGN-28-07** | 28.1 TUI paridade Claude Code | MÉDIA | PENDENTE | TUI-REDESIGN-28-06 |
 | 180 | **TUI-REDESIGN-28-08** | 28.1 TUI paridade Claude Code | ALTA | PENDENTE | 28-01..04, 28-06 (sub-sprints 08a..08d internas) |
 | M5  | **DOCS-MICROCOPY-SESSAO-INICIADA-01** | 28.meta Anti-débito de docs | BAIXA | PENDENTE | TUI-REDESIGN-28-01 (achado: MICROCOPY.md:109 ainda cita 'sessão iniciada' minúsculo após capitalização do código) |
+| M6  | **INFRA-ACENTO-FIX-01** | 28.2 dívida técnica | BAIXA | PENDENTE | TUI-REDESIGN-28-05 (achado: scripts/menu_wizard.py 3 violações de acentuação) |
 
 Ordem: 28-01..28-05 independentes (paralelizáveis via executor-sprint) -> 28-06 (depende de 28-02) -> 28-07 (depende de 28-06) -> 28-08 sequencial em 4 sub-sprints (a/b/c/d). M5 anti-débito executa após 28-08 ou em lote final.
 

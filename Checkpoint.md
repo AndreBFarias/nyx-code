@@ -20,9 +20,9 @@ Em caso de sessão Claude cair, próxima sessão Claude deve:
 
 ## Linha de retomada (sempre atualizada)
 
-- **Fase atual:** **Onda 28 em curso (2026-05-18).** 28-04 CONCLUIDA: handler `_submit` (`@kb.add("enter")`) agora abre popup com `start_completion(select_first=True)` quando texto é apenas "/" sem `complete_state` aberto, em vez de submeter "/" inválido. Branch `elif buf.document.text.strip() == "/" and not state:` inserido entre o caso completion-ativa e `buf.validate_and_handle()`. Preserva: "/comando args"+Enter (aplica completion + submete), texto livre+Enter (submete normal).
-- **Último commit (push ok):** `23fd8d0 feat(TUI-REDESIGN-28-04): Enter sem seleção abre lista quando texto é só '/'`.
-- **Próxima ação:** TUI-REDESIGN-28-05 (próxima sprint da onda 28).
+- **Fase atual:** **Onda 28 em curso (2026-05-18).** 28-05 CONCLUIDA: first-run wizard completo de 7 passos. `run_first_run_wizard()` (`nyx/agent/onboarding.py`) integra passo 01/07 (nome via `_timed_input` + `_persist_user_name`) com passos 02-07/07 do `scripts/menu_wizard.py` (aesthetic/entity/schema/banner_mode/model/auto_approve). Wizard invocado programaticamente (importação local; sem subprocess) com `NYX_MENU_EMIT=0` + `NYX_MENU_FIRST_RUN=1`; `menu_wizard.main()` aceita parâmetro `existing_name`; `write_config()` agora faz **merge não-destrutivo** preservando `user_display_name`. `nyx/cli.py` boot do REPL: `should_run_tutorial()` -> `run_first_run_wizard()`. Backward-compat preservada: `./run.sh --menu` continua 6 passos sem nome; `run_first_time_tutorial()` mantido para compat de call-sites externos.
+- **Último commit (push ok):** (atualizar após commit) `feat(TUI-REDESIGN-28-05): first-run wizard completo (nome + 6 passos menu_wizard)`.
+- **Próxima ação:** TUI-REDESIGN-28-06 (próxima sprint da onda 28).
 - **Estado runtime final:** smoke=`boot ok` | invariantes=14/14 | sbom=62/62 | gauntlet rapido=11/11 APROVADO | benchmark P50=0.14s | cockpit 13 endpoints HTTP + 2 WS + dashboard 62 cards | --menu/--web/--auto-approve flags ativas
 - **tmux sessões persistidas:** `cockpit` (porta 11437; pode reaproveitar via `tmux attach -t cockpit`)
 - **12 sprints anti-débito pendentes em `producao/`** (a próxima sessão pode dispatch executor-sprint em paralelo):

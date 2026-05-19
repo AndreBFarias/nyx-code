@@ -1713,17 +1713,16 @@ def main() -> None:
     if args.headless:
         sys.exit(asyncio.run(run_headless()))
     else:
-        # ONBOARDING-01: tutorial de primeiro uso antes do REPL.
+        # ONBOARDING-01 + TUI-REDESIGN-28-05: wizard de primeiro uso (7 passos)
+        # antes do REPL: nome + aesthetic + entity + schema + banner + model + auto_approve.
         from nyx.agent.onboarding import (
             mark_done as _mark_onboarding_done,
-            run_first_time_tutorial,
+            run_first_run_wizard,
             should_run_tutorial,
         )
 
         if should_run_tutorial(args.skip_onboarding):
-            # TUI-REDESIGN-25-04: tutorial usa nome resolvido em runtime.
-            from nyx.agent.onboarding import resolve_user_display_name as _resolve_un
-            run_first_time_tutorial(user_name=_resolve_un())
+            run_first_run_wizard()
         elif args.skip_onboarding:
             _mark_onboarding_done()
 

@@ -139,9 +139,24 @@ def render_summary(cfg: dict) -> None:
 
 
 def write_config(cfg: dict) -> None:
+    """Persiste config em ~/.nyx/config.toml fazendo merge não-destrutivo.
+
+    TUI-REDESIGN-28-05: preserva chaves existentes (em particular
+    user_display_name, gravado pelo onboarding antes do wizard rodar).
+    """
     CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    existing: dict = {}
+    if CONFIG_PATH.is_file():
+        try:
+            import tomllib
+            with CONFIG_PATH.open("rb") as f:
+                existing = tomllib.load(f)
+        except (OSError, ValueError) as exc:
+            say(f"  {ANSI_DIM}aviso: config existente ilegível ({exc}); recriando.{ANSI_RESET}")
+            existing = {}
+    merged = {**existing, **cfg}
     lines = ["# ~/.nyx/config.toml (gerado por scripts/menu_wizard.py)", ""]
-    for k, v in cfg.items():
+    for k, v in merged.items():
         if isinstance(v, bool):
             v_s = "true" if v else "false"
         elif isinstance(v, (int, float)):
@@ -168,13 +183,27 @@ def emit_env_exports(cfg: dict) -> None:
         print('export NYX_AUTO_APPROVE=1')
 
 
-def main() -> int:
+def main(existing_name: str | None = None) -> int:
+    """Wizard interativo de 6 passos.
+
+    TUI-REDESIGN-28-05: aceita ``existing_name`` para sinalizar invocação
+    a partir do onboarding (first-run). Quando truthy ou quando
+    ``NYX_MENU_FIRST_RUN=1`` está setado, o nome já foi persistido pelo
+    onboarding antes do wizard; o wizard apenas continua os 6 passos
+    e ``write_config`` faz merge não-destrutivo preservando ``user_display_name``.
+    Quando ``None`` (modo ``--menu`` standalone), comportamento idêntico ao
+    pré-28-05 (6 passos sem perguntar nome).
+    """
+    is_first_run = bool(existing_name) or os.environ.get("NYX_MENU_FIRST_RUN") == "1"
     banner()
     cfg = {}
 
     # TUI-REDESIGN-25-05: contador XX/YY + hint contextual em cada passo.
     # Total = 6 passos após TUI-REDESIGN-25-16 ampliar com schema.
+    # TUI-REDESIGN-28-05: nome pertence ao onboarding, não ao wizard.
     TOTAL_STEPS = 6
+    if is_first_run:
+        say(f"  {ANSI_DIM}continuando configuração de primeiro uso (passos 02-07 de 07).{ANSI_RESET}")
 
     cfg["aesthetic"] = ask(
         "Aesthetic visual",
@@ -256,8 +285,10 @@ def main() -> int:
     if ask_yes_no("Salvar em ~/.nyx/config.toml e inicializar?", default=True):
         write_config(cfg)
         say(f"  {ANSI_SUCCESS_FG}configuração salva.{ANSI_RESET}")
-        # stdout reservado para exports VAR=valor (run.sh source-a)
-        if os.environ.get("NYX_MENU_EMIT") == "1":
+        # stdout reservado para exports VAR=valor (run.sh source-a). Em first-run
+        # (NYX_MENU_FIRST_RUN=1 ou existing_name truthy) o wizard roda dentro do
+        # mesmo processo da CLI; nada de export pro shell, persistência só no toml.
+        if os.environ.get("NYX_MENU_EMIT") == "1" and not is_first_run:
             emit_env_exports(cfg)
         return 0
     say(f"  {ANSI_DIM}configuração descartada.{ANSI_RESET}")
