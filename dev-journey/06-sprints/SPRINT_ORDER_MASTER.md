@@ -565,7 +565,7 @@ Promoção em batch durante a Fase H do plano canônico da sessão 2026-05-18.
 | # | Sprint | Bloco | Prioridade | Status | Depende de |
 |---|--------|-------|------------|--------|------------|
 | 173 | **TUI-REDESIGN-28-01** | 28.1 TUI paridade Claude Code | ALTA | CONCLUIDA (2026-05-18) | -- |
-| 174 | **TUI-REDESIGN-28-02** | 28.1 TUI paridade Claude Code | ALTA | PENDENTE | -- |
+| 174 | **TUI-REDESIGN-28-02** | 28.1 TUI paridade Claude Code | ALTA | CONCLUIDA (2026-05-18) | -- |
 | 175 | **TUI-REDESIGN-28-03** | 28.1 TUI paridade Claude Code | MÉDIA | CONCLUIDA (2026-05-18) | -- |
 | 176 | **TUI-REDESIGN-28-04** | 28.1 TUI paridade Claude Code | MÉDIA | PENDENTE | -- |
 | 177 | **TUI-REDESIGN-28-05** | 28.1 TUI paridade Claude Code | ALTA | PENDENTE | -- |

@@ -230,3 +230,9 @@ Fim do anexo.
 ---
 
 *Atualizado: 2026-05-18 01:38, Fase A iniciada.*
+
+---
+
+## Append-only log (sprints executadas)
+
+- [22:59] sprint TUI-REDESIGN-28-02 CONCLUIDA hash <pending-commit>

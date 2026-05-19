@@ -170,9 +170,9 @@ async def run_repl(
                 "completion-menu.completion.current":        f"bg:{accent} fg:{bg} bold",
                 "completion-menu.meta.completion":           f"bg:{bg_soft} fg:{ink_muted}",
                 "completion-menu.meta.completion.current":   f"bg:{accent_lo} fg:{ink}",
-                "bottom-toolbar":                            f"bg:{bg_soft} fg:{ink_muted}",
-                "bottom-toolbar.text":                       f"bg:{bg_soft} fg:{ink_muted}",
-                "scrollbar.background":                      f"bg:{bg_soft}",
+                "bottom-toolbar":                            f"fg:{ink_muted}",
+                "bottom-toolbar.text":                       f"fg:{ink_muted}",
+                "scrollbar.background":                      "",
                 "scrollbar.button":                          f"bg:{accent_lo}",
                 "completion.header":                         f"fg:{accent} bold",
             })
