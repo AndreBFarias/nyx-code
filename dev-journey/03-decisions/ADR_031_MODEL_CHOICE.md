@@ -238,6 +238,20 @@ bash scripts/sprint_invariants.sh
 # Esperado: PASS 13/13, FAIL 0
 ```
 
+## Validação empírica: infra > modelo (INFRA-MODEL-AGNOSTIC-01)
+
+Em 2026-05-19, a sprint INFRA-MODEL-AGNOSTIC-01 testou a tese complementar: **"a infra do Nyx eleva qualquer modelo, mesmo o pior"**. Hipótese declarada pelo usuário em 2026-05-18.
+
+Resultado binário: **tese parcialmente sustentada**.
+
+- Infra **eleva** modelos non-thinking compatíveis com tool calling (qwen2.5-coder:3b sai de bruto a score 96.8 com parser content-json + retry LANG-ENFORCE + classifier).
+- Infra **não cobre** vazamento estrutural de chain-of-thought em modelos thinking-only (qwen3:4b permanece em score 34.6 mesmo com a pilha completa).
+- Trocar de modelo **não quebra** o projeto (smoke=ok, invariantes 14/14 com ambos); flag `--4b` segue acessível.
+
+Implicação: o critério de seleção continua relevante. Modelos thinking-only entram apenas se proxy ganhar suporte explícito a `<thinking>` tags (sprint hipotética PROXY-THINKING-AWARE, não prioritária).
+
+Detalhes literais + tabelas: ver `dev-journey/07-reports/RELATORIO_INFRA_RESILIENTE_MODELO_01.md`.
+
 ## Referências
 
 - ADR-001 (Local First) -- nenhum modelo cloud.
@@ -246,7 +260,9 @@ bash scripts/sprint_invariants.sh
 - ADR-008 (Performance KPIs) -- P50 chat <=8s agora confortável.
 - Sprint MODEL-SWAP-01 (spec).
 - Sprint LANG-ENFORCE-01 (BLOQUEADA, será re-avaliada com o novo modelo).
+- Sprint INFRA-MODEL-AGNOSTIC-01 -- validação empírica da tese "infra > modelo".
 - `logs/model_compare.json` (evidência runtime literal).
+- `dev-journey/07-reports/RELATORIO_INFRA_RESILIENTE_MODELO_01.md` (relatório consolidado).
 
 ---
 

@@ -15,7 +15,7 @@ sprint:
 
   touches:
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/03-decisions/ADR_031_MODEL_CHOICE.md
-      reason: "Adicionar seção 'Validacao empirica: infra > modelo' com resultado da sprint"
+      reason: "Adicionar seção 'Validação empírica: infra > modelo' com resultado da sprint"
   creates:
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/07-reports/RELATORIO_INFRA_RESILIENTE_MODELO_01.md
       reason: "Relatório comparativo qwen2.5-coder:3b (atual) vs qwen3:4b (legacy --4b) com mesmo prompt"
@@ -45,8 +45,9 @@ sprint:
 
 # Sprint INFRA-MODEL-AGNOSTIC-01 — Validar tese arquitetural
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-18
+**Data conclusão:** 2026-05-19
 **Modelo obrigatório:** claude-opus-4-7
 
 ---
