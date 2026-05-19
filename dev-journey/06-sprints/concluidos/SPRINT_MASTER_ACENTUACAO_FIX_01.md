@@ -16,7 +16,7 @@ sprint:
 
   touches:
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/SPRINT_ORDER_MASTER.md
-      reason: "Aplicar correções literais: sessao->sessão, descricao->descrição, nao->não, verificacao->verificação, Diretorio->diretório, validacao->validação, acoes->ações"
+      reason: "Aplicar correções literais: sessao->sessão, descricao->descrição, nao->não, verificacao->verificação, Diretorio->diretório, validacao->validação, acoes->ações"  # noqa-acento
 
   forbidden:
     - "Alterar conteúdo semântico das linhas (apenas trocar caracteres ASCII por acentuados)"
@@ -39,8 +39,9 @@ sprint:
 
 # Sprint MASTER-ACENTUACAO-FIX-01
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-19 (achado colateral durante NYX-AUTO-APPROVE-01)
+**Data conclusão:** 2026-05-19
 **Modelo obrigatório:** claude-opus-4-7
 
 ---
@@ -52,15 +53,15 @@ Durante a varredura periférica de acentuação da NYX-AUTO-APPROVE-01, `validar
 ### Violações catalogadas
 
 ```
-linha 307: sessao -> sessão
-linha 313: descricao -> descrição
-linha 338: nao -> não, verificacao -> verificação, Diretorio -> diretório
-linha 339: nao -> não
-linha 343: validacao -> validação
-linha 407: sessao -> sessão (2x)
-linha 439: nao -> não
-linha 440: nao -> não
-linha 446: acoes -> ações
+linha 307: sessao -> sessão     # noqa-acento
+linha 313: descricao -> descrição     # noqa-acento
+linha 338: nao -> não, verificacao -> verificação, Diretorio -> diretório     # noqa-acento
+linha 339: nao -> não     # noqa-acento
+linha 343: validacao -> validação     # noqa-acento
+linha 407: sessao -> sessão (2x)     # noqa-acento
+linha 439: nao -> não     # noqa-acento
+linha 440: nao -> não     # noqa-acento
+linha 446: acoes -> ações     # noqa-acento
 ```
 
 ---
