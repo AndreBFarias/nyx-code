@@ -211,8 +211,23 @@ async def run_repl(
                 return
             if buf.complete_state:
                 buf.complete_next()
-            else:
-                buf.insert_text("    ")
+                return
+            # TUI-REDESIGN-25-09-PARTE-2: prompt vazio + thinking armazenado
+            # em app_state alterna expand/collapse e re-renderiza.
+            if not buf.text.strip():
+                tb = app_state.get("last_thinking_block")
+                if isinstance(tb, dict) and tb.get("text"):
+                    from prompt_toolkit.application import run_in_terminal
+                    from nyx.agent.output import render_thinking_block
+                    tb["expanded"] = not tb.get("expanded", False)
+                    text = tb["text"]
+                    dur = tb.get("duration_s")
+                    expanded = tb["expanded"]
+                    run_in_terminal(
+                        lambda: render_thinking_block(text, dur, expanded=expanded)
+                    )
+                    return
+            buf.insert_text("    ")
 
         @kb.add("s-tab")
         def _toggle_bypass(event: object) -> None:
