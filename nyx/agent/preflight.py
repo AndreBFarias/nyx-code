@@ -68,10 +68,19 @@ def check(
 
     if tool_name == "run_command":
         command = args.get("command", "")
+        # SUDO-MODE-01: "sudo " sai da blacklist quando modo sudo está
+        # ativo. A blacklist preserva destrutivos absolutos (rm -rf /,
+        # mkfs, fork bomb) que run_command bloqueia via sudo_session.is_destructive
+        # também em modo elevado. Importação local evita ciclos no boot.
+        try:
+            from nyx.agent.tools.sudo_session import is_active as _sudo_active
+            sudo_on = _sudo_active()
+        except Exception:  # noqa: BLE001 -- preflight deve continuar mesmo sem módulo
+            sudo_on = False
+
         dangerous = [
             "rm -rf /",
             "rm -rf /*",
-            "sudo ",
             "mkfs",
             "dd if=/dev/",
             "> /dev/sda",
@@ -84,6 +93,8 @@ def check(
             "wget -O- | bash",
             ":(){ :|:& };:",
         ]
+        if not sudo_on:
+            dangerous.append("sudo ")
         for d in dangerous:
             if d in command:
                 result.errors.append(f"Comando potencialmente destrutivo: {d}")

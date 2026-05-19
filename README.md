@@ -69,7 +69,7 @@ run.sh ─────> Ollama (:11435) ──> GPU (num_gpu=12, qwen2.5-coder:3
   +────────> Nyx CLI (nyx/cli.py)
               - REPL interativo com Rich output + prompt-toolkit
               - 34 tools via ToolRegistry
-              - 62 slash commands
+              - 65 slash commands
               - AgentLoop: plan-execute-observe (até 30 iterações)
               - ActionParser: 7 níveis de fallback
               - ContextBudget: compactação progressiva
@@ -132,6 +132,37 @@ Comportamento:
 - Logado em stderr no boot: `[warning] NYX_AUTO_APPROVE=1 ativo: ...`.
 
 **ATENÇÃO:** tools que tocam filesystem rodam sem prompt. Use apenas em ambientes controlados (CI, dev, sandbox, cockpit local). Sem persistência: opt-in vale só pela duração do processo.
+
+### Modo sudo runtime (SUDO-MODE-01)
+
+Permite que o agente execute `sudo X` em `run_command` durante a sessão. Útil para `apt install`, `systemctl`, instalar dependências de outro projeto.
+
+**Como ativar:**
+
+```text
+Shift+Tab até o chip "[sudo] elevado"  -> prompt pede senha (mascarada via getpass)
+```
+
+ou via comando:
+
+```text
+/sudo enable    # pede senha agora
+/sudo status    # mostra estado + se há senha cacheada
+/sudo disable   # apaga cache + sai do modo
+```
+
+**Garantias de segurança:**
+
+- Senha lida via `getpass.getpass()` (input mascarado, sem ecoar).
+- Validada com `sudo -S -v` antes de cachear (senha errada é rejeitada).
+- Armazenada **apenas em memória** do processo Python (`nyx/agent/tools/sudo_session.py:_password`). **Nunca** persistida em arquivo, log ou disco.
+- `sudo -S -p ''` em `run_command` lê senha de stdin (não ecoa).
+- Blacklist absoluta de comandos destrutivos (`rm -rf /`, `mkfs`, `dd of=/dev/`, fork bomb) bloqueada **mesmo em modo sudo**.
+- Cache wipado automaticamente em: sair do modo via Shift+Tab, `/sudo disable`, `/quit`, EOF/Ctrl+D, shutdown normal do REPL.
+
+**Headless / cockpit / CI:** quando `stdin` não é tty, fallback opcional via env `NYX_SUDO_PASSWORD`. Em sessão interativa o env é ignorado (usuário sempre digita).
+
+**ATENÇÃO:** modo sudo eleva privilégios do agente para `root`. O modelo pode rodar qualquer `sudo X` exceto blacklist. Use apenas em sessões supervisionadas. Para deixar o modo sudo, aperte Shift+Tab até voltar a `normal` (cache é apagado automaticamente).
 
 ## Validação
 
@@ -341,7 +372,7 @@ nyx/
     loop/              # AgentLoop split (_core + _iteration)
     parser.py          # ActionParser (7 níveis)
     banner.py          # 3 modos (compact/wide/neofetch)
-    commands/          # 62 slash commands (incl. /aesthetic, /cancel)
+    commands/          # 65 slash commands (incl. /aesthetic, /cancel)
     output.py          # Rich + theme_manager
     tools/             # 35 tools registradas
     services/          # 14 services (incl. hook_runtime, plugin_manager, mcp_client)

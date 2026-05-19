@@ -323,6 +323,9 @@ async def run_repl(
             # SHIFT-TAB-CYCLE-01: cicla normal -> plan -> sudo -> bypass -> normal.
             # Mantém flag legada app_state["bypass"] coerente para compat
             # (output.py:make_ask_permission lê state["bypass"] direto).
+            # SUDO-MODE-01: ao entrar em sudo, pede senha via getpass (run_in_terminal
+            # para não conflitar com prompt_toolkit). Ao sair, wipe sempre.
+            from nyx.agent.tools import sudo_session
             from nyx.agent.tools.plan_mode import set_plan_mode
 
             cur = str(app_state.get("mode", "normal"))
@@ -335,10 +338,30 @@ async def run_repl(
             app_state["bypass"] = (nxt == "bypass")
             app_state["plan_mode"] = (nxt == "plan")
             app_state["sudo_mode"] = (nxt == "sudo")
-            # Plan mode é estado global (módulo plan_mode mantém singleton);
-            # sincronizamos para que _iteration.is_tool_allowed_in_plan_mode
-            # bloqueie write_file/run_command quando mode=plan.
             set_plan_mode(nxt == "plan")
+
+            # SUDO-MODE-01: handler de transição.
+            if cur == "sudo" and nxt != "sudo":
+                # saiu de sudo -> apaga senha cacheada.
+                sudo_session.wipe()
+            elif nxt == "sudo" and cur != "sudo":
+                # entrou em sudo -> pede senha se ainda não cacheada.
+                from prompt_toolkit.application import run_in_terminal
+
+                def _prompt_sudo() -> None:
+                    ok, msg = sudo_session.prompt_and_cache()
+                    if ok:
+                        sudo_session.set_active(True)
+                        print(f"  {SUCCESS} {msg}{NC}")
+                    else:
+                        # fallback: volta para normal (não fica em sudo sem senha).
+                        sudo_session.set_active(False)
+                        app_state["mode"] = "normal"
+                        app_state["sudo_mode"] = False
+                        print(f"  {DIM}{msg}{NC}")
+
+                run_in_terminal(_prompt_sudo)
+
             event.app.invalidate()  # type: ignore[attr-defined]
 
         @kb.add("c-v")
@@ -872,6 +895,12 @@ async def run_repl(
                     saved_path=str(_saved) if _saved else None,
                     project_root=str(PROJECT_ROOT),
                 )
+                # SUDO-MODE-01: wipe da senha cacheada no /quit.
+                try:
+                    from nyx.agent.tools import sudo_session as _sudo_quit
+                    _sudo_quit.wipe()
+                except Exception as _exc:  # noqa: BLE001 -- shutdown best-effort
+                    logger.debug("sudo wipe best-effort falhou: %s", _exc)
                 # UX-LIFECYCLE-01: shutdown explícito do proxy via loopback.
                 # Resposta volta antes do auto-SIGTERM do proxy, então usamos
                 # timeout curto e ignoramos falhas (run.sh trap cobre o resto).
@@ -1769,6 +1798,14 @@ async def run_repl(
     #    drenar CancelledError sem propagar. Timeout curto via wait_for
     #    para não travar o shutdown se uma task ignorar cancelamento.
     # 3) end_session() só se Analytics() já foi criado pela warmup task.
+    # SUDO-MODE-01: garantia final de wipe. Cobre Ctrl+D, EOF e exceptions
+    # que pulam o /quit explícito. Idempotente: wipe sem cache vira no-op.
+    try:
+        from nyx.agent.tools import sudo_session as _sudo_final
+        _sudo_final.wipe()
+    except Exception as _exc:  # noqa: BLE001 -- shutdown best-effort
+        logger.debug("sudo wipe final falhou: %s", _exc)
+
     pending = [
         t for t in asyncio.all_tasks()
         if t is not asyncio.current_task() and not t.done()

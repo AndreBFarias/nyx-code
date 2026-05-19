@@ -51,9 +51,67 @@ sprint:
 
 # Sprint SUDO-MODE-01
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-18
+**Data conclusão:** 2026-05-19
 **Modelo obrigatório:** claude-opus-4-7
+
+---
+
+## Execucao 2026-05-19
+
+Implementacao cirurgica em 4 arquivos novos + 4 modificacoes alinhada
+ao protocolo anti-debito do SHIFT-TAB-CYCLE-01.
+
+**Touches reais:**
+
+- `nyx/agent/tools/sudo_session.py` (NOVO): singleton module-level
+  (espelha `plan_mode.py`). API publica: `is_active`, `has_password`,
+  `get_password`, `is_destructive`, `prompt_and_cache`, `set_active`,
+  `wipe`, `status`. Validacao via `sudo -S -v` antes de cachear.
+  Senha nunca persiste em disco; armazenada em `_password` (modulo).
+  `DANGER_PATTERNS` bloqueia 8 patterns destrutivos absolutos.
+- `nyx/agent/tools/run_command.py`: wrapping em `sudo -S -p '' bash -c`
+  com senha por `input=` (stdin); preserva blacklist em qualquer modo.
+- `nyx/agent/preflight.py`: gate dinamico -- `sudo ` sai da blacklist
+  quando `sudo_session.is_active()` True; destrutivos absolutos
+  preservados.
+- `nyx/agent/commands/sudo_mode.py` (NOVO): comando `/sudo enable|disable|status`.
+- `nyx/agent/commands/__init__.py`: registra modulo `sudo_mode`.
+- `nyx/cli.py`: handler `_cycle_mode` chama `prompt_and_cache` ao
+  entrar em sudo e `wipe()` ao sair; wipe defensivo no `/quit` e
+  no shutdown final.
+- `nyx/agent/repl_app.py`: paridade do handler (Application REPL).
+- `README.md`: secao "Modo sudo runtime (SUDO-MODE-01)" com AVISO
+  explicito.
+
+**Proof-of-work (runtime real):**
+
+- Smoke (`./run.sh --smoke`): `boot ok` exit 0.
+- Invariantes (`bash scripts/sprint_invariants.sh --ci`): 14/14 PASS.
+- Gauntlet rapido: APROVADO.
+- 12 cenarios runtime via venv/bin/python: status inicial, blacklist
+  destrutiva (5 patterns), `status()` nao vaza senha, `wipe()`
+  apaga, preflight gate dinamico (sudo ON/OFF + destrutivo), env
+  fallback rejeita invalida, run_command vanilla sem sudo,
+  bloqueio destrutivo em run_command, wrapping `sudo -S -p`,
+  senha em stdin (nao em argv), filesystem clean (zero arquivos
+  em ~/.nyx + logs/ contem a senha teste), command `/sudo`
+  registrado + dispatch correto.
+- Acentuacao: 0 violacoes nos 8 arquivos tocados.
+
+**Garantias de seguranca documentadas:**
+
+| Risco | Mitigacao implementada |
+|---|---|
+| Senha em disco | `_password` modulo Python; zero gravacao |
+| Senha em log | Logger registra apenas exit code de validate; senha nunca |
+| Senha em argv | `subprocess.run` recebe senha em `input=`, nao em args |
+| Senha eco no prompt | `getpass.getpass()` mascarado |
+| Senha invalida cacheada | `sudo -S -v` valida antes de cachear |
+| Destrutivos com sudo | `DANGER_PATTERNS` bloqueia mesmo em sudo |
+| Cache entre sessoes | `wipe()` no Shift+Tab, /sudo disable, /quit, shutdown |
+| Headless sem TTY | Fallback `NYX_SUDO_PASSWORD` so quando `stdin.isatty()` False |
 
 ---
 
@@ -96,7 +154,7 @@ if old_mode != "sudo" and new_mode == "sudo":
                 capture_output=True, text=True
             ).returncode == 0:
                 app_state["_sudo_pass"] = pwd
-                print(f"  {SUCCESS}● sudo cacheado{NC}")
+                print(f"  {SUCCESS} sudo cacheado{NC}")
             else:
                 print(f"  {ERROR}senha invalida; sudo mode nao ativado{NC}")
                 app_state["mode"] = "normal"

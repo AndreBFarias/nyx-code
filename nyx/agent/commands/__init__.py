@@ -22,6 +22,7 @@ from nyx.agent.commands import (  # noqa: F401  -- side-effect: registra @nyx_co
     sandbox,
     schema,
     session,
+    sudo_mode,
     system,
 )
 from nyx.agent.commands._dispatcher import handle_command

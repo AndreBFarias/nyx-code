@@ -338,6 +338,8 @@ def build_app(
         # SHIFT-TAB-CYCLE-01: cicla normal -> plan -> sudo -> bypass -> normal.
         # Paridade com cli.py (modo legacy PromptSession). Atualiza flags
         # legadas para que callbacks lendo state["bypass"] permaneçam corretos.
+        # SUDO-MODE-01: entrar em sudo pede senha; sair limpa cache.
+        from nyx.agent.tools import sudo_session
         from nyx.agent.tools.plan_mode import set_plan_mode
 
         modes = ("normal", "plan", "sudo", "bypass")
@@ -352,6 +354,26 @@ def build_app(
         app_state["plan_mode"] = (nxt == "plan")
         app_state["sudo_mode"] = (nxt == "sudo")
         set_plan_mode(nxt == "plan")
+
+        if cur == "sudo" and nxt != "sudo":
+            sudo_session.wipe()
+        elif nxt == "sudo" and cur != "sudo":
+            import sys as _sys
+            from prompt_toolkit.application import run_in_terminal
+
+            def _prompt_sudo() -> None:
+                ok, msg = sudo_session.prompt_and_cache()
+                if ok:
+                    sudo_session.set_active(True)
+                else:
+                    sudo_session.set_active(False)
+                    app_state["mode"] = "normal"
+                    app_state["sudo_mode"] = False
+                _sys.stdout.write(f"  {msg}\n")
+                _sys.stdout.flush()
+
+            run_in_terminal(_prompt_sudo)
+
         event.app.invalidate()
 
     @kb.add("c-v")
