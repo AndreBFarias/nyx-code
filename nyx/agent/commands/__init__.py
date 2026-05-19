@@ -19,6 +19,7 @@ from nyx.agent.commands import (  # noqa: F401  -- side-effect: registra @nyx_co
     mcp,
     output_style,
     plugin,
+    sandbox,
     schema,
     session,
     system,

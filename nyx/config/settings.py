@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +28,10 @@ class NyxSettings:
     num_ctx: int
     debug: bool
     headless: bool
+    # PROJECT-ROOTS-MULTI-01: roots adicionais autorizados no boot.
+    # Origem: env NYX_EXTRA_ROOTS (CSV) ou [extra_roots] em config.toml.
+    # Lista vazia = só o project_root sandboxado (comportamento legado).
+    extra_roots: list[Path] = field(default_factory=list)
 
     @property
     def ollama_base_url(self) -> str:
@@ -104,6 +108,24 @@ def load_settings(args: Any = None) -> NyxSettings:
             "Use NYX_OLLAMA_PORT para a porta."
         )
 
+    # PROJECT-ROOTS-MULTI-01: extra_roots vem de env NYX_EXTRA_ROOTS (CSV)
+    # ou [extra_roots] no config.toml (lista). Env tem prioridade. Paths
+    # inválidos são silenciosamente descartados (boot best-effort) com
+    # warning visível pelo cli.py ao validar antes de adicionar ao sandbox.
+    extra_roots: list[Path] = []
+    raw_env = os.getenv("NYX_EXTRA_ROOTS", "").strip()
+    if raw_env:
+        for chunk in raw_env.split(","):
+            cleaned = chunk.strip()
+            if cleaned:
+                extra_roots.append(Path(cleaned).expanduser())
+    else:
+        toml_extras = toml_cfg.get("extra_roots") or []
+        if isinstance(toml_extras, list):
+            for item in toml_extras:
+                if isinstance(item, str) and item.strip():
+                    extra_roots.append(Path(item.strip()).expanduser())
+
     return NyxSettings(
         project_root=project_root,
         ollama_host=raw_host,
@@ -117,6 +139,7 @@ def load_settings(args: Any = None) -> NyxSettings:
         num_ctx=defaults.NUM_CTX,
         debug=debug,
         headless=headless,
+        extra_roots=extra_roots,
     )
 
 

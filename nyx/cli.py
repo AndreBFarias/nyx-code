@@ -120,6 +120,28 @@ async def run_repl(
 
     settings = load_settings()
 
+    # PROJECT-ROOTS-MULTI-01: inicializa sandbox roots no módulo base.
+    # _ACTIVE_ROOT recebe o project_root atual; extras do env/toml entram
+    # via add_extra_root() (idempotente). Paths inexistentes são logados
+    # e ignorados -- sandbox preserva strictness (não autoriza fantasmas).
+    try:
+        from nyx.agent.tools.base import add_extra_root, set_active_project_root
+
+        set_active_project_root(str(PROJECT_ROOT))
+        for raw in settings.extra_roots:
+            try:
+                cand = Path(raw).expanduser()
+                if cand.exists() and cand.is_dir():
+                    add_extra_root(cand)
+                else:
+                    logger.warning(
+                        "NYX_EXTRA_ROOTS ignorou caminho inválido: %s", cand
+                    )
+            except Exception as _exc:  # noqa: BLE001 -- boot best-effort
+                logger.warning("extra root %s falhou: %s", raw, _exc)
+    except Exception as _exc:  # noqa: BLE001 -- boot best-effort
+        logger.warning("inicialização de sandbox roots falhou: %s", _exc)
+
     # NYX-AUTO-APPROVE-01: alerta visível quando modo automatizado está ativo.
     # CONFIRM_ONCE será silenciosamente aprovado em PermissionChecker.check.
     # DENY continua bloqueando. Usar somente em automação confiável (CI, cockpit).
@@ -595,6 +617,17 @@ async def run_repl(
 
     print(_build_banner(model, agent.tools_count, PROJECT_ROOT.name, settings=settings))
 
+    # PROJECT-ROOTS-MULTI-01: linha discreta sob o banner contando extras
+    # autorizados. Mantém o grid do banner intacto (sem mutação de layout).
+    try:
+        from nyx.agent.tools.base import list_extra_roots as _extras
+
+        _ext = _extras()
+        if _ext:
+            print(f"  {DIM}+{len(_ext)} root(s) extra(s) autorizado(s) -- /sandbox list{NC}")
+    except Exception as _exc:  # noqa: BLE001 -- aviso best-effort
+        logger.debug("contagem de extra roots no banner falhou: %s", _exc)
+
     # TUI-REDESIGN-28-07: cursor blink async no banner $nyx.code (~1.4s).
     # Skip silencioso em headless/CI (isatty=False) ou NYX_NO_ANIMATION=1.
     try:
@@ -931,6 +964,104 @@ async def run_repl(
                         f"Nenhuma sessão única casa com '{prefix}'.",
                         hint="Use /resume list para ver todas, depois /resume <prefixo único>.",
                     )
+                continue
+
+            # PROJECT-ROOTS-MULTI-01: handlers /sandbox e /cd.
+            if result == "__sandbox_list__":
+                from nyx.agent.tools.base import (
+                    get_active_project_root,
+                    list_extra_roots,
+                )
+
+                active = get_active_project_root() or PROJECT_ROOT
+                extras = list_extra_roots()
+                lines = ["  Roots autorizados:"]
+                lines.append(f"    [ativo] {active}")
+                if extras:
+                    for r in extras:
+                        lines.append(f"    [extra] {r}")
+                else:
+                    lines.append(
+                        "    (nenhum extra; use /sandbox add <path> para autorizar)"
+                    )
+                print("\n".join(lines))
+                continue
+
+            if isinstance(result, str) and result.startswith("__sandbox_add__"):
+                from nyx.agent.tools.base import add_extra_root
+
+                raw_path = result[len("__sandbox_add__"):]
+                cand = Path(raw_path).expanduser()
+                if not cand.exists():
+                    _print_error(
+                        f"Caminho '{raw_path}' não existe.",
+                        hint="Confira com: ls -la ou tab-completion.",
+                    )
+                    continue
+                if not cand.is_dir():
+                    _print_error(
+                        f"Caminho '{raw_path}' não é diretório.",
+                        hint="Use /sandbox add <diretório>, não arquivo.",
+                    )
+                    continue
+                added = add_extra_root(cand)
+                print(f"  {SUCCESS} root autorizado{NC}: {added}")
+                continue
+
+            if isinstance(result, str) and result.startswith("__sandbox_remove__"):
+                from nyx.agent.tools.base import (
+                    get_active_project_root,
+                    remove_extra_root,
+                )
+
+                raw_path = result[len("__sandbox_remove__"):]
+                cand = Path(raw_path).expanduser().resolve()
+                active = get_active_project_root() or PROJECT_ROOT
+                if cand == Path(active).resolve():
+                    _print_error(
+                        f"O project_root ativo ({active}) não pode ser removido.",
+                        hint="Use /cd <outro> antes para trocar de root ativo.",
+                    )
+                    continue
+                if remove_extra_root(cand):
+                    print(f"  {SUCCESS} root removido{NC}: {cand}")
+                else:
+                    _print_error(
+                        f"Root '{cand}' não estava na lista de extras.",
+                        hint="Liste os ativos com /sandbox list.",
+                    )
+                continue
+
+            if isinstance(result, str) and result.startswith("__cd__"):
+                from nyx.agent.tools.base import (
+                    add_extra_root,
+                    get_active_project_root,
+                    set_active_project_root,
+                )
+
+                raw_path = result[len("__cd__"):]
+                cand = Path(raw_path).expanduser()
+                if not cand.exists() or not cand.is_dir():
+                    _print_error(
+                        f"Caminho '{raw_path}' inválido para /cd.",
+                        hint="Diretório precisa existir; confira com ls.",
+                    )
+                    continue
+                old_root = get_active_project_root() or PROJECT_ROOT
+                # Troca o active ANTES de adicionar o antigo como extra,
+                # senão o guard de add_extra_root (que rejeita == active)
+                # impede a preservação.
+                new_root = set_active_project_root(cand)
+                add_extra_root(old_root)
+                # Reconfigura agent + ToolRegistry para usar novo root nas
+                # tools (cwd em run_command, validate_path em file ops, etc).
+                project_root = str(new_root)
+                agent._project_root = project_root
+                agent._tools.project_root = project_root
+                print(
+                    f"  {SUCCESS} project_root trocado para{NC} {new_root}\n"
+                    f"  {DIM}(root anterior {old_root} preservado como extra){NC}"
+                )
                 continue
 
             if result == "__cancel_inflight__":
@@ -1697,6 +1828,21 @@ async def run_headless() -> int:
         proxy_url = settings.proxy_url
     model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", settings.model))
 
+    # PROJECT-ROOTS-MULTI-01: mesma inicialização do REPL para sandbox.
+    try:
+        from nyx.agent.tools.base import add_extra_root, set_active_project_root
+
+        set_active_project_root(str(PROJECT_ROOT))
+        for raw in settings.extra_roots:
+            try:
+                cand = Path(raw).expanduser()
+                if cand.exists() and cand.is_dir():
+                    add_extra_root(cand)
+            except Exception as _exc:  # noqa: BLE001
+                logger.warning("headless extra root %s falhou: %s", raw, _exc)
+    except Exception as _exc:  # noqa: BLE001
+        logger.warning("headless boot de sandbox roots falhou: %s", _exc)
+
     # NYX-AUTO-APPROVE-01: em headless via cockpit/CI o prompt CONFIRM_ONCE
     # deadlocka sem TTY. Log de aviso visível em stderr para auditoria.
     if os.environ.get("NYX_AUTO_APPROVE") == "1":
@@ -1743,6 +1889,97 @@ async def run_headless() -> int:
     for line in sys.stdin:
         line = line.strip()
         if not line:
+            continue
+
+        # PROJECT-ROOTS-MULTI-01: aceita slash command direto em headless.
+        # Conveniência para scripts/testes (ex.: smoke do spec) que enviam
+        # "/sandbox list" sem encapsular em JSON. Resposta sai como linha
+        # de output cru (mesma semântica do REPL).
+        if line.startswith("/"):
+            from nyx.agent.commands import handle_command
+
+            cmd_result = handle_command(line, project_root)
+            if cmd_result is None:
+                continue
+            if cmd_result == "__sandbox_list__":
+                from nyx.agent.tools.base import (
+                    get_active_project_root,
+                    list_extra_roots,
+                )
+                active = get_active_project_root() or PROJECT_ROOT
+                extras = list_extra_roots()
+                lines_out = ["Roots autorizados:", f"  [ativo] {active}"]
+                if extras:
+                    for r in extras:
+                        lines_out.append(f"  [extra] {r}")
+                else:
+                    lines_out.append(
+                        "  (nenhum extra; use /sandbox add <path>)"
+                    )
+                sys.stdout.write("\n".join(lines_out) + "\n")
+                sys.stdout.flush()
+                continue
+            if isinstance(cmd_result, str) and cmd_result.startswith("__sandbox_add__"):
+                from nyx.agent.tools.base import add_extra_root
+
+                raw_path = cmd_result[len("__sandbox_add__"):]
+                cand = Path(raw_path).expanduser()
+                if not cand.exists() or not cand.is_dir():
+                    sys.stdout.write(
+                        f"erro: '{raw_path}' não é diretório válido\n"
+                    )
+                else:
+                    added = add_extra_root(cand)
+                    sys.stdout.write(f"ok: root autorizado {added}\n")
+                sys.stdout.flush()
+                continue
+            if isinstance(cmd_result, str) and cmd_result.startswith("__sandbox_remove__"):
+                from nyx.agent.tools.base import (
+                    get_active_project_root,
+                    remove_extra_root,
+                )
+                raw_path = cmd_result[len("__sandbox_remove__"):]
+                cand = Path(raw_path).expanduser().resolve()
+                active = get_active_project_root() or PROJECT_ROOT
+                if cand == Path(active).resolve():
+                    sys.stdout.write(
+                        f"erro: project_root ativo {active} não pode ser removido\n"
+                    )
+                elif remove_extra_root(cand):
+                    sys.stdout.write(f"ok: root removido {cand}\n")
+                else:
+                    sys.stdout.write(f"erro: root {cand} não estava na lista\n")
+                sys.stdout.flush()
+                continue
+            if isinstance(cmd_result, str) and cmd_result.startswith("__cd__"):
+                from nyx.agent.tools.base import (
+                    add_extra_root,
+                    get_active_project_root,
+                    set_active_project_root,
+                )
+                raw_path = cmd_result[len("__cd__"):]
+                cand = Path(raw_path).expanduser()
+                if not cand.exists() or not cand.is_dir():
+                    sys.stdout.write(f"erro: '{raw_path}' inválido para /cd\n")
+                else:
+                    old_root = get_active_project_root() or PROJECT_ROOT
+                    new_root = set_active_project_root(cand)
+                    add_extra_root(old_root)
+                    project_root = str(new_root)
+                    agent._project_root = project_root
+                    agent._tools.project_root = project_root
+                    sys.stdout.write(f"ok: project_root agora {new_root}\n")
+                sys.stdout.flush()
+                continue
+            if isinstance(cmd_result, str) and cmd_result.startswith("__error__"):
+                payload = cmd_result[len("__error__"):]
+                msg_err = payload.split("||")[0]
+                sys.stdout.write(f"erro: {msg_err}\n")
+                sys.stdout.flush()
+                continue
+            # Comandos não suportados em headless ainda assim retornam algo.
+            sys.stdout.write(str(cmd_result) + "\n")
+            sys.stdout.flush()
             continue
 
         try:
