@@ -630,17 +630,17 @@ def _render_stats_inline(
 ) -> None:
     """Versão linhas-inline para terminais < 80 cols (fallback 25-14)."""
     print()
-    print(f"  {ANSI_ACCENT_FG}última sessão{ANSI_RESET}")
+    print(f"  {ANSI_ACCENT_FG}Última Sessão{ANSI_RESET}")
     print(f"  {ANSI_ACCENT_FG}{'─' * 14}{ANSI_RESET}")
     print(
-        f"  {ANSI_MUTED_FG}iterações{ANSI_RESET}  {ANSI_DIM}{iterations:<5}{ANSI_RESET}"
-        f"  {ANSI_MUTED_FG}arquivos lidos{ANSI_RESET}  {ANSI_DIM}{files_read:<4}{ANSI_RESET}"
-        f"  {ANSI_MUTED_FG}arquivos modif{ANSI_RESET}  {ANSI_DIM}{files_modified}{ANSI_RESET}"
+        f"  {ANSI_MUTED_FG}Iterações{ANSI_RESET}  {ANSI_DIM}{iterations:<5}{ANSI_RESET}"
+        f"  {ANSI_MUTED_FG}Lidos{ANSI_RESET}  {ANSI_DIM}{files_read:<4}{ANSI_RESET}"
+        f"  {ANSI_MUTED_FG}Modificados{ANSI_RESET}  {ANSI_DIM}{files_modified}{ANSI_RESET}"
     )
     print(
-        f"  {ANSI_MUTED_FG}tempo     {ANSI_RESET} {ANSI_DIM}{duration_lbl:<5}{ANSI_RESET}"
-        f"  {ANSI_MUTED_FG}tokens         {ANSI_RESET} {ANSI_DIM}{tokens_str:<4}{ANSI_RESET}"
-        f"  {ANSI_MUTED_FG}sessão         {ANSI_RESET} {ANSI_DIM}{short_id}{ANSI_RESET}"
+        f"  {ANSI_MUTED_FG}Tempo     {ANSI_RESET} {ANSI_DIM}{duration_lbl:<5}{ANSI_RESET}"
+        f"  {ANSI_MUTED_FG}Tokens         {ANSI_RESET} {ANSI_DIM}{tokens_str:<4}{ANSI_RESET}"
+        f"  {ANSI_MUTED_FG}Sessão         {ANSI_RESET} {ANSI_DIM}{short_id}{ANSI_RESET}"
     )
     if saved_path:
         short = _shorten_path(saved_path, project_root, 60)
@@ -663,13 +663,12 @@ def render_session_stats_card(
     """Card de encerramento com stats em grid 3×2 com bordas (TUI-REDESIGN-26-04).
 
     Layout (≥ 80 cols):
-      última sessão
-      ╭──────────────┬──────────────┬──────────────╮
-      │ iterações  3 │ arquivos     │ arquivos     │
-      │              │ lidos      2 │ modif      0 │
-      ├──────────────┼──────────────┼──────────────┤
-      │ tempo  1m32s │ tokens  1487 │ sessão abc12 │
-      ╰──────────────┴──────────────┴──────────────╯
+      Última Sessão
+      ╭─────────────────┬─────────────────┬─────────────────╮
+      │ Iterações     3 │ Lidos         2 │ Modificados   0 │
+      ├─────────────────┼─────────────────┼─────────────────┤
+      │ Tempo     1m32s │ Tokens     1487 │ Sessão abc12345 │
+      ╰─────────────────┴─────────────────┴─────────────────╯
       salvo em ~/.nyx/sessions/abc12
       até.
 
@@ -690,7 +689,8 @@ def render_session_stats_card(
 
     # Grid 3×2: cada célula tem largura fixa CELL_W. Layout: rótulo dim
     # + valor accent à direita, padding interno 1 char cada lado.
-    CELL_W = 22
+    # CELL_W=17 cobre pior caso "Sessão" (6) + short_id de 8 chars + gap 1 + padding 2.
+    CELL_W = 17
     accent = ANSI_ACCENT_FG
     muted = ANSI_MUTED_FG
     dim = ANSI_DIM
@@ -709,18 +709,18 @@ def render_session_stats_card(
     bot = "╰" + ("─" * CELL_W + "┴") * 2 + "─" * CELL_W + "╯"
 
     row1_cells = [
-        cell("iterações", str(iterations)),
-        cell("arquivos lidos", str(files_read)),
-        cell("arquivos modif", str(files_modified)),
+        cell("Iterações", str(iterations)),
+        cell("Lidos", str(files_read)),
+        cell("Modificados", str(files_modified)),
     ]
     row2_cells = [
-        cell("tempo", duration_lbl),
-        cell("tokens", tokens_str),
-        cell("sessão", short_id),
+        cell("Tempo", duration_lbl),
+        cell("Tokens", tokens_str),
+        cell("Sessão", short_id),
     ]
 
     print()
-    print(f"  {accent}última sessão{reset}")
+    print(f"  {accent}Última Sessão{reset}")
     print(f"  {accent}{top}{reset}")
     print(f"  {accent}│{reset}{row1_cells[0]}{accent}│{reset}{row1_cells[1]}{accent}│{reset}{row1_cells[2]}{accent}│{reset}")
     print(f"  {accent}{mid}{reset}")

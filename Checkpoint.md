@@ -187,6 +187,7 @@ Fim do anexo.
 - [2026-05-18 05:10] NYX-MENU-WIZARD-01 implementada: scripts/menu_wizard.py + run.sh `--menu` / `--web` / `--auto-approve`. README seção "Wizard" e "Cockpit Web". Sprint CONCLUIDA direto.
 - [2026-05-18 05:15] **SESSÃO CONCLUÍDA.** Total: ~17 commits pushed em ~3h30min. ~24 sprints CONCLUIDAS (15 implementação + 11 RASCUNHOs cobertos + 5 anti-débitos materializados + 1 wizard). Estado: smoke=ok, inv=14/14, sbom=62/62, cockpit operacional, dashboard renderizado em Chrome.
 - [22:52] sprint TUI-REDESIGN-28-01 CONCLUIDA hash 916adc5 — boot silencioso (6 mensagens [nyx] viraram log_boot) + endmark capitalizado "Sessão Iniciada" em run.sh:654 e design_tokens.py:103.
+- [2026-05-18] sprint TUI-REDESIGN-28-03 CONCLUIDA — capitalização Title Case do box `Última Sessão` em ambas versões (grid >=80 cols + inline <80 cols) de `render_session_stats_card` em `nyx/agent/output.py`. 7 strings + docstring + CELL_W (22→17 com justificativa aritmética: pior caso "Sessão"(6) + short_id 8 chars + gap 1 + padding 2 = 17). Smoke=ok | invariantes=14/14 | microcopy_audit=zero violações. Render via stub salvo em `/tmp/stats_28_03.txt`.
 
 ---
 
