@@ -159,7 +159,7 @@ def _load_registry() -> dict[str, Any]:
         return {"features": [], "total": 0}
     try:
         return yaml.safe_load(REGISTRY_PATH.read_text(encoding="utf-8"))
-    except Exception as exc:  # noqa: BLE001 -- yaml malformado nao deve crashar
+    except Exception as exc:  # noqa: BLE001 -- yaml malformado não deve crashar
         logger.warning("registry inválido: %s", exc)
         return {"features": [], "total": 0, "error": str(exc)}
 
@@ -258,10 +258,10 @@ async def microcopy() -> dict[str, Any]:
             "status": "status",
             "all": "todos",
             "all_f": "todas",
-            "no_session": "nenhuma sessao",
-            "session_saved": "sessao salva",
-            "session_restored": "sessao restaurada",
-            "session_clean": "sessao limpa",
+            "no_session": "nenhuma sessão",
+            "session_saved": "sessão salva",
+            "session_restored": "sessão restaurada",
+            "session_clean": "sessão limpa",
             "boot_ok": "boot ok",
             "footer": "ADR-001 Local First | bind 127.0.0.1 | paleta D | Onda 24",
             # Tooltips contextuais (ADR-026: '?' em qualquer ponto)

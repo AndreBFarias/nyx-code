@@ -1,10 +1,10 @@
 """Slash command /aesthetic (VISUAL-LAYOUT-08).
 
-Lista, mostra ou troca o aesthetic ativo em runtime. Para persistencia
-entre sessoes, exporte NYX_AESTHETIC=<id> no .env ou shell.
+Lista, mostra ou troca o aesthetic ativo em runtime. Para persistência
+entre sessões, exporte NYX_AESTHETIC=<id> no .env ou shell.
 
-Aesthetics validos: default, arcano, cyberpunk, brutalist, mecha, editorial.
-Entities validas: nyx, eris, juno, lars, luna, mars, somn.
+Aesthetics válidos: default, arcano, cyberpunk, brutalist, mecha, editorial.
+Entities válidas: nyx, eris, juno, lars, luna, mars, somn.
 """
 
 from __future__ import annotations
@@ -19,7 +19,6 @@ from nyx.agent.commands._registry import nyx_command
     category="visual",
     examples=[
         "/aesthetic list",
-        "/aesthetic get",
         "/aesthetic set arcano",
         "/aesthetic set cyberpunk:luna",
     ],
