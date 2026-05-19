@@ -55,6 +55,11 @@ Rejeitada porque o ganho de pureza não justifica o custo.
 A regra anti-burla "Nunca `print()` — usar logging" **continua valendo**
 para todos os arquivos exceto:
 - `nyx/cli.py` (REPL — já permitido).
+- `nyx/cli_helpers.py`, `nyx/cli_keybindings.py`, `nyx/cli_handlers.py` —
+  módulos criados por `INFRA-CLI-SPLIT-01` e `INFRA-CLI-SPLIT-02` para
+  extrair pedaços do REPL. Mantêm o mesmo papel (orquestração de prompt
+  e renderização inline de sentinelas) que tinham quando viviam dentro
+  de `cli.py`. O linter (invariante #3) tolera o glob `nyx/cli*.py`.
 - `nyx/agent/output.py` (render layer — permitido a partir desta ADR).
 
 Se uma tool for pega usando `print()`, a correção é **retornar via

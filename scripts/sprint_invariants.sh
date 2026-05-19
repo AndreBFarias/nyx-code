@@ -51,7 +51,7 @@ from pathlib import Path
 
 EMOJI_RE = re.compile(
     r'[\U0001F300-\U0001FAFF\U0001F000-\U0001F2FF\U0001F680-\U0001F6FF]|'  # pictographs
-    r'[\u2600-\u27BF]'  # misc symbols + dingbats (inclui ⚡ U+26A1)
+    r'[\u2600-\u27BF]'  # misc symbols + dingbats (inclui  U+26A1)
 )
 root = Path("nyx")
 found = []
@@ -80,13 +80,15 @@ else
     ok "2. zero menção a Claude/Anthropic/GPT/Gemini/Copilot em .py"
 fi
 
-# 3. Zero print() fora de nyx/cli.py e nyx/agent/output.py (ADR-024 autoriza só esses 2)
+# 3. Zero print() fora de nyx/cli*.py e nyx/agent/output.py (ADR-024 + INFRA-CLI-SPLIT-02).
+# nyx/cli.py, nyx/cli_helpers.py, nyx/cli_keybindings.py, nyx/cli_handlers.py compõem
+# o subsistema CLI (mesma camada de orquestração de REPL). output.py é render layer.
 BAD_PRINT=$(grep -rn '^\s*print(' nyx/ --include='*.py' 2>/dev/null |
-            grep -v 'nyx/cli.py\|nyx/agent/output.py' || true)
+            grep -v 'nyx/cli\(_[a-z]*\)\?\.py\|nyx/agent/output.py' || true)
 if [ -n "$BAD_PRINT" ]; then
-    fail "3. print() fora de cli.py/output.py (ADR-024)" "${BAD_PRINT}"
+    fail "3. print() fora de cli*.py/output.py (ADR-024)" "${BAD_PRINT}"
 else
-    ok "3. print() só em cli.py e output.py"
+    ok "3. print() só em cli*.py e output.py"
 fi
 
 # 4. Zero 'except: pass' ou 'except Exception: pass' sem logger

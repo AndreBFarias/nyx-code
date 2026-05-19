@@ -98,6 +98,16 @@ from nyx.cli_helpers import (  # noqa: E402
 )
 from nyx.cli_helpers import maybe_offer_resume as _maybe_offer_resume_impl  # noqa: E402
 
+# INFRA-CLI-SPLIT-02: KeyBindings, bottom toolbar e dispatcher de sentinelas
+# saíram para módulos dedicados. cli.py orquestra agora.
+from nyx.cli_keybindings import (  # noqa: E402
+    build_bottom_toolbar,
+    build_keybindings,
+    build_prompt_style,
+)
+from nyx.cli_handlers import HandlerCtx, dispatch_async, dispatch_sync  # noqa: E402
+
+
 if TYPE_CHECKING:
     from nyx.agent.services.vision_service import VisionService
 
@@ -113,7 +123,6 @@ async def run_repl(
     no_resume_prompt: bool = False,
 ) -> int:
     from nyx.agent.commands import handle_command
-    from nyx.agent.context import render_context_bar
     from nyx.agent.loop import AgentLoop
     from nyx.agent.persistence import save_session
     from nyx.config.settings import load_settings
@@ -169,328 +178,17 @@ async def run_repl(
 
     project_root = str(PROJECT_ROOT)
 
-    prompt_session = None
-    try:
-        from prompt_toolkit import PromptSession
-        from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
-        from prompt_toolkit.formatted_text import ANSI
-        from prompt_toolkit.history import FileHistory
-        from prompt_toolkit.key_binding import KeyBindings
-        from prompt_toolkit.shortcuts import CompleteStyle
-        from prompt_toolkit.styles import Style as _PtkStyle
-
-        from nyx.agent.completer import create_completer
-
-        def _build_prompt_style() -> "_PtkStyle":
-            """TUI-REDESIGN-27-01: Style do prompt_toolkit a partir do theme_manager.
-
-            Mapeia classes (completion-menu, bottom-toolbar, scrollbar) para
-            hex da paleta ativa (NYX_AESTHETIC + NYX_ENTITY) via resolve_palette.
-            Fallback para constantes de design_tokens.py se theme_manager falhar.
-            """
-            from nyx.themes.design_tokens import (
-                NYX_ACCENT as _D_ACCENT,
-                NYX_ACCENT_DIM as _D_ACCENT_LO,
-                NYX_BG as _D_BG,
-                NYX_BG_SOFT as _D_BG_SOFT,
-                NYX_MUTED as _D_MUTED,
-                NYX_PRIMARY as _D_INK,
-            )
-            try:
-                from nyx.themes.theme_manager import resolve_palette
-                pal = resolve_palette().get("palette", {}) or {}
-            except Exception:
-                pal = {}
-            accent = pal.get("accent", _D_ACCENT)
-            accent_lo = pal.get("accent_lo", _D_ACCENT_LO)
-            ink = pal.get("ink", _D_INK)
-            ink_muted = pal.get("ink_muted", _D_MUTED)
-            bg = pal.get("bg", _D_BG)
-            bg_soft = pal.get("bg_soft", _D_BG_SOFT)
-            # TUI-REDESIGN-28-09: popup do completion adota bg do terminal
-            # (bg:default) para integrar com o fundo, preservando o destaque
-            # do item selecionado (.current) com bg:{accent}.
-            return _PtkStyle.from_dict({
-                "completion-menu.completion":                f"bg:default fg:{ink}",
-                "completion-menu.completion.current":        f"bg:{accent} fg:{bg} bold",
-                "completion-menu.meta.completion":           f"bg:default fg:{ink_muted}",
-                "completion-menu.meta.completion.current":   f"bg:{accent_lo} fg:{ink}",
-                "bottom-toolbar":                            f"fg:{ink_muted}",
-                "bottom-toolbar.text":                       f"fg:{ink_muted}",
-                "scrollbar.background":                      "",
-                "scrollbar.button":                          f"bg:{accent_lo}",
-                "completion.header":                         f"fg:{accent} bold",
-            })
-
-        history_path = Path.home() / ".nyx" / "history"
-        history_path.parent.mkdir(parents=True, exist_ok=True)
-        completer = create_completer(project_root)
-
-        kb = KeyBindings()
-        last_input_state: dict[str, str] = {"text": ""}
-
-        @kb.add("c-o")
-        def _expand_last_input(event: object) -> None:
-            from prompt_toolkit.application import run_in_terminal
-
-            from nyx.agent.output import render_user_input as _render_expanded
-
-            text = last_input_state.get("text", "")
-            if text:
-                run_in_terminal(lambda: _render_expanded(text, expanded=True))
-
-        @kb.add("c-up")
-        def _recall_last_input(event: object) -> None:
-            """UX-EXTRA-01: Ctrl+Up carrega último input no buffer (editável)."""
-            buf = event.current_buffer  # type: ignore[attr-defined]
-            last = last_input_state.get("text", "")
-            if not last:
-                from prompt_toolkit.application import run_in_terminal
-
-                run_in_terminal(lambda: print(f"  {DIM}Nenhum input anterior{NC}"))
-                return
-            if buf.document.text.strip():
-                return
-            buf.text = last
-            buf.cursor_position = len(last)
-
-        @kb.add("enter")
-        def _submit(event: object) -> None:
-            buf = event.current_buffer  # type: ignore[attr-defined]
-            state = buf.complete_state
-            if (
-                state
-                and state.completions
-                and buf.document.text_before_cursor.lstrip().startswith("/")
-            ):
-                current = state.current_completion or state.completions[0]
-                # Pula cabeçalhos de categoria (text=""): busca próximo Completion real.
-                # Se só houver cabeçalhos (impossível por construção do completer),
-                # fallback para o primeiro Completion disponível.
-                if not current.text:
-                    current = next(
-                        (c for c in state.completions if c.text),
-                        state.completions[0],
-                    )
-                buf.apply_completion(current)
-            elif buf.document.text.strip() == "/" and not state:
-                # Texto é apenas "/" sem popup aberto: abre lista com primeiro
-                # item selecionado em vez de submeter comando vazio inválido.
-                buf.start_completion(select_first=True)
-                return
-            buf.validate_and_handle()
-
-        @kb.add("c-j")
-        def _newline(event: object) -> None:
-            event.current_buffer.insert_text("\n")  # type: ignore[attr-defined]
-
-        @kb.add("/")
-        def _slash(event: object) -> None:
-            buf = event.current_buffer  # type: ignore[attr-defined]
-            buf.insert_text("/")
-            if buf.document.text_before_cursor.lstrip() == "/":
-                buf.start_completion(select_first=True)
-
-        @kb.add("tab")
-        def _accept_suggestion(event: object) -> None:
-            buf = event.current_buffer  # type: ignore[attr-defined]
-            sug = buf.suggestion
-            if sug and sug.text:
-                buf.insert_text(sug.text)
-                return
-            if buf.complete_state:
-                buf.complete_next()
-                return
-            # TUI-REDESIGN-25-09-PARTE-2: prompt vazio + thinking armazenado
-            # em app_state alterna expand/collapse e re-renderiza.
-            if not buf.text.strip():
-                tb = app_state.get("last_thinking_block")
-                if isinstance(tb, dict) and tb.get("text"):
-                    from prompt_toolkit.application import run_in_terminal
-                    from nyx.agent.output import render_thinking_block
-                    tb["expanded"] = not tb.get("expanded", False)
-                    text = tb["text"]
-                    dur = tb.get("duration_s")
-                    expanded = tb["expanded"]
-                    run_in_terminal(
-                        lambda: render_thinking_block(text, dur, expanded=expanded)
-                    )
-                    return
-            buf.insert_text("    ")
-
-        @kb.add("s-tab")
-        def _cycle_mode(event: object) -> None:
-            # SHIFT-TAB-CYCLE-01: cicla normal -> plan -> sudo -> bypass -> normal.
-            # Mantém flag legada app_state["bypass"] coerente para compat
-            # (output.py:make_ask_permission lê state["bypass"] direto).
-            # SUDO-MODE-01: ao entrar em sudo, pede senha via getpass (run_in_terminal
-            # para não conflitar com prompt_toolkit). Ao sair, wipe sempre.
-            from nyx.agent.tools import sudo_session
-            from nyx.agent.tools.plan_mode import set_plan_mode
-
-            cur = str(app_state.get("mode", "normal"))
-            try:
-                idx = _MODES.index(cur)
-            except ValueError:
-                idx = 0
-            nxt = _MODES[(idx + 1) % len(_MODES)]
-            app_state["mode"] = nxt
-            app_state["bypass"] = (nxt == "bypass")
-            app_state["plan_mode"] = (nxt == "plan")
-            app_state["sudo_mode"] = (nxt == "sudo")
-            set_plan_mode(nxt == "plan")
-
-            # SUDO-MODE-01: handler de transição.
-            if cur == "sudo" and nxt != "sudo":
-                # saiu de sudo -> apaga senha cacheada.
-                sudo_session.wipe()
-            elif nxt == "sudo" and cur != "sudo":
-                # entrou em sudo -> pede senha se ainda não cacheada.
-                from prompt_toolkit.application import run_in_terminal
-
-                def _prompt_sudo() -> None:
-                    ok, msg = sudo_session.prompt_and_cache()
-                    if ok:
-                        sudo_session.set_active(True)
-                        print(f"  {SUCCESS} {msg}{NC}")
-                    else:
-                        # fallback: volta para normal (não fica em sudo sem senha).
-                        sudo_session.set_active(False)
-                        app_state["mode"] = "normal"
-                        app_state["sudo_mode"] = False
-                        print(f"  {DIM}{msg}{NC}")
-
-                run_in_terminal(_prompt_sudo)
-
-            event.app.invalidate()  # type: ignore[attr-defined]
-
-        @kb.add("c-v")
-        def _paste(event: object) -> None:
-            from prompt_toolkit.application import run_in_terminal
-
-            from nyx.agent.clipboard import capture_image, capture_text
-
-            buf = event.current_buffer  # type: ignore[attr-defined]
-            img_path = capture_image()
-            if img_path is not None:
-                image_counter["n"] += 1
-                n = image_counter["n"]
-                image_map[n] = str(img_path)
-                _persist_image_index(image_map)
-                buf.insert_text(f"[Image #{n}]")
-                run_in_terminal(lambda: print(f"  {DIM}⇲ Image #{n} salva em {img_path}{NC}"))
-                return
-            text = capture_text()
-            if text:
-                buf.insert_text(text)
-
-        def _bottom_toolbar() -> list:
-            """Toolbar inferior do PromptSession.
-
-            Schema de secções (separadas por ' · '):
-              [ctx]                     -- ctx X% (Ntok/Mtok) ou ctx X%
-              [modelo · iter · lidos · modif]
-              [model_state]             --  cold |  warming |  warm (UX-BUG-02B)
-              [bypass]                  -- ON: fundo roxo; OFF: dica muted
-
-            Contrato: cada secção é um FormattedText fragment. Extensões
-            anexam seus fragments ao final de `parts`, sem sobrescrever.
-            """
-            from prompt_toolkit.formatted_text import FormattedText
-
-            parts: list[tuple[str, str]] = []
-            ctx_pct = app_state.get("ctx_pct", 0)
-            total_tok = app_state.get("total_tokens", 0)
-            max_tok = app_state.get("max_tokens", 0)
-            iter_n = app_state.get("iter_n", 0)
-            reads = app_state.get("reads", 0)
-            mods = app_state.get("mods", 0)
-
-            ctx_label = f"ctx {ctx_pct}%"
-            if max_tok:
-                ctx_label += f" ({total_tok}/{max_tok}tok)"
-            parts.append((f"fg:{NYX_ACCENT}", ctx_label))
-
-            # UX-CLAUDE-PARITY-01 (ADR-029): pipes ' | ' como separator
-            # estrutural (paridade com CLI de referencia), preservando paleta e glifos.
-            meta = f"  |  {model}  |  iter {iter_n}  |  lidos {reads}  |  modif {mods}"
-            parts.append((f"fg:{NYX_MUTED}", meta))
-
-            model_state = app_state.get("model_state", "cold")
-            glyph = _STATE_GLYPHS.get(model_state, _STATE_GLYPHS["cold"])
-            parts.append((f"fg:{NYX_MUTED}", f"  |  {glyph} {model_state}"))
-
-            # UX-AGENCY-02: indicador de tool em curso (footer dinâmico)
-            inflight = app_state.get("inflight_task")
-            if inflight is not None and not inflight.done():
-                parts.append((f"fg:{NYX_ACCENT}", "  |   executando (Ctrl+C cancela)"))
-
-            # SHIFT-TAB-CYCLE-01: 4 modos com cor distinta.
-            #   normal -> muted (dica de cycling)
-            #   plan   -> roxo
-            #   sudo   -> vermelho
-            #   bypass -> roxo dim + glifo
-            mode = str(app_state.get("mode", "normal"))
-            parts.append(("", "  "))
-            if mode == "bypass":
-                parts.append((
-                    f"bg:{NYX_PURPLE_DIM} fg:{NYX_PRIMARY} bold",
-                    f" {BULLETS['bypass_on']} bypass ON (shift+tab) ",
-                ))
-            elif mode == "plan":
-                parts.append((
-                    f"bg:{NYX_PURPLE} fg:{NYX_PRIMARY} bold",
-                    " [plan] read-only (shift+tab) ",
-                ))
-            elif mode == "sudo":
-                parts.append((
-                    f"bg:{NYX_ERROR} fg:{NYX_PRIMARY} bold",
-                    " [sudo] elevado (shift+tab) ",
-                ))
-            else:
-                parts.append((f"fg:{NYX_MUTED}", "    shift+tab: normal/plan/sudo/bypass"))
-            return FormattedText(parts)
-
-        import shutil as _sh
-
-        _term_cols = _sh.get_terminal_size(fallback=(80, 24)).columns
-        _style = CompleteStyle.COLUMN
-
-        prompt_session = PromptSession(
-            history=FileHistory(str(history_path)),
-            completer=completer,
-            multiline=True,
-            key_bindings=kb,
-            complete_while_typing=True,
-            complete_style=_style,
-            bottom_toolbar=_bottom_toolbar,
-            auto_suggest=AutoSuggestFromHistory(),
-            # TUI-REDESIGN-27-01: style customizado puxa cores Nyx para popup
-            # de completion e bottom toolbar (substitui amarelo/cinza default).
-            style=_build_prompt_style(),
-        )
-        logger.info("prompt-toolkit ativo (histórico: %s)", history_path)
-    except ImportError:
-        logger.info("prompt-toolkit indisponível, usando input() nativo")
     proxy_url = os.environ.get("OPENAI_BASE_URL", settings.proxy_v1_url)
     proxy_url = proxy_url.replace("/v1", "").rstrip("/")
     if not proxy_url.startswith("http"):
         proxy_url = settings.proxy_url
     model = os.environ.get("OPENAI_MODEL", os.environ.get("NYX_MODEL", settings.model))
 
-    from nyx.agent.output import (
-        build_warming_label,
-        format_args_preview,
-        is_tool_error,
-        nyx_spinner,
-        render_assistant_end,
-        render_assistant_start,
-        render_compaction_event,
-        render_tool_card_end,
-        render_tool_card_start,
-        render_user_input,
-    )
-
+    # INFRA-CLI-SPLIT-02: estado mutável (app_state, last_input_state,
+    # image_map, image_counter) é alocado ANTES das factories de
+    # PromptSession porque KeyBindings/_bottom_toolbar fecham sobre estes
+    # refs. No layout original (pré-split) o late binding do Python
+    # permitia ordem invertida; aqui forçamos a ordem explícita.
     spinner_state: dict[str, object | None] = {"active": None}
     turn_state: dict[str, str] = {"streamed_text": "", "token_buffer": ""}
     # app_state: bool para flags, str para estados ("model_state": cold/warming/warm — UX-BUG-02B).
@@ -511,13 +209,85 @@ async def run_repl(
     app_state["user_display_name"] = resolve_user_display_name()
     # TUI-REDESIGN-25-14: marca início da sessão para card de stats no /quit.
     app_state["session_started_monotonic"] = time.monotonic()
+    last_input_state: dict[str, str] = {"text": ""}
     image_counter: dict[str, int] = {"n": 0}
     image_map: dict[int, str] = {}
-    tool_timers: dict[str, float] = {}
-    # STREAMING-SIDE-RULE-01: estado da faixa lateral entre flushes.
-    side_rule_state: dict = {}
+
+    prompt_session = None
+    history_path = Path.home() / ".nyx" / "history"
+    completer = None
+    kb = None
+    try:
+        from prompt_toolkit import PromptSession
+        from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+        from prompt_toolkit.formatted_text import ANSI
+        from prompt_toolkit.history import FileHistory
+        from prompt_toolkit.shortcuts import CompleteStyle
+
+        from nyx.agent.completer import create_completer
+
+        history_path.parent.mkdir(parents=True, exist_ok=True)
+        completer = create_completer(project_root)
+
+        kb = build_keybindings(
+            app_state=app_state,
+            last_input_state=last_input_state,
+            image_map=image_map,
+            image_counter=image_counter,
+            persist_image_index=_persist_image_index,
+            modes=_MODES,
+            ansi_dim=DIM,
+            ansi_reset=NC,
+            ansi_success=SUCCESS,
+        )
+
+        _bottom_toolbar = build_bottom_toolbar(
+            app_state=app_state,
+            model=model,
+            state_glyphs=_STATE_GLYPHS,
+            bullets=BULLETS,
+            nyx_accent=NYX_ACCENT,
+            nyx_muted=NYX_MUTED,
+            nyx_primary=NYX_PRIMARY,
+            nyx_purple=NYX_PURPLE,
+            nyx_purple_dim=NYX_PURPLE_DIM,
+            nyx_error=NYX_ERROR,
+        )
+
+        _style = CompleteStyle.COLUMN
+
+        prompt_session = PromptSession(
+            history=FileHistory(str(history_path)),
+            completer=completer,
+            multiline=True,
+            key_bindings=kb,
+            complete_while_typing=True,
+            complete_style=_style,
+            bottom_toolbar=_bottom_toolbar,
+            auto_suggest=AutoSuggestFromHistory(),
+            # TUI-REDESIGN-27-01: style customizado puxa cores Nyx para popup
+            # de completion e bottom toolbar (substitui amarelo/cinza default).
+            style=build_prompt_style(),
+        )
+        logger.info("prompt-toolkit ativo (histórico: %s)", history_path)
+    except ImportError:
+        logger.info("prompt-toolkit indisponível, usando input() nativo")
+
+    from nyx.agent.context import render_context_bar
+    from nyx.agent.output import (
+        build_warming_label,
+        is_tool_error,
+        nyx_spinner,
+        render_assistant_end,
+        render_assistant_start,
+        render_compaction_event,
+        render_user_input,
+    )
 
     TOKEN_FLUSH_CHARS = 32
+    # STREAMING-SIDE-RULE-01: estado da faixa lateral entre flushes.
+    side_rule_state: dict = {}
+    tool_timers: dict[str, float] = {}
 
     def _stop_spinner() -> None:
         sp = spinner_state.get("active")
@@ -742,13 +512,14 @@ async def run_repl(
     repl_input_buffer: object | None = None
     if use_application:
         try:
+            from prompt_toolkit.history import FileHistory as _FH
             from nyx.agent.output import set_repl_app_output
             from nyx.agent.repl_app import append_to_buffer, build_app
 
             repl_app, repl_output_buffer, repl_input_buffer = build_app(
                 app_state=app_state,
                 completer=completer,
-                history=FileHistory(str(history_path)),
+                history=_FH(str(history_path)),
                 last_input_state=last_input_state,
                 image_map=image_map,
                 image_counter=image_counter,
@@ -828,10 +599,11 @@ async def run_repl(
                 repl_input_buffer.text = ""
                 repl_input_buffer.cursor_position = 0
             elif prompt_session:
+                from prompt_toolkit.formatted_text import ANSI as _ANSI
                 # UX-EXTRA-01: prefill via /edit pré-popula próximo prompt_async.
                 prefill = str(app_state.pop("prefill", "") or "")
                 user_input = (
-                    await prompt_session.prompt_async(ANSI(prompt_str), default=prefill)
+                    await prompt_session.prompt_async(_ANSI(prompt_str), default=prefill)
                 ).strip()
             else:
                 user_input = input(prompt_str).strip()
@@ -918,324 +690,31 @@ async def run_repl(
                     logger.debug("admin/shutdown best-effort falhou: %s", _exc)
                 break
 
-            if result == "__clear__":
-                agent.reset()
-                if use_rich and output:
-                    output("ok", " sessão limpa")
-                else:
-                    print(f"  {SUCCESS} sessão limpa{NC}")
-                continue
+            # INFRA-CLI-SPLIT-02: handlers de sentinela ficam em cli_handlers.py.
+            # ctx carrega refs ao agente + estado + cores; handlers retornam
+            # True se reconheceram o sentinel, False caso contrário.
+            handler_ctx = HandlerCtx(
+                result=result,
+                agent=agent,
+                app_state=app_state,
+                project_root_path=PROJECT_ROOT,
+                last_input_state=last_input_state,
+                use_rich=use_rich,
+                output=output,
+                print_error=_print_error,
+                accent=ACCENT,
+                primary=PRIMARY,
+                dim=DIM,
+                success=SUCCESS,
+                nc=NC,
+            )
 
-            if result == "__status__":
-                s = agent.session
-                stats = agent.parser_stats
-                ctx = agent.get_context_info()
-                status_msg = (
-                    f"Iterações: {s.iteration} | "
-                    f"Lidos: {s.files_read_count} | "
-                    f"Modificados: {s.files_modified_count} | "
-                    f"Parser: {stats['success_rate']:.0%} | "
-                    f"Tools: {agent.tools_count} | "
-                    f"Contexto: {ctx.get('pct', 0):.0%}"
-                )
-                if use_rich and output:
-                    output("sessão", status_msg)
-                else:
-                    print(f"  {ACCENT}[sessão]{NC} {status_msg}")
-                continue
-
-            if result == "__context__":
-                ctx = agent.get_context_info()
-                bar = render_context_bar(ctx)
-                ctx_msg = (
-                    f"{bar}\n"
-                    f"  System: {ctx.get('system_tokens', 0)} tok | "
-                    f"User: {ctx.get('user_tokens', 0)} tok | "
-                    f"Total: {ctx.get('total_tokens', 0)}/{ctx.get('max_tokens', 0)} tok"
-                )
-                print(f"  {ctx_msg}")
-                continue
-
-            if result == "__session_save__":
-                saved = save_session(agent.session, PROJECT_ROOT.name)
-                if saved:
-                    print(f"  {SUCCESS} sessão salva{NC}: {saved.name}")
-                else:
-                    _print_error(
-                        "Falha ao salvar a sessão atual.",
-                        hint="Verifique permissões de escrita em ~/.nyx/sessions/.",
-                    )
-                continue
-
-            if result == "__session_load__":
-                from nyx.agent.persistence import load_latest_session
-                from nyx.agent.services.gsd_writer import load_progress_tail
-
-                loaded = load_latest_session(PROJECT_ROOT.name)
-                if loaded:
-                    agent._session = loaded
-                    # NYX-GSD-CHECKPOINTS-01: anexa tail do progress.md como contexto.
-                    sid = getattr(agent, "_session_id", "") or ""
-                    extra = load_progress_tail(sid, n=50) if sid else ""
-                    if extra:
-                        loaded.add_user(f"[contexto-anterior]\n{extra}")
-                    print(f"  {SUCCESS} sessão restaurada{NC} ({len(loaded.history)} entradas)")
-                else:
-                    _print_error(
-                        "Nenhuma sessão salva para restaurar.",
-                        hint="Use /quit para salvar esta sessão e rode novamente para carregá-la.",
-                    )
-                continue
-
-            if isinstance(result, str) and result.startswith("__session_load_id__"):
-                # SESSION-RESUME-01: /resume <prefixo>
-                prefix = result[len("__session_load_id__"):]
-                from nyx.agent.persistence import load_session_by_id
-                from nyx.agent.services.gsd_writer import load_progress_tail
-
-                loaded = load_session_by_id(prefix)
-                if loaded:
-                    agent._session = loaded
-                    # NYX-GSD-CHECKPOINTS-01: anexa tail do progress.md ao reattach.
-                    extra = load_progress_tail(prefix, n=50)
-                    if extra:
-                        loaded.add_user(f"[contexto-anterior]\n{extra}")
-                    print(
-                        f"  {ACCENT}[ok]{NC} Sessão {prefix} restaurada "
-                        f"({len(loaded.history)} entradas)"
-                    )
-                else:
-                    _print_error(
-                        f"Nenhuma sessão única casa com '{prefix}'.",
-                        hint="Use /resume list para ver todas, depois /resume <prefixo único>.",
-                    )
-                continue
-
-            # PROJECT-ROOTS-MULTI-01: handlers /sandbox e /cd.
-            if result == "__sandbox_list__":
-                from nyx.agent.tools.base import (
-                    get_active_project_root,
-                    list_extra_roots,
-                )
-
-                active = get_active_project_root() or PROJECT_ROOT
-                extras = list_extra_roots()
-                lines = ["  Roots autorizados:"]
-                lines.append(f"    [ativo] {active}")
-                if extras:
-                    for r in extras:
-                        lines.append(f"    [extra] {r}")
-                else:
-                    lines.append(
-                        "    (nenhum extra; use /sandbox add <path> para autorizar)"
-                    )
-                print("\n".join(lines))
-                continue
-
-            if isinstance(result, str) and result.startswith("__sandbox_add__"):
-                from nyx.agent.tools.base import add_extra_root
-
-                raw_path = result[len("__sandbox_add__"):]
-                cand = Path(raw_path).expanduser()
-                if not cand.exists():
-                    _print_error(
-                        f"Caminho '{raw_path}' não existe.",
-                        hint="Confira com: ls -la ou tab-completion.",
-                    )
-                    continue
-                if not cand.is_dir():
-                    _print_error(
-                        f"Caminho '{raw_path}' não é diretório.",
-                        hint="Use /sandbox add <diretório>, não arquivo.",
-                    )
-                    continue
-                added = add_extra_root(cand)
-                print(f"  {SUCCESS} root autorizado{NC}: {added}")
-                continue
-
-            if isinstance(result, str) and result.startswith("__sandbox_remove__"):
-                from nyx.agent.tools.base import (
-                    get_active_project_root,
-                    remove_extra_root,
-                )
-
-                raw_path = result[len("__sandbox_remove__"):]
-                cand = Path(raw_path).expanduser().resolve()
-                active = get_active_project_root() or PROJECT_ROOT
-                if cand == Path(active).resolve():
-                    _print_error(
-                        f"O project_root ativo ({active}) não pode ser removido.",
-                        hint="Use /cd <outro> antes para trocar de root ativo.",
-                    )
-                    continue
-                if remove_extra_root(cand):
-                    print(f"  {SUCCESS} root removido{NC}: {cand}")
-                else:
-                    _print_error(
-                        f"Root '{cand}' não estava na lista de extras.",
-                        hint="Liste os ativos com /sandbox list.",
-                    )
-                continue
-
-            if isinstance(result, str) and result.startswith("__cd__"):
-                from nyx.agent.tools.base import (
-                    add_extra_root,
-                    get_active_project_root,
-                    set_active_project_root,
-                )
-
-                raw_path = result[len("__cd__"):]
-                cand = Path(raw_path).expanduser()
-                if not cand.exists() or not cand.is_dir():
-                    _print_error(
-                        f"Caminho '{raw_path}' inválido para /cd.",
-                        hint="Diretório precisa existir; confira com ls.",
-                    )
-                    continue
-                old_root = get_active_project_root() or PROJECT_ROOT
-                # Troca o active ANTES de adicionar o antigo como extra,
-                # senão o guard de add_extra_root (que rejeita == active)
-                # impede a preservação.
-                new_root = set_active_project_root(cand)
-                add_extra_root(old_root)
-                # Reconfigura agent + ToolRegistry para usar novo root nas
-                # tools (cwd em run_command, validate_path em file ops, etc).
-                project_root = str(new_root)
-                agent._project_root = project_root
-                agent._tools.project_root = project_root
-                print(
-                    f"  {SUCCESS} project_root trocado para{NC} {new_root}\n"
-                    f"  {DIM}(root anterior {old_root} preservado como extra){NC}"
-                )
-                continue
-
-            if result == "__cancel_inflight__":
-                # UX-AGENCY-02: cancel real via asyncio.
-                # /cancel via prompt só funciona se a tool ainda estiver em curso
-                # (normalmente o REPL só processa /cancel após tool concluir, então
-                # o caminho prático é Ctrl+C; este handler é fallback para shells
-                # com input buffer ou modo headless onde Ctrl+C pode não bubblar).
-                inflight = app_state.get("inflight_task")
-                if inflight is not None and not inflight.done():
-                    inflight.cancel()
-                    print(f"  {SUCCESS} cancel sinalizado{NC} (asyncio.CancelledError despachado)")
-                else:
-                    print(
-                        f"  {DIM}/cancel: nenhuma tool em curso. "
-                        f"Use Ctrl+C durante execução para interromper.{NC}"
-                    )
-                continue
-
-            if result == "__aesthetic_list__":
-                from nyx.themes.design_tokens_extended import list_aesthetics, list_entities
-
-                cur = app_state.get(
-                    "aesthetic_id",
-                    os.environ.get("NYX_AESTHETIC", "default"),
-                )
-                cur_ent = app_state.get(
-                    "entity_id",
-                    os.environ.get("NYX_ENTITY", "nyx"),
-                )
-                print(f"  Estéticos disponíveis (atual: {ACCENT}{cur}{NC}):")
-                for a in list_aesthetics():
-                    marker = f"{ACCENT}* {NC}" if a["id"] == cur else "  "
-                    print(f"    {marker}{ACCENT}{a['id']:<10}{NC} -- {a['tagline']}")
-                print(f"  Entidades disponíveis (atual: {SUCCESS}{cur_ent}{NC}):")
-                for e in list_entities():
-                    marker = f"{SUCCESS}* {NC}" if e["id"] == cur_ent else "  "
-                    print(f"    {marker}{SUCCESS}{e['id']:<6}{NC} {e['name']:<6} accent {e['accent']}")
-                continue
-
-            if result == "__aesthetic_get__":
-                cur = app_state.get(
-                    "aesthetic_id",
-                    os.environ.get("NYX_AESTHETIC", "default"),
-                )
-                cur_ent = app_state.get(
-                    "entity_id",
-                    os.environ.get("NYX_ENTITY", "nyx"),
-                )
-                print(f"  Estético atual: {ACCENT}{cur}{NC} | Entidade: {SUCCESS}{cur_ent}{NC}")
-                continue
-
-            if isinstance(result, str) and result.startswith("__aesthetic_set__"):
-                from nyx.themes.design_tokens_extended import AESTHETICS, ENTITIES
-
-                target = result[len("__aesthetic_set__"):].strip()
-                # Aceita 'aesthetic' ou 'aesthetic:entity'
-                if ":" in target:
-                    a_id, e_id = target.split(":", 1)
-                    a_id, e_id = a_id.strip(), e_id.strip()
-                else:
-                    a_id, e_id = target.strip(), None
-                if a_id and a_id not in AESTHETICS:
-                    _print_error(
-                        f"Estético '{a_id}' não existe.",
-                        hint="Use /aesthetic list para ver opções.",
-                    )
-                    continue
-                if e_id and e_id not in ENTITIES:
-                    _print_error(
-                        f"Entidade '{e_id}' não existe.",
-                        hint="Use /aesthetic list para ver opções.",
-                    )
-                    continue
-                if a_id:
-                    app_state["aesthetic_id"] = a_id
-                    os.environ["NYX_AESTHETIC"] = a_id
-                if e_id:
-                    app_state["entity_id"] = e_id
-                    os.environ["NYX_ENTITY"] = e_id
-                final_a = app_state.get("aesthetic_id", "default")
-                final_e = app_state.get("entity_id", "nyx")
-                print(f"  {SUCCESS} aesthetic{NC}: {final_a}:{final_e} (próxima invocação aplica)")
-                continue
-
-            if result == "__schema_list__":
-                from nyx.themes.design_tokens_extended import (
-                    DEFAULT_SCHEMA,
-                    list_schemas,
-                )
-
-                cur = app_state.get(
-                    "schema_id",
-                    os.environ.get("NYX_SCHEMA", DEFAULT_SCHEMA),
-                )
-                print(f"  Schemas disponíveis (atual: {ACCENT}{cur}{NC}):")
-                for s in list_schemas():
-                    marker = f"{ACCENT}* {NC}" if s["id"] == cur else "  "
-                    print(
-                        f"    {marker}{ACCENT}{s['id']:<10}{NC} -- "
-                        f"case {s['heading_case']} · user {s['user_bubble']} · nyx {s['nyx_bubble']}"
-                    )
-                continue
-
-            if result == "__schema_get__":
-                from nyx.themes.design_tokens_extended import DEFAULT_SCHEMA
-
-                cur = app_state.get(
-                    "schema_id",
-                    os.environ.get("NYX_SCHEMA", DEFAULT_SCHEMA),
-                )
-                print(f"  Schema atual: {ACCENT}{cur}{NC}")
-                continue
-
-            if isinstance(result, str) and result.startswith("__schema_set__"):
-                from nyx.themes.design_tokens_extended import INTERFACE_SCHEMAS
-
-                target = result[len("__schema_set__"):].strip()
-                if target not in INTERFACE_SCHEMAS:
-                    _print_error(
-                        f"Schema '{target}' não existe.",
-                        hint="Use /schema list para ver opções.",
-                    )
-                    continue
-                app_state["schema_id"] = target
-                os.environ["NYX_SCHEMA"] = target
-                print(
-                    f"  {SUCCESS} schema{NC}: {target} (próxima invocação aplica)"
-                )
+            # Caminho rápido síncrono primeiro (a maioria dos sentinels).
+            if dispatch_sync(handler_ctx):
+                # /cd pode trocar project_root via mutação do agent + app_state.
+                new_pr = app_state.pop("__cd_new_root__", None)
+                if isinstance(new_pr, str):
+                    project_root = new_pr
                 continue
 
             # TUI-REDESIGN-27-03: 3 modais radiolist para escolha interativa.
@@ -1287,7 +766,7 @@ async def run_repl(
                         text="Use as setas para navegar, Enter para confirmar, Esc para cancelar.",
                         values=values,
                         default=default_val,
-                        style=_build_prompt_style(),
+                        style=build_prompt_style(),
                     ).run_async()
                 except Exception as exc:  # noqa: BLE001 -- modal best-effort
                     _print_error(
@@ -1311,382 +790,8 @@ async def run_repl(
                 print(f"  {SUCCESS} {kind}{NC}: {choice} (próxima invocação aplica)")
                 continue
 
-            if result == "__output_style_list__":
-                from nyx.agent.output_style import list_styles
-
-                current = str(app_state.get("output_style", "default"))
-                print("  Estilos de saída:")
-                for st in list_styles():
-                    marker = f"{ACCENT}* {NC}" if st.name == current else "  "
-                    print(f"    {marker}{ACCENT}{st.name:<10}{NC} -- {st.description}")
-                continue
-
-            if result == "__output_style_get__":
-                current = str(app_state.get("output_style", "default"))
-                print(f"  Estilo atual: {ACCENT}{current}{NC}")
-                continue
-
-            if isinstance(result, str) and result.startswith("__output_style_set__"):
-                from nyx.agent.output_style import STYLES
-
-                target = result[len("__output_style_set__"):].strip()
-                if target not in STYLES:
-                    _print_error(
-                        f"Estilo '{target}' não existe.",
-                        hint="Use /output-style list para ver opções.",
-                    )
-                    continue
-                app_state["output_style"] = target
-                print(f"  {ACCENT}[ok]{NC} estilo trocado para {target} (próxima request usa)")
-                continue
-
-            if result == "__plugin_list__":
-                from nyx.agent.services.plugin_manager import PluginManager
-
-                pm = PluginManager()
-                plugins = pm.list()
-                if not plugins:
-                    _print_error(
-                        "Nenhum plugin em ~/.nyx/plugins/.",
-                        hint="Use /plugin install <path> para instalar um.",
-                    )
-                    continue
-                print(f"  Plugins ({len(plugins)}):")
-                for p in plugins:
-                    status = f"{DIM}({p.error}){NC}" if p.error else f"{ACCENT}OK{NC}"
-                    print(
-                        f"    {ACCENT}{p.name}{NC} v{p.version} [{status}] "
-                        f"-- tools={len(p.tools)} cmds={len(p.commands)}"
-                    )
-                    if p.description:
-                        print(f"      {DIM}{p.description}{NC}")
-                continue
-
-            if result == "__plugin_reload__":
-                from nyx.agent.services.plugin_manager import PluginManager
-
-                pm = PluginManager()
-                results = pm.reload()
-                ok = sum(1 for v in results.values() if v)
-                print(
-                    f"  {ACCENT}[ok]{NC} plugins recarregados: "
-                    f"{ok}/{len(results)} OK"
-                )
-                continue
-
-            if isinstance(result, str) and result.startswith("__plugin_install__"):
-                src = result[len("__plugin_install__"):].strip()
-                from nyx.agent.services.plugin_manager import PluginManager
-
-                pm = PluginManager()
-                name = pm.install(src)
-                if name:
-                    print(f"  {ACCENT}[ok]{NC} plugin '{name}' instalado")
-                else:
-                    _print_error(
-                        f"Falha ao instalar plugin a partir de {src!r}.",
-                        hint="Confirme que o diretório existe e contém manifest.toml válido.",
-                    )
-                continue
-
-            if isinstance(result, str) and result.startswith("__plugin_uninstall__"):
-                name = result[len("__plugin_uninstall__"):].strip()
-                from nyx.agent.services.plugin_manager import PluginManager
-
-                pm = PluginManager()
-                pm.discover()
-                if pm.uninstall(name):
-                    print(f"  {ACCENT}[ok]{NC} plugin '{name}' removido")
-                else:
-                    _print_error(
-                        f"Plugin '{name}' não encontrado.",
-                        hint="Use /plugin list para ver instalados.",
-                    )
-                continue
-
-            if result == "__mcp_list__":
-                # MCP-SERVER-01: lista servers + tools de ~/.nyx/mcp.json
-                from nyx.agent.services.mcp_client import McpClient
-
-                client = McpClient.from_config()
-                if not client.servers:
-                    _print_error(
-                        "Nenhum server MCP configurado.",
-                        hint="Crie ~/.nyx/mcp.json com {\"servers\": {...}}.",
-                    )
-                    continue
-                await client.connect_all()
-                print(f"  Servers MCP ({len(client.servers)}):")
-                for name, srv in client.servers.items():
-                    status = (
-                        f"{ACCENT}OK{NC}" if srv.connected else f"{DIM}{srv.error or 'down'}{NC}"
-                    )
-                    print(f"    {ACCENT}{name}{NC} [{status}] -- {len(srv.tools)} tool(s)")
-                    for tool in srv.tools[:5]:
-                        tname = tool.get("name", "?")
-                        tdesc = (tool.get("description") or "").strip()[:60]
-                        print(f"      {DIM}- {tname}: {tdesc}{NC}")
-                    if len(srv.tools) > 5:
-                        print(f"      {DIM}... (+{len(srv.tools) - 5} tools){NC}")
-                await client.close_all()
-                continue
-
-            if result == "__mcp_reload__":
-                from nyx.agent.services.mcp_client import McpClient
-
-                client = McpClient.from_config()
-                if not client.servers:
-                    _print_error("Nenhum server MCP em ~/.nyx/mcp.json.", hint=None)
-                    continue
-                results = await client.connect_all()
-                ok = sum(1 for v in results.values() if v)
-                print(f"  {ACCENT}[ok]{NC} MCP recarregado: {ok}/{len(results)} server(s) conectado(s)")
-                await client.close_all()
-                continue
-
-            if isinstance(result, str) and result.startswith("__mcp_test__"):
-                target = result[len("__mcp_test__"):].strip()
-                from nyx.agent.services.mcp_client import McpClient
-
-                client = McpClient.from_config()
-                if target not in client.servers:
-                    _print_error(
-                        f"Server MCP '{target}' não encontrado.",
-                        hint="Veja /mcp list.",
-                    )
-                    continue
-                await client.connect_all()
-                alive = await client.ping(target)
-                if alive:
-                    print(f"  {ACCENT}[ok]{NC} MCP {target} responde (ping ok)")
-                else:
-                    _print_error(
-                        f"MCP {target} não responde ao ping.",
-                        hint="Verifique o command/args em ~/.nyx/mcp.json.",
-                    )
-                await client.close_all()
-                continue
-
-            if result == "__edit_last__":
-                # UX-EXTRA-01: pré-popula próximo prompt_async via app_state["prefill"].
-                last = last_input_state.get("text", "")
-                if not last:
-                    _print_error(
-                        "Nenhum input anterior para editar.",
-                        hint="Envie uma mensagem antes de usar /edit.",
-                    )
-                    continue
-                app_state["prefill"] = last
-                print(f"  {DIM}último input prefillado no próximo prompt; edite e Enter.{NC}")
-                continue
-
-            if result == "__config_setup__":
-                # ONBOARDING-01: wizard interativo grava ~/.nyx/config.toml.
-                config_path = Path.home() / ".nyx" / "config.toml"
-                config_path.parent.mkdir(parents=True, exist_ok=True)
-                if config_path.exists():
-                    backup = config_path.with_suffix(".toml.bak")
-                    backup.write_bytes(config_path.read_bytes())
-                    print(f"  {DIM}backup salvo em {backup}{NC}")
-                try:
-                    from nyx.config.defaults import DEFAULT_MODEL as _DM
-
-                    modelo = input(f"  modelo preferido [{_DM}]: ").strip() or _DM
-                    tema = input("  tema [paleta_d]: ").strip() or "paleta_d"
-                    bypass = input(
-                        "  bypass default (cauteloso/moderado/ousado) [cauteloso]: "
-                    ).strip() or "cauteloso"
-                    ctx_raw = input("  limite de contexto em turnos [40]: ").strip() or "40"
-                    try:
-                        ctx_limit = int(ctx_raw)
-                    except ValueError:
-                        print(f"  {DIM}valor inválido, usando 40{NC}")
-                        ctx_limit = 40
-                except (EOFError, KeyboardInterrupt):
-                    print(f"\n  {DIM}/config setup cancelado{NC}")
-                    continue
-
-                content = (
-                    "# Configuração Nyx gerada via /config setup (ONBOARDING-01)\n"
-                    f'modelo = "{modelo}"\n'
-                    f'tema = "{tema}"\n'
-                    f'bypass = "{bypass}"\n'
-                    f"ctx_limit = {ctx_limit}\n"
-                )
-                tmp = config_path.with_suffix(".toml.tmp")
-                tmp.write_text(content, encoding="utf-8")
-                tmp.replace(config_path)
-                print(f"  {ACCENT}[ok]{NC} configuração salva em {config_path}")
-                continue
-
-            if result == "__session_index__":
-                # SESSION-RESUME-01: /resume list
-                from nyx.agent.persistence import load_index
-
-                idx = load_index()
-                if not idx:
-                    _print_error(
-                        "Nenhuma sessão indexada.",
-                        hint="Saia com /quit para gerar a primeira entrada do índice.",
-                    )
-                    continue
-                print(f"  {len(idx)} sessões no índice (mais recentes embaixo):")
-                for entry in idx[-20:]:
-                    sid = entry.get("id", "?")
-                    prompt_preview = entry.get("primeiro_prompt", "")[:60]
-                    n = entry.get("n_turnos", 0)
-                    print(f"    {ACCENT}{sid[:32]:<32}{NC}  {n:>2} turnos  {DIM}{prompt_preview}{NC}")
-                continue
-
-            if isinstance(result, str) and result.startswith("__model__"):
-                new_model = result.replace("__model__", "")
-                agent._model = new_model
-                print(f"  {ACCENT}[ok]{NC} Modelo trocado para: {new_model}")
-                continue
-
-            if isinstance(result, str) and result.startswith("__rewind__"):
-                n = int(result.replace("__rewind__", "") or "1")
-                removed = min(n, len(agent.session.history))
-                for _ in range(removed):
-                    if agent.session.history:
-                        agent.session.history.pop()
-                print(f"  {ACCENT}[ok]{NC} Desfeitas {removed} entradas do histórico.")
-                continue
-
-            if result == "__stats__":
-                s = agent.session
-                stats = agent.parser_stats
-                status_msg = (
-                    f"  Iterações: {s.iteration}\n"
-                    f"  Arquivos lidos: {s.files_read_count}\n"
-                    f"  Arquivos modificados: {s.files_modified_count}\n"
-                    f"  Entradas no histórico: {len(s.history)}\n"
-                    f"  Parser taxa sucesso: {stats['success_rate']:.0%}\n"
-                    f"  Tools: {agent.tools_count}"
-                )
-                print(status_msg)
-                continue
-
-            if result == "__usage__":
-                ctx = agent.get_context_info()
-                usage_msg = (
-                    f"  Contexto: {ctx.get('pct', 0):.0%} usado\n"
-                    f"  Tokens sistema: {ctx.get('system_tokens', 0)}\n"
-                    f"  Tokens usuário: {ctx.get('user_tokens', 0)}\n"
-                    f"  Total: {ctx.get('total_tokens', 0)}/{ctx.get('max_tokens', 0)}"
-                )
-                print(usage_msg)
-                continue
-
-            if result == "__files__":
-                ctx = agent.session.get_files_context()
-                if ctx:
-                    print(f"  {ctx}")
-                else:
-                    _print_error(
-                        "Nenhum arquivo no contexto da sessão.",
-                        hint="Peça a Nyx para ler um arquivo ou use /read <caminho>.",
-                    )
-                continue
-
-            if result == "__debug_session__":
-                from nyx.agent.commands._observability import render_debug_session
-                print(render_debug_session(agent))
-                continue
-            if isinstance(result, str) and result.startswith("__replay__"):
-                from nyx.agent.commands._observability import render_replay
-                print(render_replay(Path(project_root), result.replace("__replay__", "")))
-                continue
-
-            if isinstance(result, str) and result.startswith("__progress_tail__"):
-                # NYX-GSD-CHECKPOINTS-01: mostra tail do progress.md da sessão.
-                from nyx.agent.services.gsd_writer import load_progress_tail
-
-                try:
-                    n = int(result.replace("__progress_tail__", "") or "30")
-                except ValueError:
-                    n = 30
-                sid = getattr(agent, "_session_id", "") or ""
-                tail = load_progress_tail(sid, n=n) if sid else ""
-                if tail:
-                    print(tail)
-                else:
-                    _print_error(
-                        "Nenhum progresso registrado ainda.",
-                        hint="O progress.md e criado no primeiro turno; faça uma pergunta primeiro.",
-                    )
-                continue
-
-            if result == "__trace__":
-                entries = [e for e in agent.session.history if e.tool_name]
-                if not entries:
-                    _print_error(
-                        "Nenhuma tool call registrada nesta sessão.",
-                        hint="Faça uma pergunta à Nyx para gerar atividade antes de inspecionar /trace.",
-                    )
-                else:
-                    print("  Últimas tool calls:")
-                    for e in entries[-10:]:
-                        args_short = str(e.tool_args)[:50]
-                        print(f"    {ACCENT}{e.tool_name}{NC}({args_short})")
-                continue
-
-            if isinstance(result, str) and result.startswith("__btw__"):
-                note = result[7:]
-                agent.session.add_user(f"[nota lateral] {note}")
-                print(f"  {DIM}Nota registrada: {note[:60]}{NC}")
-                continue
-
-            if isinstance(result, str) and result.startswith("__export__"):
-                fmt = result.replace("__export__", "") or "md"
-                export_dir = Path.home() / ".nyx" / "exports"
-                export_dir.mkdir(parents=True, exist_ok=True)
-                ts = time.strftime("%Y%m%d_%H%M%S")
-                export_path = export_dir / f"session_{ts}.{fmt}"
-                lines = []
-                for entry in agent.session.history:
-                    if entry.tool_name:
-                        lines.append(f"[{entry.tool_name}] {str(entry.tool_args)[:80]}")
-                    else:
-                        lines.append(f"[{entry.role}] {entry.content[:200]}")
-                export_path.write_text("\n".join(lines), encoding="utf-8")
-                print(f"  {ACCENT}[ok]{NC} Sessão exportada: {export_path}")
-                continue
-
-            if result == "__copy__":
-                import subprocess as _sp
-
-                last_content = ""
-                for entry in reversed(agent.session.history):
-                    if entry.role == "assistant" or entry.tool_result:
-                        last_content = entry.content or entry.tool_result
-                        break
-                if last_content:
-                    try:
-                        _sp.run(["xclip", "-selection", "clipboard"], input=last_content.encode(), timeout=5)
-                        print(f"  {ACCENT}[ok]{NC} Copiado para clipboard ({len(last_content)} chars)")
-                    except FileNotFoundError as exc:
-                        tmp = Path.home() / ".nyx" / "clipboard.txt"
-                        tmp.write_text(last_content, encoding="utf-8")
-                        _print_error(
-                            "xclip indisponível no sistema.",
-                            hint=f"Conteúdo salvo em {tmp}. Instale com: sudo apt install xclip",
-                            debug_detail=str(exc),
-                        )
-                else:
-                    _print_error(
-                        "Nenhum output disponível para copiar.",
-                        hint="Aguarde uma resposta da Nyx ou execute um comando antes de /copy.",
-                    )
-                continue
-
-            if isinstance(result, str) and result.startswith("__error__"):
-                payload = result[len("__error__"):]
-                if "||" in payload:
-                    msg, hint = payload.split("||", 1)
-                else:
-                    msg, hint = payload, None
-                _print_error(msg, hint=hint)
+            # Handlers async (MCP).
+            if await dispatch_async(handler_ctx):
                 continue
 
             if "read_file" in result or "list_files" in result or "done(" in result:
