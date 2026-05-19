@@ -54,8 +54,10 @@ from nyx.themes.design_tokens import (  # noqa: E402
     ANSI_SUCCESS_FG,
     BULLETS,
     NYX_ACCENT,
+    NYX_ERROR,
     NYX_MUTED,
     NYX_PRIMARY,
+    NYX_PURPLE,
     NYX_PURPLE_DIM,
 )
 
@@ -71,6 +73,15 @@ NC = ANSI_RESET
 # Círculos da faixa Geometric Shapes (U+25CB/D0/CF) — não são emoji.
 # NÃO remover via sanitizer global: invariante #14 (sprint_invariants.sh) protege estes 3 caracteres.
 _STATE_GLYPHS = {"cold": "", "warming": "", "warm": ""}
+
+
+# SHIFT-TAB-CYCLE-01: Shift+Tab cicla 4 modos em vez de toggle binário.
+# Ordem: normal -> plan -> sudo -> bypass -> normal.
+# - normal:  comportamento padrão (permissões + sandbox).
+# - plan:    read-only via plan_mode.set_plan_mode(True); write bloqueado.
+# - sudo:    libera prefixo sudo em run_command (depende de SUDO-MODE-01 para cache de senha).
+# - bypass:  pula CONFIRM_ONCE silenciosamente (paridade com CLI de referência).
+_MODES: tuple[str, ...] = ("normal", "plan", "sudo", "bypass")
 
 
 from nyx.agent.banner import build_banner as _build_banner  # noqa: E402
@@ -286,8 +297,26 @@ async def run_repl(
             buf.insert_text("    ")
 
         @kb.add("s-tab")
-        def _toggle_bypass(event: object) -> None:
-            app_state["bypass"] = not app_state["bypass"]
+        def _cycle_mode(event: object) -> None:
+            # SHIFT-TAB-CYCLE-01: cicla normal -> plan -> sudo -> bypass -> normal.
+            # Mantém flag legada app_state["bypass"] coerente para compat
+            # (output.py:make_ask_permission lê state["bypass"] direto).
+            from nyx.agent.tools.plan_mode import set_plan_mode
+
+            cur = str(app_state.get("mode", "normal"))
+            try:
+                idx = _MODES.index(cur)
+            except ValueError:
+                idx = 0
+            nxt = _MODES[(idx + 1) % len(_MODES)]
+            app_state["mode"] = nxt
+            app_state["bypass"] = (nxt == "bypass")
+            app_state["plan_mode"] = (nxt == "plan")
+            app_state["sudo_mode"] = (nxt == "sudo")
+            # Plan mode é estado global (módulo plan_mode mantém singleton);
+            # sincronizamos para que _iteration.is_tool_allowed_in_plan_mode
+            # bloqueie write_file/run_command quando mode=plan.
+            set_plan_mode(nxt == "plan")
             event.app.invalidate()  # type: ignore[attr-defined]
 
         @kb.add("c-v")
@@ -351,14 +380,30 @@ async def run_repl(
             if inflight is not None and not inflight.done():
                 parts.append((f"fg:{NYX_ACCENT}", "  |   executando (Ctrl+C cancela)"))
 
-            if app_state.get("bypass"):
-                parts.append(("", "  "))
+            # SHIFT-TAB-CYCLE-01: 4 modos com cor distinta.
+            #   normal -> muted (dica de cycling)
+            #   plan   -> roxo
+            #   sudo   -> vermelho
+            #   bypass -> roxo dim + glifo
+            mode = str(app_state.get("mode", "normal"))
+            parts.append(("", "  "))
+            if mode == "bypass":
                 parts.append((
                     f"bg:{NYX_PURPLE_DIM} fg:{NYX_PRIMARY} bold",
                     f" {BULLETS['bypass_on']} bypass ON (shift+tab) ",
                 ))
+            elif mode == "plan":
+                parts.append((
+                    f"bg:{NYX_PURPLE} fg:{NYX_PRIMARY} bold",
+                    " [plan] read-only (shift+tab) ",
+                ))
+            elif mode == "sudo":
+                parts.append((
+                    f"bg:{NYX_ERROR} fg:{NYX_PRIMARY} bold",
+                    " [sudo] elevado (shift+tab) ",
+                ))
             else:
-                parts.append((f"fg:{NYX_MUTED}", "    shift+tab: bypass"))
+                parts.append((f"fg:{NYX_MUTED}", "    shift+tab: normal/plan/sudo/bypass"))
             return FormattedText(parts)
 
         import shutil as _sh
@@ -407,7 +452,12 @@ async def run_repl(
     # TUI-REDESIGN-28-08b: repl_app_active sinaliza routing para output_buffer
     # da Application (False = comportamento legacy via stdout/PromptSession).
     app_state: dict[str, object] = {
+        # SHIFT-TAB-CYCLE-01: "mode" é canônico; "bypass"/"plan_mode"/"sudo_mode"
+        # ficam sincronizados pelo handler _cycle_mode para retrocompat.
+        "mode": "normal",
         "bypass": False,
+        "plan_mode": False,
+        "sudo_mode": False,
         "model_state": "cold",
         "repl_app_active": False,
     }

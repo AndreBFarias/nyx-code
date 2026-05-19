@@ -505,6 +505,7 @@ Reorganização proposta priorizando meta v1.0 "Claude Code offline e opensource
 | 149 | **MASTER-ACENTUACAO-FIX-01** | 24.4 Higiene | BAIXA | PENDENTE | -- (achado colateral durante NYX-AUTO-APPROVE-01: 12 violações pré-existentes de acentuação em SPRINT_ORDER_MASTER.md introduzidas em commits anteriores) |
 | 150 | **NYX-NO-HALLUCINATE-TOOL-01** | 24.6 Infra resiliente | ALTA | CONCLUIDA (2026-05-19) | -- (achado real 2026-05-18 via Playwright: modelo respondeu "Arquivo criado com sucesso" sem tool após preflight bloquear /tmp; validator.detect_forged_success + system prompt hardening + sufixo "[atenção: resposta não verificada por tool]" em AgentLoop.run) |
 | 151 | **GAMBIARRAS-ACENTUACAO-FIX-01** | 24.4 Higiene | BAIXA | PENDENTE | -- (achado colateral durante NYX-NO-HALLUCINATE-TOOL-01: 1 violação pré-existente em dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md:334 — "funcao" sem acento) |
+| 152 | **SHIFT-TAB-CYCLE-01** | 24.8 Escopo expandido | ALTA | CONCLUIDA (2026-05-19) | UX-CLAUDE-PARITY-01 (handler @kb.add("s-tab") substituido em nyx/cli.py e nyx/agent/repl_app.py: cicla normal -> plan -> sudo -> bypass; app_state["mode"] canonico; flags bypass/plan_mode/sudo_mode sincronizadas; plan_mode.set_plan_mode() integra com singleton; toolbar reativa com 4 chips coloridos; ADR-026 atualizado; 14/14 invariantes; PNGs em dev-journey/07-reports/proofs/SHIFT_TAB_CYCLE/) |
 
 **Bloco 24.1 (Infra resiliente):** 2 sprints — controle OOM no run.sh + senha sudo via env var. Pré-requisito para VALIDATE-FINAL-01 estável em sessões longas.
 

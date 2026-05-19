@@ -107,9 +107,32 @@ Sprint UX-AGENCY-02 fecha (ACEITO completo 2026-05-18):
 2. **`/cancel` real:** comando despacha `inflight.cancel()` se houver task em
    curso. Mensagem informativa quando nenhuma task ativa.
 3. **Footer dinâmico:** quando `inflight_task` ativo, mostra
-   `◐ executando (Ctrl+C cancela)` no `_bottom_toolbar`.
-4. **Mensagens unificadas:** "● cancelado" com glifo de sucesso (alinha
+   ` executando (Ctrl+C cancela)` no `_bottom_toolbar`.
+4. **Mensagens unificadas:** " cancelado" com glifo de sucesso (alinha
    com MICROCOPY.md de UX-PROGRESSION-02).
+
+## Shift+Tab: ciclo de 4 modos (SHIFT-TAB-CYCLE-01, 2026-05-19)
+
+Sprint SHIFT-TAB-CYCLE-01 promove Shift+Tab de toggle binário para ciclo
+de quatro estados, ampliando a expressividade de agência sem sair do REPL:
+
+1. **normal** — comportamento padrão (permissões + sandbox). Footer mostra
+   dica `shift+tab: normal/plan/sudo/bypass` em muted.
+2. **plan** — read-only via `nyx.agent.tools.plan_mode.set_plan_mode(True)`.
+   Write/edit/run_command bloqueados em `_iteration.is_tool_allowed_in_plan_mode`.
+   Footer: chip roxo `[plan] read-only (shift+tab)`.
+3. **sudo** — pretende liberar prefixo `sudo` em `run_command`; depende de
+   SUDO-MODE-01 para cache de senha via env `NYX_SUDO_PASSWORD`. Footer:
+   chip vermelho `[sudo] elevado (shift+tab)`.
+4. **bypass** — pula `CONFIRM_ONCE` (paridade Claude Code). Footer: chip
+   roxo dim `bypass ON (shift+tab)` com glifo `BULLETS['bypass_on']`.
+
+Estado canônico em `app_state["mode"]`. Flags legadas
+(`bypass`/`plan_mode`/`sudo_mode`) são sincronizadas a cada ciclo para que
+callbacks que leem `state["bypass"]` (output.py `make_ask_permission`)
+permaneçam corretos sem refactor invasivo. Handler espelhado nos dois
+modos do REPL (PromptSession em `nyx/cli.py` e Application em
+`nyx/agent/repl_app.py`).
 
 ## Referências
 

@@ -87,7 +87,14 @@ def _build_toolbar_callable(app_state: dict[str, Any]) -> Callable[[], Any]:
     contrato de cli.py:_bottom_toolbar() para paridade visual e funcional.
     """
     # Imports lazy para evitar circular import com nyx.cli.
-    from nyx.themes.design_tokens import NYX_ACCENT, NYX_MUTED, NYX_PRIMARY, NYX_PURPLE_DIM
+    from nyx.themes.design_tokens import (
+        NYX_ACCENT,
+        NYX_ERROR,
+        NYX_MUTED,
+        NYX_PRIMARY,
+        NYX_PURPLE,
+        NYX_PURPLE_DIM,
+    )
 
     _STATE_GLYPHS = {"cold": " ", "warming": " ", "warm": " "}
     BULLETS = {"bypass_on": "●"}
@@ -118,14 +125,26 @@ def _build_toolbar_callable(app_state: dict[str, Any]) -> Callable[[], Any]:
         if inflight is not None and not getattr(inflight, "done", lambda: True)():
             parts.append((f"fg:{NYX_ACCENT}", "  |   executando (Ctrl+C cancela)"))
 
-        if app_state.get("bypass"):
-            parts.append(("", "  "))
+        # SHIFT-TAB-CYCLE-01: render do modo corrente em paridade com cli.py.
+        mode = str(app_state.get("mode", "normal"))
+        parts.append(("", "  "))
+        if mode == "bypass":
             parts.append((
                 f"bg:{NYX_PURPLE_DIM} fg:{NYX_PRIMARY} bold",
                 f" {BULLETS['bypass_on']} bypass ON (shift+tab) ",
             ))
+        elif mode == "plan":
+            parts.append((
+                f"bg:{NYX_PURPLE} fg:{NYX_PRIMARY} bold",
+                " [plan] read-only (shift+tab) ",
+            ))
+        elif mode == "sudo":
+            parts.append((
+                f"bg:{NYX_ERROR} fg:{NYX_PRIMARY} bold",
+                " [sudo] elevado (shift+tab) ",
+            ))
         else:
-            parts.append((f"fg:{NYX_MUTED}", "    shift+tab: bypass"))
+            parts.append((f"fg:{NYX_MUTED}", "    shift+tab: normal/plan/sudo/bypass"))
         return FormattedText(parts)
 
     return _toolbar
@@ -197,7 +216,7 @@ def build_app(
       - Ctrl+O: expand last input (run_in_terminal)
       - Ctrl+Up: recall last input
       - Tab: auto-suggest / completion / expand thinking
-      - Shift+Tab: bypass toggle
+      - Shift+Tab: cicla modo normal -> plan -> sudo -> bypass -> normal (SHIFT-TAB-CYCLE-01)
       - Ctrl+V: paste (clipboard image/text)
       - "/": insert + start_completion se primeira tecla
     """
@@ -315,8 +334,24 @@ def build_app(
         buf.insert_text("    ")
 
     @kb.add("s-tab")
-    def _toggle_bypass(event: Any) -> None:
-        app_state["bypass"] = not app_state.get("bypass", False)
+    def _cycle_mode(event: Any) -> None:
+        # SHIFT-TAB-CYCLE-01: cicla normal -> plan -> sudo -> bypass -> normal.
+        # Paridade com cli.py (modo legacy PromptSession). Atualiza flags
+        # legadas para que callbacks lendo state["bypass"] permaneçam corretos.
+        from nyx.agent.tools.plan_mode import set_plan_mode
+
+        modes = ("normal", "plan", "sudo", "bypass")
+        cur = str(app_state.get("mode", "normal"))
+        try:
+            idx = modes.index(cur)
+        except ValueError:
+            idx = 0
+        nxt = modes[(idx + 1) % len(modes)]
+        app_state["mode"] = nxt
+        app_state["bypass"] = (nxt == "bypass")
+        app_state["plan_mode"] = (nxt == "plan")
+        app_state["sudo_mode"] = (nxt == "sudo")
+        set_plan_mode(nxt == "plan")
         event.app.invalidate()
 
     @kb.add("c-v")
@@ -491,7 +526,11 @@ async def _self_test_async() -> int:
         "mods": 0,
         "model_name": "self-test",
         "model_state": "cold",
+        # SHIFT-TAB-CYCLE-01: estado canônico de modo + flags sincronizadas.
+        "mode": "normal",
         "bypass": False,
+        "plan_mode": False,
+        "sudo_mode": False,
     }
 
     app, outbuf, inbuf = build_app(app_state=app_state)
