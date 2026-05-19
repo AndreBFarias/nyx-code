@@ -339,6 +339,8 @@ async def run_repl(
     image_counter: dict[str, int] = {"n": 0}
     image_map: dict[int, str] = {}
     tool_timers: dict[str, float] = {}
+    # STREAMING-SIDE-RULE-01: estado da faixa lateral entre flushes.
+    side_rule_state: dict = {}
 
     TOKEN_FLUSH_CHARS = 32
 
@@ -351,7 +353,9 @@ async def run_repl(
     def _flush_buffer() -> None:
         buf = turn_state.get("token_buffer", "")
         if buf:
-            sys.stdout.write(buf)
+            from nyx.agent.output import wrap_token_with_side_rule
+            wrapped = wrap_token_with_side_rule(buf, side_rule_state)
+            sys.stdout.write(wrapped)
             sys.stdout.flush()
             turn_state["token_buffer"] = ""
 
@@ -360,6 +364,8 @@ async def run_repl(
             _stop_spinner()
             sys.stdout.write("\r\x1b[2K")
             sys.stdout.flush()
+            # STREAMING-SIDE-RULE-01: reset state no início do turno.
+            side_rule_state.clear()
         turn_state["streamed_text"] += token
         turn_state["token_buffer"] += token
         if len(turn_state["token_buffer"]) >= TOKEN_FLUSH_CHARS or "\n" in token:

@@ -1012,6 +1012,36 @@ def render_user_input(
         logger.debug("Rich user input render falhou: %s", e)
 
 
+def wrap_token_with_side_rule(text: str, state: dict) -> str:
+    """STREAMING-SIDE-RULE-01: prefixa cada linha do streaming com '│ ' PURPLE.
+
+    state é um dict mutável que mantém continuidade entre chamadas (preserva
+    bandeira at_line_start). Idempotente: passa texto sem mudança se state
+    foi explicitamente desativado via state['disabled'] = True.
+
+    Reset por turno: caller deve setar state.clear() em render_assistant_start
+    para reabrir a faixa para o novo bloco da Nyx.
+    """
+    if state.get("disabled"):
+        return text
+    from nyx.themes.design_tokens import ANSI_PURPLE_FG
+    PREFIX = f"  {ANSI_PURPLE_FG}│{ANSI_RESET} "
+
+    if state.get("at_line_start", True):
+        text = PREFIX + text
+
+    if "\n" in text:
+        text = text.replace("\n", "\n" + PREFIX)
+        if text.endswith(PREFIX):
+            text = text[:-len(PREFIX)]
+            state["at_line_start"] = True
+        else:
+            state["at_line_start"] = False
+    else:
+        state["at_line_start"] = False
+    return text
+
+
 def render_assistant_start() -> None:
     """Header inline-leading '◆ Nyx' antes do streaming (TUI-REDESIGN-26-02).
 

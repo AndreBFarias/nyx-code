@@ -593,7 +593,7 @@ Ordem de execução: Fase 1 (M1 SPRINT_ORDER-OVERRIDE-FIX-01) -> Fase 2 (26.2 co
 |---|--------|-------|------------|--------|------------|
 | 146 | **TUI-REDESIGN-25-01** | 25.1 Fundamentos visuais | ALTA | CONCLUIDA (2026-05-18, commit `e17c084`) | -- |
 | M1  | **SPRINT_ORDER-OVERRIDE-FIX-01** | 25.meta Anti-débito de pipeline | ALTA | CONCLUIDA (2026-05-18) | -- (achado durante 25-01: `update_next_sprint.py` não respeita este bloco MANUAL_OVERRIDE) |
-| M2  | **STREAMING-SIDE-RULE-01** | 25.meta Anti-débito de UX | MÉDIA | PENDENTE | TUI-REDESIGN-25-08 (achado: faixa lateral em cada linha da resposta streamada -- requer wrap on_token; extraído por complexidade) |
+| M2  | **STREAMING-SIDE-RULE-01** | 25.meta Anti-débito de UX | MÉDIA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-25-08 (achado: faixa lateral em cada linha da resposta streamada -- requer wrap on_token; extraído por complexidade) |
 | M3  | **TUI-REDESIGN-25-09-PARTE-2** | 25.meta Anti-débito de UX | MÉDIA | PENDENTE | TUI-REDESIGN-25-09 (achado: captura real do thinking + Tab keybinding extraídos -- helper visual já em 25-09) |
 | 147 | **TUI-REDESIGN-25-02** | 25.1 Fundamentos visuais | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-25-01 |
 | 148 | **TUI-REDESIGN-25-03** | 25.1 Fundamentos visuais | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-25-02 |
