@@ -20,9 +20,9 @@ Em caso de sessão Claude cair, próxima sessão Claude deve:
 
 ## Linha de retomada (sempre atualizada)
 
-- **Fase atual:** **Onda 27 COMPLETA (2026-05-18 noite).** 3 sprints: 27-01 (suggester theme via Style.from_dict) + 27-02 (prompt customizado com nome + NYX_PROMPT_TEMPLATE) + 27-03 (listas navegáveis radiolist_dialog para /aesthetic /schema /theme). Pré-condição HOTFIX-GLYPHS-01 (patch no universal-sanitizer.py com whitelist de 11 glyphs ○ ◐ ● ◆ ◇ ▶ ▼ ▸ ◼ ◻ ↗) + 26-03 PARTE-2 (ações à direita) + M3 PARTE-3 DEFERIDA.
-- **Último commit (push ok):** `4d83d40 feat(TUI-REDESIGN-27-03): listas navegáveis`.
-- **Próxima ação:** validar live (./run.sh + testar /aesthetic select, /schema select, prompt custom, popup tema). Onda 28 ou tag v1.0.
+- **Fase atual:** **Onda 28 em curso (2026-05-18).** 28-04 CONCLUIDA: handler `_submit` (`@kb.add("enter")`) agora abre popup com `start_completion(select_first=True)` quando texto é apenas "/" sem `complete_state` aberto, em vez de submeter "/" inválido. Branch `elif buf.document.text.strip() == "/" and not state:` inserido entre o caso completion-ativa e `buf.validate_and_handle()`. Preserva: "/comando args"+Enter (aplica completion + submete), texto livre+Enter (submete normal).
+- **Último commit (push ok):** `<pendente após este commit> feat(TUI-REDESIGN-28-04): Enter sem seleção abre lista quando texto é só '/'`.
+- **Próxima ação:** TUI-REDESIGN-28-05 (próxima sprint da onda 28).
 - **Estado runtime final:** smoke=`boot ok` | invariantes=14/14 | sbom=62/62 | gauntlet rapido=11/11 APROVADO | benchmark P50=0.14s | cockpit 13 endpoints HTTP + 2 WS + dashboard 62 cards | --menu/--web/--auto-approve flags ativas
 - **tmux sessões persistidas:** `cockpit` (porta 11437; pode reaproveitar via `tmux attach -t cockpit`)
 - **12 sprints anti-débito pendentes em `producao/`** (a próxima sessão pode dispatch executor-sprint em paralelo):

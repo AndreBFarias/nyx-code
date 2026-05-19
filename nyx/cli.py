@@ -228,6 +228,11 @@ async def run_repl(
                         state.completions[0],
                     )
                 buf.apply_completion(current)
+            elif buf.document.text.strip() == "/" and not state:
+                # Texto é apenas "/" sem popup aberto: abre lista com primeiro
+                # item selecionado em vez de submeter comando vazio inválido.
+                buf.start_completion(select_first=True)
+                return
             buf.validate_and_handle()
 
         @kb.add("c-j")
