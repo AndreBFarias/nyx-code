@@ -570,7 +570,7 @@ Promoção em batch durante a Fase H do plano canônico da sessão 2026-05-18.
 | 176 | **TUI-REDESIGN-28-04** | 28.1 TUI paridade Claude Code | MÉDIA | CONCLUIDA (2026-05-18) | -- |
 | 177 | **TUI-REDESIGN-28-05** | 28.1 TUI paridade Claude Code | ALTA | CONCLUIDA (2026-05-18) | first-run wizard 7 passos |
 | 178 | **TUI-REDESIGN-28-06** | 28.1 TUI paridade Claude Code | ALTA | CONCLUIDA (2026-05-18) | banner `$ nyx.code` block + box info 3 linhas (paleta turquesa+roxo+verde) |
-| 179 | **TUI-REDESIGN-28-07** | 28.1 TUI paridade Claude Code | MÉDIA | PENDENTE | TUI-REDESIGN-28-06 |
+| 179 | **TUI-REDESIGN-28-07** | 28.1 TUI paridade Claude Code | MÉDIA | CONCLUIDA (2026-05-18) | cursor blink async no banner `$ nyx.code` (~1.5s, skip em headless e NYX_NO_ANIMATION) |
 | 180 | **TUI-REDESIGN-28-08** | 28.1 TUI paridade Claude Code | ALTA | PENDENTE | 28-01..04, 28-06 (sub-sprints 08a..08d internas) |
 | M5  | **DOCS-MICROCOPY-SESSAO-INICIADA-01** | 28.meta Anti-débito de docs | BAIXA | PENDENTE | TUI-REDESIGN-28-01 (achado: MICROCOPY.md:109 ainda cita 'sessão iniciada' minúsculo após capitalização do código) |
 | M6  | **INFRA-ACENTO-FIX-01** | 28.2 dívida técnica | BAIXA | PENDENTE | TUI-REDESIGN-28-05 (achado: scripts/menu_wizard.py 3 violações de acentuação) |

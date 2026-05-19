@@ -521,6 +521,15 @@ async def run_repl(
 
     print(_build_banner(model, agent.tools_count, PROJECT_ROOT.name, settings=settings))
 
+    # TUI-REDESIGN-28-07: cursor blink async no banner $nyx.code (~1.4s).
+    # Skip silencioso em headless/CI (isatty=False) ou NYX_NO_ANIMATION=1.
+    try:
+        from nyx.agent.banner_blink import blink_cursor_at
+
+        await blink_cursor_at()
+    except Exception as _blink_exc:  # noqa: BLE001 -- animação best-effort
+        logger.debug("blink_cursor_at falhou: %s", _blink_exc)
+
     # SESSION-RESUME-01: --resume <id> ou prompt de retomada pós-banner.
     if resume_id:
         from nyx.agent.persistence import load_session_by_id
