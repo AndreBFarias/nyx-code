@@ -595,17 +595,17 @@ def parse_todo_lines(text: str) -> list[tuple[bool, str]]:
 def render_todo_block(items: list[tuple[bool, str]]) -> None:
     """Renderiza lista de todos com checkboxes geometric shapes (TUI-REDESIGN-25-12).
 
-    Done: '' (U+25FC) + texto em muted (visual strikethrough sutil).
-    Pending: '' (U+25FB) + texto em ink. Glifos ADR-004 ok (não-emoji).
+    Done: ◼ (U+25FC, ◼) + texto em muted (visual strikethrough sutil).
+    Pending: ◻ (U+25FB, ◻) + texto em ink. Glifos ADR-004 ok (não-emoji).
     """
     if not items:
         return
     for done, label in items:
         if done:
-            glyph = ""
+            glyph = "◼"  # ◼ filled small square
             print(f"      {ANSI_ACCENT_FG}{glyph}{ANSI_RESET} {ANSI_MUTED_FG}{label}{ANSI_RESET}")
         else:
-            glyph = ""
+            glyph = "◻"  # ◻ empty small square
             print(f"      {ANSI_ACCENT_FG}{glyph}{ANSI_RESET} {label}")
 
 
@@ -760,15 +760,17 @@ def render_thinking_block(
         preview = clean[:preview_chars]
         if len(clean) > preview_chars:
             preview += "…"
+        # HOTFIX-GLYPHS-01: ▶ = ▶ (collapsed indicator)
         print(
-            f"  {ANSI_PURPLE_FG}{ANSI_RESET} {ANSI_DIM}pensando · "
+            f"  {ANSI_PURPLE_FG}▶{ANSI_RESET} {ANSI_DIM}pensando · "
             f"{duration_lbl} · {preview}{ANSI_RESET}"
         )
         return
     # Expanded: bloco entre divisores PURPLE.
     rule = "─" * 60
+    # HOTFIX-GLYPHS-01: ▼ = ▼ (expanded indicator)
     print(f"  {ANSI_PURPLE_FG}{rule}{ANSI_RESET}")
-    print(f"  {ANSI_PURPLE_FG}{ANSI_RESET} {ANSI_DIM}pensando · {duration_lbl}{ANSI_RESET}")
+    print(f"  {ANSI_PURPLE_FG}▼{ANSI_RESET} {ANSI_DIM}pensando · {duration_lbl}{ANSI_RESET}")
     for line in text.splitlines() or [text]:
         print(f"  {ANSI_PURPLE_FG}│{ANSI_RESET} {line}")
     print(f"  {ANSI_PURPLE_FG}{rule}{ANSI_RESET}")
@@ -793,8 +795,8 @@ def render_tool_chip(
         ANSI_ERROR_FG, ANSI_SUCCESS_FG, TOOL_GLYPHS,
     )
 
-    # TUI-REDESIGN-26-03: glyph por tool. Fallback "●" (geometric, ADR-004 ok).
-    glyph = TOOL_GLYPHS.get(name, "●")
+    # TUI-REDESIGN-26-03: glyph por tool. Fallback "" (geometric, ADR-004 ok).
+    glyph = TOOL_GLYPHS.get(name, "")
     color = ANSI_ERROR_FG if status != "ok" else ANSI_SUCCESS_FG
     arg_preview = ""
     for key in PRIMARY_ARG_KEYS:
@@ -1043,14 +1045,15 @@ def wrap_token_with_side_rule(text: str, state: dict) -> str:
 
 
 def render_assistant_start() -> None:
-    """Header inline-leading '◆ Nyx' antes do streaming (TUI-REDESIGN-26-02).
+    """Header inline-leading ' Nyx' antes do streaming (TUI-REDESIGN-26-02).
 
-    Emite uma linha: ◆ (PURPLE) + Nyx (ACCENT bold). Meta dinâmica (tempo,
+    Emite uma linha:  (PURPLE) + Nyx (ACCENT bold). Meta dinâmica (tempo,
     tokens) é renderizada no rodapé via render_assistant_end (cursor não
     volta atrás durante streaming sem hack visual).
     """
     from nyx.themes.design_tokens import ANSI_BOLD, ANSI_PURPLE_FG
 
+    # HOTFIX-GLYPHS-01: ◆ = ◆ (black diamond, header da Nyx)
     print(f"\n  {ANSI_PURPLE_FG}◆{ANSI_RESET} {ANSI_ACCENT_FG}{ANSI_BOLD}Nyx{ANSI_RESET}")
 
 
