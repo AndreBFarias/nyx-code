@@ -1,7 +1,7 @@
 # Sprint Order Master -- Nyx-Code
 
-**Versão:** v5.1
-**Data:** 2026-05-18 (refresh em SPRINT_ORDER-REFRESH-01)
+**Versão:** v5.2
+**Data:** 2026-05-18 (bump em ONDA-28 materializa 8 specs de TUI paridade Claude Code; v5.1 refresh em SPRINT_ORDER-REFRESH-01)
 **Modelo obrigatório:** Opus 4.7 (claude-opus-4-7) -- sem subagentes (planejador-sprint/executor-sprint/validador-sprint apenas no fluxo /sprint-ciclo; implementação direta no normal)
 
 ---
@@ -548,6 +548,36 @@ Categorias (Pareto declarado em PROMPT_VALIDADOR_INTEGRADOR.md):
 Promoção em batch durante a Fase H do plano canônico da sessão 2026-05-18.
 
 <!-- MANUAL_OVERRIDE_ONDA_24_END -->
+
+<!-- MANUAL_OVERRIDE_ONDA_28_START -->
+
+### Bloco ONDA-28: TUI paridade Claude Code (boot silencioso + banner block + input fixo + wizard completo) (2026-05-18)
+
+**Origem:** Feedback do usuário pós-Onda 27 (commits `f2f1d6c`..`4d83d40`) sobre 7 frentes visíveis na imagem 7 + pasted text: (1) input do usuário deve ficar fixo no rodapé em toda a largura (paridade Claude Code); (2) background da TUI difere do fundo do terminal nativo; (3) command suggester com Enter sem seleção deve abrir lista; (4) boot polui terminal com 5 linhas `[nyx]` que pertencem só ao log; (5) capitalização inconsistente ("sessão iniciada" -> "Sessão Iniciada"; rótulos do box quit "iterações" etc -> Title Case); (6) banner novo block ASCII `$nyx.code` com cursor piscante (mockup `novo_banner_ao_iniciar.html`, mantendo paleta turquesa+roxo+verde — NÃO migrar para roxo claro); (7) wizard de config no first-run integrando nome + 6 passos do menu_wizard.
+
+**Decisões fechadas (2026-05-18 via AskUserQuestion):**
+- D1 Boot logs: silenciar TUDO no terminal (vai pra logs/boot.log apenas).
+- D2 Input fixo: Application full-screen prompt_toolkit (HSplit; paridade total). Sprint 28_08 quebrada em 4 sub-sprints (08a..08d).
+- D3 First-run: pipeline completo de 7 passos (nome + aesthetic + entity + schema + banner + modelo + auto_approve).
+- D4 Cursor blink: loop async curto (~1.5s, 4 piscadas, em roxo).
+- D5 Paleta: mantém atual (turquesa #00D4AA + roxo #9D4EDD + verde #4ADE80) — NÃO adota roxo claro do mockup HTML.
+
+| # | Sprint | Bloco | Prioridade | Status | Depende de |
+|---|--------|-------|------------|--------|------------|
+| 173 | **TUI-REDESIGN-28-01** | 28.1 TUI paridade Claude Code | ALTA | CONCLUIDA (2026-05-18) | -- |
+| 174 | **TUI-REDESIGN-28-02** | 28.1 TUI paridade Claude Code | ALTA | PENDENTE | -- |
+| 175 | **TUI-REDESIGN-28-03** | 28.1 TUI paridade Claude Code | MÉDIA | PENDENTE | -- |
+| 176 | **TUI-REDESIGN-28-04** | 28.1 TUI paridade Claude Code | MÉDIA | PENDENTE | -- |
+| 177 | **TUI-REDESIGN-28-05** | 28.1 TUI paridade Claude Code | ALTA | PENDENTE | -- |
+| 178 | **TUI-REDESIGN-28-06** | 28.1 TUI paridade Claude Code | ALTA | PENDENTE | TUI-REDESIGN-28-02 |
+| 179 | **TUI-REDESIGN-28-07** | 28.1 TUI paridade Claude Code | MÉDIA | PENDENTE | TUI-REDESIGN-28-06 |
+| 180 | **TUI-REDESIGN-28-08** | 28.1 TUI paridade Claude Code | ALTA | PENDENTE | 28-01..04, 28-06 (sub-sprints 08a..08d internas) |
+
+Ordem: 28-01..28-05 independentes (paralelizáveis via executor-sprint) -> 28-06 (depende de 28-02) -> 28-07 (depende de 28-06) -> 28-08 sequencial em 4 sub-sprints (a/b/c/d).
+
+Plano canônico: `~/.claude/plans/a-rea-de-input-replicated-lynx.md`.
+
+<!-- MANUAL_OVERRIDE_ONDA_28_END -->
 
 <!-- MANUAL_OVERRIDE_ONDA_27_START -->
 

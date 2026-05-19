@@ -352,7 +352,6 @@ check_model() {
 warmup_model() {
     local started
     started=$(date +%s)
-    log_ok "Aquecendo modelo $MODEL..."
     log_boot "Aquecendo modelo $MODEL (warmup duplo via proxy)..."
 
     # Detecta VRAM livre se nvidia-smi disponível
@@ -381,9 +380,8 @@ warmup_model() {
 
     # Low-VRAM guard: pula warmup 2 (tool-like) para evitar OOM em GPU apertada
     if [ "$vram_free_mib" -lt 1500 ]; then
-        log_warn "VRAM livre ${vram_free_mib} MiB < 1500; pulando warmup com tools (low-VRAM)"
+        log_boot "VRAM livre ${vram_free_mib} MiB < 1500; pulando warmup com tools (low-VRAM)"
         log_boot "Modelo aquecido (modo low-VRAM, $(($(date +%s) - started))s)"
-        log_ok "Modelo aquecido (modo low-VRAM)"
         return 0
     fi
 
@@ -403,7 +401,6 @@ warmup_model() {
 
     local elapsed=$(($(date +%s) - started))
     log_boot "Modelo aquecido (warmup duplo, ${elapsed}s)"
-    log_ok "Modelo aquecido (${elapsed}s)"
 }
 
 # ─── AUTO-TUNE DE GPU ────────────────────────────────────
@@ -503,7 +500,7 @@ acquire_lock
 if [ -x "$SCRIPT_DIR/venv/bin/python" ] && [ -f "$SCRIPT_DIR/scripts/update_next_sprint.py" ]; then
     _next_info="$("$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/scripts/update_next_sprint.py" 2>/dev/null || true)"
     if [ -n "$_next_info" ]; then
-        log_nyx "$_next_info"
+        log_boot "$_next_info"
     fi
 fi
 
@@ -539,7 +536,7 @@ if [ -x "$SCRIPT_DIR/venv/bin/python" ]; then
         PRELOAD_NUM_GPU=0
     fi
     if [ "$PRELOAD_NUM_GPU" = "0" ]; then
-        log_warn "VRAM insuficiente para pré-carga. Modelo carrega na 1ª requisição."
+        log_boot "VRAM insuficiente para pré-carga. Modelo carrega na 1ª requisição."
         SKIP_PRELOAD=1
     elif [ "$PRELOAD_NUM_GPU" != "$NYX_NUM_GPU" ]; then
         log_boot "VRAM mudou: ajustando num_gpu de $NYX_NUM_GPU para $PRELOAD_NUM_GPU"
@@ -651,7 +648,7 @@ fi
 # Glifos vêm de design_tokens.py GLYPHS_BOOT["endmark"]. Aqui replicamos
 # literal para evitar dependência Python adicional em bash boot.
 if [ "$HEADLESS" -eq 0 ] && [ "$GAUNTLET" -eq 0 ] && [ -t 1 ]; then
-    echo -e "  ${COMMENT}─── sessão iniciada ───${NC}"
+    echo -e "  ${COMMENT}─── Sessão Iniciada ───${NC}"
 fi
 
 # ─── INICIAR NYX CLI (Python) ─────────────────────────────

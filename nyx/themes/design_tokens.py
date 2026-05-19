@@ -100,7 +100,7 @@ SPINNER_FRAMES = ("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇",
 GLYPHS_BOOT = {
     "prefix": "[nyx]",
     "rule": "─",
-    "endmark": "─── sessão iniciada ───",
+    "endmark": "─── Sessão Iniciada ───",
 }
 
 GLYPHS_SESSAO = {

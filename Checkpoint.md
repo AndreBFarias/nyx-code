@@ -20,9 +20,9 @@ Em caso de sessão Claude cair, próxima sessão Claude deve:
 
 ## Linha de retomada (sempre atualizada)
 
-- **Fase atual:** **SESSÃO CONCLUÍDA 05:15.** Próxima sessão pode rodar Fase I (INFRA-MODEL-AGNOSTIC-01), executar VALIDATE-FINAL-01-PARTE-2 (captura visual humana), ou implementar as 6 anti-débitos pendentes.
-- **Último commit:** pendente push final desta entrega (`NYX-MENU-WIZARD-01` + atualizações Checkpoint).
-- **Próxima ação humana:** `./run.sh --web` abre cockpit + browser; ou `./run.sh --menu` para wizard de config; ou seguir prompt em ANEXO ao fim deste arquivo para continuar via Claude.
+- **Fase atual:** **Onda 27 COMPLETA (2026-05-18 noite).** 3 sprints: 27-01 (suggester theme via Style.from_dict) + 27-02 (prompt customizado com nome + NYX_PROMPT_TEMPLATE) + 27-03 (listas navegáveis radiolist_dialog para /aesthetic /schema /theme). Pré-condição HOTFIX-GLYPHS-01 (patch no universal-sanitizer.py com whitelist de 11 glyphs ○ ◐ ● ◆ ◇ ▶ ▼ ▸ ◼ ◻ ↗) + 26-03 PARTE-2 (ações à direita) + M3 PARTE-3 DEFERIDA.
+- **Último commit (push ok):** `4d83d40 feat(TUI-REDESIGN-27-03): listas navegáveis`.
+- **Próxima ação:** validar live (./run.sh + testar /aesthetic select, /schema select, prompt custom, popup tema). Onda 28 ou tag v1.0.
 - **Estado runtime final:** smoke=`boot ok` | invariantes=14/14 | sbom=62/62 | gauntlet rapido=11/11 APROVADO | benchmark P50=0.14s | cockpit 13 endpoints HTTP + 2 WS + dashboard 62 cards | --menu/--web/--auto-approve flags ativas
 - **tmux sessões persistidas:** `cockpit` (porta 11437; pode reaproveitar via `tmux attach -t cockpit`)
 - **12 sprints anti-débito pendentes em `producao/`** (a próxima sessão pode dispatch executor-sprint em paralelo):
@@ -186,6 +186,7 @@ Fim do anexo.
 - [2026-05-18 05:00] 3 agentes completaram: commits 2c87ae2, f12be5d, 3b7eb79. Pushed.
 - [2026-05-18 05:10] NYX-MENU-WIZARD-01 implementada: scripts/menu_wizard.py + run.sh `--menu` / `--web` / `--auto-approve`. README seção "Wizard" e "Cockpit Web". Sprint CONCLUIDA direto.
 - [2026-05-18 05:15] **SESSÃO CONCLUÍDA.** Total: ~17 commits pushed em ~3h30min. ~24 sprints CONCLUIDAS (15 implementação + 11 RASCUNHOs cobertos + 5 anti-débitos materializados + 1 wizard). Estado: smoke=ok, inv=14/14, sbom=62/62, cockpit operacional, dashboard renderizado em Chrome.
+- [22:52] sprint TUI-REDESIGN-28-01 CONCLUIDA hash <PENDENTE-COMMIT> — boot silencioso (6 mensagens [nyx] viraram log_boot) + endmark capitalizado "Sessão Iniciada" em run.sh:654 e design_tokens.py:103.
 
 ---
 
@@ -202,7 +203,7 @@ Fim do anexo.
 | A | Baseline + 12 sprints novas + reconciliação MASTER | 15-30 min | INICIANDO |
 | B | Anti-débito (UX-PROGRESSION-02 + UX-AGENCY-02) | 45-60 min | pendente |
 | C | Cockpit (COCKPIT-02..05: PTY+xterm + dashboard + screenshot + control API) | 3-5h | pendente |
-| D | Coerência TUI↔Web (UX-COCKPIT-EXPERIENCE-01) | 1-2h | pendente |
+| D | Coerência TUIWeb (UX-COCKPIT-EXPERIENCE-01) | 1-2h | pendente |
 | E | Estética (VISUAL-LAYOUT-01/02/05/08 portados do novo_layout) | 2-3h | pendente |
 | F | Infra (INFRA-OOM-01 + INSTALL-SUDO-01) | 45 min | pendente |
 | G | VALIDATE-FINAL-01 (gate v1.0, tag v1.0) | 2-4h | pendente |
