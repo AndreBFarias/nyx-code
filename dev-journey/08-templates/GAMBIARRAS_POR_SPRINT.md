@@ -331,7 +331,7 @@ Invariante #5 do `sprint_invariants.sh` vigia regressão futura.
 
 - **`exclude: '.*\.md$'`** genérico. Proibido — só os 2 arquivos nomeados.
 - **Desativar o hook inteiro** em vez de excluir. Proibido.
-- **Não testar o caminho positivo** (arquivo .md real com "funcao" sem acento deve disparar warning). Obrigatório verificar ambos caminhos.
+- **Não testar o caminho positivo** (arquivo .md real com "função" sem acento deve disparar warning). Obrigatório verificar ambos caminhos.
 
 ### ADR-021-DOC (tree-sitter opcional)
 
