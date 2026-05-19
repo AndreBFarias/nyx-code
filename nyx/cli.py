@@ -901,6 +901,79 @@ async def run_repl(
                 )
                 continue
 
+            # TUI-REDESIGN-27-03: 3 modais radiolist para escolha interativa.
+            if result in ("__aesthetic_select__", "__schema_select__", "__theme_select__"):
+                try:
+                    from prompt_toolkit.shortcuts import radiolist_dialog
+                except ImportError:
+                    _print_error(
+                        "prompt_toolkit indisponível para modal interativo.",
+                        hint="Use /aesthetic set <id> (ou /schema set / /theme <id>).",
+                    )
+                    continue
+
+                kind = result.replace("__", "").replace("_select", "")
+                title = {"aesthetic": "Aesthetic", "schema": "Schema", "theme": "Theme"}.get(kind, kind)
+                values: list[tuple[str, str]] = []
+                default_val: str | None = None
+                if kind == "aesthetic":
+                    from nyx.themes.design_tokens_extended import list_aesthetics
+                    default_val = str(app_state.get("aesthetic_id") or os.environ.get("NYX_AESTHETIC", "default"))
+                    values = [(a["id"], f"{a['name']} -- {a['tagline']}") for a in list_aesthetics()]
+                elif kind == "schema":
+                    from nyx.themes.design_tokens_extended import list_schemas, DEFAULT_SCHEMA
+                    default_val = str(app_state.get("schema_id") or os.environ.get("NYX_SCHEMA", DEFAULT_SCHEMA))
+                    values = [
+                        (s["id"], f"{s['id']} -- case {s['heading_case']} · user {s['user_bubble']}")
+                        for s in list_schemas()
+                    ]
+                elif kind == "theme":
+                    try:
+                        from nyx.themes import ThemeManager
+                        _tm = ThemeManager()
+                        default_val = str(app_state.get("theme_id") or "nyx")
+                        values = [
+                            (t["id"], f"{t.get('name', t['id'])} -- {t.get('description', '').strip()[:60]}")
+                            for t in _tm.list_themes()
+                        ]
+                    except Exception as exc:
+                        _print_error(f"ThemeManager indisponível: {exc}")
+                        continue
+
+                if not values:
+                    _print_error(f"Sem opções para {kind}.")
+                    continue
+
+                try:
+                    choice = await radiolist_dialog(
+                        title=title,
+                        text="Use as setas para navegar, Enter para confirmar, Esc para cancelar.",
+                        values=values,
+                        default=default_val,
+                        style=_build_prompt_style(),
+                    ).run_async()
+                except Exception as exc:  # noqa: BLE001 -- modal best-effort
+                    _print_error(
+                        f"Modal {kind} falhou: {exc}",
+                        hint=f"Use /{kind} set <id> como fallback.",
+                    )
+                    continue
+
+                if not choice:
+                    print(f"  {DIM}/{kind} select cancelado{NC}")
+                    continue
+
+                if kind == "aesthetic":
+                    app_state["aesthetic_id"] = choice
+                    os.environ["NYX_AESTHETIC"] = choice
+                elif kind == "schema":
+                    app_state["schema_id"] = choice
+                    os.environ["NYX_SCHEMA"] = choice
+                elif kind == "theme":
+                    app_state["theme_id"] = choice
+                print(f"  {SUCCESS} {kind}{NC}: {choice} (próxima invocação aplica)")
+                continue
+
             if result == "__output_style_list__":
                 from nyx.agent.output_style import list_styles
 

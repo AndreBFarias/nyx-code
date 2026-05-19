@@ -190,6 +190,9 @@ def cmd_theme(args: str, _root: str) -> str:
 
         tm = ThemeManager()
         args = args.strip()
+        if args == "select":
+            # TUI-REDESIGN-27-03: modal radiolist com setas + Enter.
+            return "__theme_select__"
         if not args or args == "list":
             temas = tm.list_themes()
             lines = ["  Temas disponíveis:"]

@@ -33,6 +33,9 @@ def cmd_schema(args: str, _root: str) -> str:
     rest = parts[1].strip() if len(parts) > 1 else ""
     if sub == "get":
         return "__schema_get__"
+    if sub == "select":
+        # TUI-REDESIGN-27-03: abre modal radiolist com setas + Enter.
+        return "__schema_select__"
     if sub == "set":
         if not rest:
             return (

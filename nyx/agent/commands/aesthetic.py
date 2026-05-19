@@ -37,6 +37,9 @@ def cmd_aesthetic(args: str, _root: str) -> str:
     rest = parts[1].strip() if len(parts) > 1 else ""
     if sub == "get":
         return "__aesthetic_get__"
+    if sub == "select":
+        # TUI-REDESIGN-27-03: abre modal radiolist com setas + Enter.
+        return "__aesthetic_select__"
     if sub == "set":
         if not rest:
             return (
