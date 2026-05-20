@@ -27,7 +27,7 @@ cd Nyx-Code
 - Arch (`pacman`) — manual
 - openSUSE (`zypper`) — manual
 
-`install.sh` é idempotente: rodar duas vezes produz a mesma saída (cada fase faz SKIP se já aplicada). Veja `./install.sh --help` para a lista completa das 11 fases.
+`install.sh` é idempotente: rodar duas vezes produz a mesma saída (cada fase faz SKIP se já aplicada). Veja `./install.sh --help` para a lista completa das 12 fases (0..12).
 
 ### Replicação em outro PC (sem TTY / CI)
 
@@ -357,7 +357,7 @@ mais diagonal interrompida (efeito stencil), com pupila central violeta
 - `assets/icons/macos/nyx.icns` -- bundle macOS
 - `assets/icons/windows/nyx.ico` -- ícone Windows multi-res
 
-A FASE 12 do `install.sh` copia ícones para `~/.local/share/icons/hicolor/`
+A FASE 12 (última, após INFRA-INSTALL-ZSTD-FALLBACK-01) do `install.sh` copia ícones para `~/.local/share/icons/hicolor/`
 e o `.desktop` para `~/.local/share/applications/`, com cache atualizado
 via `gtk-update-icon-cache` e `update-desktop-database` quando presentes.
 
