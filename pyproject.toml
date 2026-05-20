@@ -52,6 +52,14 @@ line-length = 120
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
+# RUFF-EXTERNAL-NOQA-CONFIG-01: `noqa-acento` é marker customizado do
+# `~/.config/zsh/scripts/validar-acentuacao.py` (usado em palavras técnicas
+# em PT-BR sem acento, ex: "sessao" como chave de dict). Ruff `external`
+# silencia apenas CÓDIGOS custom desconhecidos (ex: `# noqa: XYZ`), não
+# a sintaxe malformada (`# noqa-acento` sem `:`). Os warnings cosméticos
+# persistem mas exit code do ruff continua 0 — não bloqueia o invariante
+# #10 (que verifica exit code, não warnings).
+external = ["noqa-acento"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

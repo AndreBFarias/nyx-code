@@ -9,9 +9,10 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-# Força import dos módulos de commands para popular o registry
-import nyx.agent.commands  # noqa: F401
-from nyx.agent.commands._registry import _COMMANDS  # type: ignore[attr-defined]
+# Força import dos módulos de commands para popular o registry.
+# E402 suprimido pois sys.path.insert acima é pré-requisito.
+import nyx.agent.commands  # noqa: F401,E402
+from nyx.agent.commands._registry import _COMMANDS  # type: ignore[attr-defined]  # noqa: E402
 
 
 def main() -> int:

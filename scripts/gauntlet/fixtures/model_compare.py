@@ -43,7 +43,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 from nyx.agent.intent import classify  # noqa: E402
 from nyx.agent.lang_check import is_pt_br  # noqa: E402
-from nyx.config.defaults import OLLAMA_PORT, OLLAMA_URL  # noqa: E402
+from nyx.config.defaults import OLLAMA_URL  # noqa: E402
 
 # 7 prompts canonicos (mesma lista de perf_inference.py).
 CASOS: list[tuple[str, str]] = [
@@ -257,7 +257,7 @@ def measure_model(
 
     # Tool call test: 1 prompt, 1 amostra, think=true, tools=[Read]
     if verbose:
-        print(f"  -> tool call test (Read README.md, 1 amostra)")
+        print("  -> tool call test (Read README.md, 1 amostra)")
     tool_prompt = "Leia o arquivo README.md e me diga em uma linha do que fala."
     lat, payload, err = call_ollama(
         model,

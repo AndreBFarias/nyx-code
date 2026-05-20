@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import json
 import sys
-import time
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -14,9 +13,7 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from nyx.agent.persistence import (  # noqa: E402
     INDEX_PATH,
-    INDEX_SCHEMA_VERSION,
     SESSIONS_DIR,
-    _atomic_write,
     _save_index,
     _session_id_from_path,
 )

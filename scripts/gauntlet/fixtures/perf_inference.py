@@ -30,7 +30,6 @@ from nyx.agent.intent import classify  # noqa: E402
 from nyx.agent.lang_check import is_pt_br  # noqa: E402
 from nyx.config.defaults import PROXY_V1_URL  # noqa: E402
 
-
 PROXY_BASE = PROXY_V1_URL.rsplit("/v1", 1)[0]
 
 # Tuplas (prompt, intent_esperado).

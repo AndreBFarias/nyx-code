@@ -831,12 +831,14 @@ class NyxGauntlet:
         from scripts.gauntlet.vram_check import (
             VRAM_MIN_FREE_MIB,
             is_nyx_owned,
+        )
+        from scripts.gauntlet.vram_check import (
             probe as _vram_probe,
         )
 
         snap = _vram_probe()
         external_procs = [p for p in snap["processes"] if not is_nyx_owned(p)]
-        external_mib = sum(p["mib"] for p in external_procs)
+        _external_mib = sum(p["mib"] for p in external_procs)  # noqa: F841 -- reservado para futuro log/SKIP detail
         contaminated = (
             snap["nvidia_smi_ok"]
             and snap["free_mib"] >= 0
@@ -1295,7 +1297,6 @@ class NyxGauntlet:
     # ═══════════════════════════════════════════════════════════════════
 
     async def _phase_vision(self) -> None:
-        from pathlib import Path as _P
 
         try:
             from nyx.agent.services.vision_service import VisionService
@@ -1308,7 +1309,7 @@ class NyxGauntlet:
             svc = VisionService()
             self._add("V-VS-01", "VisionService importa e instancia", "vision", True, time.monotonic() - t)
         except Exception as e:
-            self._add("V-VS-01", "VisionService importa e instancia", "vision", False, time.monotonic() - t, error=str(e))
+            self._add("V-VS-01", "VisionService importa e instancia", "vision", False, time.monotonic() - t, error=str(e))  # noqa: E501
             return
 
         t = time.monotonic()
@@ -1447,7 +1448,7 @@ class NyxGauntlet:
         t = time.monotonic()
         try:
             async with httpx.AsyncClient(timeout=10) as c:
-                r = await c.post(
+                await c.post(
                     self._proxy.replace(str(self._proxy.split(":")[-1]), "19999") + "/v1/chat/completions",
                     json={"model": self._model, "messages": [{"role": "user", "content": "test"}]},
                 )
@@ -1483,7 +1484,7 @@ class NyxGauntlet:
         t = time.monotonic()
         try:
             async with httpx.AsyncClient(timeout=2.0) as c:
-                r = await c.post(
+                await c.post(
                     f"{self._proxy}/v1/chat/completions",
                     json={
                         "model": self._model,
@@ -1709,7 +1710,7 @@ class NyxGauntlet:
         try:
             from nyx.agent.output import RICH_AVAILABLE, RichOutput
 
-            out = RichOutput()
+            RichOutput()  # smoke-test do construtor
             self._add("IF-02", "Output importa", "interface", True, 0, details=f"rich={RICH_AVAILABLE}")
         except Exception as e:
             self._add("IF-02", "Output importa", "interface", False, 0, error=str(e))
@@ -2431,7 +2432,7 @@ class NyxGauntlet:
         # F2-03: Glob encontra arquivo real
         r = reg.execute("glob", {"pattern": "nyx/agent/*.py"})
         ok = r.success and "parser.py" in r.output
-        self._add("F2-03", "Glob encontra arquivo real", "e2e_real", ok, 0, details=f"has_parser={'parser.py' in r.output}")
+        self._add("F2-03", "Glob encontra arquivo real", "e2e_real", ok, 0, details=f"has_parser={'parser.py' in r.output}")  # noqa: E501
 
         # F2-04: Search encontra conteúdo
         r = reg.execute("search", {"pattern": "think", "path": str(PROJECT_ROOT / "nyx")})
@@ -2446,7 +2447,7 @@ class NyxGauntlet:
         # F2-06: ListFiles diretório real
         r = reg.execute("list_files", {"path": str(PROJECT_ROOT / "nyx" / "agent")})
         ok = r.success and "parser.py" in r.output
-        self._add("F2-06", "ListFiles diretório real", "e2e_real", ok, 0, details=f"has_parser={'parser.py' in r.output}")
+        self._add("F2-06", "ListFiles diretório real", "e2e_real", ok, 0, details=f"has_parser={'parser.py' in r.output}")  # noqa: E501
 
         # F2-07: Tool error handling
         r = reg.execute("read_file", {"file_path": "/tmp/nyx_inexistente_xyz_12345.py"})
@@ -2565,8 +2566,8 @@ class NyxGauntlet:
                 timeout=15,
                 cwd=str(PROJECT_ROOT),
             )
-            lines = [l for l in proc.stdout.strip().split("\n") if l.strip()]
-            responses = [_json.loads(l) for l in lines]
+            lines = [ln for ln in proc.stdout.strip().split("\n") if ln.strip()]
+            responses = [_json.loads(ln) for ln in lines]
             types = [r.get("type") for r in responses]
             ok = types == ["pong", "status", "tools", "ok"]
             self._add("I1-04", "Headless pipeline", "headless_protocol", ok, 0, details=f"types={types}")
@@ -3023,8 +3024,6 @@ class NyxGauntlet:
         import importlib
         import sys as _sys
 
-        scaffold_path = PROJECT_ROOT / "scripts" / "scaffold.py"
-
         # SCF-01: scaffold tool -- gera arquivo + registra + remove
         t = time.monotonic()
         try:
@@ -3150,8 +3149,8 @@ class NyxGauntlet:
         # P7T-01: prompt-toolkit importa ou fallback funciona
         t = time.monotonic()
         try:
-            from prompt_toolkit import PromptSession
-            from prompt_toolkit.history import FileHistory
+            from prompt_toolkit import PromptSession  # noqa: F401 -- smoke-test de disponibilidade
+            from prompt_toolkit.history import FileHistory  # noqa: F401 -- smoke-test de disponibilidade
 
             ok = True
             details = "prompt-toolkit disponível"

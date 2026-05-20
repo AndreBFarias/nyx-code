@@ -64,7 +64,7 @@ class SessionManager:
                 data = json.load(f)
                 self.sessions[session_id] = data
                 return data
-        except:  # BUG JUNIOR: except vazio (bare except)
+        except:  # noqa: E722 -- BUG JUNIOR proposital (fixture de teste para detectar bare except)
             pass  # BUG JUNIOR: silencia QUALQUER erro
 
     def cleanup_old_sessions(self, max_age_hours=24):

@@ -154,7 +154,7 @@ def update_guide_md(
     if old_table_pattern.search(content):
         content = old_table_pattern.sub(new_table, content)
 
-    sprint_line = f"Sprints pendentes em `producao/`: {sprints['producao']}\nSprints concluídas em `concluidos/`: {sprints['concluidos']}"
+    sprint_line = f"Sprints pendentes em `producao/`: {sprints['producao']}\nSprints concluídas em `concluidos/`: {sprints['concluidos']}"  # noqa: E501
     old_sprint_pattern = re.compile(
         r"Sprints pendentes em `producao/`: \d+\nSprints concluídas em `concluidos/`: \d+",
     )
@@ -230,7 +230,7 @@ def update_port_status(tools: int, commands: int, services: int, check: bool) ->
         ),
         (
             r"\| \*\*TOTAL\*\* \| \*\*173\*\* \| \*\*\d+\*\* \| \*\*\d+\*\* \| \*\*\d+%\*\* \|",
-            f"| **TOTAL** | **173** | **{tools + commands + services}** | **{173 - (tools + commands + services)}** | **{(tools + commands + services) * 100 // 173}%** |",
+            f"| **TOTAL** | **173** | **{tools + commands + services}** | **{173 - (tools + commands + services)}** | **{(tools + commands + services) * 100 // 173}%** |",  # noqa: E501
         ),
     ]
 
@@ -270,7 +270,7 @@ def main() -> None:
     print(f"  Testes:    {tests}")
     print(f"  ADRs:      {adrs}")
     print(
-        f"  Sprints:   {sprints['concluidos']} concluídas | {sprints['producao']} pendentes | {sprints['backlog']} backlog"
+        f"  Sprints:   {sprints['concluidos']} concluídas | {sprints['producao']} pendentes | {sprints['backlog']} backlog"  # noqa: E501
     )
     print(f"  Próxima:   {next_sprint}")
     print()

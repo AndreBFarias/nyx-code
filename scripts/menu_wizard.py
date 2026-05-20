@@ -23,8 +23,11 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from nyx.themes.design_tokens import (  # noqa: E402
-    ANSI_ACCENT_FG, ANSI_BOLD, ANSI_DIM, ANSI_PRIMARY_FG,
-    ANSI_RESET, ANSI_SUCCESS_FG,
+    ANSI_ACCENT_FG,
+    ANSI_BOLD,
+    ANSI_DIM,
+    ANSI_RESET,
+    ANSI_SUCCESS_FG,
 )
 
 CONFIG_PATH = Path.home() / ".nyx" / "config.toml"
@@ -127,7 +130,6 @@ def ask_yes_no(
 def render_summary(cfg: dict) -> None:
     """Renderiza summary card com box drawing antes de salvar (TUI-REDESIGN-25-05)."""
     accent = ANSI_ACCENT_FG
-    muted = ANSI_DIM
     reset = ANSI_RESET
     say()
     say(f"  {accent}╭─ resumo ─────────────────────────────╮{reset}")

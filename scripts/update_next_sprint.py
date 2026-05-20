@@ -287,7 +287,8 @@ Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambi
 8. Cole o output bruto dos comandos de verificação da sprint.
 9. Só marque CONCLUIDA se TODOS os critérios binários + invariantes passarem.
    Regra binária: FAIL_AFTER <= FAIL_BEFORE. Caso contrário, regressão: `git reset --hard HEAD~1` e refazer.
-10. Após CONCLUIDA: commit atômico, move sprint file para concluidos/, roda `python scripts/update_next_sprint.py` para atualizar este arquivo.
+10. Após CONCLUIDA: commit atômico, move sprint file para concluidos/, roda
+    `python scripts/update_next_sprint.py` para atualizar este arquivo.
 
 Se qualquer passo falhar, reporte:
     [SPRINT {sprint_id}] BLOQUEADA: <motivo objetivo>

@@ -24,7 +24,7 @@ REGISTRY = REPO_ROOT / "dev-journey" / "04-features" / "REGISTRY.yaml"
 
 CATEGORIA_RE = re.compile(r"^##\s+\d+\.\s+(?P<cat>.+?)\s*$")
 TABLE_HEADER_RE = re.compile(r"^\|\s*ID\s*\|\s*(Feature|Métrica)\s*\|\s*[^|]+\|\s*[^|]+\|")
-ROW_RE = re.compile(r"^\|\s*(?P<id>[A-Z][A-Z0-9\-]+)\s*\|\s*(?:\[[^\]]+\]\s*)?(?P<feat>.+?)\s*\|\s*(?P<comp>.+?)\s*\|\s*(?P<val>.+?)\s*\|\s*$")
+ROW_RE = re.compile(r"^\|\s*(?P<id>[A-Z][A-Z0-9\-]+)\s*\|\s*(?:\[[^\]]+\]\s*)?(?P<feat>.+?)\s*\|\s*(?P<comp>.+?)\s*\|\s*(?P<val>.+?)\s*\|\s*$")  # noqa: E501
 
 
 def parse_feature_map(path: Path = FEATURE_MAP) -> list[dict[str, object]]:

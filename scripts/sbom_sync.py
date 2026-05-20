@@ -28,7 +28,7 @@ FEATURE_MAP = REPO_ROOT / "dev-journey" / "04-features" / "FEATURE_MAP.md"
 
 def load_registry() -> dict:
     if not REGISTRY.is_file():
-        raise FileNotFoundError(f"REGISTRY.yaml ausente — rode sbom_init.py primeiro")
+        raise FileNotFoundError("REGISTRY.yaml ausente — rode sbom_init.py primeiro")
     return yaml.safe_load(REGISTRY.read_text(encoding="utf-8"))
 
 

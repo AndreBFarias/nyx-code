@@ -498,7 +498,7 @@ class SyncChecker:
         print()
         total = len(self._ok) + len(self._warnings) + len(self._errors)
         print(
-            f"  Total: {total} verificações | OK: {len(self._ok)} | Avisos: {len(self._warnings)} | Erros: {len(self._errors)}"
+            f"  Total: {total} verificações | OK: {len(self._ok)} | Avisos: {len(self._warnings)} | Erros: {len(self._errors)}"  # noqa: E501
         )
         print()
 
@@ -515,7 +515,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Nyx-Code Sync")
     parser.add_argument("--check", action="store_true", help="Só verifica, retorna exit code")
     parser.add_argument("--fix", action="store_true", help="Corrige o que pode")
-    args = parser.parse_args()
+    parser.parse_args()  # flags parseadas para validação de CLI; SyncChecker tem comportamento único
 
     checker = SyncChecker()
     exit_code = checker.run()
