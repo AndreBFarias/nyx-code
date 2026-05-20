@@ -34,7 +34,11 @@ logger = logging.getLogger("nyx.scaffold")
 TOOLS_DIR = PROJECT_ROOT / "nyx" / "agent" / "tools"
 SERVICES_DIR = PROJECT_ROOT / "nyx" / "agent" / "services"
 REGISTRY_PATH = TOOLS_DIR / "registry.py"
-COMMANDS_PATH = PROJECT_ROOT / "nyx" / "agent" / "commands.py"
+# SCAFFOLD-CMD-FIX-01: commands virou pacote. Cada command é arquivo próprio
+# em nyx/agent/commands/<name>.py, registrado via @nyx_command decorator e
+# importado em __init__.py para o side-effect do decorator executar.
+COMMANDS_DIR = PROJECT_ROOT / "nyx" / "agent" / "commands"
+COMMANDS_INIT = COMMANDS_DIR / "__init__.py"
 
 QUOTES = [
     '"A simplicidade é o último grau de sofisticação." -- Leonardo da Vinci',
@@ -183,13 +187,22 @@ def _service_template(file_name: str, class_name: str, description: str) -> str:
     return "\n".join(lines)
 
 
-def _command_block(name: str, description: str, category: str, aliases: list[str]) -> str:
-    """Gera bloco de comando para inserir em commands.py."""
+def _command_module_template(name: str, description: str, category: str, aliases: list[str]) -> str:
+    """Gera conteúdo completo do módulo nyx/agent/commands/<name>.py.
+
+    Cada command é arquivo próprio (SCAFFOLD-CMD-FIX-01); registro via
+    @nyx_command + import side-effect em __init__.py.
+    """
     aliases_str = f", aliases={aliases}" if aliases else ""
     func_name = f"cmd_{name.replace('-', '_')}"
     quote = _pick_quote(name)
 
     return textwrap.dedent(f'''\
+        """Comando /{name} -- {description}."""
+
+        from __future__ import annotations
+
+        from nyx.agent.commands._registry import nyx_command
 
 
         @nyx_command(name="{name}", description="{description}",
@@ -200,6 +213,9 @@ def _command_block(name: str, description: str, category: str, aliases: list[str
                 "{description}. "
                 "Use /help para mais informações."
             )
+
+
+        # {quote}
     ''')
 
 
@@ -254,45 +270,84 @@ def _unregister_tool_from_registry(file_name: str, class_name: str) -> bool:
 
 
 def _register_command_in_commands(name: str, description: str, category: str, aliases: list[str]) -> bool:
-    """Adiciona command em commands.py antes de handle_command."""
-    content = COMMANDS_PATH.read_text(encoding="utf-8")
+    """Cria nyx/agent/commands/<name>.py + adiciona import em __init__.py.
 
-    func_name = f"cmd_{name.replace('-', '_')}"
-    if f"def {func_name}" in content:
-        logger.info("Command já existe: %s", name)
+    SCAFFOLD-CMD-FIX-01: commands virou pacote. Cada command é arquivo
+    próprio; o __init__.py importa todos os módulos para que os decorators
+    @nyx_command executem (side-effect que popula _COMMANDS).
+    """
+    safe_name = name.replace("-", "_")
+    cmd_path = COMMANDS_DIR / f"{safe_name}.py"
+    if cmd_path.exists():
+        logger.info("Command já existe: %s", cmd_path.relative_to(PROJECT_ROOT))
         return True
 
-    block = _command_block(name, description, category, aliases)
+    cmd_path.write_text(
+        _command_module_template(name, description, category, aliases),
+        encoding="utf-8",
+    )
+    logger.info("Arquivo command criado: %s", cmd_path.relative_to(PROJECT_ROOT))
 
-    marker = "\ndef handle_command("
-    pos = content.find(marker)
+    init_content = COMMANDS_INIT.read_text(encoding="utf-8")
+    if f"    {safe_name},\n" in init_content:
+        logger.info("Import já presente em __init__.py: %s", safe_name)
+        return True
+
+    marker = "from nyx.agent.commands import ("
+    pos = init_content.find(marker)
     if pos == -1:
-        logger.error("Não encontrou handle_command em commands.py")
+        logger.error("Não encontrou bloco de imports em commands/__init__.py")
+        cmd_path.unlink(missing_ok=True)
         return False
 
-    content = content[:pos] + block + content[pos:]
-    COMMANDS_PATH.write_text(content, encoding="utf-8")
-    logger.info("Command registrado: /%s em commands.py", name)
+    close_pos = init_content.find(")", pos)
+    if close_pos == -1:
+        logger.error("Bloco de imports em __init__.py sem ')' de fechamento")
+        cmd_path.unlink(missing_ok=True)
+        return False
+
+    # Insere a nova linha ordenada alfabeticamente dentro do bloco.
+    block = init_content[pos:close_pos]
+    lines = [ln for ln in block.split("\n") if ln.strip().endswith(",")]
+    existing = [ln.strip().rstrip(",") for ln in lines]
+    existing.append(safe_name)
+    existing_sorted = sorted(set(existing))
+
+    new_block_lines = [f"    {n}," for n in existing_sorted]
+    new_block = (
+        "from nyx.agent.commands import (  # noqa: F401  -- side-effect: registra @nyx_command\n"
+        + "\n".join(new_block_lines)
+        + "\n"
+    )
+    init_content = init_content[:pos] + new_block + init_content[close_pos:]
+    COMMANDS_INIT.write_text(init_content, encoding="utf-8")
+    logger.info("Import registrado em __init__.py: %s", safe_name)
     return True
 
 
 def _unregister_command_from_commands(name: str) -> bool:
-    """Remove command de commands.py."""
-    content = COMMANDS_PATH.read_text(encoding="utf-8")
-    func_name = f"cmd_{name.replace('-', '_')}"
+    """Remove nyx/agent/commands/<name>.py + remove import em __init__.py."""
+    safe_name = name.replace("-", "_")
+    cmd_path = COMMANDS_DIR / f"{safe_name}.py"
+    if cmd_path.exists():
+        cmd_path.unlink()
+        logger.info("Arquivo command removido: %s", cmd_path.relative_to(PROJECT_ROOT))
+    else:
+        logger.warning("Arquivo command não encontrado: %s", cmd_path.relative_to(PROJECT_ROOT))
 
-    pattern = re.compile(
-        rf'\n\n@nyx_command\(name="{re.escape(name)}".*?\ndef {func_name}\(.*?\n(?=\n@nyx_command|\ndef handle_command)',
-        re.DOTALL,
+    init_content = COMMANDS_INIT.read_text(encoding="utf-8")
+    new_content = re.sub(
+        rf"^    {re.escape(safe_name)},\n",
+        "",
+        init_content,
+        flags=re.MULTILINE,
     )
-
-    new_content = pattern.sub("", content)
-    if new_content == content:
-        logger.warning("Command não encontrado para remoção: %s", name)
+    if new_content == init_content:
+        logger.warning("Import não encontrado em __init__.py: %s", safe_name)
         return False
 
-    COMMANDS_PATH.write_text(new_content, encoding="utf-8")
-    logger.info("Command removido: /%s", name)
+    COMMANDS_INIT.write_text(new_content, encoding="utf-8")
+    logger.info("Import removido de __init__.py: %s", safe_name)
     return True
 
 

@@ -1726,10 +1726,17 @@ class NyxGauntlet:
         has_read = "read_file" in (explain or "")
         self._add("IF-04", "Commands /explain", "interface", has_read, 0, details=(explain or "")[:60])
 
-        # IF-05: Commands /plan
+        # IF-05: Commands /plan (CTX-04 transformou /plan em checklist persistida;
+        # output atual é "Objetivo do plano definido: <input>"; aceita ambos formatos)
         plan = handle_command("/plan feature X", str(PROJECT_ROOT))
-        has_list = "list_files" in (plan or "")
-        self._add("IF-05", "Commands /plan", "interface", has_list, 0, details=(plan or "")[:60])
+        plan_out = plan or ""
+        has_plan_marker = (
+            "feature X" in plan_out
+            or "Objetivo" in plan_out
+            or "plano" in plan_out.lower()
+            or "list_files" in plan_out
+        )
+        self._add("IF-05", "Commands /plan", "interface", has_plan_marker, 0, details=plan_out[:60])
 
     # ═══════════════════════════════════════════════════════════════════
     # FASE: SLASH_BYPASS (5 testes -- SLASH-BYPASS-AUDIT-01)
@@ -3073,12 +3080,15 @@ class NyxGauntlet:
                 aliases="",
             )
             rc = scaffold_command(args)
-            cmds_content = (PROJECT_ROOT / "nyx" / "agent" / "commands.py").read_text()
-            cmd_ok = "cmd___gauntlet_test_cmd" in cmds_content
+            # SCAFFOLD-CMD-FIX-01: commands virou pacote. Verificar arquivo
+            # nyx/agent/commands/<name>.py e import em __init__.py.
+            cmd_file = PROJECT_ROOT / "nyx" / "agent" / "commands" / "__gauntlet_test_cmd.py"
+            init_content = (PROJECT_ROOT / "nyx" / "agent" / "commands" / "__init__.py").read_text()
+            cmd_ok = cmd_file.exists() and "__gauntlet_test_cmd" in init_content
 
             remove_command("__gauntlet-test-cmd")
-            cmds_after = (PROJECT_ROOT / "nyx" / "agent" / "commands.py").read_text()
-            cleanup_ok = "cmd___gauntlet_test_cmd" not in cmds_after
+            init_after = (PROJECT_ROOT / "nyx" / "agent" / "commands" / "__init__.py").read_text()
+            cleanup_ok = not cmd_file.exists() and "__gauntlet_test_cmd" not in init_after
 
             ok = rc == 0 and cmd_ok and cleanup_ok
             details = f"rc={rc} cmd={cmd_ok} cleanup={cleanup_ok}"
@@ -3617,7 +3627,15 @@ class NyxGauntlet:
         # SYNC-02: Verifica tool registration
         t = time.monotonic()
         try:
-            ok = "tools registradas" in r.stdout.lower() or "Todas" in r.stdout
+            # GAUNTLET-SYNC-02-RECOVER-01: sync.py emite "Todos N arquivos de tool importados"
+            # (masculino, refere-se a "arquivos"). Aceitamos as 3 formas observadas em runs reais.
+            stdout_lower = r.stdout.lower()
+            ok = (
+                "tools registradas" in stdout_lower
+                or "arquivos de tool importados" in stdout_lower
+                or "Todas" in r.stdout
+                or "Todos" in r.stdout
+            )
             self._add("SYNC-02", "sync verifica tool registration", "infra_sync", ok, time.monotonic() - t)
         except Exception as e:
             self._add(

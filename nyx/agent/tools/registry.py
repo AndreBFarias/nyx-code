@@ -30,6 +30,9 @@ from .search import SearchTool
 from .send_message import SendMessageTool
 from .skill_tool import SkillTool
 from .sleep_tool import SleepTool
+from .sudo_session import (
+    status as _sudo_session_status,  # noqa: F401 -- ADR-013: singleton module-level state (SUDO-MODE-01); sem classe Tool, mantém arquivo carregado conforme integração obrigatória
+)
 from .task_manager import (
     TaskCreateTool,
     TaskGetTool,
