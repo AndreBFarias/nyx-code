@@ -37,6 +37,7 @@ logger = logging.getLogger("nyx.proxy")
 
 from nyx.agent.intent import classify as _classify_intent  # noqa: E402
 from nyx.agent.lang_check import is_pt_br as _is_pt_br  # noqa: E402
+from nyx.agent.lang_check import mentions_provider as _mentions_provider  # noqa: E402
 from nyx.config.defaults import DEFAULT_MODEL as _DEFAULT_MODEL  # noqa: E402
 from nyx.config.defaults import NUM_CTX as _DEFAULT_NUM_CTX  # noqa: E402
 from nyx.config.defaults import NUM_GPU_3B as _DEFAULT_NUM_GPU  # noqa: E402
@@ -439,6 +440,51 @@ async def handle_chat(request: web.Request) -> web.StreamResponse:
                         logger.info("LANG: retry insistiu em ingles; passa adiante")
                 else:
                     logger.warning("LANG: retry HTTP %d; passa adiante", lang_resp.status)
+
+    # IDENTITY-ENFORCE-01: guardrail de identidade Nyx (ADR-005 + ADR-027).
+    # Modelo (qwen2.5-coder:3b, qualquer outro) NUNCA pode mencionar
+    # nenhum provider proprietário no content. Identidade Nyx é inviolável.
+    # Cobre saudacao/chat/comando; tool-needed fora do escopo (content é
+    # descartado pelo agent loop quando há tool_calls).
+    # Cap em 1 retry para não explodir P50 (mesmo padrão de LANG-ENFORCE).
+    # noqa: ai-mention -- hint do retry abaixo cita nomes intencionalmente
+    if intent in ("saudacao", "chat", "comando"):
+        choice_msg = result["choices"][0]["message"]
+        content = choice_msg.get("content", "")
+        has_tc = bool(choice_msg.get("tool_calls"))
+        if content and not has_tc:
+            leaked = _mentions_provider(content)
+            if leaked:
+                logger.warning(
+                    "IDENTITY: vazamento de modelo subjacente %r detectado (intent=%s); retry 1x com hint",
+                    leaked,
+                    intent,
+                )
+                retry_body = dict(ollama_body)
+                retry_messages = list(ollama_body.get("messages", []))
+                retry_messages.append({"role": "assistant", "content": content})
+                retry_messages.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            "Você é Nyx, codificadora local. Não mencione modelo subjacente "
+                            "(Qwen, GPT, Claude, Llama, etc.). Refaça em PT-BR sem citar IA proprietária."  # noqa: ai-mention
+                        ),
+                    }
+                )
+                retry_body["messages"] = retry_messages
+                async with session.post(f"{OLLAMA_URL}/api/chat", json=retry_body) as id_resp:
+                    if id_resp.status == 200:
+                        id_data = await id_resp.json()
+                        id_result = ollama_to_openai(id_data, model)
+                        id_content = id_result["choices"][0]["message"].get("content", "")
+                        if id_content and not _mentions_provider(id_content):
+                            logger.info("IDENTITY: retry recuperou identidade Nyx")
+                            result = id_result
+                        else:
+                            logger.info("IDENTITY: retry insistiu no vazamento; passa adiante")
+                    else:
+                        logger.warning("IDENTITY: retry HTTP %d; passa adiante", id_resp.status)
 
     tc = result["choices"][0]["message"].get("tool_calls")
     if tc:

@@ -104,4 +104,42 @@ def is_pt_br(text: str) -> bool:
     return pt_hits >= en_hits
 
 
+# IDENTITY-ENFORCE-01: detecção de menção a modelo subjacente.
+# ADR-005 (Anonimato) + ADR-027 (Identidade Nyx) são invioláveis.
+# Nyx NUNCA pode mencionar nenhum provider proprietário no content de
+# resposta — viola identidade. Regex abaixo detecta os principais.  # noqa: ai-mention
+_PROVIDER_PATTERN = re.compile(
+    r"(?<![a-zA-Z])("
+    r"qwen|alibaba|"
+    r"gpt|openai|chatgpt|"
+    r"claude|anthropic|"  # noqa: ai-mention -- regex de DETECÇÃO, IDENTITY-ENFORCE-01
+    r"gemini|bard|"  # noqa: ai-mention -- regex de DETECÇÃO, IDENTITY-ENFORCE-01
+    r"copilot|github\s+copilot|"  # noqa: ai-mention -- regex de DETECÇÃO, IDENTITY-ENFORCE-01
+    r"llama|meta\s+ai|"
+    r"mistral|mixtral|"
+    r"deepseek|"
+    r"grok|x\s*ai"
+    r")(?![a-zA-Z])",
+    re.IGNORECASE,
+)
+
+
+def mentions_provider(text: str) -> str | None:
+    """Retorna o primeiro provedor/modelo mencionado, ou None se nenhum.
+
+    Detecta menções a IA proprietária no content da resposta. ADR-005 e
+    ADR-027 declaram identidade Nyx INVIOLÁVEL — qualquer menção quebra
+    contrato. Proxy usa para disparar retry com hint anti-vazamento de
+    identidade (espelho de LANG-ENFORCE).
+
+    Returns:
+        Provider name (lower) se detectado, senão None.
+    """
+    if not text:
+        return None
+    m = _PROVIDER_PATTERN.search(text)
+    return m.group(1).lower() if m else None
+
+
 # "Idioma é a primeira porta de acolhimento; errar dela quebra confiança."
+# "Identidade é a segunda porta; vazar modelo subjacente quebra contrato."
