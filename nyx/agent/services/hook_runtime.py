@@ -32,7 +32,7 @@ import json
 import re
 import shlex
 import subprocess as _sp
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 

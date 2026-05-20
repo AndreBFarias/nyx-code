@@ -106,7 +106,12 @@ def detect_forged_success(last_assistant_text: str, recent_history: list[Any]) -
             continue
         if "bloqueado" in tool_result or "permissão negada" in tool_result or "permissao negada" in tool_result:
             continue
-        if tool_result.startswith("ok") or "ok:" in tool_result or "criado:" in tool_result or "editado:" in tool_result:
+        if (
+            tool_result.startswith("ok")
+            or "ok:" in tool_result
+            or "criado:" in tool_result
+            or "editado:" in tool_result
+        ):
             return vr
 
     vr.warnings.append("modelo afirma sucesso sem tool call correspondente")

@@ -14,7 +14,6 @@ import time
 from pathlib import Path
 from typing import Any
 
-
 TOKEN_FLUSH_CHARS = 32
 
 

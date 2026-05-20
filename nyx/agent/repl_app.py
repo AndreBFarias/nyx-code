@@ -24,12 +24,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import sys
-from pathlib import Path
 from typing import Any, Callable
-
-logger = logging.getLogger(__name__)
 
 from prompt_toolkit.application import Application
 from prompt_toolkit.application.current import get_app
@@ -38,15 +34,15 @@ from prompt_toolkit.buffer import Buffer
 from prompt_toolkit.completion import Completer
 from prompt_toolkit.document import Document
 from prompt_toolkit.formatted_text import ANSI, FormattedText
-from prompt_toolkit.history import FileHistory, History
+from prompt_toolkit.history import History
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import HSplit, Layout, Window
-from prompt_toolkit.layout.containers import ConditionalContainer
 from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
 from prompt_toolkit.layout.dimension import Dimension
 from prompt_toolkit.layout.processors import BeforeInput
 from prompt_toolkit.styles import Style as PtkStyle
 
+logger = logging.getLogger(__name__)
 
 # Estado partilhado entre callsite e Application. Mantemos como dict para
 # permitir injeção externa (app_state em nyx/cli.py) sem acoplamento rígido.
@@ -156,7 +152,7 @@ def _build_style() -> PtkStyle:
     Idêntico ao _build_prompt_style do cli.py, com adição de class:'output'
     para o buffer de output (sem fundo destacado).
     """
-    from nyx.themes.design_tokens import (
+    from nyx.themes.design_tokens import (  # noqa: I001
         NYX_ACCENT as _D_ACCENT,
         NYX_ACCENT_DIM as _D_ACCENT_LO,
         NYX_BG as _D_BG,
@@ -259,6 +255,7 @@ def build_app(
     @kb.add("c-o")
     def _expand_last(event: Any) -> None:
         from prompt_toolkit.application import run_in_terminal
+
         from nyx.agent.output import render_user_input as _render_expanded
 
         text = last_input_state.get("text", "")
@@ -322,6 +319,7 @@ def build_app(
             tb = app_state.get("last_thinking_block")
             if isinstance(tb, dict) and tb.get("text"):
                 from prompt_toolkit.application import run_in_terminal
+
                 from nyx.agent.output import render_thinking_block
                 tb["expanded"] = not tb.get("expanded", False)
                 text = tb["text"]
@@ -359,6 +357,7 @@ def build_app(
             sudo_session.wipe()
         elif nxt == "sudo" and cur != "sudo":
             import sys as _sys
+
             from prompt_toolkit.application import run_in_terminal
 
             def _prompt_sudo() -> None:
@@ -379,6 +378,7 @@ def build_app(
     @kb.add("c-v")
     def _paste(event: Any) -> None:
         from prompt_toolkit.application import run_in_terminal
+
         from nyx.agent.clipboard import capture_image, capture_text
 
         buf = event.current_buffer

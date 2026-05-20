@@ -22,22 +22,30 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-import subprocess
 import time
 import uuid
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse
 
 from nyx.agent.services.logging_service import get_logger
 from nyx.cockpit.evidencia import latest_evidence, save_evidence
 from nyx.cockpit.pty_bridge import PtyBridge
 from nyx.config.defaults import COCKPIT_HOST, COCKPIT_PORT
 from nyx.themes.design_tokens import (
-    NYX_ACCENT, NYX_ACCENT_DIM, NYX_BG, NYX_BG_SOFT, NYX_ERROR, NYX_MUTED,
-    NYX_PRIMARY, NYX_PURPLE, NYX_PURPLE_DIM, NYX_SUCCESS, NYX_WARNING,
+    NYX_ACCENT,
+    NYX_ACCENT_DIM,
+    NYX_BG,
+    NYX_BG_SOFT,
+    NYX_ERROR,
+    NYX_MUTED,
+    NYX_PRIMARY,
+    NYX_PURPLE,
+    NYX_PURPLE_DIM,
+    NYX_SUCCESS,
+    NYX_WARNING,
 )
 
 logger = get_logger("nyx.cockpit")

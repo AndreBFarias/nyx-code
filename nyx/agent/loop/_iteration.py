@@ -29,7 +29,8 @@ from nyx.agent.prompt import build_reminder
 from nyx.agent.repetition import SkipStrategy, get_skip_strategy
 from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tools.plan_mode import is_tool_allowed_in_plan_mode
-from nyx.agent.validator import FORGE_PATTERNS, validate as post_validate
+from nyx.agent.validator import FORGE_PATTERNS
+from nyx.agent.validator import validate as post_validate
 from nyx.providers.base import ProviderError
 
 logger = get_logger("nyx.agent")

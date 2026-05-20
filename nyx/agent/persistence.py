@@ -91,7 +91,10 @@ def load_session_by_id(session_id: str) -> CodeSession | None:
     """
     if not SESSIONS_DIR.exists():
         return None
-    matches = [p for p in SESSIONS_DIR.glob("session_*.json") if _session_id_from_path(p).startswith(session_id) or _session_id_from_path(p) == session_id]
+    matches = [
+        p for p in SESSIONS_DIR.glob("session_*.json")
+        if _session_id_from_path(p).startswith(session_id) or _session_id_from_path(p) == session_id
+    ]
     if len(matches) != 1:
         return None
     return _load_session_file(matches[0])

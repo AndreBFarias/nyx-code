@@ -11,7 +11,6 @@ A função opera apenas com nyx.agent.* + nyx.config.*. Não importa nyx.cli
 
 from __future__ import annotations
 
-import asyncio
 import json as _json
 import os
 import signal

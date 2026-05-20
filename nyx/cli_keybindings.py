@@ -30,10 +30,20 @@ def build_prompt_style() -> "_PtkStyle":
 
     from nyx.themes.design_tokens import (
         NYX_ACCENT as _D_ACCENT,
+    )
+    from nyx.themes.design_tokens import (
         NYX_ACCENT_DIM as _D_ACCENT_LO,
+    )
+    from nyx.themes.design_tokens import (
         NYX_BG as _D_BG,
+    )
+    from nyx.themes.design_tokens import (
         NYX_BG_SOFT as _D_BG_SOFT,
+    )
+    from nyx.themes.design_tokens import (
         NYX_MUTED as _D_MUTED,
+    )
+    from nyx.themes.design_tokens import (
         NYX_PRIMARY as _D_INK,
     )
 

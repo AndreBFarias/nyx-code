@@ -26,13 +26,13 @@ from nyx.themes.design_tokens import (
     ANSI_SUCCESS_FG,
     BOX_CHARS,
 )
+from nyx.themes.theme_manager import current_ansi
 
 # TUI-REDESIGN-28-09: glifos de junção para grid 2-col (tjoin/bjoin/ljoin/rjoin)
 _TJOIN = BOX_CHARS["tjoin"]
 _BJOIN = BOX_CHARS["bjoin"]
 _LJOIN = BOX_CHARS["ljoin"]
 _RJOIN = BOX_CHARS["rjoin"]
-from nyx.themes.theme_manager import current_ansi
 
 # VISUAL-LAYOUT-CLI-CONSUME-01: accent/muted resolvidos em import-time via
 # theme_manager. Honra NYX_AESTHETIC + NYX_ENTITY. Default = paleta D.
@@ -199,9 +199,6 @@ def _build_wide(
     purple = ANSI_PURPLE_FG
     primary = ANSI_PRIMARY_FG
     success = ANSI_SUCCESS_FG
-
-    # Compactar portas (sem espaços ao redor do '/').
-    ports_box = ports_short.replace(" / ", "/")
 
     # Largura total interna entre │ esquerda e │ direita.
     inner_w = 70

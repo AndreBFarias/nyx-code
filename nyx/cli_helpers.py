@@ -88,8 +88,8 @@ def maybe_offer_resume(agent: object, project_name: str = "", *, ansi_accent: st
     """
     import time as _time
 
-    from nyx.agent.services.logging_service import get_logger
     from nyx.agent.persistence import load_index, load_session_by_id
+    from nyx.agent.services.logging_service import get_logger
 
     logger = get_logger("nyx.cli")
 

@@ -58,9 +58,33 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data spec:** 2026-05-19
-**Modelo execução previsto:** claude-opus-4-7
+**Data conclusão:** 2026-05-19 (segunda sessão, ~22h20)
+**Modelo execução:** claude-opus-4-7
+
+---
+
+## Proof-of-work executado (2026-05-19)
+
+**Edit aplicado:**
+- `scripts/gauntlet/nyx_gauntlet.py:2426-2427` (F2-03): `"loop.py"` -> `"parser.py"`, `has_loop` -> `has_parser`
+- `scripts/gauntlet/nyx_gauntlet.py:2441-2442` (F2-06): idem
+- Total: 4 linhas em 2 blocos (linhas alvo driftaram de 2322-2340 para 2426-2442 devido a K08-VRAM-RUNNER-ISOLATION-01 ter inserido +176L antes — drift irrelevante para o fix, identifiers literais preservados)
+
+**Verificação binária:**
+- `grep -cE "'loop\.py' in r\.output|\"loop\.py\" in r\.output" scripts/gauntlet/nyx_gauntlet.py` = **0** (era 4)
+- `grep -cE "'parser\.py' in r\.output|\"parser\.py\" in r\.output" scripts/gauntlet/nyx_gauntlet.py` = **4**
+- Linha 3401 (`repo_map` CTX-09 fixture) **NÃO** tocada
+
+**Runtime:**
+- `./run.sh --smoke` -> `boot ok` antes e depois
+- `bash scripts/sprint_invariants.sh` -> PASS 14 / FAIL 0 antes e depois
+- `./run.sh --gauntlet --only e2e_real` -> **8/8 (100%) APROVADO** (relatório `dev-journey/07-reports/gauntlet/GAUNTLET_2026-05-19_2217.md`). F2-03 OK `has_parser=True`, F2-06 OK `has_parser=True`.
+- `./run.sh --gauntlet --only rapido` -> 17/18 (94%); único FAIL = **P-07 pré-existente** (out-of-scope explícito da spec linha 181). **Zero regressão.**
+
+**Achado colateral:**
+- 13 violações pré-existentes de acentuação em nyx_gauntlet.py (L116/237/1128/1158/1222/1238/1243/1259/1267/1281/1336/1348) detectadas pela validação periférica. **Não introduzidas** por esta sprint — escopo da sprint ortogonal `GAUNTLET-ACENTUACAO-FIX-01` (MASTER linha 349, PENDENTE).
 
 ---
 

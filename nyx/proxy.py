@@ -40,8 +40,6 @@ from nyx.agent.lang_check import is_pt_br as _is_pt_br  # noqa: E402
 from nyx.config.defaults import DEFAULT_MODEL as _DEFAULT_MODEL  # noqa: E402
 from nyx.config.defaults import NUM_CTX as _DEFAULT_NUM_CTX  # noqa: E402
 from nyx.config.defaults import NUM_GPU_3B as _DEFAULT_NUM_GPU  # noqa: E402
-from nyx.config.defaults import NUM_PREDICT_CHAT as _NUM_PREDICT_CHAT  # noqa: E402
-from nyx.config.defaults import NUM_PREDICT_TOOL as _NUM_PREDICT_TOOL  # noqa: E402
 from nyx.config.defaults import OLLAMA_KEEP_ALIVE as _KEEP_ALIVE  # noqa: E402
 from nyx.config.defaults import OLLAMA_PORT as _DEFAULT_OLLAMA_PORT  # noqa: E402
 from nyx.config.defaults import OLLAMA_URL as _DEFAULT_OLLAMA_URL  # noqa: E402

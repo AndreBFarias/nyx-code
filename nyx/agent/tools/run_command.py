@@ -17,8 +17,10 @@ from nyx.agent.models import ActionResult, ActionType
 from nyx.agent.tools.base import RegisteredTool, ToolDef
 from nyx.agent.tools.sudo_session import (
     get_password,
-    is_active as sudo_is_active,
     is_destructive,
+)
+from nyx.agent.tools.sudo_session import (
+    is_active as sudo_is_active,
 )
 
 

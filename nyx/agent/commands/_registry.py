@@ -91,7 +91,7 @@ ESSENTIAL_COMMANDS = (
 HELP_COLUMN_GROUPS: dict[str, tuple[str, ...]] = {
     "Sessão": ("resume", "compact", "context", "clear", "quit", "stats", "cancel", "status"),
     "Contexto": ("memory", "add-dir", "init", "sandbox", "cd", "skills", "files", "paste", "recall"),
-    "Modelo": ("model", "aesthetic", "schema", "output-style", "permissions", "hooks", "theme", "config", "env", "doctor"),
+    "Modelo": ("model", "aesthetic", "schema", "output-style", "permissions", "hooks", "theme", "config", "env", "doctor"),  # noqa: E501
 }
 
 

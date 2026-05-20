@@ -113,7 +113,7 @@ PHASE_GROUPS: dict[str, list[str]] = {
     "p11_infra": ["p11_infra"],
     "p11": ["p11_infra"],
     "vision": ["vision"],
-    "sessao": ["sessao"],
+    "sessao": ["sessao"],  # noqa-acento
     "install": ["install"],
     "loop": ["loop"],
     "mcp": ["mcp"],
@@ -234,7 +234,7 @@ PHASE_TIMEOUTS: dict[str, int] = {
     "p10_root": 30,
     "p11_infra": 30,
     "vision": 90,
-    "sessao": 60,
+    "sessao": 60,  # noqa-acento
     "install": 1200,
     "loop": 30,
     "mcp": 60,
@@ -1125,7 +1125,7 @@ class NyxGauntlet:
                 "install",
                 True,
                 0,
-                details="skip: docker nao instalado nesta maquina",
+                details="skip: docker não instalado nesta máquina",
             )
             self._add(
                 "D-02",
@@ -1155,7 +1155,7 @@ class NyxGauntlet:
         if not docker_ok:
             self._add(
                 "D-02",
-                "install.sh em ubuntu:22.04 (skip: daemon nao acessivel)",
+                "install.sh em ubuntu:22.04 (skip: daemon não acessível)",
                 "install",
                 True,
                 0,
@@ -1219,7 +1219,7 @@ class NyxGauntlet:
             )
 
     # ═══════════════════════════════════════════════════════════════════
-    # FASE: SESSAO (3 testes -- SESSION-RESUME-01)
+    # FASE: SESSÃO (3 testes -- SESSION-RESUME-01)
     # ═══════════════════════════════════════════════════════════════════
 
     async def _phase_sessao(self) -> None:
@@ -1235,12 +1235,12 @@ class NyxGauntlet:
             )
             from nyx.agent.session import CodeSession, HistoryEntry
         except Exception as e:
-            self._add("S-01", "persistence imports", "sessao", False, 0, error=str(e))
+            self._add("S-01", "persistence imports", "sessao", False, 0, error=str(e))  # noqa-acento
             return
         self._add(
             "S-01",
             "persistence imports + schema v1",
-            "sessao",
+            "sessao",  # noqa-acento
             INDEX_SCHEMA_VERSION == 1,
             time.monotonic() - t,
             details=f"schema_version={INDEX_SCHEMA_VERSION}",
@@ -1256,7 +1256,7 @@ class NyxGauntlet:
             path = save_session(session, project_name="__gauntlet")
             dt = time.monotonic() - t
             if not path:
-                self._add("S-02", "save_session + index", "sessao", False, dt, error="save_session retornou None")
+                self._add("S-02", "save_session + index", "sessao", False, dt, error="save_session retornou None")  # noqa-acento
                 return
             idx = load_index()
             gauntlet_entries = [e for e in idx if e.get("projeto") == "__gauntlet"]
@@ -1264,7 +1264,7 @@ class NyxGauntlet:
             self._add(
                 "S-02",
                 "save_session atualiza index com n_turnos=2",
-                "sessao",
+                "sessao",  # noqa-acento
                 ok2,
                 dt,
                 details=f"entries={len(gauntlet_entries)} last={gauntlet_entries[-1] if gauntlet_entries else None}",
@@ -1278,7 +1278,7 @@ class NyxGauntlet:
             self._add(
                 "S-03",
                 "load_session_by_id por prefixo restaura history",
-                "sessao",
+                "sessao",  # noqa-acento
                 ok3,
                 dt,
                 details=f"prefix={prefix!r} entries_restored={len(reloaded.history) if reloaded else 0}",
@@ -1333,7 +1333,7 @@ class NyxGauntlet:
                 "vision",
                 True,
                 0,
-                details="skip: moondream nao instalado; sprint validada via testes 1-2",
+                details="skip: moondream não instalado; sprint validada via testes 1-2",
             )
             return
 
@@ -1345,7 +1345,7 @@ class NyxGauntlet:
                 "vision",
                 True,
                 0,
-                details=f"skip: {image_path} nao existe",
+                details=f"skip: {image_path} não existe",
             )
             return
 

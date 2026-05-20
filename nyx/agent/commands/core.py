@@ -17,10 +17,10 @@ def cmd_contextual_help(_args: str, _root: str) -> str:
     """ADR-026 §affordances: /? imprime as 3 ações principais do estado neutro."""
     return (
         "  Ações disponíveis agora:\n"
-        f"    /help                 -- catálogo completo de comandos\n"
-        f"    /memory               -- memória persistente do projeto\n"
-        f"    /resume               -- retomar sessão anterior\n"
-        f"  (Em tool call ativa: Ctrl+C cancela; /cancel pausa fluxo)"
+        "    /help                 -- catálogo completo de comandos\n"
+        "    /memory               -- memória persistente do projeto\n"
+        "    /resume               -- retomar sessão anterior\n"
+        "  (Em tool call ativa: Ctrl+C cancela; /cancel pausa fluxo)"
     )
 
 

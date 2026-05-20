@@ -598,7 +598,7 @@ def classify_error_actions(error_msg: str) -> list[tuple[str, str, str]]:
             ("c", "pular esta ação", "(skip)"),
         ]
     # Arquivo não encontrado
-    if "não encontrado" in low or "not found" in low or "nao encontrado" in low:
+    if "não encontrado" in low or "not found" in low or "nao encontrado" in low:  # noqa-acento
         return [
             ("a", "criar arquivo", "/edit <caminho> (cria)"),
             ("b", "trocar diretório", "/cd <pasta>"),
@@ -788,9 +788,9 @@ def render_session_stats_card(
     _eprint()
     _eprint(f"  {accent}Última Sessão{reset}")
     _eprint(f"  {accent}{top}{reset}")
-    _eprint(f"  {accent}│{reset}{row1_cells[0]}{accent}│{reset}{row1_cells[1]}{accent}│{reset}{row1_cells[2]}{accent}│{reset}")
+    _eprint(f"  {accent}│{reset}{row1_cells[0]}{accent}│{reset}{row1_cells[1]}{accent}│{reset}{row1_cells[2]}{accent}│{reset}")  # noqa: E501
     _eprint(f"  {accent}{mid}{reset}")
-    _eprint(f"  {accent}│{reset}{row2_cells[0]}{accent}│{reset}{row2_cells[1]}{accent}│{reset}{row2_cells[2]}{accent}│{reset}")
+    _eprint(f"  {accent}│{reset}{row2_cells[0]}{accent}│{reset}{row2_cells[1]}{accent}│{reset}{row2_cells[2]}{accent}│{reset}")  # noqa: E501
     _eprint(f"  {accent}{bot}{reset}")
     if saved_path:
         short = _shorten_path(saved_path, project_root, 60)
@@ -866,10 +866,13 @@ def render_tool_chip(
     renderiza chips à direita da MESMA linha se cols >= 80 e há largura
     suficiente. Fallback: render abaixo via render_error_with_actions.
     """
-    from nyx.themes.design_tokens import (
-        ANSI_ERROR_FG, ANSI_SUCCESS_FG, TOOL_GLYPHS,
-    )
     import shutil
+
+    from nyx.themes.design_tokens import (
+        ANSI_ERROR_FG,
+        ANSI_SUCCESS_FG,
+        TOOL_GLYPHS,
+    )
 
     # TUI-REDESIGN-26-03: glyph por tool. Fallback "●" (geometric, ADR-004 ok).
     glyph = TOOL_GLYPHS.get(name, "●")

@@ -88,25 +88,6 @@ from nyx.agent.banner import build_banner as _build_banner  # noqa: E402
 from nyx.agent.output import make_ask_permission as _make_ask_permission  # noqa: E402
 from nyx.agent.output import print_error as _print_error  # noqa: E402
 
-
-# INFRA-CLI-SPLIT-01: helpers movidos para nyx/cli_helpers.py (mantemos re-export).
-from nyx.cli_helpers import (  # noqa: E402
-    _IMAGE_INDEX_PATH,
-    _expand_images,
-    _persist_image_index,
-    _shorten_description,
-)
-from nyx.cli_helpers import maybe_offer_resume as _maybe_offer_resume_impl  # noqa: E402
-
-# INFRA-CLI-SPLIT-02: KeyBindings, bottom toolbar e dispatcher de sentinelas
-# saíram para módulos dedicados. cli.py orquestra agora.
-from nyx.cli_keybindings import (  # noqa: E402
-    build_bottom_toolbar,
-    build_keybindings,
-    build_prompt_style,
-)
-from nyx.cli_handlers import HandlerCtx, dispatch_async, dispatch_sync  # noqa: E402
-
 # INFRA-CLI-SPLIT-03: run_headless + boot pieces saem para módulos próprios.
 # Re-exports preservam compatibilidade (`from nyx.cli import run_headless`).
 from nyx.cli_boot import (  # noqa: E402
@@ -118,11 +99,26 @@ from nyx.cli_boot import (  # noqa: E402
     shutdown_repl,
 )
 from nyx.cli_callbacks import build_render_callbacks  # noqa: E402
+from nyx.cli_handlers import HandlerCtx, dispatch_async, dispatch_sync  # noqa: E402
 from nyx.cli_headless import run_headless  # noqa: E402, F401 -- re-export
 
+# INFRA-CLI-SPLIT-01: helpers movidos para nyx/cli_helpers.py (mantemos re-export).
+from nyx.cli_helpers import (  # noqa: E402
+    _expand_images,
+    _persist_image_index,
+)
+from nyx.cli_helpers import maybe_offer_resume as _maybe_offer_resume_impl  # noqa: E402
+
+# INFRA-CLI-SPLIT-02: KeyBindings, bottom toolbar e dispatcher de sentinelas
+# saíram para módulos dedicados. cli.py orquestra agora.
+from nyx.cli_keybindings import (  # noqa: E402
+    build_bottom_toolbar,
+    build_keybindings,
+    build_prompt_style,
+)
 
 if TYPE_CHECKING:
-    from nyx.agent.services.vision_service import VisionService
+    pass
 
 
 def maybe_offer_resume(agent: object, project_name: str = "") -> None:
@@ -214,7 +210,6 @@ async def run_repl(
     try:
         from prompt_toolkit import PromptSession
         from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
-        from prompt_toolkit.formatted_text import ANSI
         from prompt_toolkit.history import FileHistory
         from prompt_toolkit.shortcuts import CompleteStyle
 
@@ -267,7 +262,6 @@ async def run_repl(
     except ImportError:
         logger.info("prompt-toolkit indisponível, usando input() nativo")
 
-    from nyx.agent.context import render_context_bar
     from nyx.agent.output import (
         build_warming_label,
         nyx_spinner,
@@ -378,7 +372,7 @@ async def run_repl(
         except Exception as exc:  # noqa: BLE001 -- warm-up best-effort
             logger.warning("warm-up pos-banner falhou: %s", exc)
 
-    warmup_task = asyncio.create_task(_warmup())
+    _warmup_task = asyncio.create_task(_warmup())  # noqa: F841 -- fire-and-forget, ref viva contra GC
     # UX-BUG-03: rastreamos summarize_task entre turns para cancelar a
     # anterior se ainda não terminou (evita acúmulo) e incluir no shutdown.
     summarize_task: "asyncio.Task | None" = None
@@ -418,6 +412,7 @@ async def run_repl(
     if use_application:
         try:
             from prompt_toolkit.history import FileHistory as _FH
+
             from nyx.agent.output import set_repl_app_output
             from nyx.agent.repl_app import append_to_buffer, build_app
 
@@ -765,6 +760,8 @@ def main() -> None:
         # antes do REPL: nome + aesthetic + entity + schema + banner + model + auto_approve.
         from nyx.agent.onboarding import (
             mark_done as _mark_onboarding_done,
+        )
+        from nyx.agent.onboarding import (
             run_first_run_wizard,
             should_run_tutorial,
         )
