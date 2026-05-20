@@ -62,7 +62,7 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (2026-05-17, commit 4769f80; correção do header via MASTER-CLEANUP-02 em 2026-05-20)
 **Data criação:** 2026-05-15
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 
