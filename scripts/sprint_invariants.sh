@@ -234,6 +234,37 @@ if out.count("◐") < 1:
         f"nyx/agent/output.py: build_warming_label sem glifo ◐ "
         f"(d0={out.count('◐')})"
     )
+# INFRA-SANITIZER-FIX-04: cobertura ampliada para arquivos que o sanitizer
+# antigo destruiu mas o check #14 não cobria (banner.py, repl_app.py,
+# design_tokens_extended.py).
+bn = Path("nyx/agent/banner.py").read_text(encoding="utf-8")
+if bn.count("●") < 4:
+    fails.append(
+        f"nyx/agent/banner.py: glifos ● insuficientes "
+        f"(cf={bn.count('●')}, esperado>=4 em _build_compact + _build_wide)"
+    )
+repl = Path("nyx/agent/repl_app.py").read_text(encoding="utf-8")
+if repl.count("●") < 1:
+    fails.append(
+        f"nyx/agent/repl_app.py: glifo ● insuficiente "
+        f"(cf={repl.count('●')}, esperado>=1)"
+    )
+dte = Path("nyx/themes/design_tokens_extended.py").read_text(encoding="utf-8")
+if dte.count("◆") < 1:
+    fails.append(
+        f"nyx/themes/design_tokens_extended.py: glifo ◆ insuficiente "
+        f"(cf={dte.count('◆')}, esperado>=1)"
+    )
+# INFRA-SANITIZER-FIX-04: auto-proteção. O próprio sprint_invariants.sh
+# precisa preservar os 3 glifos canônicos na definição deste check; sanitizer
+# que neutralize o check seria pego aqui.
+inv = Path("scripts/sprint_invariants.sh").read_text(encoding="utf-8")
+if inv.count("○") < 3 or inv.count("◐") < 3 or inv.count("●") < 3:
+    fails.append(
+        f"scripts/sprint_invariants.sh: auto-proteção falhou "
+        f"(cb={inv.count('○')}, d0={inv.count('◐')}, cf={inv.count('●')}, "
+        f"esperado>=3 cada para garantir check #14 não-neutralizado)"
+    )
 print("; ".join(fails))
 PY
 )
