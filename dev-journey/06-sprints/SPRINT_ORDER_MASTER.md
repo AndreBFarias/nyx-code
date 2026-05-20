@@ -471,10 +471,10 @@ Reorganização proposta priorizando meta v1.0 "Claude Code offline e opensource
 | 105 | **SBOM-REGISTRY-02** | 23.2 SBOM | ALTA | CONCLUIDA (sbom_sync.py regenera FEATURE_MAP.md de REGISTRY.yaml; --from-gauntlet absorve checkpoint.json para atualizar status/timestamp; ADR-028 PROPOSTO; sbom_init parser tolera tags [?]) | SBOM-REGISTRY-01 |
 | 106 | **SBOM-REGISTRY-03** | 23.2 SBOM | MÉDIA | CONCLUIDA (sbom_sync --propose-sprints --dry-run lista 62 stubs; cria SPRINT_FEAT_X-NN_TEST_01.md em producao/ com status RASCUNHO; não roda sem dry-run por default para evitar flood) | SBOM-REGISTRY-02 |
 | 107 | **COCKPIT-01** | 23.3 Cockpit | ALTA | CONCLUIDA (FastAPI server bind 127.0.0.1:11437 ADR-001; /health /api/features WS /stream; middleware loopback-only retorna 403 não-127.0.0.1; static/index.html placeholder; COCKPIT_PORT em defaults; integracao --cockpit no run.sh fica para sprint futura) | BOOT-VRAM-GUARD-01, SBOM-REGISTRY-02 |
-| 108 | **COCKPIT-02** | 23.3 Cockpit | ALTA | PENDENTE | COCKPIT-01 |
-| 109 | **COCKPIT-03** | 23.3 Cockpit | ALTA | PENDENTE | COCKPIT-02 |
-| 110 | **COCKPIT-04** | 23.3 Cockpit | MÉDIA | PENDENTE | COCKPIT-03 |
-| 111 | **COCKPIT-05** | 23.3 Cockpit | MÉDIA | PENDENTE | COCKPIT-04 |
+| 108 | **COCKPIT-02** | 23.3 Cockpit | ALTA | CONCLUIDA (commit e9707fc — feat(COCKPIT-02): PTY bridge + xterm.js vendored + WS /repl funcional; corrigido em MASTER-CLEANUP-02) | COCKPIT-01 |
+| 109 | **COCKPIT-03** | 23.3 Cockpit | ALTA | CONCLUIDA (commit 2ad145a — feat(COCKPIT-03): dashboard 62 cards + HTMX/Alpine vendored + gauntlet per-feature API; corrigido em MASTER-CLEANUP-02) | COCKPIT-02 |
+| 110 | **COCKPIT-04** | 23.3 Cockpit | MÉDIA | CONCLUIDA (commit 4ab1fdb — feat(COCKPIT-04+05): screenshot/evidencia + Control API + COCKPIT_API.md; corrigido em MASTER-CLEANUP-02) | COCKPIT-03 |
+| 111 | **COCKPIT-05** | 23.3 Cockpit | MÉDIA | CONCLUIDA (commit 4ab1fdb — junto com COCKPIT-04; corrigido em MASTER-CLEANUP-02) | COCKPIT-04 |
 | 112 | **UX-LOOP-01** | 23.4 Gamedesigner | ALTA | CONCLUIDA (ADR-025 PROPOSTO->ACEITO; loop_benchmark.py 3 medidas ack/tool_start/streaming todas <limites; fase Gauntlet loop com L-01) | ADR-023 |
 | 113 | **UX-AGENCY-01** | 23.4 Gamedesigner | ALTA | CONCLUIDA (MVP: ADR-026 ACEITO_PARCIAL; /? contextual com 3 ações; /cancel sentinela placeholder; UX-AGENCY-02 anti-debito para cancel asyncio + footer/prefix mutavel) | UX-LOOP-01 |
 | 114 | **UX-PROGRESSION-01** | 23.4 Gamedesigner | MÉDIA | CONCLUIDA (MVP: ADR-027 ACEITO_PARCIAL; MICROCOPY.md canonico + microcopy_audit.py detecta ingles/placeholders; UX-PROGRESSION-02 anti-debito para refactor amplo das mensagens) | UX-LOOP-01 |

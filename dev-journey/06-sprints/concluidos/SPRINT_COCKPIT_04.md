@@ -61,7 +61,7 @@ sprint:
 
 ---
 
-**Status:** BLOQUEADA
+**Status:** CONCLUIDA (corrigido em MASTER-CLEANUP-02 2026-05-20; ver MASTER linhas 108-111)
 **Data criação:** 2026-05-15
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 
