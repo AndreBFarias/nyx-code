@@ -247,6 +247,20 @@ NEEDS_OLLAMA = {"infra", "proxy", "tools", "qualidade", "performance", "resilien
 # Regex de feature_id (ex: I-01, P-03, T-12, Q-05, V-04, K-09, etc).
 _FEATURE_ID_RE = re.compile(r"^[A-Z]-\d{1,3}$")
 
+
+# ── GAUNTLET-FIXTURES-SANDBOX-01: scratch dir autorizado pelo gate ──────
+def _gauntlet_tmp_dir() -> Path:
+    """Diretório de scratch para fixtures que escrevem via tools sandboxed.
+
+    Retorna ~/.nyx/gauntlet_tmp/ criando se não existir. Esse diretório está
+    dentro de _NYX_DATA_DIR e portanto é root autorizado por validate_path()
+    em nyx/agent/tools/base.py (PROJECT-ROOTS-MULTI-01). Usar este helper em
+    qualquer fixture cujo path é passado a tools que validam escopo.
+    """
+    d = Path.home() / ".nyx" / "gauntlet_tmp"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
 # Mapeamento categoria do REGISTRY -> fase do gauntlet.
 _CATEGORIA_PARA_FASE_GAUNTLET = {
     "infraestrutura": "infra",
@@ -2031,7 +2045,6 @@ class NyxGauntlet:
 
     async def _phase_p3_tools(self) -> None:
         import json as _json
-        import tempfile
 
         # P3T-01: NotebookEdit cria e edita célula
         from nyx.agent.tools.notebook_edit import NotebookEditTool
@@ -2052,9 +2065,10 @@ class NyxGauntlet:
             "nbformat": 4,
             "nbformat_minor": 5,
         }
-        with tempfile.NamedTemporaryFile(suffix=".ipynb", mode="w", delete=False, encoding="utf-8") as f:
-            _json.dump(nb_content, f)
-            nb_path = f.name
+        # GAUNTLET-FIXTURES-SANDBOX-01: ~/.nyx/gauntlet_tmp/ é root autorizado.
+        nb_path_obj = _gauntlet_tmp_dir() / "nyx_p3t01_notebook.ipynb"
+        nb_path_obj.write_text(_json.dumps(nb_content), encoding="utf-8")
+        nb_path = str(nb_path_obj)
 
         r = nb_tool.execute(
             {
@@ -2265,12 +2279,11 @@ class NyxGauntlet:
     # ═══════════════════════════════════════════════════════════════════
 
     async def _phase_e2e_real(self) -> None:
-        import tempfile
-
         from nyx.agent.tools.registry import ToolRegistry
 
         reg = ToolRegistry(str(PROJECT_ROOT))
-        tmp_path = Path(tempfile.gettempdir()) / "nyx_f2_test.py"
+        # GAUNTLET-FIXTURES-SANDBOX-01: scratch dentro do root autorizado.
+        tmp_path = _gauntlet_tmp_dir() / "nyx_f2_test.py"
 
         # F2-01: Write+Read roundtrip
         content_to_write = "def hello():\n    return 'nyx_gauntlet_ok'\n"
@@ -2332,7 +2345,8 @@ class NyxGauntlet:
         self._add("F2-07", "Tool error handling", "e2e_real", ok, 0, details=f"error={r.error[:60]}")
 
         # F2-08: Pipeline completo
-        pipeline_path = Path(tempfile.gettempdir()) / "nyx_f2_pipeline.py"
+        # GAUNTLET-FIXTURES-SANDBOX-01: scratch dentro do root autorizado.
+        pipeline_path = _gauntlet_tmp_dir() / "nyx_f2_pipeline.py"
         r1 = reg.execute("write_file", {"file_path": str(pipeline_path), "content": "x = 1\n"})
         r2 = reg.execute("read_file", {"file_path": str(pipeline_path)})
         r3 = reg.execute("edit_file", {"file_path": str(pipeline_path), "old_string": "x = 1", "new_string": "x = 42"})
@@ -2823,8 +2837,6 @@ class NyxGauntlet:
     # ═══════════════════════════════════════════════════════════════════
 
     async def _phase_p8_edicao(self) -> None:
-        import tempfile
-
         # P8E-01: Analyze retorna estrutura
         from nyx.agent.tools.analyze_tool import AnalyzeTool
 
@@ -2836,7 +2848,8 @@ class NyxGauntlet:
         # P8E-02: Patch aplica diff
         from nyx.agent.tools.patch_tool import PatchTool
 
-        tmp = Path(tempfile.gettempdir()) / "nyx_p8_patch.py"
+        # GAUNTLET-FIXTURES-SANDBOX-01: scratch dentro do root autorizado.
+        tmp = _gauntlet_tmp_dir() / "nyx_p8_patch.py"
         tmp.write_text("linha1\nlinha2\nlinha3\n", encoding="utf-8")
         pt = PatchTool()
         patch = "-linha2\n+linha2_editada"
@@ -2851,8 +2864,9 @@ class NyxGauntlet:
         # P8E-03: MultiEdit atômico
         from nyx.agent.tools.multi_edit import MultiEditTool
 
-        f1 = Path(tempfile.gettempdir()) / "nyx_me1.py"
-        f2 = Path(tempfile.gettempdir()) / "nyx_me2.py"
+        # GAUNTLET-FIXTURES-SANDBOX-01: scratch dentro do root autorizado.
+        f1 = _gauntlet_tmp_dir() / "nyx_me1.py"
+        f2 = _gauntlet_tmp_dir() / "nyx_me2.py"
         f1.write_text("x = 1\n", encoding="utf-8")
         f2.write_text("y = 2\n", encoding="utf-8")
         me = MultiEditTool()
