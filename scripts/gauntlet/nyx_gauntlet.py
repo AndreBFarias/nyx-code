@@ -4098,6 +4098,40 @@ class NyxGauntlet:
                 error=str(e),
             )
 
+        # RB-04: handle_stats existe e contrato JSON via state in-memory (INFRA-OOM-02)
+        t = time.monotonic()
+        try:
+            import importlib as _imp
+
+            mod = _imp.import_module("nyx.proxy")
+            tem_handler = hasattr(mod, "handle_stats")
+            src = proxy_py.read_text(encoding="utf-8")
+            tem_rota = 'add_get("/admin/stats"' in src
+            tem_contador = "oom_recovery_count" in src
+            tem_initial = "num_gpu_initial" in src
+            tem_loopback_guard = src.count("_LOOPBACK_HOSTS") >= 4
+            ok = bool(tem_handler and tem_rota and tem_contador and tem_initial and tem_loopback_guard)
+            self._add(
+                "RB-04",
+                "Proxy expõe /admin/stats com contador OOM (INFRA-OOM-02)",
+                "robustez_boot",
+                ok,
+                time.monotonic() - t,
+                details=(
+                    f"handler={tem_handler} rota={tem_rota} contador={tem_contador} "
+                    f"initial={tem_initial} loopback={tem_loopback_guard}"
+                ),
+            )
+        except Exception as e:
+            self._add(
+                "RB-04",
+                "Proxy expõe /admin/stats com contador OOM (INFRA-OOM-02)",
+                "robustez_boot",
+                False,
+                time.monotonic() - t,
+                error=str(e),
+            )
+
     # ── Helpers ──────────────────────────────────────────────────────
 
     async def _health(self) -> bool:

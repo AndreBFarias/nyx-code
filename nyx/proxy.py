@@ -59,6 +59,20 @@ _INITIAL_NUM_GPU = _DEFAULT_NUM_GPU
 
 # Graceful degradation: quando Ollama retorna OOM, cai pra CPU permanente
 # até o fim da sessão. Evita loop de retry e mantém o serviço vivo (ADR-001).
+#
+# Trigger: _is_oom_error casa _OOM_PATTERNS contra texto da resposta 500
+# de /api/chat do Ollama (ex.: "cudaMalloc failed", "out of memory").
+#
+# Ação: ao primeiro hit, handle_chat seta _OOM_DEGRADED=True (módulo-global)
+# e state["num_gpu"]=0, depois re-emite a requisição com num_gpu=0 e loga
+# "OOM recovery OK". Incrementa state["oom_recovery_count"] (observabilidade
+# via GET /admin/stats — INFRA-OOM-02).
+#
+# Permanência: a degradação é PERMANENTE até restart do proxy. handle_tune
+# respeita o fail-safe e NÃO reanima GPU após OOM (ver bloco _OOM_DEGRADED
+# em handle_tune). Justificativa: evitar oscilação CPU<->GPU em loop quando
+# VRAM oscila no limite. ADR-001 Local First prioriza serviço vivo sobre
+# throughput.
 _OOM_DEGRADED = False
 _OOM_PATTERNS = (
     "out of memory",
@@ -419,6 +433,7 @@ async def handle_chat(request: web.Request) -> web.StreamResponse:
                         )
                     data = await retry_resp.json()
                     logger.info("OOM recovery OK: resposta via CPU")
+                    state["oom_recovery_count"] = state.get("oom_recovery_count", 0) + 1
             else:
                 return web.json_response(
                     {"error": {"message": text, "type": "api_error"}},
@@ -786,6 +801,29 @@ async def handle_tune(request: web.Request) -> web.Response:
     )
 
 
+async def handle_stats(request: web.Request) -> web.Response:
+    """Retorna snapshot de estado do proxy (loopback-only).
+
+    JSON: {oom_recovery_count, num_gpu_current, num_gpu_initial, oom_degraded}.
+    Leitura pura; não muta estado. Útil para diagnosticar sessões longas
+    sem grep no log (ver INFRA-OOM-02).
+    """
+    remote = request.remote or ""
+    if remote not in _LOOPBACK_HOSTS:
+        logger.warning("stats rejeitado: remote=%s não-loopback", remote)
+        return web.json_response({"error": "loopback only"}, status=403)
+
+    state = request.app["state"]
+    return web.json_response(
+        {
+            "oom_recovery_count": state.get("oom_recovery_count", 0),
+            "num_gpu_current": state.get("num_gpu", 0),
+            "num_gpu_initial": state.get("num_gpu_initial", state.get("num_gpu", 0)),
+            "oom_degraded": _OOM_DEGRADED,
+        }
+    )
+
+
 async def _on_startup(app: web.Application) -> None:
     app["http_session"] = ClientSession(timeout=ClientTimeout(total=600))
     # PROXY-NUMGPU-RUNTIME-01: aiohttp deprecia mutação de app[...] após
@@ -794,6 +832,8 @@ async def _on_startup(app: web.Application) -> None:
     # antes do startup com o num_gpu da CLI; defaults aplicados se ausente.
     state = app.setdefault("state", {})
     state.setdefault("num_gpu", _INITIAL_NUM_GPU)
+    state.setdefault("num_gpu_initial", state["num_gpu"])
+    state.setdefault("oom_recovery_count", 0)
     logger.info("Sessão HTTP criada (num_gpu inicial=%d)", state["num_gpu"])
 
 
@@ -822,7 +862,11 @@ def main():
     # PROXY-NUMGPU-RUNTIME-01: snapshot inicial vai pelo dict state interno;
     # pode ser re-tunado em runtime via GET /admin/tune sem reiniciar o proxy.
     # _on_startup garante a chave 'state' e popula num_gpu se ausente.
-    app["state"] = {"num_gpu": args.num_gpu}
+    app["state"] = {
+        "num_gpu": args.num_gpu,
+        "num_gpu_initial": args.num_gpu,
+        "oom_recovery_count": 0,
+    }
     app.on_startup.append(_on_startup)
     app.on_cleanup.append(_on_cleanup)
     app.router.add_post("/v1/chat/completions", handle_chat)
@@ -831,6 +875,7 @@ def main():
     app.router.add_get("/health", handle_health)
     app.router.add_post("/admin/shutdown", handle_shutdown)
     app.router.add_get("/admin/tune", handle_tune)
+    app.router.add_get("/admin/stats", handle_stats)
     web.run_app(app, host="127.0.0.1", port=args.port, print=None)
 
 
