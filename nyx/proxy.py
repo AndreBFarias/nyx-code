@@ -63,10 +63,12 @@ _INITIAL_NUM_GPU = _DEFAULT_NUM_GPU
 # Trigger: _is_oom_error casa _OOM_PATTERNS contra texto da resposta 500
 # de /api/chat do Ollama (ex.: "cudaMalloc failed", "out of memory").
 #
-# Ação: ao primeiro hit, handle_chat seta _OOM_DEGRADED=True (módulo-global)
-# e state["num_gpu"]=0, depois re-emite a requisição com num_gpu=0 e loga
-# "OOM recovery OK". Incrementa state["oom_recovery_count"] (observabilidade
-# via GET /admin/stats — INFRA-OOM-02).
+# Ação: ao primeiro hit, handle_chat tenta passo intermediário num_gpu // 2
+# antes do fallback CPU (INFRA-OOM-RETRY-STEP-01). Sequência: 15 -> 7 -> 0.
+# Se intermediário (GPU parcial) também retornar OOM, cai para num_gpu=0
+# e seta _OOM_DEGRADED=True. Cap de 2 retries total (sem loop).
+# Incrementa state["oom_recovery_count"] uma vez por OOM event (não por retry).
+# Observabilidade via GET /admin/stats (INFRA-OOM-02).
 #
 # Permanência: a degradação é PERMANENTE até restart do proxy. handle_tune
 # respeita o fail-safe e NÃO reanima GPU após OOM (ver bloco _OOM_DEGRADED
@@ -90,6 +92,18 @@ def _is_oom_error(text: str) -> bool:
         return False
     low = text.lower()
     return any(p in low for p in _OOM_PATTERNS)
+
+
+def _next_num_gpu_step(current: int) -> int:
+    """Calcula próximo passo de degradação OOM: current // 2 ou 0.
+
+    Sequência esperada (INFRA-OOM-RETRY-STEP-01): 15 -> 7 -> 0.
+    Quando current <= 1, retorna 0 (fim da cadeia, fallback CPU).
+    Quando current <= 0, retorna 0 (defensivo; não chamado em runtime).
+    """
+    if current <= 1:
+        return 0
+    return current // 2
 
 
 def _normalize_content(content):
@@ -419,21 +433,51 @@ async def handle_chat(request: web.Request) -> web.StreamResponse:
             logger.error("Ollama %d: %s", ollama_resp.status, text[:200])
 
             if _is_oom_error(text) and not _OOM_DEGRADED:
-                _OOM_DEGRADED = True
-                state["num_gpu"] = 0
-                logger.warning("OOM detectado. Degradando num_gpu=0 (CPU) para esta sessão")
-                ollama_body["options"]["num_gpu"] = 0
-                async with session.post(f"{OLLAMA_URL}/api/chat", json=ollama_body) as retry_resp:
-                    if retry_resp.status != 200:
-                        retry_text = await retry_resp.text()
-                        logger.error("Retry CPU falhou: %d %s", retry_resp.status, retry_text[:200])
-                        return web.json_response(
-                            {"error": {"message": retry_text, "type": "api_error"}},
-                            status=retry_resp.status,
-                        )
-                    data = await retry_resp.json()
-                    logger.info("OOM recovery OK: resposta via CPU")
-                    state["oom_recovery_count"] = state.get("oom_recovery_count", 0) + 1
+                intermediate = _next_num_gpu_step(num_gpu)
+                recovered = False
+
+                # 1o retry: passo intermediário (GPU parcial), apenas se intermediate > 0
+                if intermediate > 0:
+                    logger.warning("OOM degradation step: %d -> %d", num_gpu, intermediate)
+                    state["num_gpu"] = intermediate
+                    ollama_body["options"]["num_gpu"] = intermediate
+                    async with session.post(f"{OLLAMA_URL}/api/chat", json=ollama_body) as inter_resp:
+                        if inter_resp.status == 200:
+                            data = await inter_resp.json()
+                            logger.info("OOM recovery OK: resposta via GPU parcial (num_gpu=%d)", intermediate)
+                            state["oom_recovery_count"] = state.get("oom_recovery_count", 0) + 1
+                            recovered = True
+                        else:
+                            inter_text = await inter_resp.text()
+                            if not _is_oom_error(inter_text):
+                                logger.error(
+                                    "Retry intermediário falhou (não-OOM): %d %s",
+                                    inter_resp.status,
+                                    inter_text[:200],
+                                )
+                                return web.json_response(
+                                    {"error": {"message": inter_text, "type": "api_error"}},
+                                    status=inter_resp.status,
+                                )
+                            # OOM também no intermediário: cai para fallback CPU abaixo
+
+                # 2o retry: fallback CPU (acionado se intermediate <= 0 OU se 1o retry também deu OOM)
+                if not recovered:
+                    _OOM_DEGRADED = True
+                    state["num_gpu"] = 0
+                    logger.warning("OOM detectado. Degradando num_gpu=0 (CPU) para esta sessão")
+                    ollama_body["options"]["num_gpu"] = 0
+                    async with session.post(f"{OLLAMA_URL}/api/chat", json=ollama_body) as retry_resp:
+                        if retry_resp.status != 200:
+                            retry_text = await retry_resp.text()
+                            logger.error("Retry CPU falhou: %d %s", retry_resp.status, retry_text[:200])
+                            return web.json_response(
+                                {"error": {"message": retry_text, "type": "api_error"}},
+                                status=retry_resp.status,
+                            )
+                        data = await retry_resp.json()
+                        logger.info("OOM recovery OK: resposta via CPU")
+                        state["oom_recovery_count"] = state.get("oom_recovery_count", 0) + 1
             else:
                 return web.json_response(
                     {"error": {"message": text, "type": "api_error"}},

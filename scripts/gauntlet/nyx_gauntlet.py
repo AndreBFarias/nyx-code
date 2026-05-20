@@ -4151,6 +4151,61 @@ class NyxGauntlet:
                 error=str(e),
             )
 
+        # RB-05: handle_chat tem retry intermediario num_gpu // 2 antes de CPU (INFRA-OOM-RETRY-STEP-01)
+        t = time.monotonic()
+        try:
+            import importlib as _imp
+
+            mod = _imp.import_module("nyx.proxy")
+            tem_helper = hasattr(mod, "_next_num_gpu_step")
+            helper_ok = False
+            if tem_helper:
+                step = mod._next_num_gpu_step
+                helper_ok = (
+                    step(15) == 7
+                    and step(12) == 6
+                    and step(2) == 1
+                    and step(1) == 0
+                    and step(0) == 0
+                )
+            src = proxy_py.read_text(encoding="utf-8")
+            tem_log_step = "OOM degradation step" in src
+            tem_chain = "GPU parcial" in src and "Degradando num_gpu=0" in src
+            # Cap 2 retries: contar session.post chamadas dentro do branch OOM
+            # (linha "if _is_oom_error(text) and not _OOM_DEGRADED:" até próximo "else:")
+            posts_no_branch_oom = 0
+            in_branch = False
+            for line in src.splitlines():
+                if "if _is_oom_error(text)" in line and "_OOM_DEGRADED" in line:
+                    in_branch = True
+                    continue
+                if in_branch and line.lstrip().startswith("else:") and "if _is_oom_error" not in line:
+                    in_branch = False
+                if in_branch and "session.post" in line:
+                    posts_no_branch_oom += 1
+            cap_ok = posts_no_branch_oom <= 2
+            ok = bool(tem_helper and helper_ok and tem_log_step and tem_chain and cap_ok)
+            self._add(
+                "RB-05",
+                "Proxy tenta num_gpu intermediário antes de CPU (INFRA-OOM-RETRY-STEP-01)",
+                "robustez_boot",
+                ok,
+                time.monotonic() - t,
+                details=(
+                    f"helper={tem_helper} helper_ok={helper_ok} log_step={tem_log_step} "
+                    f"chain={tem_chain} posts_oom={posts_no_branch_oom} cap_ok={cap_ok}"
+                ),
+            )
+        except Exception as e:
+            self._add(
+                "RB-05",
+                "Proxy tenta num_gpu intermediário antes de CPU (INFRA-OOM-RETRY-STEP-01)",
+                "robustez_boot",
+                False,
+                time.monotonic() - t,
+                error=str(e),
+            )
+
     # ── Helpers ──────────────────────────────────────────────────────
 
     async def _health(self) -> bool:
