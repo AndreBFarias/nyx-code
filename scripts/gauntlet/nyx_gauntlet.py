@@ -2829,15 +2829,34 @@ class NyxGauntlet:
         ok = r is not None and ("ações" in r.lower() or "resumo" in r.lower())
         self._add("P5S-04", "/summary gera prompt", "p5_session", ok, 0, details=(r or "")[:60])
 
-        # P5S-05: /stats retorna magic
-        r = handle_command("/stats", str(PROJECT_ROOT))
+        # P5S-05: /session-stats retorna magic (renomeado em INFRA-OOM-STATS-CLI-01)
+        r = handle_command("/session-stats", str(PROJECT_ROOT))
         ok = r == "__stats__"
-        self._add("P5S-05", "/stats retorna magic", "p5_session", ok, 0)
+        self._add("P5S-05", "/session-stats retorna magic", "p5_session", ok, 0)
 
         # P5S-06: /usage retorna magic
         r = handle_command("/usage", str(PROJECT_ROOT))
         ok = r == "__usage__"
         self._add("P5S-06", "/usage retorna magic", "p5_session", ok, 0)
+
+        # P5S-07: /stats CLI consome /admin/stats sem crash (INFRA-OOM-STATS-CLI-01)
+        try:
+            r = handle_command("/stats", str(PROJECT_ROOT))
+            crashed = False
+        except Exception:
+            r = None
+            crashed = True
+        ok = (not crashed) and isinstance(r, str) and "[stats]" in r and (
+            "proxy offline" in r or "OOM recovery count" in r
+        )
+        self._add(
+            "P5S-07",
+            "/stats CLI consome /admin/stats (proxy DOWN ok)",
+            "p5_session",
+            ok,
+            0,
+            details=(r or "")[:80],
+        )
 
     # ═══════════════════════════════════════════════════════════════════
     # FASE: P5_EXECUTION (4 testes -- P5-D)

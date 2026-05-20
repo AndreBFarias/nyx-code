@@ -24,6 +24,7 @@ from nyx.agent.commands import (  # noqa: F401  -- side-effect: registra @nyx_co
     sandbox,
     schema,
     session,
+    stats,
     sudo_mode,
     system,
 )

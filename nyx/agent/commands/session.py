@@ -1,4 +1,7 @@
-"""Comandos de sessão -- session, resume, rewind, export, copy, summary, stats, usage, context, btw, files, trace."""
+"""Comandos de sessão.
+
+session, resume, rewind, export, copy, summary, session-stats, usage, context, btw, files, trace.
+"""
 
 from __future__ import annotations
 
@@ -145,8 +148,8 @@ def cmd_summary(_args: str, _root: str) -> str:
     )
 
 
-@nyx_command(name="stats", description="Estatísticas detalhadas da sessão", category="sessão",
-    examples=['/stats', '/stats verbose'],
+@nyx_command(name="session-stats", description="Estatísticas detalhadas da sessão", category="sessão",
+    examples=['/session-stats', '/session-stats verbose'],
 )
 def cmd_stats(_args: str, _root: str) -> str:
     return "__stats__"

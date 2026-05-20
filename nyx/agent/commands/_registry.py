@@ -89,7 +89,7 @@ ESSENTIAL_COMMANDS = (
 # TUI-REDESIGN-25-13: agrupamento canônico em 3 colunas (Sessão, Contexto, Modelo).
 # Comandos não-existentes são filtrados silenciosamente em format_help_3_cols.
 HELP_COLUMN_GROUPS: dict[str, tuple[str, ...]] = {
-    "Sessão": ("resume", "compact", "context", "clear", "quit", "stats", "cancel", "status"),
+    "Sessão": ("resume", "compact", "context", "clear", "quit", "session-stats", "cancel", "status"),
     "Contexto": ("memory", "add-dir", "init", "sandbox", "cd", "skills", "files", "paste", "recall"),
     "Modelo": ("model", "aesthetic", "schema", "output-style", "permissions", "hooks", "theme", "config", "env", "doctor"),  # noqa: E501
 }
