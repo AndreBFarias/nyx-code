@@ -19,7 +19,7 @@ sprint:
 
 # Sprint P-08 -- Session Persistence + Git Ops
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Prioridade:** MEDIA
 **Tipo:** Feature
 **Dependências:** P-07

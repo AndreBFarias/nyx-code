@@ -56,7 +56,7 @@ sprint:
 
 # Sprint AUDIT-01 -- Seguranca: Path Traversal, Preflight, Validator
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data:** 2026-04-15
 **Prioridade:** CRITICA
 **Tipo:** Bugfix/Seguranca

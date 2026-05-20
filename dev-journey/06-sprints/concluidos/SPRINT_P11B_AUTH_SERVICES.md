@@ -19,7 +19,7 @@ sprint:
 
 # Sprint P11-B -- Auth Services
 
-**Status:** PENDENTE  **Tipo:** Port  **Deps:** P10-A
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20)  **original:** PENDENTE  **Tipo:** Port  **Deps:** P10-A
 
 ## Services
 

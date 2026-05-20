@@ -25,7 +25,7 @@ sprint:
 
 # Sprint P1-D -- Controle
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Prioridade:** MEDIA
 **Tipo:** Port (Luna -> Nyx)
 **Dependências:** P1-A

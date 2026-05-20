@@ -46,7 +46,7 @@ sprint:
 
 # Sprint AUDIT-FIX-08 — Docstring output.py sem menção a IA
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data criação:** 2026-04-19
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 
@@ -67,7 +67,7 @@ sprint:
 
 ```python
 def render_tool_call_start(name: str, args: str) -> None:
-    """Imprime tool call estilo Claude Code: '⏺ nome(arg)' em accent color."""
+    """Imprime tool call estilo Claude Code: ' nome(arg)' em accent color."""
 ```
 
 Viola ADR-005 (Anonimato). Também viola o catálogo de gambiarras por sprint (linha 48 do GAMBIARRAS_POR_SPRINT.md), que atribui esse fechamento à UX-DESIGN-01 — incorreto, já que a docstring não tem relação com o design system.
@@ -86,18 +86,18 @@ Reescrever a docstring sem referência externa. Descrever o comportamento em ter
 
 **Antes (linha 303):**
 ```python
-    """Imprime tool call estilo Claude Code: '⏺ nome(arg)' em accent color."""
+    """Imprime tool call estilo Claude Code: ' nome(arg)' em accent color."""
 ```
 
 **Depois:**
 ```python
-    """Renderiza linha de tool call com bullet ⏺ em accent color."""
+    """Renderiza linha de tool call com bullet  em accent color."""
 ```
 
 **Mudanças:**
 - Troca `Imprime` → `Renderiza` (alinha com ADR-024 Render Layer).
 - Remove `estilo Claude Code`.
-- Remove exemplo literal `'⏺ nome(arg)'` (reduz ruído; comportamento está na assinatura).
+- Remove exemplo literal `' nome(arg)'` (reduz ruído; comportamento está na assinatura).
 
 ---
 
@@ -165,7 +165,7 @@ Esperado no diff: linha `[FAIL] 2. menção a IA` desaparece ou entra em PASS.
 | Risco | Mitigação |
 |-------|-----------|
 | Renomear função e esquecer caller | Mudança é apenas no corpo da docstring, não na assinatura |
-| Pre-commit rejeitar acentuação | Usar `⏺` e palavras com acentos (Renderiza já é PT-BR correto) |
+| Pre-commit rejeitar acentuação | Usar `` e palavras com acentos (Renderiza já é PT-BR correto) |
 
 ---
 

@@ -20,7 +20,7 @@ sprint:
 
 # Sprint P11-G -- Voz & Rate Limiting Services
 
-**Status:** PENDENTE  **Tipo:** Port  **Deps:** P11-C
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20)  **original:** PENDENTE  **Tipo:** Port  **Deps:** P11-C
 
 ## Services
 

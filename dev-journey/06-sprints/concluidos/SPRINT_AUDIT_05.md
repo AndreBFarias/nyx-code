@@ -30,7 +30,7 @@ sprint:
 
 # Sprint AUDIT-05 -- Performance: Conexoes, Search, Proxy
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data:** 2026-04-15
 **Prioridade:** MEDIA
 **Tipo:** Performance

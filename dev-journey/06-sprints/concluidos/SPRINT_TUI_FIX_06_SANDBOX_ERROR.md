@@ -32,7 +32,7 @@ sprint:
 
 # Sprint TUI-FIX-06 -- Erros de sandbox em PT-BR amigável
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data:** 2026-04-17
 **Prioridade:** BAIXA
 **Tipo:** UX + Refinamento
@@ -46,7 +46,7 @@ sprint:
 Screenshot 10 mostra o seguinte resultado de tool call:
 
 ```
-⏺ read_file(/home/andrefarias/Desenvolvimento/ArcaneTab/README.md)
+ read_file(/home/andrefarias/Desenvolvimento/ArcaneTab/README.md)
   └─ Acesso negado: '/home/andrefarias/Desenvolvimento/ArcaneTab/README.md' resolve …
 ```
 

@@ -23,7 +23,7 @@ sprint:
 
 # Sprint INFRA-02 -- Gauntlet coverage
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data:** 2026-04-05
 **Prioridade:** CRITICA
 **Tipo:** Infra

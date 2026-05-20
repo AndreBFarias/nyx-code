@@ -64,7 +64,7 @@ sprint:
 
 # Sprint AUDIT-FIX-05 — Split commands.py em pacote
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data criação:** 2026-04-18
 
 ## Contexto

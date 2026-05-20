@@ -30,7 +30,7 @@ sprint:
 
   acceptance_criteria:
     - "Spinner Braille ⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏ animado em operações async"
-    - "Meter inline (ex: progresso de download) usa ▰▱▰▱ ou similar"
+    - "Meter inline (ex: progresso de download) usa  ou similar"
     - "Cores via theme_manager (não hardcoded)"
     - "○ ◐ ● preservados na toolbar"
     - "Smoke ok"
@@ -41,7 +41,7 @@ sprint:
 
 # Sprint VISUAL-LAYOUT-07 — Spinner Braille + meter
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data criação:** 2026-05-18
 **Modelo obrigatório:** claude-opus-4-7
 

@@ -18,7 +18,7 @@ sprint:
 
 # Sprint P10-J -- Root Commands
 
-**Status:** PENDENTE  **Tipo:** Port  **Deps:** P10-D
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20)  **original:** PENDENTE  **Tipo:** Port  **Deps:** P10-D
 
 ## Commands
 

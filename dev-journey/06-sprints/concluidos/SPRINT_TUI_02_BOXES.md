@@ -38,7 +38,7 @@ sprint:
     - "Ctrl+Shift+V captura imagem do clipboard, salva em ~/.nyx/pastes/, insere '[Image #N]' no input"
     - "Após Enter, mensagem enviada aparece ecoada num box ╭─ você ─╮"
     - "Resposta do assistant renderizada com prefixo 'Nyx\\n───' (sem box, streaming inline)"
-    - "Tool calls: '⏺ nome(arg)' + '    └─ resumo' (1 linha do resultado)"
+    - "Tool calls: ' nome(arg)' + '    └─ resumo' (1 linha do resultado)"
     - "Ctrl+O expande última tool call inline (se couber na sprint)"
     - "Terminal <80 cols: fallback sem frame, prompt 'nyx> ' simples"
     - "[Image #N] persiste no histórico salvo em ~/.nyx/sessions/"
@@ -50,7 +50,7 @@ sprint:
 
 # Sprint TUI-02 -- Boxes: input persistente + multiline + image + eco + tool result
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data:** 2026-04-17
 **Prioridade:** ALTA
 **Tipo:** Feature (grande)
@@ -89,7 +89,7 @@ Escopo expandido após feedback em 2026-04-17: usuário pediu o frame persistent
   │ Segunda linha via Ctrl+J, multiline funciona.    │
   ╰──────────────────────────────────────────────────╯
 
-  ⏺ read_file(dev-journey/06-sprints/SPRINT_CTX_01_SUMMARIZER.md)
+   read_file(dev-journey/06-sprints/SPRINT_CTX_01_SUMMARIZER.md)
     └─ 1-40  Sprint CTX-01 -- SessionSummarizer
 
   Nyx
@@ -212,7 +212,7 @@ Chamado em `cli.py` logo após `ask()` retornar, antes de enviar pro agent.
 #   │ linha 1             │
 #   │ linha 2             │
 #   ╰─────────────────────╯
-# - Tool calls: ⏺ read_file(...) + └─ resumo
+# - Tool calls:  read_file(...) + └─ resumo
 # - Resposta sob "Nyx\n───"
 # Copiar imagem qualquer (print screen etc), Ctrl+Shift+V:
 # - Input mostra: > [Image #1]

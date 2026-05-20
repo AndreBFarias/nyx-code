@@ -67,7 +67,7 @@ sprint:
 
 # Sprint TUI-FIX-07B — Paste colapsado + /help categorizado
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data criação:** 2026-04-19
 **Origem:** split de TUI-FIX-07 (usabilidade geral inchada) em 3 sprints filhas. Herda Fases 2 e 3 do pai.
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)

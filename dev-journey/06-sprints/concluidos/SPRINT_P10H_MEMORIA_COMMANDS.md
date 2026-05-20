@@ -18,7 +18,7 @@ sprint:
 
 # Sprint P10-H -- Memória & Plugins Commands
 
-**Status:** PENDENTE  **Tipo:** Port  **Deps:** P10-C
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20)  **original:** PENDENTE  **Tipo:** Port  **Deps:** P10-C
 
 ## Commands
 

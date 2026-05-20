@@ -33,7 +33,7 @@ sprint:
 
 # Sprint COCKPIT-ACENTUACAO-FIX-01
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data criação:** 2026-05-19 (achado colateral)
 **Modelo obrigatório:** claude-opus-4-7
 

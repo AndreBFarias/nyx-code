@@ -21,7 +21,7 @@ sprint:
 
 # Sprint P11-A -- Infra Services
 
-**Status:** PENDENTE  **Tipo:** Port  **Deps:** P10-J
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20)  **original:** PENDENTE  **Tipo:** Port  **Deps:** P10-J
 
 ## Services
 

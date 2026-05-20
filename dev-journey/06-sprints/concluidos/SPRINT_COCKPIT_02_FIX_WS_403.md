@@ -39,7 +39,7 @@ sprint:
 
 # Sprint COCKPIT-02-FIX-WS-403
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data criação:** 2026-05-18 (achado colateral de COCKPIT-02)
 **Modelo obrigatório:** claude-opus-4-7
 

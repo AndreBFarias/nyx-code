@@ -41,7 +41,7 @@ sprint:
 
 # Sprint AUDIT-FIX-07 — ask_user retorna, não imprime
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data criação:** 2026-04-18
 
 ## Contexto

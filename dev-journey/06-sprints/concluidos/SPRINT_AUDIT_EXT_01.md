@@ -34,7 +34,7 @@ sprint:
 
 # Sprint AUDIT-EXT-01 — Auditoria externa independente
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data criação:** 2026-04-18
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 

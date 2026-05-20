@@ -39,7 +39,7 @@ sprint:
 
 # Sprint TUI-01 -- Higiene da interface
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data:** 2026-04-17
 **Prioridade:** ALTA
 **Tipo:** Bugfix + Refactor
@@ -79,7 +79,7 @@ Referência visual está no plano master (mock 1). Esta sprint é o primeiro pas
   - Extrai `file_path`/`path`/`command`/`pattern` (ordem de prioridade) como arg principal
   - Encurta path absoluto pra relativo se está dentro de `project_root`
   - Se relativo > 60 chars, substitui meio por `…` (ex: `dev-journey/…/SPRINT_ORDER.md`)
-  - Formato: `  ⏺ read_file(dev-journey/06-sprints/SPRINT_ORDER_MASTER.md)` com `⏺` em accent color
+  - Formato: `   read_file(dev-journey/06-sprints/SPRINT_ORDER_MASTER.md)` com `` em accent color
 - `nyx/cli.py:125-129`: substituir `on_tool` callback pelo novo render
 - `nyx/agent/loop.py:262-339`: remover `logger.info("[tool] ...")` -- vira só arquivo, não stdout
 
@@ -97,7 +97,7 @@ Referência visual está no plano master (mock 1). Esta sprint é o primeiro pas
 #  - "100% offline" (simples)
 #  - Digitar "Olá"
 #  - Ver "⋯ pensando..." enquanto modelo carrega
-#  - Ver tool calls como "⏺ read_file(path)" sem dict cru
+#  - Ver tool calls como " read_file(path)" sem dict cru
 #  - Ver resposta final
 #  - Nada de INFO/DEBUG na tela
 # Ctrl+D

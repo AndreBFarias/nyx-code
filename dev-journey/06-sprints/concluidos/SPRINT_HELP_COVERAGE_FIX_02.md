@@ -42,7 +42,7 @@ sprint:
 
 # Sprint HELP-COVERAGE-FIX-02 — `/aesthetic` exemplos
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data criação:** 2026-05-18
 **Modelo obrigatório:** claude-opus-4-7
 **Origem:** achado colateral durante execução de HELP-COVERAGE-FIX-01

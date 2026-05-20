@@ -22,7 +22,7 @@ sprint:
 
 # Sprint P10-A -- Auth Commands
 
-**Status:** PENDENTE  **Tipo:** Port  **Deps:** P9-B
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20)  **original:** PENDENTE  **Tipo:** Port  **Deps:** P9-B
 
 ## Commands
 

@@ -54,7 +54,7 @@ sprint:
 
 # Sprint PROJECT-ROOTS-MULTI-01
 
-**Status:** PENDENTE (humana ou agente)
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20)  **original:** PENDENTE (humana ou agente)
 **Data criação:** 2026-05-18 (achado de uso real)
 **Modelo obrigatório:** claude-opus-4-7
 

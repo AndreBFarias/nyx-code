@@ -32,7 +32,7 @@ sprint:
 
 # Sprint G-01 -- Framework do Gauntlet
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data:** 2026-04-04
 **Prioridade:** ALTA (desbloqueia G-02 a G-08)
 **Tipo:** Infra

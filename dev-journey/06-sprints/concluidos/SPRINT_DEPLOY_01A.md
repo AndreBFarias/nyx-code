@@ -61,7 +61,7 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data criação:** 2026-04-19
 **Origem:** divisão de DEPLOY-01 em duas sprints (script local + Docker/README).
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
@@ -322,7 +322,7 @@ Incluir no relatório final:
 1. **Dry-run quebrado**: flag existe mas fase 2 roda `pip install` sem guard. Fix: toda chamada destrutiva deve ter `[ $DRY_RUN -eq 0 ] && ...`.
 2. **Idempotência falsa**: 2a execução imprime "instalando" mas sai rápido porque pip não tem o que fazer — mas a saída muda. Critério é saída idêntica (menos data).
 3. **Distro hardcoded**: script assume apt. Fix: função `detect_pkg_manager`, erro claro se nenhum é suportado.
-4. **Emoji em cor ANSI**: usar `✓` verde em vez de `OK`. Proibido — `✓` é U+2713, considerado símbolo decorativo; usar apenas `OK`/`SKIP`/`ERRO` em texto.
+4. **Emoji em cor ANSI**: usar `` verde em vez de `OK`. Proibido — `` é U+2713, considerado símbolo decorativo; usar apenas `OK`/`SKIP`/`ERRO` em texto.
 5. **Expansão de path absoluta**: hardcodar `/home/andrefarias/...` no script. Fix: `SCRIPT_DIR="$(cd "$(dirname ...)" && pwd)"`.
 6. **README ou Gauntlet**: IA "aproveita" e começa a escrever README. Fora do escopo. Sprint é rejeitada se commit inclui `README.md` ou `scripts/gauntlet/*`.
 

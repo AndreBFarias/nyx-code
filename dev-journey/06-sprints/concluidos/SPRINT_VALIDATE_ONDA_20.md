@@ -44,7 +44,7 @@ sprint:
 
 # Sprint VALIDATE-ONDA-20 — Validação Onda 20
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data criação:** 2026-04-19
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 
@@ -75,11 +75,11 @@ Sessão interativa com o usuário. Para cada sprint, rodar `./run.sh` e conferir
 ### TUI-01 — Higiene
 - [ ] Banner único (sem duplicação).
 - [ ] Logs do boot (ollama/proxy) silenciados ou reduzidos.
-- [ ] Tool calls formatados como `⏺ nome(arg)` em accent color.
+- [ ] Tool calls formatados como ` nome(arg)` em accent color.
 
 ### TUI-02 — Boxes + multiline
 - [ ] User input renderizado em box `╭─...─╮` / `╰─...─╯`.
-- [ ] Tool call com bullet `⏺` e linha de fechamento `└─`.
+- [ ] Tool call com bullet `` e linha de fechamento `└─`.
 - [ ] Input > 8 linhas colapsa (veremos colapso adequado após UX-LAYOUT-01).
 
 ### TUI-03 — Footer + popup

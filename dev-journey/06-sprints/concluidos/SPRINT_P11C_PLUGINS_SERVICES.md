@@ -20,7 +20,7 @@ sprint:
 
 # Sprint P11-C -- Plugins & Content Services
 
-**Status:** PENDENTE  **Tipo:** Port  **Deps:** P11-A
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20)  **original:** PENDENTE  **Tipo:** Port  **Deps:** P11-A
 
 ## Services
 

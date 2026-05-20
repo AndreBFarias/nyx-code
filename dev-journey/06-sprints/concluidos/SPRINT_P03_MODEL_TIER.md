@@ -17,7 +17,7 @@ sprint:
 
 # Sprint P-03 -- Model Tier + Auto-Hardware
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Prioridade:** ALTA
 **Dependências:** P-01
 **Desbloqueia:** --

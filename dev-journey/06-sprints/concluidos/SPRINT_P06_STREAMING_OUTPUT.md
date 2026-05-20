@@ -20,7 +20,7 @@ sprint:
 
 # Sprint P-06 -- Streaming + Rich Output
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Prioridade:** ALTA
 **Tipo:** Feature
 **Dependências:** P-01

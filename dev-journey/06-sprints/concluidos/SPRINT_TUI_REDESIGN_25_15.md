@@ -45,7 +45,7 @@ sprint:
 
 # Sprint TUI-REDESIGN-25-15
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data criacao:** 2026-05-18
 **Modelo obrigatorio:** claude-opus-4-7
 

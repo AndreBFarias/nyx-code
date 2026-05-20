@@ -71,7 +71,7 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data criação:** 2026-05-17
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 **Origem:** achado colateral de UX-BUG-03 (commit 14e96aa). Anti-débito.

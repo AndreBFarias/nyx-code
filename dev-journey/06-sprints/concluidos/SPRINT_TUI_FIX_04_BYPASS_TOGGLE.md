@@ -25,7 +25,7 @@ sprint:
       timeout: 30
   acceptance_criteria:
     - "Shift+Tab alterna entre bypass_mode True/False"
-    - "Bottom toolbar mostra '⚡ bypass permissions ON' em cor distintiva quando ativo"
+    - "Bottom toolbar mostra ' bypass permissions ON' em cor distintiva quando ativo"
     - "Sem bypass: prompt de confirmação [S/n] aparece para edit_file/write_file/run_command/write_memory"
     - "Com bypass: sem prompts; tools executam direto"
     - "Rules de deny (rm -rf *, sudo *) continuam bloqueando mesmo com bypass"
@@ -37,7 +37,7 @@ sprint:
 
 # Sprint TUI-FIX-04 -- Shift+Tab toggle de bypass
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data:** 2026-04-17
 **Prioridade:** MÉDIA
 **Tipo:** Feature (pedida pelo usuário como padrão Claude Code)
@@ -80,7 +80,7 @@ PromptSession aceita `bottom_toolbar=callable`. Criar:
 ```python
 def get_bottom_toolbar():
     if app_state["bypass_mode"]:
-        return FormattedText([('fg:ansiyellow bold', ' ⚡ bypass permissions ON ')])
+        return FormattedText([('fg:ansiyellow bold', '  bypass permissions ON ')])
     return [('', '')]  # vazio quando off
 
 prompt_session = PromptSession(
@@ -114,7 +114,7 @@ Opcional: mudar cor do `nyx>` pra amarelo quando bypass ON, reforçando visualme
 ```bash
 ./run.sh
 # Shift+Tab
-# Ver rodapé "⚡ bypass permissions ON" em amarelo
+# Ver rodapé " bypass permissions ON" em amarelo
 # digitar "cria arquivo teste.txt com 'oi'"  -- deve executar SEM prompt [S/n]
 # Shift+Tab de novo
 # rodapé some

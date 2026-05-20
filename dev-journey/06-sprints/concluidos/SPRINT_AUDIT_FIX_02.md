@@ -45,7 +45,7 @@ sprint:
 
 # Sprint AUDIT-FIX-02 — Conectar NyxSettings ao bootstrap real
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data criação:** 2026-04-18
 **Dependência:** AUDIT-FIX-03 já concluída (portas centralizadas)
 
@@ -255,7 +255,7 @@ ls dev-journey/06-sprints/concluidos/SPRINT_AUDIT_FIX_02.md  # deve existir
 
 | Risco | Mitigação |
 |-------|-----------|
-| Import circular settings ↔ defaults | settings importa de defaults, nunca o contrário |
+| Import circular settings  defaults | settings importa de defaults, nunca o contrário |
 | Retrocompatibilidade quebrada | `settings=` é param opcional; chamadas antigas continuam funcionando |
 
 ---

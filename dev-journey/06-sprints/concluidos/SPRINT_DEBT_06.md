@@ -47,7 +47,7 @@ sprint:
 
 # Sprint DEBT-06 — Whitelist condicional no hook global de acentuação
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data criação:** 2026-04-19
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 

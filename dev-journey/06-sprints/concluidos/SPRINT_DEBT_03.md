@@ -38,7 +38,7 @@ sprint:
 
 # Sprint DEBT-03 — Logging via logging_service padrão
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data criação:** 2026-04-18
 
 ## Contexto

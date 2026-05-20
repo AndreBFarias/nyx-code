@@ -53,7 +53,7 @@ sprint:
 
 # Sprint VISUAL-LAYOUT-01 — design_tokens_extended.py (5 aesthetics + 7 entities)
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data criação:** 2026-05-18
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 

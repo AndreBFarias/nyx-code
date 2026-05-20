@@ -36,7 +36,7 @@ sprint:
 
 # Sprint AUDIT-FIX-01 — Remover service órfão `compact`
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data criação:** 2026-04-18
 
 ## Contexto (snapshot)

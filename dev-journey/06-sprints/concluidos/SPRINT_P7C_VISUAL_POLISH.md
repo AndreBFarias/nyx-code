@@ -28,7 +28,7 @@ sprint:
 
 # Sprint P7-C -- Visual polish
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data:** 2026-04-05
 **Prioridade:** BAIXA
 **Tipo:** Feature

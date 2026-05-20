@@ -21,7 +21,7 @@ sprint:
 
 # Sprint P11-E -- Conteúdo Services
 
-**Status:** PENDENTE  **Tipo:** Port  **Deps:** P11-B
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20)  **original:** PENDENTE  **Tipo:** Port  **Deps:** P11-B
 
 ## Services
 

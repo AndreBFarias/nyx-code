@@ -18,7 +18,7 @@ sprint:
 
 # Sprint P10-B -- Projeto Commands
 
-**Status:** PENDENTE  **Tipo:** Port  **Deps:** P9-B
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20)  **original:** PENDENTE  **Tipo:** Port  **Deps:** P9-B
 
 ## Commands
 

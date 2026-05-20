@@ -69,7 +69,7 @@ sprint:
 
 # Sprint TUI-FIX-07C — /memory, /paste, /tools, /recall
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data criação:** 2026-04-19
 **Origem:** split de TUI-FIX-07 em 3 sprints. Herda Fases 5 e 6 do pai + expansão para `/tools` e `/recall`.
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)

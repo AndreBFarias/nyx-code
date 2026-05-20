@@ -23,6 +23,6 @@ sprint:
 
 ---
 
-**Status:** BLOQUEADA
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data:** 2026-05-17
 **Origem:** anti-débito de UX-PROGRESSION-01

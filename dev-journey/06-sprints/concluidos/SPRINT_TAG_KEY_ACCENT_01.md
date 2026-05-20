@@ -72,7 +72,7 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (header corrigido em MASTER-CLEANUP-02 2026-05-20; presença em concluidos/ implica CONCLUIDA conforme convenção do projeto)
 **Data criação:** 2026-04-21
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 
@@ -83,7 +83,7 @@ sprint:
 > **ADRs relevantes:**
 >
 > - ADR-006 PT-BR: "ACENTUAÇÃO CORRETA É OBRIGATÓRIA em TODAS as respostas, código, commits, docs, comentários e variáveis em português." Chaves de dicionário em PT-BR são variáveis — entram na regra.
-> - ADR-013 Integração Obrigatória: chaves que atravessam módulos (output.py ↔ cli.py) são contrato e devem ser consistentes.
+> - ADR-013 Integração Obrigatória: chaves que atravessam módulos (output.py  cli.py) são contrato e devem ser consistentes.
 > - Meta-regra #1: valor que aparece em N lugares atualizar em todos ou nenhum.
 >
 > **Estado do sistema (verificado 2026-04-21 pós TUI-CLEANUP-01):**
