@@ -40,19 +40,25 @@ def build_system_prompt(
     memory_files: str = "",
     repo_map: str = "",
     session_summary: str = "",
+    active_plan: str = "",
     compact: bool = False,
     output_style: str = "default",
 ) -> str:
     """Constrói system prompt com contexto do projeto.
 
     Blocos dinâmicos (quando não-vazios) são injetados em ordem de estabilidade:
-    memória (mais estável) -> repo_map -> session_summary (mais volátil).
+    memória (mais estável) -> repo_map -> session_summary -> active_plan
+    (mais volátil; CTX-04).
 
     compact=True devolve a variante curta (sem schema de tools, sem blocos
     dinamicos). Use para turnos sem tools (PERF-INFERENCE-01).
 
     output_style (OUTPUT-STYLES-01): "default" | "concise" | "learning";
     injeta hint_prompt no bloco final. ADRs invariantes em todos os estilos.
+
+    active_plan (CTX-04): bloco já formatado vindo de
+    ``ActivePlan.render()``. Caller é responsável pelo cap de 500 tokens.
+    Se vazio, bloco não aparece.
     """
     if compact:
         return build_system_prompt_compact(project_root)
@@ -68,6 +74,8 @@ def build_system_prompt(
         sections.append(f"### Mapa do repositório\n{repo_map.strip()}\n---")
     if session_summary.strip():
         sections.append(f"### Sessão em andamento\n{session_summary.strip()}\n---")
+    if active_plan.strip():
+        sections.append(active_plan.strip())
 
     dynamic_block = ("\n\n" + "\n\n".join(sections) + "\n") if sections else ""
 

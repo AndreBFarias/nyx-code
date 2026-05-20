@@ -191,12 +191,21 @@ class AgentLoop(_IterationMixin):
         except Exception as e:  # noqa: BLE001
             logger.debug("repomap render falhou: %s", e)
         summary = getattr(self._session, "summary", "") if hasattr(self, "_session") else ""
+        # CTX-04: bloco do plano ativo (opt-in, vazio quando não existe).
+        active_plan_block = ""
+        try:
+            from nyx.agent.active_plan import render_active_plan_block
+
+            active_plan_block = render_active_plan_block()
+        except Exception as e:  # noqa: BLE001
+            logger.debug("active_plan render falhou: %s", e)
         prompt = build_system_prompt(
             self._project_root,
             self._tool_names,
             memory_files=self._memory_bundle,
             repo_map=repo_map,
             session_summary=summary,
+            active_plan=active_plan_block,
         )
         if self._guide_ctx:
             prompt += self._guide_ctx

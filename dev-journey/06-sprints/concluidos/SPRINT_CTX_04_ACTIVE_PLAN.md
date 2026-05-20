@@ -31,10 +31,10 @@ sprint:
 
 ---
 
-# Sprint CTX-04 -- Plano ativo opt-in (GSD-B) [OPCIONAL]
+# Sprint CTX-04 -- Plano ativo opt-in (GSD-B) [CONCLUIDA]
 
-**Status:** OPCIONAL
-**Data:** 2026-04-17
+**Status:** CONCLUIDA
+**Data:** 2026-04-17 (criada) / 2026-05-19 (executada na segunda sessão Validador)
 **Prioridade:** BAIXA
 **Tipo:** Feature
 **Dependências:** CTX-03

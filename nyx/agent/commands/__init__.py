@@ -18,6 +18,7 @@ from nyx.agent.commands import (  # noqa: F401  -- side-effect: registra @nyx_co
     git_cmds,
     mcp,
     output_style,
+    plan,
     plugin,
     progress,
     sandbox,
