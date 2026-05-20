@@ -50,7 +50,10 @@ sprint:
       deve_passar: "100% (regression-free)"
     - cmd: "./run.sh --gauntlet --only rapido"
       timeout: 300
-      deve_passar: "100% (regression-free; RB-04 novo PASS)"
+      deve_passar: "100% (regression-free)"
+    - cmd: "./run.sh --gauntlet --only robustez_boot"
+      timeout: 300
+      deve_passar: "100% (RB-04 novo PASS; fase rapido = {infra,proxy,visual,config}, RB-04 vive em robustez_boot — correção SPEC-FIX-OOM-02-FASE-RB04 2026-05-20)"
     - cmd: "curl -s http://127.0.0.1:11436/admin/stats | python -m json.tool"
       timeout: 10
       deve_passar: "JSON válido com chaves oom_recovery_count (int), num_gpu_current (int), num_gpu_initial (int), oom_degraded (bool)"
@@ -64,7 +67,7 @@ sprint:
     - "Novo handle_stats async def aceita GET, retorna JSON {oom_recovery_count, num_gpu_current, num_gpu_initial, oom_degraded}, rejeita 403 quando request.remote not in _LOOPBACK_HOSTS, segue mesmo padrão de handle_shutdown e handle_tune"
     - "Rota app.router.add_get('/admin/stats', handle_stats) registrada em main() após /admin/tune (linha 833)"
     - "_INITIAL_NUM_GPU continua imutável após OOM; num_gpu_initial em /admin/stats reflete snapshot inicial via args.num_gpu armazenado em main() ANTES de mutações"
-    - "RB-04 no gauntlet: import nyx.proxy + assert hasattr(handle_stats) + simular toggle de _OOM_DEGRADED via setattr + assert _OOM_DEGRADED reset para próximos testes (cleanup pattern de RB-03)"
+    - "RB-04 no gauntlet (fase robustez_boot, mirror de RB-03): import nyx.proxy + assert hasattr(handle_stats) + grep no source para confirmar 'state[\"oom_recovery_count\"]' inicializado + assert rota /admin/stats registrada via app.router.add_get. Padrão idêntico ao RB-03 real: só getattr/hasattr/grep, SEM setattr/toggle de _OOM_DEGRADED (RB-03 também não usa esse padrão — correção SPEC-FIX-OOM-02-FASE-RB04 2026-05-20)"
     - "Smoke ok"
     - "Invariantes 14/14"
     - "Gauntlet proxy + rapido 100% (sem regressão; RB-04 PASS novo)"
@@ -390,7 +393,7 @@ bash scripts/sprint_invariants.sh | tail -5    # FAIL_BEFORE = 0 (baseline)
 
 - `FAIL_AFTER` == `FAIL_BEFORE` (0).
 - Gauntlet proxy: passes ≥ baseline (idealmente +0; sprint não modifica testes proxy/*).
-- Gauntlet rapido: passes ≥ baseline + 1 (RB-04 novo PASS adicionado a `robustez_boot`).
+- Gauntlet robustez_boot: passes ≥ baseline + 1 (RB-04 novo PASS). Note: fase `rapido` mapeia para {infra, proxy, visual, config} (linha 123 do gauntlet) — RB-04 NÃO aparece em `--only rapido`; vive em `--only robustez_boot` junto com RB-01..RB-03. Correção textual via SPEC-FIX-OOM-02-FASE-RB04 (2026-05-20).
 
 ---
 
