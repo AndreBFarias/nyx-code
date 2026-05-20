@@ -252,6 +252,22 @@ Implicação: o critério de seleção continua relevante. Modelos thinking-only
 
 Detalhes literais + tabelas: ver `dev-journey/07-reports/RELATORIO_INFRA_RESILIENTE_MODELO_01.md`.
 
+## Stack OOM consolidado (2026-05-20, terceira sessão)
+
+Quatro sprints encadeadas formalizaram a infra de resiliência OOM já existente em `nyx/proxy.py` para validação empírica adicional do princípio "infra absorve quirks de modelo/hardware":
+
+| Sprint | Camada | Foco |
+|---|---|---|
+| INFRA-OOM-01 | Limite de processo | `ulimit -v` + `oom_score_adj` via `bin/nyx-runtime-limits.sh` (evita OOM-killer derrubar Ollama) |
+| INFRA-OOM-02 | Graceful degradation | docstring formal do mecanismo + contador `oom_recovery_count` + endpoint `GET /admin/stats` loopback + RB-04 no gauntlet |
+| INFRA-OOM-RETRY-STEP-01 | Retry intermediário | helper `_next_num_gpu_step(current)` retorna `max(1, current // 2)`; cadeia até 2 retries (`15 → 7 → 3 → 1 → 0`); `_OOM_DEGRADED=True` apenas no fallback CPU (preserva `handle_tune`) |
+| INFRA-OOM-HISTORY-01 | Persistência | `~/.nyx/proxy_stats.json` versão `"1"` com `oom_recovery_count` + `first_session` + `last_recovery`; escrita atômica `tmp + os.replace`; tratamento defensivo de 4 cenários (ausente, corrupção, schema inválido, OSError) que NUNCA derruba o boot (ADR-001) |
+| INFRA-OOM-STATS-CLI-01 | Visibilidade | slash `/stats` consumindo `GET /admin/stats` via httpx async; output PT-BR 4 linhas; tratamento de proxy DOWN sem crash |
+
+**Filosofia validada:** o modelo qwen2.5-coder:3b ocasionalmente alucina nome+description em tool calls e o hardware RTX 3050 4GB ocasionalmente sofre OOM. A infra do Nyx absorve ambos sem repassar erro ao cliente. Sequência de degradação observada em runtime real: GPU full → GPU // 2 → CPU permanente, com contador persistido e visível via REPL.
+
+Anti-débitos catalogados desta sessão (MASTER linhas 125gg–125jj): pattern `kv cache` ausente em `_OOM_PATTERNS` (sprint pendente `INFRA-OOM-PATTERNS-KV-CACHE-01`), heurística cap-counter no RB-05, padronização do `--paths` em proofs, planejador acentuar specs PT-BR no template.
+
 ## Referências
 
 - ADR-001 (Local First) -- nenhum modelo cloud.
@@ -261,6 +277,8 @@ Detalhes literais + tabelas: ver `dev-journey/07-reports/RELATORIO_INFRA_RESILIE
 - Sprint MODEL-SWAP-01 (spec).
 - Sprint LANG-ENFORCE-01 (BLOQUEADA, será re-avaliada com o novo modelo).
 - Sprint INFRA-MODEL-AGNOSTIC-01 -- validação empírica da tese "infra > modelo".
+- Sprints INFRA-OOM-01/02/RETRY-STEP/HISTORY/STATS-CLI -- stack OOM consolidado (seção acima).
+- Sprints IDENTITY-ENFORCE-01 + MEMORY-INTENT-ENFORCE-01 + GAUNTLET-TOOLS-DESC-MATCH-01 -- guardrails de proxy que forçam comportamento correto do modelo.
 - `logs/model_compare.json` (evidência runtime literal).
 - `dev-journey/07-reports/RELATORIO_INFRA_RESILIENTE_MODELO_01.md` (relatório consolidado).
 

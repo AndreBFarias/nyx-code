@@ -43,14 +43,29 @@ unset NYX_SUDO_PASSWORD
 
 `NYX_INSTALL_SKIP_PULL=1` pula `ollama pull` (útil em Docker, ver DEPLOY-01B).
 
-### Controle OOM (INFRA-OOM-01)
+### Controle OOM (stack INFRA-OOM-01 + 02 + RETRY-STEP + HISTORY + STATS-CLI)
 
-`run.sh` agora aplica automaticamente `ulimit -v 8GB` + `oom_score_adj -100` ao processo Nyx via `bin/nyx-runtime-limits.sh`. Em sessões longas com cockpit + Chrome MCP, isso reduz a chance do OOM-killer derrubar o Ollama.
+Camada 1 — **Limite do processo (INFRA-OOM-01)**:
+`run.sh` aplica `ulimit -v 8GB` + `oom_score_adj -100` ao processo Nyx via `bin/nyx-runtime-limits.sh`. Reduz chance do OOM-killer derrubar o Ollama em sessões longas com cockpit + Chrome MCP.
+
+Camada 2 — **Graceful degradation no proxy (INFRA-OOM-02)**:
+Quando Ollama retorna 500 com `cudaMalloc failed` (ou outro padrão de `_OOM_PATTERNS`), o proxy degrada `num_gpu` permanentemente até o fim da sessão. Snapshot inicial preservado em `num_gpu_initial`. `_OOM_DEGRADED=True` impede `handle_tune` de reanimar GPU (anti-oscilação CPUGPU).
+
+Camada 3 — **Retry intermediário (INFRA-OOM-RETRY-STEP-01)**:
+Antes de cair direto para `num_gpu=0`, o proxy tenta passo intermediário `num_gpu // 2` (sequência típica `15 → 7 → 3 → 1 → 0`). Modelo pode rodar parcialmente em GPU mesmo quando capacidade total não cabe.
+
+Camada 4 — **Observabilidade (INFRA-OOM-HISTORY-01 + STATS-CLI-01)**:
+- Contador `oom_recovery_count` persistido em `~/.nyx/proxy_stats.json` cross-session (auditoria longitudinal).
+- Endpoint `GET http://127.0.0.1:11436/admin/stats` retorna `{oom_recovery_count, num_gpu_current, num_gpu_initial, oom_degraded}` em loopback.
+- Slash `/stats` no CLI renderiza o mesmo em PT-BR.
 
 Diagnóstico ao primeiro sinal de degradação:
 
 ```bash
 bash scripts/check_oom.sh    # memória, swap, OOM kernel, top procs, oom_score do Nyx/Ollama
+curl -s http://127.0.0.1:11436/admin/stats | python -m json.tool
+# Ou no REPL:
+/stats
 ```
 
 ## Arquitetura
