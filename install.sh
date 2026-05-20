@@ -49,19 +49,20 @@ Flags:
   --no-prompt   Modo não-interativo (CI); usa defaults seguros
   -h, --help    Esta mensagem
 
-11 fases:
+12 fases:
   0  Requisitos mínimos (Python >=3.10, distro)
   1  Cria venv (se ausente)
   2  pip install -r requirements.txt
-  3  Instala Ollama via script oficial (se ausente)
-  4  Pull do modelo padrão (qwen2.5-coder:3b)
-  5  Pull moondream (respeita --no-vision)
-  6  Instala xclip (respeita pkg manager)
-  7  Pergunta sobre kitty (respeita --no-kitty)
-  8  chmod +x em run.sh e scripts/*.sh|.py
-  9  Smoke test (import nyx via venv)
- 10  Controle OOM (chmod bin/nyx-runtime-limits.sh + scripts/check_oom.sh)
- 11  Ícones XDG + desktop entry (hicolor + applications)
+  3  Garantia de zstd (pré-Ollama; instala se ausente, graceful em falha)
+  4  Instala Ollama via script oficial (se ausente)
+  5  Pull do modelo padrão (qwen2.5-coder:3b)
+  6  Pull moondream (respeita --no-vision)
+  7  Instala xclip (respeita pkg manager)
+  8  Pergunta sobre kitty (respeita --no-kitty)
+  9  chmod +x em run.sh e scripts/*.sh|.py
+ 10  Smoke test (import nyx via venv)
+ 11  Controle OOM (chmod bin/nyx-runtime-limits.sh + scripts/check_oom.sh)
+ 12  Ícones XDG + desktop entry (hicolor + applications)
 
 Variáveis de ambiente:
   NYX_SUDO_PASSWORD   senha sudo para CI/replicação (NÃO commit; lida só em runtime)
@@ -74,7 +75,7 @@ EOF
 done
 
 # --- HELPERS -----------------------------------------------
-TOTAL=11
+TOTAL=12
 print_header() {
     echo -e "${PRIMARY}${BOLD}"
     echo "  _   _                ____          _      "
@@ -163,7 +164,7 @@ fi
 print_ok "Python $PY_VER"
 
 if [ -z "$PKG_MANAGER" ]; then
-    print_warn "Nenhum gerenciador de pacotes suportado (apt/dnf/pacman/zypper). Fases 6 podem falhar."
+    print_warn "Nenhum gerenciador de pacotes suportado (apt/dnf/pacman/zypper). Fase 7 (xclip) pode falhar."
 else
     print_ok "Distro: gerenciador $PKG_MANAGER"
 fi
@@ -203,9 +204,39 @@ elif [ $DEV_MODE -eq 1 ]; then
 fi
 
 # ===========================================================
-# FASE 3 -- Ollama (instalar se ausente)
+# FASE 3 -- Garantia de zstd (pré-Ollama)
 # ===========================================================
-print_step 3 "Instalação do Ollama"
+# Script oficial do Ollama baixa archive .tar.zst que requer binário zstd.
+# Distros mínimas (ubuntu:22.04 base, debian:slim) não trazem zstd no PATH.
+# Achado em VALIDATE-FINAL-01-PARTE-2; ver INFRA-INSTALL-ZSTD-FALLBACK-01.
+print_step 3 "Garantia de zstd (pré-Ollama install)"
+
+if have_cmd zstd; then
+    print_skip "zstd já instalado ($(zstd --version 2>&1 | head -1))"
+elif [ -z "$PKG_MANAGER" ]; then
+    print_warn "zstd ausente e sem pkg-manager suportado -- Ollama install pode quebrar; instale zstd manualmente"
+else
+    print_warn "zstd ausente -- tentando instalar via $PKG_MANAGER"
+    ZSTD_OK=0
+    case "$PKG_MANAGER" in
+        apt-get) run_or_skip "apt install zstd"    sudo_run apt-get install -y zstd       && ZSTD_OK=1 || ZSTD_OK=0 ;;
+        dnf)     run_or_skip "dnf install zstd"    sudo_run dnf install -y zstd           && ZSTD_OK=1 || ZSTD_OK=0 ;;
+        pacman)  run_or_skip "pacman -S zstd"      sudo_run pacman -S --noconfirm zstd    && ZSTD_OK=1 || ZSTD_OK=0 ;;
+        zypper)  run_or_skip "zypper install zstd" sudo_run zypper install -y zstd        && ZSTD_OK=1 || ZSTD_OK=0 ;;
+    esac
+    if [ $DRY_RUN -eq 1 ]; then
+        print_skip "zstd install (dry-run)"
+    elif [ $ZSTD_OK -eq 1 ] && have_cmd zstd; then
+        print_ok "zstd instalado ($(zstd --version 2>&1 | head -1))"
+    else
+        print_warn "zstd install falhou ou pacote indisponível; Ollama install pode quebrar (graceful, continuando)"
+    fi
+fi
+
+# ===========================================================
+# FASE 4 -- Ollama (instalar se ausente)
+# ===========================================================
+print_step 4 "Instalação do Ollama"
 
 if have_cmd ollama; then
     print_skip "ollama já instalado ($(ollama --version 2>&1 | head -1))"
@@ -223,27 +254,27 @@ else
 fi
 
 # ===========================================================
-# FASE 4 -- modelo padrão
+# FASE 5 -- modelo padrão
 # ===========================================================
-print_step 4 "Modelo padrão ($DEFAULT_MODEL)"
+print_step 5 "Modelo padrão ($DEFAULT_MODEL)"
 
-# DEPLOY-01B: NYX_INSTALL_SKIP_PULL=1 pula FASES 4 e 5 quando o ambiente
-# nao tem `ollama serve` rodando (ex.: container Docker no Gauntlet).
+# DEPLOY-01B: NYX_INSTALL_SKIP_PULL=1 pula FASES 5 e 6 quando o ambiente
+# não tem `ollama serve` rodando (ex.: container Docker no Gauntlet).
 if [ "${NYX_INSTALL_SKIP_PULL:-0}" = "1" ]; then
     print_skip "NYX_INSTALL_SKIP_PULL=1 -- pull pulado"
 elif have_cmd ollama && ollama list 2>/dev/null | awk '{print $1}' | grep -q "^${DEFAULT_MODEL}$"; then
     print_skip "$DEFAULT_MODEL já baixado"
 elif ! have_cmd ollama; then
-    print_warn "ollama ausente -- pull pulado (rodar novamente após FASE 3)"
+    print_warn "ollama ausente -- pull pulado (rodar novamente após FASE 4)"
 else
     run_or_skip "ollama pull $DEFAULT_MODEL" ollama pull "$DEFAULT_MODEL"
     print_ok "$DEFAULT_MODEL baixado"
 fi
 
 # ===========================================================
-# FASE 5 -- moondream (visão)
+# FASE 6 -- moondream (visão)
 # ===========================================================
-print_step 5 "Modelo de visão ($VISION_MODEL)"
+print_step 6 "Modelo de visão ($VISION_MODEL)"
 
 if [ "${NYX_INSTALL_SKIP_PULL:-0}" = "1" ]; then
     print_skip "NYX_INSTALL_SKIP_PULL=1 -- pull pulado"
@@ -259,9 +290,9 @@ else
 fi
 
 # ===========================================================
-# FASE 6 -- xclip (clipboard)
+# FASE 7 -- xclip (clipboard)
 # ===========================================================
-print_step 6 "xclip (clipboard para Ctrl+V de imagens)"
+print_step 7 "xclip (clipboard para Ctrl+V de imagens)"
 
 if have_cmd xclip; then
     print_skip "xclip já instalado"
@@ -278,9 +309,9 @@ else
 fi
 
 # ===========================================================
-# FASE 7 -- kitty (opcional)
+# FASE 8 -- kitty (opcional)
 # ===========================================================
-print_step 7 "Kitty terminal (opcional)"
+print_step 8 "Kitty terminal (opcional)"
 
 if have_cmd kitty; then
     print_skip "kitty já instalado"
@@ -302,9 +333,9 @@ else
 fi
 
 # ===========================================================
-# FASE 8 -- permissões (chmod +x sempre)
+# FASE 9 -- permissões (chmod +x sempre)
 # ===========================================================
-print_step 8 "Permissões executáveis"
+print_step 9 "Permissões executáveis"
 
 if [ $DRY_RUN -eq 1 ]; then
     print_skip "chmod +x (dry-run)"
@@ -315,9 +346,9 @@ else
 fi
 
 # ===========================================================
-# FASE 9 -- smoke test
+# FASE 10 -- smoke test
 # ===========================================================
-print_step 9 "Smoke test (import nyx)"
+print_step 10 "Smoke test (import nyx)"
 
 if [ -x "$SCRIPT_DIR/venv/bin/python" ]; then
     if [ $DRY_RUN -eq 1 ]; then
@@ -333,9 +364,9 @@ else
 fi
 
 # ===========================================================
-# FASE 10 -- Controle OOM (INFRA-OOM-01)
+# FASE 11 -- Controle OOM (INFRA-OOM-01)
 # ===========================================================
-print_step 10 "Controle OOM (ulimit + oom_score_adj)"
+print_step 11 "Controle OOM (ulimit + oom_score_adj)"
 
 LIMITS_SH="$SCRIPT_DIR/bin/nyx-runtime-limits.sh"
 if [ -f "$LIMITS_SH" ]; then
@@ -350,9 +381,9 @@ else
 fi
 
 # ===========================================================
-# FASE 11 -- Ícones XDG + desktop entry (BRANDING-MONO-STENCIL)
+# FASE 12 -- Ícones XDG + desktop entry (BRANDING-MONO-STENCIL)
 # ===========================================================
-print_step 11 "Ícones XDG (hicolor) + entry no menu"
+print_step 12 "Ícones XDG (hicolor) + entry no menu"
 
 XDG_ICONS="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor"
 XDG_APPS="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
