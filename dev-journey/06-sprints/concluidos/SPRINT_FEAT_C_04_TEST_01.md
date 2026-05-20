@@ -22,7 +22,7 @@ sprint:
 
 ---
 
-**Status:** RASCUNHO
+**Status:** CONCLUIDA (2026-05-19, gauntlet 208/220, teste C-04 [OK])
 **Data criação:** 2026-05-17
 **Origem:** sbom_sync.py --propose-sprints
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)

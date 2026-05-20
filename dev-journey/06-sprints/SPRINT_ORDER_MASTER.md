@@ -806,6 +806,30 @@ Após INFRA, toda sprint usa scaffold.py. Gauntlet valida completude automaticam
 
 **Cada sprint inclui testes no Gauntlet. Sprint só é CONCLUÍDA quando Gauntlet valida.**
 
+---
+
+## Onda 25 — Promoção SBOM batch 2 (CONCLUIDA 2026-05-19, gauntlet 208/220 = 95%)
+
+Espelha o que SBOM-PROMOTE-IP (commit `1c5d264`) fez na Onda 24. 20 sprints `SPRINT_FEAT_*_TEST_01.md` movidas `producao/` → `concluidos/` após confirmar que o teste correspondente do gauntlet completo retornou `[OK]`:
+
+- **Config:** C-01, C-02, C-03, C-04 (4 specs, 100% da fase config)
+- **Kernel/Coverage:** K-01, K-03, K-04, K-08, K-10 (5 specs; K-02/05/06/07/09 ainda RASCUNHO por teste FAIL ou ausente)
+- **Qualidade:** Q-02, Q-04, Q-05, Q-06, Q-07 (5 specs; Q-01/03 ainda RASCUNHO)
+- **Resiliência:** R-01, R-05 (2 specs; R-02/03/04 ainda RASCUNHO)
+- **Tools:** T-05 (1 spec; T-01/02/03/04/06/07/08/09 ainda RASCUNHO — vários por divergência de descrição "Read Lê arquivo" vs "Read")
+- **Visual:** V-05, V-06, V-07 (3 specs; V-01/02/03/04 ainda RASCUNHO)
+
+**Pendentes (31 specs RASCUNHO):** I-02/04/06/07/08/10, K-02/05/06/07/09, P-03/08, Q-01/03, R-02/03/04, T-01/02/03/04/06/07/08/09, V-01/02/03/04 (precisam de teste no gauntlet ou divergem em nomenclatura). Cada um vira sprint própria via planejador-sprint se houver demanda.
+
+**Anti-débito conhecido:** alguns testes de Tools falham por divergência de descrição literal ("Read" esperado, recebeu "Read Lê arquivo") — fix de spec do teste, não regressão. Materializar **GAUNTLET-TOOLS-DESC-MATCH-01** se ressurgir como prioridade.
+
+**Proof-of-work:**
+- `./run.sh --gauntlet` → 208/220 (95%), REPROVADO formal (regra 100%)
+- 12 falhas: P-07, T-01/03/06/08/09, F2-03/06, SCF-02, COV-01, SYNC-02, CTX-11 (todas com sprint anti-débito existente ou em RASCUNHO)
+- Smoke `boot ok`; invariantes 14/14 PASS REAL
+
+---
+
 ## Projeção de testes
 
 | Onda | Conteúdo | Testes novos | Total |

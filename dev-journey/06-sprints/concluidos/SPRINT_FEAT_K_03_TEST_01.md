@@ -1,11 +1,11 @@
-# SPRINT FEAT-Q-06-TEST-01 — Cobrir feature Q-06 com teste no Gauntlet
+# SPRINT FEAT-K-03-TEST-01 — Cobrir feature K-03 com teste no Gauntlet
 
 ## 0. SPEC
 
 ```yaml
 sprint:
-  id: FEAT-Q-06-TEST-01
-  title: "Cobrir feature Q-06 (Sem emojis na resposta) com teste no Gauntlet"
+  id: FEAT-K-03-TEST-01
+  title: "Cobrir feature K-03 (TTFR (Time to First Response) - chat) com teste no Gauntlet"
   onda: 23
   bloco: 23.2 SBOM (auto-proposto)
   prioridade: BAIXA
@@ -15,14 +15,14 @@ sprint:
   origem: "Auto-proposto por sbom_sync.py --propose-sprints; status era 'desconhecido' em REGISTRY.yaml."
 
   acceptance_criteria:
-    - "Feature Q-06 ganha entry de teste no Gauntlet"
-    - "REGISTRY.yaml passa a ter status verde ou vermelho (não desconhecido) para Q-06"
-    - "Validação: 'Zero emojis'"
+    - "Feature K-03 ganha entry de teste no Gauntlet"
+    - "REGISTRY.yaml passa a ter status verde ou vermelho (não desconhecido) para K-03"
+    - "Validação: '<15s'"
 ```
 
 ---
 
-**Status:** RASCUNHO
+**Status:** CONCLUIDA (2026-05-19, gauntlet 208/220, teste K-03 [OK])
 **Data criação:** 2026-05-17
 **Origem:** sbom_sync.py --propose-sprints
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)

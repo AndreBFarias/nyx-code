@@ -1,11 +1,11 @@
-# SPRINT FEAT-C-02-TEST-01 — Cobrir feature C-02 com teste no Gauntlet
+# SPRINT FEAT-K-08-TEST-01 — Cobrir feature K-08 com teste no Gauntlet
 
 ## 0. SPEC
 
 ```yaml
 sprint:
-  id: FEAT-C-02-TEST-01
-  title: "Cobrir feature C-02 (NyxSettings carrega .env + CLI args) com teste no Gauntlet"
+  id: FEAT-K-08-TEST-01
+  title: "Cobrir feature K-08 (VRAM em uso estável) com teste no Gauntlet"
   onda: 23
   bloco: 23.2 SBOM (auto-proposto)
   prioridade: BAIXA
@@ -15,14 +15,14 @@ sprint:
   origem: "Auto-proposto por sbom_sync.py --propose-sprints; status era 'desconhecido' em REGISTRY.yaml."
 
   acceptance_criteria:
-    - "Feature C-02 ganha entry de teste no Gauntlet"
-    - "REGISTRY.yaml passa a ter status verde ou vermelho (não desconhecido) para C-02"
-    - "Validação: 'Prioridade: CLI > .env > defaults'"
+    - "Feature K-08 ganha entry de teste no Gauntlet"
+    - "REGISTRY.yaml passa a ter status verde ou vermelho (não desconhecido) para K-08"
+    - "Validação: '<2500'"
 ```
 
 ---
 
-**Status:** RASCUNHO
+**Status:** CONCLUIDA (2026-05-19, gauntlet 208/220, teste K-08 [OK])
 **Data criação:** 2026-05-17
 **Origem:** sbom_sync.py --propose-sprints
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)

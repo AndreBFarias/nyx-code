@@ -1,11 +1,11 @@
-# SPRINT FEAT-K-08-TEST-01 — Cobrir feature K-08 com teste no Gauntlet
+# SPRINT FEAT-K-10-TEST-01 — Cobrir feature K-10 com teste no Gauntlet
 
 ## 0. SPEC
 
 ```yaml
 sprint:
-  id: FEAT-K-08-TEST-01
-  title: "Cobrir feature K-08 (VRAM em uso estável) com teste no Gauntlet"
+  id: FEAT-K-10-TEST-01
+  title: "Cobrir feature K-10 (Tempo total do gauntlet) com teste no Gauntlet"
   onda: 23
   bloco: 23.2 SBOM (auto-proposto)
   prioridade: BAIXA
@@ -15,14 +15,14 @@ sprint:
   origem: "Auto-proposto por sbom_sync.py --propose-sprints; status era 'desconhecido' em REGISTRY.yaml."
 
   acceptance_criteria:
-    - "Feature K-08 ganha entry de teste no Gauntlet"
-    - "REGISTRY.yaml passa a ter status verde ou vermelho (não desconhecido) para K-08"
-    - "Validação: '<2500'"
+    - "Feature K-10 ganha entry de teste no Gauntlet"
+    - "REGISTRY.yaml passa a ter status verde ou vermelho (não desconhecido) para K-10"
+    - "Validação: '<20min'"
 ```
 
 ---
 
-**Status:** RASCUNHO
+**Status:** CONCLUIDA (2026-05-19, gauntlet 208/220, teste K-10 [OK])
 **Data criação:** 2026-05-17
 **Origem:** sbom_sync.py --propose-sprints
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
