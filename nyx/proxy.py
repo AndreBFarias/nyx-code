@@ -211,7 +211,7 @@ def _strip_think(text: str) -> str:
 _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*", re.IGNORECASE)
 
 
-def _extract_tool_call_from_content(text: str) -> dict | None:
+def _extract_tool_call_from_content(text: str, allowed_names: list[str] | None = None) -> dict | None:
     """Detecta tool_call emitido como JSON dentro do content.
 
     Modelos como qwen2.5-coder:3b não expõem `tool_calls` nativo do Ollama;
@@ -225,6 +225,11 @@ def _extract_tool_call_from_content(text: str) -> dict | None:
         ```
         {"name": "Read", "arguments": {...}}
         {"tool": "Read", "args": {...}}
+
+    GAUNTLET-TOOLS-DESC-MATCH-01: quando `allowed_names` é fornecido e o
+    modelo alucina o `name` concatenando nome + description (ex: "Read Lê
+    arquivo"), tentamos cross-validar e normalizar pegando o primeiro
+    whitespace-token que casa com algum nome permitido.
 
     Retorna {"name": str, "arguments": str_json} ou None.
     """
@@ -254,6 +259,15 @@ def _extract_tool_call_from_content(text: str) -> dict | None:
     args = data.get("arguments") or data.get("args") or data.get("parameters") or {}
     if not name or not isinstance(name, str):
         return None
+    if allowed_names and name not in allowed_names:
+        first_token = name.split()[0] if name.split() else ""
+        if first_token and first_token in allowed_names:
+            logger.warning(
+                "tool name corrompido pelo modelo normalizado: %r -> %r",
+                name,
+                first_token,
+            )
+            name = first_token
     if isinstance(args, dict):
         args_json = json.dumps(args, ensure_ascii=False)
     elif isinstance(args, str):
@@ -263,11 +277,18 @@ def _extract_tool_call_from_content(text: str) -> dict | None:
     return {"name": name, "arguments": args_json}
 
 
-def ollama_to_openai(data: dict, model: str, has_tools_request: bool = False) -> dict:
+def ollama_to_openai(
+    data: dict,
+    model: str,
+    has_tools_request: bool = False,
+    allowed_tool_names: list[str] | None = None,
+) -> dict:
     """Converte resposta Ollama nativa -> formato OpenAI.
 
     Se `has_tools_request` e o modelo emitiu JSON tool_call no content (formato
     não-nativo), promove para tool_calls OpenAI (GAUNTLET-RAPIDO-FIXES-01 P-07).
+    `allowed_tool_names` habilita cross-validation contra a lista do request
+    (GAUNTLET-TOOLS-DESC-MATCH-01).
     """
     msg = data.get("message", {})
     content = _strip_think(msg.get("content", ""))
@@ -282,7 +303,7 @@ def ollama_to_openai(data: dict, model: str, has_tools_request: bool = False) ->
     tool_calls = msg.get("tool_calls")
     # Fallback: quando o request tinha tools mas o modelo emitiu JSON inline.
     if not tool_calls and has_tools_request and content:
-        extracted = _extract_tool_call_from_content(content)
+        extracted = _extract_tool_call_from_content(content, allowed_names=allowed_tool_names)
         if extracted:
             tool_calls = [{"function": extracted}]
             logger.info("tool_call extraido do content (formato JSON inline)")
@@ -369,7 +390,18 @@ async def handle_chat(request: web.Request) -> web.StreamResponse:
     logger.info("Ollama raw keys: %s", list(data.get("message", {}).keys()))
     logger.info("Ollama tool_calls: %s", data.get("message", {}).get("tool_calls", "NONE"))
     has_tools_request = bool(body.get("tools"))
-    result = ollama_to_openai(data, model, has_tools_request=has_tools_request)
+    allowed_tool_names = [
+        t.get("function", {}).get("name", "")
+        for t in body.get("tools", [])
+        if isinstance(t, dict)
+    ]
+    allowed_tool_names = [n for n in allowed_tool_names if n]
+    result = ollama_to_openai(
+        data,
+        model,
+        has_tools_request=has_tools_request,
+        allowed_tool_names=allowed_tool_names or None,
+    )
 
     # LANG-ENFORCE-01: guardrail de idioma em respostas conversacionais.
     # Cobre saudacao/chat/comando (qwen2.5-coder:3b frequentemente responde
