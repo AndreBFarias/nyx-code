@@ -102,11 +102,99 @@ def render(aesthetic_id: str) -> str:
 
 
 def main() -> int:
-    if len(sys.argv) > 1:
-        aid = sys.argv[1]
-    else:
-        aid = os.environ.get("NYX_AESTHETIC", "default")
+    import argparse
+
+    from scripts.visual._capture_helpers import (
+        MIDFRAME_PCT_DEFAULT,
+        capture_terminal,
+        capture_web,
+        should_capture_midframe,
+    )
+
+    parser = argparse.ArgumentParser(
+        description="Render aesthetic showcase com captura midframe + final."
+    )
+    parser.add_argument(
+        "aesthetic",
+        nargs="?",
+        default=None,
+        help="ID da aesthetic (default: $NYX_AESTHETIC ou 'default')",
+    )
+    parser.add_argument(
+        "--midframe-pct",
+        type=int,
+        default=MIDFRAME_PCT_DEFAULT,
+        help=(
+            "Percentual da duracao para captura intermediaria (0..100). "
+            "0 ou 100 desabilita midframe. Default: 50."
+        ),
+    )
+    parser.add_argument(
+        "--anim-duration-sec",
+        type=float,
+        default=1.0,
+        help="Duracao total da animacao em segundos. Default: 1.0.",
+    )
+    parser.add_argument(
+        "--out",
+        type=str,
+        default=None,
+        help="Prefix de saida. Default: None (sem captura).",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["terminal", "web"],
+        default="terminal",
+        help="Modo de captura: terminal (xdotool+import) ou web (chrome headless).",
+    )
+    parser.add_argument(
+        "--url",
+        type=str,
+        default=None,
+        help="URL para modo web (ex.: http://127.0.0.1:11437/repl).",
+    )
+    args = parser.parse_args()
+
+    aid = args.aesthetic or os.environ.get("NYX_AESTHETIC", "default")
+
+    # Render do quadro (mesmo de sempre, comportamento preservado).
     print(render(aid))
+
+    # Retrocompat absoluta: sem --out, não tenta captura (fluxo VISUAL-LAYOUT-06
+    # que só consome stdout continua válido).
+    if args.out is None:
+        return 0
+
+    out_prefix = args.out
+
+    if args.mode == "terminal":
+        if should_capture_midframe(args.midframe_pct):
+            capture_terminal(
+                window_name="kitty",
+                out_path=f"{out_prefix}_midframe.png",
+                delay_sec=args.anim_duration_sec * args.midframe_pct / 100.0,
+            )
+        capture_terminal(
+            window_name="kitty",
+            out_path=f"{out_prefix}_final.png",
+            delay_sec=args.anim_duration_sec,
+        )
+    else:
+        if args.url is None:
+            print("ERRO: --mode web exige --url", file=sys.stderr)
+            return 2
+        if should_capture_midframe(args.midframe_pct):
+            capture_web(
+                url=args.url,
+                out_path=f"{out_prefix}_midframe.png",
+                delay_sec=args.anim_duration_sec * args.midframe_pct / 100.0,
+            )
+        capture_web(
+            url=args.url,
+            out_path=f"{out_prefix}_final.png",
+            delay_sec=args.anim_duration_sec,
+        )
+
     return 0
 
 
