@@ -23,6 +23,14 @@ NYX_PLUGINS_DIR: str = os.environ.get(
     str(__import__("pathlib").Path.home() / ".nyx" / "plugins"),
 )
 
+# Stats persistidos do proxy (INFRA-OOM-HISTORY-01). Mantem oom_recovery_count
+# cross-session para auditoria longitudinal de instabilidade. JSON pequeno,
+# atomico via tmp + os.replace. Override via NYX_PROXY_STATS_PATH (test isolation).
+PROXY_STATS_PATH: str = os.environ.get(
+    "NYX_PROXY_STATS_PATH",
+    str(__import__("pathlib").Path.home() / ".nyx" / "proxy_stats.json"),
+)
+
 # Cockpit (COCKPIT-01). FastAPI server bind 127.0.0.1 apenas.
 COCKPIT_PORT: int = int(os.environ.get("NYX_COCKPIT_PORT", "11437"))
 COCKPIT_HOST: str = "127.0.0.1"

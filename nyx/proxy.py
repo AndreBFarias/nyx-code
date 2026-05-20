@@ -46,6 +46,7 @@ from nyx.config.defaults import OLLAMA_KEEP_ALIVE as _KEEP_ALIVE  # noqa: E402
 from nyx.config.defaults import OLLAMA_PORT as _DEFAULT_OLLAMA_PORT  # noqa: E402
 from nyx.config.defaults import OLLAMA_URL as _DEFAULT_OLLAMA_URL  # noqa: E402
 from nyx.config.defaults import PROXY_PORT as _DEFAULT_PROXY_PORT  # noqa: E402
+from nyx.config.defaults import PROXY_STATS_PATH as _PROXY_STATS_PATH  # noqa: E402
 from nyx.config.defaults import model_supports_thinking as _model_supports_thinking  # noqa: E402
 from nyx.config.defaults import num_predict_for as _num_predict_for  # noqa: E402
 
@@ -104,6 +105,77 @@ def _next_num_gpu_step(current: int) -> int:
     if current <= 1:
         return 0
     return current // 2
+
+
+def _load_persisted_stats(path: Path | None = None) -> dict:
+    """Lê ~/.nyx/proxy_stats.json. Retorna dict com 'oom_recovery_count' (int).
+
+    Tratamento defensivo (INFRA-OOM-HISTORY-01):
+    - arquivo ausente: retorna {'oom_recovery_count': 0} sem warning.
+    - JSON parse fail / schema inválido / version != '1': log warning + move
+      para .bak via Path.rename + retorna {'oom_recovery_count': 0}.
+    - permissão negada / qualquer OSError: log warning + count=0.
+
+    NUNCA propaga exceção para não quebrar boot (ADR-001 Local First).
+    """
+    p = path if path is not None else Path(_PROXY_STATS_PATH)
+    if not p.exists():
+        return {"oom_recovery_count": 0}
+    try:
+        raw = p.read_text(encoding="utf-8")
+        data = json.loads(raw)
+        if not isinstance(data, dict):
+            raise ValueError("schema: top-level não é dict")
+        if data.get("version") != "1":
+            raise ValueError(f"schema: version inválida: {data.get('version')}")
+        count = data.get("oom_recovery_count")
+        if not isinstance(count, int) or isinstance(count, bool):
+            raise ValueError(f"schema: oom_recovery_count não é int: {type(count).__name__}")
+        return data
+    except Exception as e:
+        logger.warning("proxy_stats.json inválido (%s); criando .bak e zerando", e)
+        try:
+            p.rename(p.with_suffix(p.suffix + ".bak"))
+        except OSError as bak_err:
+            logger.warning("Falha ao criar .bak: %s", bak_err)
+        return {"oom_recovery_count": 0}
+
+
+def _persist_stats(state: dict, path: Path | None = None) -> None:
+    """Escreve oom_recovery_count em ~/.nyx/proxy_stats.json atomicamente.
+
+    Atomicidade via write para tmp + os.replace (POSIX). Preserva first_session
+    se arquivo já existia; novo apenas na criação. last_recovery sempre
+    atualiza para now (UTC iso8601).
+
+    Falha de I/O (permissão negada, disco cheio) loga warning e segue sem
+    raise -- não bloqueia o caminho de recovery do OOM (INFRA-OOM-HISTORY-01).
+    """
+    from datetime import datetime, timezone
+
+    p = path if path is not None else Path(_PROXY_STATS_PATH)
+    try:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        existing: dict = {}
+        if p.exists():
+            try:
+                existing_raw = json.loads(p.read_text(encoding="utf-8"))
+                if isinstance(existing_raw, dict):
+                    existing = existing_raw
+            except Exception:
+                existing = {}
+        now_iso = datetime.now(timezone.utc).isoformat()
+        payload = {
+            "version": "1",
+            "oom_recovery_count": int(state.get("oom_recovery_count", 0)),
+            "first_session": existing.get("first_session") or now_iso,
+            "last_recovery": now_iso,
+        }
+        tmp = p.with_suffix(p.suffix + ".tmp")
+        tmp.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+        os.replace(tmp, p)
+    except OSError as e:
+        logger.warning("Falha ao persistir proxy_stats.json: %s", e)
 
 
 def _normalize_content(content):
@@ -446,6 +518,7 @@ async def handle_chat(request: web.Request) -> web.StreamResponse:
                             data = await inter_resp.json()
                             logger.info("OOM recovery OK: resposta via GPU parcial (num_gpu=%d)", intermediate)
                             state["oom_recovery_count"] = state.get("oom_recovery_count", 0) + 1
+                            _persist_stats(state)  # INFRA-OOM-HISTORY-01
                             recovered = True
                         else:
                             inter_text = await inter_resp.text()
@@ -478,6 +551,7 @@ async def handle_chat(request: web.Request) -> web.StreamResponse:
                         data = await retry_resp.json()
                         logger.info("OOM recovery OK: resposta via CPU")
                         state["oom_recovery_count"] = state.get("oom_recovery_count", 0) + 1
+                        _persist_stats(state)  # INFRA-OOM-HISTORY-01
             else:
                 return web.json_response(
                     {"error": {"message": text, "type": "api_error"}},
@@ -878,6 +952,14 @@ async def _on_startup(app: web.Application) -> None:
     state.setdefault("num_gpu", _INITIAL_NUM_GPU)
     state.setdefault("num_gpu_initial", state["num_gpu"])
     state.setdefault("oom_recovery_count", 0)
+    # INFRA-OOM-HISTORY-01: hidrata contador cross-session se arquivo existir.
+    persisted = _load_persisted_stats()
+    if persisted.get("oom_recovery_count", 0) > 0:
+        state["oom_recovery_count"] = persisted["oom_recovery_count"]
+        logger.info(
+            "Hidratando oom_recovery_count=%d do arquivo persistido",
+            state["oom_recovery_count"],
+        )
     logger.info("Sessão HTTP criada (num_gpu inicial=%d)", state["num_gpu"])
 
 

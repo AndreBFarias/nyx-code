@@ -69,7 +69,7 @@ run.sh ─────> Ollama (:11435) ──> GPU (num_gpu=12, qwen2.5-coder:3
   +────────> Nyx CLI (nyx/cli.py)
               - REPL interativo com Rich output + prompt-toolkit
               - 34 tools via ToolRegistry
-              - 66 slash commands
+              - 67 slash commands
               - AgentLoop: plan-execute-observe (até 30 iterações)
               - ActionParser: 7 níveis de fallback
               - ContextBudget: compactação progressiva
@@ -314,7 +314,7 @@ Uso:
 
 ## Status atual (2026-05-18, Onda 24)
 
-- **Gauntlet**: 304 testes registrados; `--only rapido` 11/11 APROVADO
+- **Gauntlet**: 311 testes registrados; `--only rapido` 11/11 APROVADO
 - **Smoke**: `boot ok` em ~0.14s (10x abaixo do critério v1.0 de 1.5s)
 - **Invariantes**: 14/14 PASS
 - **Cockpit**: operacional em `127.0.0.1:11437` com 17 endpoints HTTP + 2 WS
@@ -372,7 +372,7 @@ nyx/
     loop/              # AgentLoop split (_core + _iteration)
     parser.py          # ActionParser (7 níveis)
     banner.py          # 3 modos (compact/wide/neofetch)
-    commands/          # 66 slash commands (incl. /aesthetic, /cancel)
+    commands/          # 67 slash commands (incl. /aesthetic, /cancel)
     output.py          # Rich + theme_manager
     tools/             # 35 tools registradas
     services/          # 14 services (incl. hook_runtime, plugin_manager, mcp_client)
@@ -389,7 +389,7 @@ nyx/
   providers/ollama.py
   config/defaults.py   # NYX_AESTHETIC, NYX_ENTITY, COCKPIT_PORT, etc.
 scripts/
-  gauntlet/nyx_gauntlet.py  # 304 testes; --only fase|feature_id
+  gauntlet/nyx_gauntlet.py  # 311 testes; --only fase|feature_id
   menu_wizard.py            # TUI wizard (NYX-MENU-WIZARD-01)
   check_oom.sh              # Diagnóstico OOM (INFRA-OOM-01)
   sprint_invariants.sh      # 14 invariantes

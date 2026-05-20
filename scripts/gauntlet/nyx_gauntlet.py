@@ -4206,6 +4206,47 @@ class NyxGauntlet:
                 error=str(e),
             )
 
+        # RB-06: proxy persiste oom_recovery_count cross-session (INFRA-OOM-HISTORY-01)
+        t = time.monotonic()
+        try:
+            import importlib as _imp
+
+            mod = _imp.import_module("nyx.proxy")
+            tem_load = hasattr(mod, "_load_persisted_stats")
+            tem_persist = hasattr(mod, "_persist_stats")
+            src = proxy_py.read_text(encoding="utf-8")
+            tem_const = "PROXY_STATS_PATH" in src
+            tem_load_startup = (
+                "_load_persisted_stats()" in src
+                and "Hidratando oom_recovery_count" in src
+            )
+            # 2 chamadas a _persist_stats no handle_chat (uma por sitio de incremento)
+            chamadas_persist = src.count("_persist_stats(state)")
+            persist_ok = chamadas_persist >= 2
+            ok = bool(
+                tem_load and tem_persist and tem_const and tem_load_startup and persist_ok
+            )
+            self._add(
+                "RB-06",
+                "Proxy persiste oom_recovery_count cross-session (INFRA-OOM-HISTORY-01)",
+                "robustez_boot",
+                ok,
+                time.monotonic() - t,
+                details=(
+                    f"load={tem_load} persist={tem_persist} const={tem_const} "
+                    f"hidrata={tem_load_startup} chamadas_persist={chamadas_persist}"
+                ),
+            )
+        except Exception as e:
+            self._add(
+                "RB-06",
+                "Proxy persiste oom_recovery_count cross-session (INFRA-OOM-HISTORY-01)",
+                "robustez_boot",
+                False,
+                time.monotonic() - t,
+                error=str(e),
+            )
+
     # ── Helpers ──────────────────────────────────────────────────────
 
     async def _health(self) -> bool:
