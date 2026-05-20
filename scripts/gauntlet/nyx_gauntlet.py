@@ -2423,8 +2423,8 @@ class NyxGauntlet:
 
         # F2-03: Glob encontra arquivo real
         r = reg.execute("glob", {"pattern": "nyx/agent/*.py"})
-        ok = r.success and "loop.py" in r.output
-        self._add("F2-03", "Glob encontra arquivo real", "e2e_real", ok, 0, details=f"has_loop={'loop.py' in r.output}")
+        ok = r.success and "parser.py" in r.output
+        self._add("F2-03", "Glob encontra arquivo real", "e2e_real", ok, 0, details=f"has_parser={'parser.py' in r.output}")
 
         # F2-04: Search encontra conteúdo
         r = reg.execute("search", {"pattern": "think", "path": str(PROJECT_ROOT / "nyx")})
@@ -2438,8 +2438,8 @@ class NyxGauntlet:
 
         # F2-06: ListFiles diretório real
         r = reg.execute("list_files", {"path": str(PROJECT_ROOT / "nyx" / "agent")})
-        ok = r.success and "loop.py" in r.output
-        self._add("F2-06", "ListFiles diretório real", "e2e_real", ok, 0, details=f"has_loop={'loop.py' in r.output}")
+        ok = r.success and "parser.py" in r.output
+        self._add("F2-06", "ListFiles diretório real", "e2e_real", ok, 0, details=f"has_parser={'parser.py' in r.output}")
 
         # F2-07: Tool error handling
         r = reg.execute("read_file", {"file_path": "/tmp/nyx_inexistente_xyz_12345.py"})
