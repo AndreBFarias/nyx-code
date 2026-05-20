@@ -1,6 +1,6 @@
 {
   "date": "2026-05-19",
-  "commit": "ead7053",
+  "commit": "9acf2be",
   "model": "qwen2.5-coder:3b",
   "hardware": {
     "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
@@ -9,18 +9,18 @@
     "num_ctx": 8192
   },
   "kpis": {
-    "warmup_s": 9.0,
-    "gauntlet_total_s": 191.0,
+    "warmup_s": 9.8,
+    "gauntlet_total_s": 252.1,
     "boot_s": 0.02,
-    "ttfr_chat_s": 0.49,
+    "ttfr_chat_s": 0.51,
     "tokens_chat": 36,
-    "ttfr_tool_s": 4.96,
+    "ttfr_tool_s": 4.85,
     "tokens_tool": 202,
     "vram_mib": 64
   },
   "results": {
     "total": 220,
-    "passed": 214,
-    "failed": 6
+    "passed": 220,
+    "failed": 0
   }
 }
