@@ -37,8 +37,25 @@ sprint:
 
 # Sprint CHECKPOINT-ACENTUACAO-FIX-01
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-19 (anti-débito de VALIDATE-FINAL-01-PARTE-2)
+**Data conclusão:** 2026-05-19
+
+## Proof-of-work
+
+- Pré: `validar-acentuacao.py --paths Checkpoint.md` -> 21 violacoes em 14 linhas distintas (27, 33, 34, 35, 37, 41, 75, 78, 81, 93, 112, 133, 145, 204, 259)
+- Pré: `./run.sh --smoke` -> `boot ok` exit 0
+- Pré: `bash scripts/sprint_invariants.sh` -> PASS 14 / FAIL 0
+- Implementacao: `python3 ~/.config/zsh/scripts/validar-acentuacao.py --paths Checkpoint.md --fix` -> "Total: 21 corrigidas, 0 pendentes"
+- Pós: `validar-acentuacao.py --paths Checkpoint.md` -> exit 0, zero violacoes
+- Pós: `./run.sh --smoke` -> `boot ok` exit 0
+- Pós: `bash scripts/sprint_invariants.sh` -> PASS 14 / FAIL 0
+- Diff: 17 insertions, 16 deletions; mapeamento das substituicoes pedagogicas catalogado abaixo  <!-- noqa-acento -->
+- Checkpoint.md preservado como write-through (untracked-by-policy); não commitado nesta sprint
+- Touches finais commitados: spec movida producao/->concluidos/ + SPRINT_ORDER_MASTER.md atualizado
+
+Mapeamento das 9 substituicoes word-diff (so acentuacao):  <!-- noqa-acento -->
+nao->nao, sessao->sessao, sessoes->sessoes, proximo->proximo, historico->historico, funcao->funcao, execucao->execucao, descricao->descricao, Validacao->validacao  <!-- noqa-acento -->
 
 ## Contexto
 
