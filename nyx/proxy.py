@@ -36,6 +36,7 @@ logging.basicConfig(
 logger = logging.getLogger("nyx.proxy")
 
 from nyx.agent.intent import classify as _classify_intent  # noqa: E402
+from nyx.agent.intent import wants_save_memory as _wants_save_memory  # noqa: E402
 from nyx.agent.lang_check import is_pt_br as _is_pt_br  # noqa: E402
 from nyx.agent.lang_check import mentions_provider as _mentions_provider  # noqa: E402
 from nyx.config.defaults import DEFAULT_MODEL as _DEFAULT_MODEL  # noqa: E402
@@ -239,7 +240,8 @@ def _extract_tool_call_from_content(text: str, allowed_names: list[str] | None =
     stripped = _CODE_FENCE_PATTERN.sub("", text).strip().rstrip("`").strip()
     start = stripped.find("{")
     if start == -1:
-        return None
+        # Sem JSON; tenta fallback shell-like.
+        return _extract_tool_call_shell_like(text, allowed_names)
     candidate = stripped[start:]
     depth = 0
     data = None
@@ -255,7 +257,9 @@ def _extract_tool_call_from_content(text: str, allowed_names: list[str] | None =
                 except json.JSONDecodeError:
                     continue
     if not isinstance(data, dict):
-        return None
+        # Fallback shell-like: `tool_name arg1="val1" arg2="val2"`
+        # qwen2.5-coder:3b emite write_memory nesse formato (MEMORY-INTENT-ENFORCE-01).
+        return _extract_tool_call_shell_like(text, allowed_names)
     name = data.get("name") or data.get("tool") or data.get("function") or ""
     args = data.get("arguments") or data.get("args") or data.get("parameters") or {}
     if not name or not isinstance(name, str):
@@ -276,6 +280,41 @@ def _extract_tool_call_from_content(text: str, allowed_names: list[str] | None =
     else:
         return None
     return {"name": name, "arguments": args_json}
+
+
+# Pattern para sintaxe shell-like: `tool_name attr="val with spaces" other="x"`.
+# qwen2.5-coder:3b ocasionalmente emite tool calls nesse formato em vez de JSON
+# (MEMORY-INTENT-ENFORCE-01). Captura args com aspas duplas; valores podem ter
+# espaços. Backslash-escape simples para aspas internas via `\"`.
+_SHELL_ARG_PATTERN = re.compile(r'(\w+)\s*=\s*"((?:[^"\\]|\\.)*)"')
+
+
+def _extract_tool_call_shell_like(text: str, allowed_names: list[str] | None) -> dict | None:
+    """Parsea formato `tool_name arg1="val1" arg2="val2"`.
+
+    Cinto-de-segurança para qwen2.5-coder:3b que emite write_memory assim.
+    Requer `allowed_names` para validar o name extraído (evita falso positivo
+    com palavras comuns que casariam o regex).
+    """
+    if not text or not allowed_names:
+        return None
+    stripped = _CODE_FENCE_PATTERN.sub("", text).strip()
+    parts = stripped.split(None, 1)
+    if not parts:
+        return None
+    candidate_name = parts[0].strip(".,:;!?")
+    if candidate_name not in allowed_names:
+        return None
+    rest = parts[1] if len(parts) > 1 else ""
+    args = {m.group(1): m.group(2).replace('\\"', '"') for m in _SHELL_ARG_PATTERN.finditer(rest)}
+    if not args:
+        return None
+    logger.info(
+        "tool_call extraido do content (formato shell-like %r com %d args)",
+        candidate_name,
+        len(args),
+    )
+    return {"name": candidate_name, "arguments": json.dumps(args, ensure_ascii=False)}
 
 
 def ollama_to_openai(
@@ -485,6 +524,74 @@ async def handle_chat(request: web.Request) -> web.StreamResponse:
                             logger.info("IDENTITY: retry insistiu no vazamento; passa adiante")
                     else:
                         logger.warning("IDENTITY: retry HTTP %d; passa adiante", id_resp.status)
+
+    # MEMORY-INTENT-ENFORCE-01: força write_memory quando usuário pede para
+    # lembrar de algo (ADR-026 Agência + filosofia "infra > modelo").
+    # Modelo (qwen2.5-coder:3b) frequentemente responde apenas com texto
+    # "ok, vou lembrar" sem chamar write_memory. CTX-11 do gauntlet captura.
+    # Gating: intent tool-needed + classifier wants_save_memory positivo +
+    # write_memory disponível em body['tools'] + modelo não chamou.
+    # Cap 1 retry (preserva P50).
+    if intent == "tool-needed":
+        last_user = _last_user_text(ollama_body.get("messages", []))
+        if _wants_save_memory(last_user):
+            choice_msg = result["choices"][0]["message"]
+            tcs = choice_msg.get("tool_calls", []) or []
+            called_wm = any(
+                tc.get("function", {}).get("name") == "write_memory" for tc in tcs
+            )
+            wm_available = any(
+                t.get("function", {}).get("name") == "write_memory"
+                for t in (body.get("tools") or [])
+                if isinstance(t, dict)
+            )
+            if wm_available and not called_wm:
+                logger.warning(
+                    "MEMORY: usuário pediu para lembrar; modelo não chamou write_memory; retry 1x com hint"
+                )
+                retry_body = dict(ollama_body)
+                retry_messages = list(ollama_body.get("messages", []))
+                prev_content = choice_msg.get("content", "")
+                if prev_content:
+                    retry_messages.append({"role": "assistant", "content": prev_content})
+                retry_messages.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            "O usuário pediu para você LEMBRAR de algo importante. "
+                            "Use a tool write_memory AGORA. Responda APENAS com JSON "
+                            "no formato exato (sem texto antes/depois):\n"
+                            '```json\n'
+                            '{"name": "write_memory", "arguments": {'
+                            '"file": "<snake_case_curto>", '
+                            '"content": "<o fato a lembrar>", '
+                            '"reason": "<1 linha de motivo>"}}\n'
+                            '```'
+                        ),
+                    }
+                )
+                retry_body["messages"] = retry_messages
+                async with session.post(f"{OLLAMA_URL}/api/chat", json=retry_body) as mem_resp:
+                    if mem_resp.status == 200:
+                        mem_data = await mem_resp.json()
+                        mem_result = ollama_to_openai(
+                            mem_data,
+                            model,
+                            has_tools_request=has_tools_request,
+                            allowed_tool_names=allowed_tool_names or None,
+                        )
+                        mem_tcs = mem_result["choices"][0]["message"].get("tool_calls", []) or []
+                        mem_called_wm = any(
+                            tc.get("function", {}).get("name") == "write_memory"
+                            for tc in mem_tcs
+                        )
+                        if mem_called_wm:
+                            logger.info("MEMORY: retry conseguiu chamar write_memory")
+                            result = mem_result
+                        else:
+                            logger.info("MEMORY: retry insistiu sem chamar; passa adiante")
+                    else:
+                        logger.warning("MEMORY: retry HTTP %d; passa adiante", mem_resp.status)
 
     tc = result["choices"][0]["message"].get("tool_calls")
     if tc:

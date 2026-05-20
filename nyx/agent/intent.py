@@ -59,6 +59,43 @@ PATH_HINTS = re.compile(
 )
 
 
+# MEMORY-INTENT-ENFORCE-01: padrões linguísticos PT-BR que sinalizam intent
+# de "salvar memória persistente" (deve disparar tool write_memory).
+# Cobrem: "lembra que...", "guarda essa info", "anota aí", "memoriza X",
+# "registra que eu...", "salva pra depois", "não esquece de X".
+# Filosofia "infra > modelo": quando classifier detecta esse intent e o
+# modelo não chama write_memory, o proxy faz re-issue com hint forte.
+_SAVE_MEMORY_PATTERN = re.compile(
+    r"\b("
+    r"lembr[ae]\s+(que|de|do|da)|"
+    r"lembre[\-\s]*se|"
+    r"guarda\s+(essa|isso|esse|esta|este|isto|que)|"
+    r"anota\s+(ai|isso|que|aí)|"
+    r"memoriz[ae]\s+(que|isso|esse|esta)|"
+    r"registr[ae]\s+que|"
+    r"salv[ae]\s+(pra|para|essa|isso|isto)|"
+    r"n[aã]o\s+esquec[ae]\s+(que|de|do|da|disso)|"
+    r"fica\s+(sabendo|de\s+olho)\s+que"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def wants_save_memory(user_input: str) -> bool:
+    """Detecta se usuário pediu para salvar memória persistente.
+
+    Usado pelo MEMORY-INTENT-ENFORCE-01 no proxy: quando True E modelo
+    não chamou write_memory na resposta, dispara retry 1x com hint forte
+    forçando o uso da tool (filosofia "infra > modelo").
+
+    Falso negativo é preferido a falso positivo (não disparar retry sem
+    necessidade > forçar retry indevido).
+    """
+    if not user_input:
+        return False
+    return bool(_SAVE_MEMORY_PATTERN.search(user_input))
+
+
 def classify(user_input: str) -> str:
     """Retorna intent: 'saudacao' | 'comando' | 'tool-needed' | 'chat'.
 
