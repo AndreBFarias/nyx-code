@@ -23,7 +23,9 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 import re
+import signal
 import subprocess
 import sys
 import time
@@ -368,6 +370,10 @@ class TestResult:
     tokens: int = 0
     details: str = ""
     error: str = ""
+    # K08-VRAM-RUNNER-ISOLATION-01: marca testes pulados por ambiente externo
+    # (ex.: VRAM contaminada por processo não-Nyx). SKIP conta como não-falha
+    # no gate mas é renderizado distinto de OK no relatório.
+    skipped: bool = False
 
 
 class NyxGauntlet:
@@ -377,6 +383,8 @@ class NyxGauntlet:
         ollama_url: str = "http://127.0.0.1:11435",
         only: str = "completo",
         model: str = "qwen3:4b",
+        strict_vram: bool = False,
+        isolate_vram: bool = False,
     ) -> None:
         self._proxy = proxy_url
         self._ollama = ollama_url
@@ -386,6 +394,9 @@ class NyxGauntlet:
         self._kpis: dict[str, Any] = {}
         self._phases_done: set[str] = set()
         self._hardware: dict[str, Any] = {}
+        # K08-VRAM-RUNNER-ISOLATION-01: comportamento do pre-flight K-08.
+        self._strict_vram: bool = strict_vram
+        self._isolate_vram: bool = isolate_vram
 
         # COCKPIT-03-GAUNTLET-PER-FEATURE-01: --only aceita feature_id direto.
         fase, target = _resolver_feature_id(only)
@@ -812,20 +823,111 @@ class NyxGauntlet:
             details=f"{ttfr_tool:.1f}s (baseline <20s, alerta <60s)",
         )
 
-        # K-08: VRAM
-        vram_mib = self._get_vram()
-        self._kpis["vram_mib"] = vram_mib
-        if vram_mib > 0:
-            self._add(
+        # K-08: VRAM -- pre-flight K08-VRAM-RUNNER-ISOLATION-01.
+        # Distingue contaminação externa (processo não-Nyx ocupando VRAM) de
+        # regressão real. Default: SKIP com motivo. --strict-vram: contrato
+        # antigo (FAIL real). --isolate-vram: lista e pede confirmação para
+        # matar processos externos antes de medir.
+        from scripts.gauntlet.vram_check import (
+            VRAM_MIN_FREE_MIB,
+            is_nyx_owned,
+            probe as _vram_probe,
+        )
+
+        snap = _vram_probe()
+        external_procs = [p for p in snap["processes"] if not is_nyx_owned(p)]
+        external_mib = sum(p["mib"] for p in external_procs)
+        contaminated = (
+            snap["nvidia_smi_ok"]
+            and snap["free_mib"] >= 0
+            and snap["free_mib"] < VRAM_MIN_FREE_MIB
+            and bool(external_procs)
+        )
+
+        # Branch --isolate-vram: interativo, kill com confirmação.
+        if contaminated and self._isolate_vram:
+            if not sys.stdin.isatty():
+                logger.error(
+                    "--isolate-vram requer TTY interativo (stdin) -- "
+                    "headless detectado, abortando para não matar processos cegamente"
+                )
+                sys.exit(2)
+            # Ordena por MiB decrescente -- pede kill do maior primeiro.
+            ordered = sorted(external_procs, key=lambda p: -int(p.get("mib", 0)))
+            print("Processos externos ocupando VRAM:")
+            for p in ordered:
+                print(
+                    f"  PID {p['pid']:>7}  {p['name']:<40}  {p['mib']:>5} MiB"
+                )
+            for p in ordered:
+                ans = input(
+                    f"kill PID {p['pid']} {p['name']}? [y/N] "
+                ).strip().lower()
+                if ans == "y":
+                    try:
+                        os.kill(p["pid"], signal.SIGTERM)
+                        time.sleep(1.5)
+                        # Re-checa se ainda vivo; escala para SIGKILL.
+                        try:
+                            os.kill(p["pid"], 0)
+                            alive = True
+                        except (ProcessLookupError, PermissionError):
+                            alive = False
+                        if alive:
+                            os.kill(p["pid"], signal.SIGKILL)
+                    except (ProcessLookupError, PermissionError) as exc:
+                        logger.warning(
+                            "kill PID %d falhou: %s", p["pid"], exc
+                        )
+            # Re-probe apos kills.
+            snap = _vram_probe()
+            external_procs = [
+                p for p in snap["processes"] if not is_nyx_owned(p)
+            ]
+            contaminated = (
+                snap["nvidia_smi_ok"]
+                and snap["free_mib"] >= 0
+                and snap["free_mib"] < VRAM_MIN_FREE_MIB
+                and bool(external_procs)
+            )
+
+        # Default (sem flags): SKIP com motivo se contaminado.
+        if contaminated and not self._strict_vram:
+            proc_desc = ", ".join(
+                f"PID {p['pid']} {p['name']} ocupando {p['mib']} MiB"
+                for p in external_procs[:3]
+            )
+            self._kpis["vram_mib"] = -1
+            self._add_skip(
                 "K-08",
                 "VRAM em uso",
                 "performance",
-                vram_mib < 3500,
-                0,
-                details=f"{vram_mib}MiB (baseline <2500, crítico >3500)",
+                details=(
+                    f"SKIP -- VRAM externa: {snap['free_mib']} MiB livres, "
+                    f"{proc_desc}"
+                ),
             )
         else:
-            self._add("K-08", "VRAM em uso", "performance", True, 0, details="nvidia-smi indisponível (OK sem GPU)")
+            vram_mib = self._get_vram()
+            self._kpis["vram_mib"] = vram_mib
+            if vram_mib > 0:
+                self._add(
+                    "K-08",
+                    "VRAM em uso",
+                    "performance",
+                    vram_mib < 3500,
+                    0,
+                    details=f"{vram_mib}MiB (baseline <2500, crítico >3500)",
+                )
+            else:
+                self._add(
+                    "K-08",
+                    "VRAM em uso",
+                    "performance",
+                    True,
+                    0,
+                    details="nvidia-smi indisponível (OK sem GPU)",
+                )
 
         # K-10: Tempo total (preenchido no finally do run)
         self._add("K-10", "Tempo total gauntlet", "performance", True, 0, details="Medido ao final da execução")
@@ -4230,11 +4332,48 @@ class NyxGauntlet:
         logger.info("[%s] %s %s (%.1fs, %dtok)", tag, fid, name, elapsed, tokens)
         self._save_checkpoint()
 
+    def _add_skip(
+        self,
+        fid: str,
+        name: str,
+        phase: str,
+        details: str = "",
+    ) -> None:
+        """K08-VRAM-RUNNER-ISOLATION-01: registra teste como SKIP.
+
+        SKIP não conta como FAIL no gate (passed=True), mas é renderizado
+        distinto de OK no relatório (skipped=True).
+        """
+        if self._target_feature_id and fid != self._target_feature_id:
+            logger.debug(
+                "[SKIP] %s %s (skipped por filtro, alvo=%s)",
+                fid,
+                name,
+                self._target_feature_id,
+            )
+            return
+        r = TestResult(
+            fid,
+            name,
+            phase,
+            True,
+            0.0,
+            0,
+            details[:200],
+            "",
+            skipped=True,
+        )
+        self._results.append(r)
+        logger.info("[SKIP] %s %s -- %s", fid, name, details)
+        self._save_checkpoint()
+
     # ── Report ──────────────────────────────────────────────────────
 
     def _write_report(self) -> None:
         total = len(self._results)
         ok = sum(1 for r in self._results if r.passed)
+        # K08-VRAM-RUNNER-ISOLATION-01: SKIP não conta como FAIL no gate.
+        skipped = sum(1 for r in self._results if r.skipped)
         fail = total - ok
         elapsed = self._kpis.get("gauntlet_total_s", 0)
         score = ok / total * 100 if total else 0
@@ -4315,7 +4454,13 @@ class NyxGauntlet:
             ]
         )
         for r in self._results:
-            tag = "OK" if r.passed else "FAIL"
+            # K08-VRAM-RUNNER-ISOLATION-01: SKIP renderizado distinto de OK.
+            if r.skipped:
+                tag = "SKIP"
+            elif r.passed:
+                tag = "OK"
+            else:
+                tag = "FAIL"
             d = r.error if r.error else r.details
             lines.append(
                 f"| {r.feature_id} | {r.name} | {r.phase} | {tag} | {r.elapsed_s:.1f}s | {r.tokens} | {d[:60]} |"
@@ -4327,6 +4472,15 @@ class NyxGauntlet:
             for r in self._results:
                 if not r.passed:
                     lines.append(f"- **{r.feature_id}** {r.name}: {r.error or r.details}")
+
+        # Skips (K08-VRAM-RUNNER-ISOLATION-01)
+        if skipped:
+            lines.extend(["", f"## Skips ({skipped})", ""])
+            for r in self._results:
+                if r.skipped:
+                    lines.append(
+                        f"- **{r.feature_id}** {r.name}: {r.details}"
+                    )
 
         # Flags pendentes
         flags = self._scan_flags()
@@ -4371,9 +4525,31 @@ def main() -> None:
     parser.add_argument("--ollama-url", default="http://127.0.0.1:11435")
     parser.add_argument("--only", default="completo")
     parser.add_argument("--model", default="qwen3:4b")
+    # K08-VRAM-RUNNER-ISOLATION-01: comportamento do pre-flight K-08.
+    mutex_vram = parser.add_mutually_exclusive_group()
+    mutex_vram.add_argument(
+        "--strict-vram",
+        action="store_true",
+        help="K-08 FAIL real se VRAM excedida (preserva contrato antigo)",
+    )
+    mutex_vram.add_argument(
+        "--isolate-vram",
+        action="store_true",
+        help=(
+            "Lista processos externos ocupando VRAM e pede confirmação "
+            "para kill (TTY obrigatório)"
+        ),
+    )
     args = parser.parse_args()
 
-    g = NyxGauntlet(proxy_url=args.proxy_url, ollama_url=args.ollama_url, only=args.only, model=args.model)
+    g = NyxGauntlet(
+        proxy_url=args.proxy_url,
+        ollama_url=args.ollama_url,
+        only=args.only,
+        model=args.model,
+        strict_vram=args.strict_vram,
+        isolate_vram=args.isolate_vram,
+    )
     sys.exit(asyncio.run(g.run()))
 
 

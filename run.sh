@@ -79,6 +79,9 @@ DEBUG=0
 HEADLESS=0
 GAUNTLET=0
 GAUNTLET_ONLY="completo"
+# K08-VRAM-RUNNER-ISOLATION-01: comportamento do pre-flight K-08.
+GAUNTLET_STRICT_VRAM=0
+GAUNTLET_ISOLATE_VRAM=0
 COCKPIT_BG=0
 EXTRA_ARGS=()
 
@@ -116,6 +119,12 @@ while [[ $# -gt 0 ]]; do
         --only)
             GAUNTLET_ONLY="$2"
             shift 2 ;;
+        --strict-vram)
+            GAUNTLET_STRICT_VRAM=1
+            shift ;;
+        --isolate-vram)
+            GAUNTLET_ISOLATE_VRAM=1
+            shift ;;
         --aesthetic)
             # VISUAL-LAYOUT-08: seta aesthetic visual antes do exec.
             # Aceita 'aesthetic' ou 'aesthetic:entity' (ex: arcano:luna).
@@ -634,11 +643,16 @@ Ler -> Escrever -> Testar -> Terminar."
 # ─── GAUNTLET (se --gauntlet) ─────────────────────────────
 if [ "$GAUNTLET" -eq 1 ]; then
     log_nyx "Executando Gauntlet (fase: $GAUNTLET_ONLY)..."
+    # K08-VRAM-RUNNER-ISOLATION-01: forward dos flags de VRAM.
+    GAUNTLET_VRAM_ARGS=()
+    [ "$GAUNTLET_STRICT_VRAM" -eq 1 ] && GAUNTLET_VRAM_ARGS+=(--strict-vram)
+    [ "$GAUNTLET_ISOLATE_VRAM" -eq 1 ] && GAUNTLET_VRAM_ARGS+=(--isolate-vram)
     "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/scripts/gauntlet/nyx_gauntlet.py" \
         --proxy-url "http://127.0.0.1:${NYX_PROXY_PORT}" \
         --ollama-url "http://${NYX_OLLAMA_HOST}:${NYX_OLLAMA_PORT}" \
         --only "$GAUNTLET_ONLY" \
-        --model "$MODEL"
+        --model "$MODEL" \
+        "${GAUNTLET_VRAM_ARGS[@]}"
     EXIT_CODE=$?
 
     # Auto-atualizar docs após gauntlet
