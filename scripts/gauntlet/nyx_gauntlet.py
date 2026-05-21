@@ -36,7 +36,7 @@ from typing import Any
 
 import httpx
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 logging.basicConfig(
@@ -801,14 +801,15 @@ class NyxGauntlet:
     # ═══════════════════════════════════════════════════════════════════
 
     async def _phase_qualidade(self) -> None:
+        from nyx.agent.lang_check import mentions_provider
+
         # Q-02: Identidade
         t = time.monotonic()
         nyx_prompt = "Sou Nyx. Codificadora. Vivo no terminal. PT-BR. Frases curtas. Sem emojis."
         resp = await self._chat_with_tools("quem é voce? responda em uma frase curta", tools=None, system=nyx_prompt)
-        content = resp.get("content", "").lower()
-        mentions_qwen = "qwen" in content or "alibaba" in content
-        mentions_gpt = "gpt" in content or "openai" in content
-        ok = not mentions_qwen and not mentions_gpt
+        content = resp.get("content", "")
+        leaked = mentions_provider(content)
+        ok = leaked is None
         self._add(
             "Q-02",
             "Identidade (sem Qwen/GPT)",
@@ -817,7 +818,7 @@ class NyxGauntlet:
             time.monotonic() - t,
             tokens=resp.get("tokens", 0),
             details=resp.get("content", "")[:80],
-            error="Mencionou Qwen/GPT" if not ok else "",
+            error=f"Mencionou provedor: {leaked}" if not ok else "",
         )
 
         # Q-04: Uso proativo de tools
@@ -965,10 +966,11 @@ class NyxGauntlet:
                 sys.exit(2)
             # Ordena por MiB decrescente -- pede kill do maior primeiro.
             ordered = sorted(external_procs, key=lambda p: -int(p.get("mib", 0)))
-            print("Processos externos ocupando VRAM:")
+            logger.info("Processos externos ocupando VRAM:")
             for p in ordered:
-                print(
-                    f"  PID {p['pid']:>7}  {p['name']:<40}  {p['mib']:>5} MiB"
+                logger.info(
+                    "  PID %7d  %-40s  %5d MiB",
+                    p["pid"], p["name"], p["mib"],
                 )
             for p in ordered:
                 ans = input(
