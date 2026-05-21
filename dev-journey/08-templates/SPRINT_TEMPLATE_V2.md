@@ -146,6 +146,41 @@ Frase curta: o que fazer.
 
 ---
 
+### Antes/Depois com trecho (obrigatório para Refactor cirúrgico)
+
+Para sprints `tipo: Refactor` com `touches.length == 1` e alvo do tipo literal/padrão/substring,
+a spec **deve** incluir fenced code block (>= 3 linhas) com o trecho EXATO além do número de linha.
+
+**Justificativa empírica:** INFRA-GAUNTLET-CLEANUP-BUNDLE-01 (2026-05-21) teve 2 de 3 fixes com
+número de linha errado na spec (citava 859/861 e 700-701; reais eram 968/970 e 809-811).
+Resolveu via texto-alvo inequívoco, mas só porque o planejador teve presença de mente de citar
+padrão `"qwen" in content` e frase `"Processos externos ocupando VRAM"`. Sem trecho literal,
+o executor teria editado linhas vizinhas erradas e a sprint teria virado regressão silenciosa.
+
+**Formato sugerido:**
+
+````markdown
+# Localização aproximada: linha NNN (drift tolerado se trecho casa)
+# Antes:
+```python
+<TRECHO LITERAL DO CÓDIGO ATUAL, >= 3 linhas, com pelo menos 1 token de ancoragem único>
+```
+
+# Depois:
+```python
+<TRECHO ESPERADO POS-FIX, >= 3 linhas>
+```
+````
+
+Esse formato deixa o executor seguro mesmo quando linhas sofrem drift por edits intermediários
+entre o momento da redação da spec e o momento da execução. O número de linha vira pista; o
+trecho literal vira contrato.
+
+**Exceções:** sprints `tipo: Feature` em arquivo novo, `tipo: Docs` puro, ou refactor onde
+`touches.length >= 2` (drift mútuo torna trecho literal frágil — preferir descrição semântica).
+
+---
+
 ## Diff esperado (resumo)
 
 ```
