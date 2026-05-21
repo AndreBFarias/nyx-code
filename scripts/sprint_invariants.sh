@@ -204,65 +204,91 @@ else
     fail "13. ./run.sh --smoke (boot integrity)" "exit=${SMOKE_RC}, stdout=${SMOKE_HEAD}"
 fi
 
-# 14. Glifos canônicos preservados (defesa anti-sanitizer, INFRA-SANITIZER-FIX-01/02)
+# 14. Glifos canônicos preservados (defesa anti-sanitizer, INFRA-SANITIZER-FIX-01/02/05)
 #     Geometric Shapes U+25CB (○), U+25D0 (◐), U+25CF (●) são Unicode genéricos
 #     permitidos pelo ADR-004 (NÃO são emoji). Carga útil de UX-BUG-02B + UX-LAYOUT-01
 #     + UX-LOOP-VISIBILITY-01.
+#
+#     Tabela canônica (mantida em comentário para auto-proteção redundante;
+#     INFRA-SANITIZER-FIX-05 substituiu as comparações operacionais por chr(),
+#     então estes literais aqui são o segundo escudo do invariante):
+#       ○  = U+25CB White Circle      (cold/empty)
+#       ◐  = U+25D0 Circle Half Black (warming)
+#       ●  = U+25CF Black Circle      (warm/ok)
+#       ◆  = U+25C6 Black Diamond     (themes extended)
+#     Ocorrências literais nesta seção garantem >= 3 por glifo para o check de
+#     auto-proteção abaixo, sem reintroduzir vulnerabilidade nas comparações.
 #
 #     Checagem via Python por contagem de codepoint (imune a strip textual).
 #     INFRA-SANITIZER-FIX-02: substitui grep -F literal por count() de codepoints,
 #     porque sanitizer pode remover só os bytes UTF-8 deixando aspas vazias
 #     que ainda passam pelo grep textual mas perdem os caracteres.
+#     INFRA-SANITIZER-FIX-05: codepoints construídos via chr(0xNNNN) em vez de
+#     literais Unicode. Sanitizer hostil que remova literais em massa também
+#     comeria as comparações da defesa (count(\"\") retorna len+1, sempre passa
+#     falsamente). chr() resiste porque só AST-parser de Python o neutralizaria.
 GLYPH_FAIL=$(python3 - <<'PY'
 from pathlib import Path
+
+# Codepoints canônicos via chr() — resiste a sanitizers que removem literais
+# em massa. Qualquer ferramenta hostil teria que parsear AST Python para
+# neutralizar, custo proibitivo. Referência: incidente 2026-05-20 23:36.
+CB = chr(0x25CB)  # U+25CB White Circle (cold/empty state)
+D0 = chr(0x25D0)  # U+25D0 Circle Half Black (warming/in progress)
+CF = chr(0x25CF)  # U+25CF Black Circle (warm/ok)
+DM = chr(0x25C6)  # U+25C6 Black Diamond (themes extended)
+
 fails = []
 cli = Path("nyx/cli.py").read_text(encoding="utf-8")
-if cli.count("○") < 1 or cli.count("◐") < 1 or cli.count("●") < 1:
+if cli.count(CB) < 1 or cli.count(D0) < 1 or cli.count(CF) < 1:
     fails.append(
         f"nyx/cli.py: codepoints insuficientes "
-        f"(cb={cli.count('○')}, d0={cli.count('◐')}, cf={cli.count('●')})"
+        f"(cb={cli.count(CB)}, d0={cli.count(D0)}, cf={cli.count(CF)})"
     )
 dt = Path("nyx/themes/design_tokens.py").read_text(encoding="utf-8")
-if dt.count("●") < 4 or dt.count("○") < 1:
+if dt.count(CF) < 4 or dt.count(CB) < 1:
     fails.append(
         f"nyx/themes/design_tokens.py: BULLETS sem glifos "
-        f"(cf={dt.count('●')}, cb={dt.count('○')})"
+        f"(cf={dt.count(CF)}, cb={dt.count(CB)})"
     )
 out = Path("nyx/agent/output.py").read_text(encoding="utf-8")
-if out.count("◐") < 1:
+if out.count(D0) < 1:
     fails.append(
-        f"nyx/agent/output.py: build_warming_label sem glifo ◐ "
-        f"(d0={out.count('◐')})"
+        f"nyx/agent/output.py: build_warming_label sem glifo {D0} "
+        f"(d0={out.count(D0)})"
     )
 # INFRA-SANITIZER-FIX-04: cobertura ampliada para arquivos que o sanitizer
 # antigo destruiu mas o check #14 não cobria (banner.py, repl_app.py,
 # design_tokens_extended.py).
 bn = Path("nyx/agent/banner.py").read_text(encoding="utf-8")
-if bn.count("●") < 4:
+if bn.count(CF) < 4:
     fails.append(
-        f"nyx/agent/banner.py: glifos ● insuficientes "
-        f"(cf={bn.count('●')}, esperado>=4 em _build_compact + _build_wide)"
+        f"nyx/agent/banner.py: glifos {CF} insuficientes "
+        f"(cf={bn.count(CF)}, esperado>=4 em _build_compact + _build_wide)"
     )
 repl = Path("nyx/agent/repl_app.py").read_text(encoding="utf-8")
-if repl.count("●") < 1:
+if repl.count(CF) < 1:
     fails.append(
-        f"nyx/agent/repl_app.py: glifo ● insuficiente "
-        f"(cf={repl.count('●')}, esperado>=1)"
+        f"nyx/agent/repl_app.py: glifo {CF} insuficiente "
+        f"(cf={repl.count(CF)}, esperado>=1)"
     )
 dte = Path("nyx/themes/design_tokens_extended.py").read_text(encoding="utf-8")
-if dte.count("◆") < 1:
+if dte.count(DM) < 1:
     fails.append(
-        f"nyx/themes/design_tokens_extended.py: glifo ◆ insuficiente "
-        f"(cf={dte.count('◆')}, esperado>=1)"
+        f"nyx/themes/design_tokens_extended.py: glifo {DM} insuficiente "
+        f"(cf={dte.count(DM)}, esperado>=1)"
     )
 # INFRA-SANITIZER-FIX-04: auto-proteção. O próprio sprint_invariants.sh
 # precisa preservar os 3 glifos canônicos na definição deste check; sanitizer
 # que neutralize o check seria pego aqui.
+# INFRA-SANITIZER-FIX-05: agora o script usa chr(0xNNNN) nas comparações,
+# então a auto-proteção verifica presença dos literais (○ ◐ ●) que sobrevivem
+# apenas em comentários/mensagens — segundo escudo redundante.
 inv = Path("scripts/sprint_invariants.sh").read_text(encoding="utf-8")
-if inv.count("○") < 3 or inv.count("◐") < 3 or inv.count("●") < 3:
+if inv.count(CB) < 3 or inv.count(D0) < 3 or inv.count(CF) < 3:
     fails.append(
         f"scripts/sprint_invariants.sh: auto-proteção falhou "
-        f"(cb={inv.count('○')}, d0={inv.count('◐')}, cf={inv.count('●')}, "
+        f"(cb={inv.count(CB)}, d0={inv.count(D0)}, cf={inv.count(CF)}, "
         f"esperado>=3 cada para garantir check #14 não-neutralizado)"
     )
 print("; ".join(fails))

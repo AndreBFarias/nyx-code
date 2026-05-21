@@ -60,8 +60,9 @@ sprint:
 
 # Sprint INFRA-SANITIZER-FIX-05 — Endurecer check #14 com chr() para imunidade anti-sanitizer
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-21
+**Data conclusão:** 2026-05-21
 **Modelo obrigatório:** claude-opus-4-7 (executor-sprint via Agent tool)
 
 ---
