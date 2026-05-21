@@ -676,6 +676,15 @@ fi
 # Token GLYPHS_BOOT["endmark"] preservado em design_tokens.py para uso
 # programático futuro, mas não renderizado mais antes do banner do REPL.
 
+# ─── SINCRONIZAR DOCS (idempotente, best-effort) ───────────
+# Roda em todos modos interativos (REPL default, --web, --menu).
+# Pulado em --headless (preserva JSON stdout) e --gauntlet (já chama pós-run).
+# Custo: ~290ms se nada mudou, ~50ms se houver write. Output suprimido para
+# não poluir o banner do REPL — falhas silenciam via `|| true`.
+if [ "$HEADLESS" -eq 0 ]; then
+    "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/scripts/update_docs.py" >/dev/null 2>&1 || true
+fi
+
 # ─── INICIAR NYX CLI (Python) ─────────────────────────────
 log_boot "Iniciando Nyx CLI..."
 "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/nyx/cli.py"
