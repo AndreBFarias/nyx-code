@@ -13,7 +13,7 @@
 | Critério gate v1.0 (16 itens) | Status |
 |---|---|
 | 0 RASCUNHO em `producao/` | OK (só `RELEASE-V1.0-CUT-01` que aguarda humano) |
-| 0 PENDENTE no MASTER (exceto RELEASE-V1.0-CUT-01) | OK — 5 anti-débitos drenados em 2026-05-21 (125qq/rr/ss CONCLUIDA, 125ww BUNDLE CONCLUIDA com 125ll/mm/nn CONSOLIDADA + 125pp DESCARTADA, 125oo CONCLUIDA, 125tt CONCLUIDA, 125vv CONCLUIDA, 125xx CONCLUIDA, 125uu SUPERSEDED por 3727cb6 prévio); 2 achados meta novos (125yy + INFRA-COMMIT-HOOK-FILTER-01 já catalogada) PENDENTE BAIXA não bloqueantes |
+| 0 PENDENTE no MASTER (exceto RELEASE-V1.0-CUT-01) | OK — backlog completamente drenado em 2026-05-21 (10 sprints CONCLUIDA: 125qq/rr/ss/ww/oo/tt/vv/xx/yy + housekeeping; 1 SUPERSEDED: 125uu; 1 DESCARTADA: 125pp; 3 CONSOLIDADAS: 125ll/mm/nn; 1 DEFERIDA: 125zz INFRA-COMMIT-HOOK-FILTER-01 escopo externo) |
 | 0 CONCLUIDA_PARCIAL com pendência ativa | OK |
 | 0 DEFERIDA bloqueante | OK |
 | Smoke `boot ok` | OK |
@@ -66,8 +66,8 @@ consome e o que o LLM recebe em `tool_defs`.
 | Services | 15 | `find nyx/agent/services -maxdepth 1 -name '*.py' ! -name '__init__.py' \| wc -l` |
 | ADRs vigentes | 32 | `ls dev-journey/03-decisions/ADR_*.md \| wc -l` |
 | Testes no Gauntlet | 225 (53 fases) | `./run.sh --gauntlet` |
-| Sprints concluídas | 386 | `ls dev-journey/06-sprints/concluidos/*.md \| wc -l` |
-| Sprints pendentes | APENAS RELEASE-V1.0-CUT-01 + 2 achados meta BAIXA não bloqueantes (125yy, INFRA-COMMIT-HOOK-FILTER-01) | `ls dev-journey/06-sprints/producao/*.md \| wc -l` |
+| Sprints concluídas | 387 | `ls dev-journey/06-sprints/concluidos/*.md \| wc -l` |
+| Sprints pendentes | APENAS RELEASE-V1.0-CUT-01 (humano corta tag) — backlog técnico ZERADO | `ls dev-journey/06-sprints/producao/*.md \| wc -l` |
 
 ---
 

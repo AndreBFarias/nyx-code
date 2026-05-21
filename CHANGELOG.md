@@ -26,14 +26,17 @@ Drena os 5 anti-débitos catalogados na rc1 + materializa 4 achados colaterais n
 
 - **dev-journey/06-sprints/producao/SPRINT_INFRA_GAUNTLET_CLEANUP_BUNDLE_01.md** (`BUNDLE-01 spec`, commit `8d4dd0c`) — comando `python3 -m ruff check` substituído por `/home/andrefarias/.local/bin/ruff check` conforme `VALIDATOR_BRIEF` linha 37 (ruff não está como módulo Python no venv).
 
-### Status do backlog (zero PENDENTE bloqueante)
+### Status do backlog (ZERADO)
 
-- 5 sprints CONCLUIDA: 125qq/rr/ss/ww/oo
+- 10 sprints CONCLUIDA: 125qq/rr/ss/ww/oo/tt/vv/xx/yy + housekeeping consolidado
 - 1 SUPERSEDED: 125uu (pyproject.toml já tinha `external = ["noqa-acento"]` desde commit `3727cb6`)
 - 1 DESCARTADA: 125pp (alvo inexistente)
 - 3 CONSOLIDADAS: 125ll/mm/nn (absorvidas pelo BUNDLE)
-- 4 novas CONCLUIDA: 125tt/vv/xx + housekeeping da onda achados
-- 2 novos PENDENTE BAIXA não bloqueantes: 125yy (`INFRA-PLANEJADOR-FENCED-CHECK-01`) + `INFRA-COMMIT-HOOK-FILTER-01` (já catalogada)
+- 1 DEFERIDA: 125zz `INFRA-COMMIT-HOOK-FILTER-01` (escopo externo, hook do usuário fora do projeto Nyx)
+
+### Adicionado (extensão rc2)
+
+- **scripts/dispatch_pre_check.sh fenced-block check** (`INFRA-PLANEJADOR-FENCED-CHECK-01`, commit `a8eecb3`) — bloco +32L que rejeita spec `type: Refactor` com `touches.length == 1` sem fenced code block (threshold ` ``` ` >=4: 2 do YAML + 2 do bloco extra). Exit code 3 distintivo. Mawk-compatible. Complementa 125xx (template) com check executável.
 
 ### Notas
 
