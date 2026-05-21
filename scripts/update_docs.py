@@ -73,6 +73,28 @@ def _count_gauntlet_tests() -> int:
     return len(re.findall(r"self\._add\(", content))
 
 
+def _count_cockpit_endpoints() -> tuple[int, int]:
+    """Conta endpoints HTTP (@app.get/post/...) e WebSocket no cockpit.
+
+    Retorna (http_endpoints, ws_endpoints).
+    """
+    server = PROJECT_ROOT / "nyx" / "cockpit" / "server.py"
+    if not server.exists():
+        return (0, 0)
+    src = server.read_text(encoding="utf-8")
+    total = len(re.findall(r"@app\.(get|post|put|delete|patch|websocket)", src))
+    ws = len(re.findall(r"@app\.websocket", src))
+    return (total - ws, ws)
+
+
+def _count_cli_lines() -> int:
+    """Conta linhas de nyx/cli.py."""
+    cli = PROJECT_ROOT / "nyx" / "cli.py"
+    if not cli.exists():
+        return 0
+    return len(cli.read_text(encoding="utf-8").splitlines())
+
+
 def _count_adrs() -> int:
     """Conta ADRs."""
     adrs_dir = PROJECT_ROOT / "dev-journey" / "03-decisions"
@@ -171,7 +193,16 @@ def update_guide_md(
     return changed
 
 
-def update_readme(tools: int, commands: int, services: int, tests: int, check: bool) -> bool:
+def update_readme(
+    tools: int,
+    commands: int,
+    services: int,
+    tests: int,
+    cockpit_http: int,
+    cockpit_ws: int,
+    sprints_done: int,
+    check: bool,
+) -> bool:
     """Atualiza README.md com números reais."""
     path = PROJECT_ROOT / "README.md"
     if not path.exists():
@@ -182,15 +213,36 @@ def update_readme(tools: int, commands: int, services: int, tests: int, check: b
 
     replacements = [
         (
-            r"Roda qwen\S+ via Ollama com \d+ tools, \d+ commands, \d+ services",
+            r"Roda qwen\S+ via Ollama com \d+ tools(?: funcionais)?, \d+ commands, \d+ services",
             f"Roda qwen2.5-coder:3b via Ollama com {tools} tools, {commands} commands, {services} services",
         ),
         (r"Tools \| 40 \| \d+ \| \d+%", f"Tools | 40 | {tools} | {tools * 100 // 40}%"),
         (r"Commands \| 98 \| \d+ \| \d+%", f"Commands | 98 | {commands} | {commands * 100 // 98}%"),
         (r"Services \| 35 \| \d+ \| \d+%", f"Services | 35 | {services} | {services * 100 // 35}%"),
         (r"\d+ tools registradas", f"{tools} tools registradas"),
+        (r"\d+ tools via ToolRegistry", f"{tools} tools via ToolRegistry"),
         (r"\d+ slash commands", f"{commands} slash commands"),
-        (r"\d+ testes", f"{tests} testes"),
+        # NB: ajuste de mensagem — diz "catalogados" porque self._add count >= runtime gated.
+        (
+            r"# \d+ testes(?: em \d+ fases)?; --only fase\|feature_id",
+            f"# {tests} testes catalogados; --only fase|feature_id",
+        ),
+        (
+            r"# \d+ services \(incl\.",
+            f"# {services} services (incl.",
+        ),
+        (
+            r"# \d+ endpoints HTTP \+ \d+ WS",
+            f"# {cockpit_http} endpoints HTTP + {cockpit_ws} WS",
+        ),
+        (
+            r"`127\.0\.0\.1:11437` com \d+ endpoints HTTP \+ \d+ WS",
+            f"`127.0.0.1:11437` com {cockpit_http} endpoints HTTP + {cockpit_ws} WS",
+        ),
+        (
+            r"\d+ sprints concluídas, \d+ em produção",
+            f"{sprints_done} sprints concluídas, 1 em produção",
+        ),
     ]
 
     for pattern, replacement in replacements:
@@ -232,6 +284,22 @@ def update_port_status(tools: int, commands: int, services: int, check: bool) ->
             r"\| \*\*TOTAL\*\* \| \*\*173\*\* \| \*\*\d+\*\* \| \*\*\d+\*\* \| \*\*\d+%\*\* \|",
             f"| **TOTAL** | **173** | **{tools + commands + services}** | **{173 - (tools + commands + services)}** | **{(tools + commands + services) * 100 // 173}%** |",  # noqa: E501
         ),
+        (
+            r"## 1\. TOOLS \(40 OpenClaude -> \d+ Nyx\)",
+            f"## 1. TOOLS (40 OpenClaude -> {tools} Nyx)",
+        ),
+        (
+            r"### Portadas \(\d+\)",
+            f"### Portadas ({tools})",
+        ),
+        (
+            r"\| Commands \| `agent/commands\.py` \| Luna commands\.py \| OK \(\d+ cmds\) \|",
+            f"| Commands | `agent/commands.py` | Luna commands.py | OK ({commands} cmds) |",
+        ),
+        (
+            r"\| ToolRegistry \| `agent/tools/registry\.py` \| Luna tools/registry\.py \| OK \(\d+ tools\) \|",
+            f"| ToolRegistry | `agent/tools/registry.py` | Luna tools/registry.py | OK ({tools} tools) |",
+        ),
     ]
 
     for pattern, replacement in replacements:
@@ -243,6 +311,66 @@ def update_port_status(tools: int, commands: int, services: int, check: bool) ->
         logger.info("PORT_STATUS.md atualizado")
     elif changed:
         logger.info("PORT_STATUS.md precisa de atualização")
+
+    return changed
+
+
+def update_architecture(tools: int, commands: int, services: int, check: bool) -> bool:
+    """Atualiza ARCHITECTURE.md diagrama ASCII com contagens reais.
+
+    Cuidado: preserva alinhamento das linhas verticais do diagrama
+    (cada célula tem largura fixa). Substitui apenas o miolo "(N)".
+    """
+    path = PROJECT_ROOT / "dev-journey" / "02-architecture" / "ARCHITECTURE.md"
+    if not path.exists():
+        return False
+
+    content = path.read_text(encoding="utf-8")
+    original = content
+
+    replacements = [
+        (r"Commands \(\d+\)\s*\|", f"Commands ({commands})  |"),
+        (r"Services \(\d+\)\s*\|", f"Services ({services})   |"),
+        (r"ToolRegistry \(\d+\)\s*\|", f"ToolRegistry ({tools})  |"),
+    ]
+
+    for pattern, replacement in replacements:
+        content = re.sub(pattern, replacement, content)
+
+    changed = content != original
+    if changed and not check:
+        path.write_text(content, encoding="utf-8")
+        logger.info("ARCHITECTURE.md atualizado")
+    elif changed:
+        logger.info("ARCHITECTURE.md precisa de atualização")
+
+    return changed
+
+
+def update_sprint_template(tools: int, commands: int, services: int, cli_lines: int, check: bool) -> bool:
+    """Atualiza dev-journey/08-templates/SPRINT_TEMPLATE_V2.md."""
+    path = PROJECT_ROOT / "dev-journey" / "08-templates" / "SPRINT_TEMPLATE_V2.md"
+    if not path.exists():
+        return False
+
+    content = path.read_text(encoding="utf-8")
+    original = content
+
+    # Aproxima cli.py para multiplo de 10 (estabilidade idempotente).
+    cli_rounded = round(cli_lines / 10) * 10
+
+    content = re.sub(
+        r"> - \d+ tools, \d+ commands, \d+ services\. `cli\.py` ~?\d+ linhas\.",
+        f"> - {tools} tools, {commands} commands, {services} services. `cli.py` ~{cli_rounded} linhas.",
+        content,
+    )
+
+    changed = content != original
+    if changed and not check:
+        path.write_text(content, encoding="utf-8")
+        logger.info("SPRINT_TEMPLATE_V2.md atualizado")
+    elif changed:
+        logger.info("SPRINT_TEMPLATE_V2.md precisa de atualização")
 
     return changed
 
@@ -259,6 +387,8 @@ def main() -> None:
     adrs = _count_adrs()
     sprints = _count_sprints()
     next_sprint = _get_next_sprint()
+    cockpit_http, cockpit_ws = _count_cockpit_endpoints()
+    cli_lines = _count_cli_lines()
 
     print()
     print("=" * 50)
@@ -267,8 +397,10 @@ def main() -> None:
     print(f"  Tools:     {tools}")
     print(f"  Commands:  {commands}")
     print(f"  Services:  {services}")
-    print(f"  Testes:    {tests}")
+    print(f"  Testes:    {tests} (catalogados em self._add)")
     print(f"  ADRs:      {adrs}")
+    print(f"  Cockpit:   {cockpit_http} HTTP + {cockpit_ws} WS")
+    print(f"  cli.py:    {cli_lines} linhas")
     print(
         f"  Sprints:   {sprints['concluidos']} concluídas | {sprints['producao']} pendentes | {sprints['backlog']} backlog"  # noqa: E501
     )
@@ -278,10 +410,14 @@ def main() -> None:
     changes = []
     if update_guide_md(tools, commands, services, tests, adrs, sprints, args.check):
         changes.append("GUIDE.md")
-    if update_readme(tools, commands, services, tests, args.check):
+    if update_readme(tools, commands, services, tests, cockpit_http, cockpit_ws, sprints["concluidos"], args.check):
         changes.append("README.md")
     if update_port_status(tools, commands, services, args.check):
         changes.append("PORT_STATUS.md")
+    if update_architecture(tools, commands, services, args.check):
+        changes.append("ARCHITECTURE.md")
+    if update_sprint_template(tools, commands, services, cli_lines, args.check):
+        changes.append("SPRINT_TEMPLATE_V2.md")
 
     if changes:
         action = "precisam de atualização" if args.check else "atualizados"

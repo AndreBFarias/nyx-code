@@ -4,7 +4,7 @@
 
 Agente de código local. 100% offline.
 
-Roda qwen2.5-coder:3b via Ollama com 35 tools funcionais, 67 commands, 15 services.
+Roda qwen2.5-coder:3b via Ollama com 35 tools, 67 commands, 15 services.
 Projeto standalone, otimizado para RTX 3050 4GB.
 
 ## Instalação rápida
@@ -334,7 +334,7 @@ Para estado autoritativo consultar `dev-journey/08-templates/PROJECT_SNAPSHOT.md
 - **Gauntlet**: 225 testes em 53 fases; `--only rapido` 18/18 (1ª execução fresca); `--only proxy` 7/7 + `--only qualidade` 5/5 estáveis
 - **Smoke**: `boot ok` em ~0.14s (10x abaixo do critério v1.0 de 1.5s)
 - **Invariantes**: 14/14 PASS
-- **Cockpit**: operacional em `127.0.0.1:11437` com 21 endpoints HTTP + 2 WS
+- **Cockpit**: operacional em `127.0.0.1:11437` com 19 endpoints HTTP + 2 WS
 - **Tag v1.0**: `VALIDATE-FINAL-01-PARTE-2` CONCLUIDA (2026-05-19); tag aguarda apenas comando humano (`git tag -a v1.0`) — sprint `RELEASE-V1.0-CUT-01` em `producao/`
 - **Backlog técnico**: ZERADO — 387 sprints concluídas, 1 em produção (RELEASE delegada ao humano)
 
@@ -394,7 +394,7 @@ nyx/
     tools/             # 35 tools registradas
     services/          # 15 services (incl. hook_runtime, plugin_manager, mcp_client)
   cockpit/             # FastAPI server local (COCKPIT-01..05)
-    server.py          # 21 endpoints HTTP + 2 WS
+    server.py          # 19 endpoints HTTP + 2 WS
     pty_bridge.py      # PTY bridge para terminal embedded
     evidencia.py       # Captura PNG por feature (rotação 5)
     static/            # index.html (dashboard), terminal.html (xterm.js)
@@ -406,7 +406,7 @@ nyx/
   providers/ollama.py
   config/defaults.py   # NYX_AESTHETIC, NYX_ENTITY, COCKPIT_PORT, etc.
 scripts/
-  gauntlet/nyx_gauntlet.py  # 225 testes em 53 fases; --only fase|feature_id
+  gauntlet/nyx_gauntlet.py  # 320 testes catalogados; --only fase|feature_id
   menu_wizard.py            # TUI wizard (NYX-MENU-WIZARD-01)
   check_oom.sh              # Diagnóstico OOM (INFRA-OOM-01)
   sprint_invariants.sh      # 14 invariantes
