@@ -66,7 +66,7 @@ Criar `scripts/dispatch_pre_check.sh`:
 
 set -u
 spec="${1:?uso: $0 <spec.md>}"
-[ -f "$spec" ] || { echo "spec nao encontrada: $spec"; exit 2; }
+[ -f "$spec" ] || { echo "spec não encontrada: $spec"; exit 2; }
 
 # Extrai bloco YAML entre ```yaml ... ``` da spec.
 yaml_block=$(awk '/^```yaml$/{flag=1; next} /^```$/{flag=0} flag' "$spec")
@@ -115,7 +115,7 @@ while IFS= read -r crit; do
 done <<< "$criteria"
 
 echo ""
-echo "Resumo: $satisfeitos/$parseaveis criterios parseaveis satisfeitos ($nao_parseaveis nao-parseaveis)"
+echo "Resumo: $satisfeitos/$parseaveis criterios parseaveis satisfeitos ($nao_parseaveis não-parseaveis)"
 
 if [ "$parseaveis" -gt 0 ] && [ "$satisfeitos" -eq "$parseaveis" ]; then
     echo "PRE-SATISFEITA"
