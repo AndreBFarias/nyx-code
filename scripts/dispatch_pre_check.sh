@@ -97,6 +97,38 @@ while IFS= read -r crit; do
     fi
 done <<< "$criteria"
 
+# --- Fenced-block check para Refactor cirúrgico (INFRA-PLANEJADOR-FENCED-CHECK-01) ---
+# Lição empírica BUNDLE-01: specs do tipo Refactor com touches=1 (cirúrgico)
+# precisam carregar trecho de código antes/depois em fenced block para evitar
+# narrativa-orientada-a-linha que diverge da realidade do arquivo-alvo.
+# Compatibilidade: mawk-only (sem captura 3-arg de gawk); usa sed -nE e grep -cE.
+
+spec_tipo=$(echo "$yaml_block" | sed -nE 's/^[[:space:]]+tipo:[[:space:]]+(.+)$/\1/p' | head -1 | tr -d '"')
+
+# Conta itens da lista touches:. O bloco YAML começa em coluna 2 (2 espaços),
+# então touches: aparece como `^  touches:`. Itens filhos começam com `^    -`
+# (4+ espaços + hífen). Encerra ao achar nova chave de mesmo nível.
+touches_count=$(echo "$yaml_block" | awk '
+    /^  touches:/             { flag=1; next }
+    flag && /^  [a-z_]+:/     { flag=0 }
+    flag && /^[[:space:]]+- / { count++ }
+    END                       { print count+0 }
+')
+
+if echo "$spec_tipo" | grep -qiE 'Refactor' && [ "${touches_count:-0}" -eq 1 ]; then
+    # Conta marcadores ``` totais. O bloco YAML do header consome 2 marcadores
+    # (```yaml ... ```), então para garantir 1 fenced block ADICIONAL (antes/depois)
+    # exige-se >=4 marcadores totais.
+    fenced_total=$(grep -cE '^[[:space:]]*```[a-zA-Z]*$' "$spec")
+    if [ "${fenced_total:-0}" -lt 4 ]; then
+        echo ""
+        echo "[REJEITADA] Refactor cirúrgico requer fenced code block (lição BUNDLE-01)"
+        echo "  tipo=$spec_tipo touches=1 mas spec não contém fenced code block além do YAML em $spec"
+        exit 3
+    fi
+fi
+# --- Fim fenced-block check ---
+
 echo ""
 echo "Resumo: $satisfeitos/$parseaveis criterios parseaveis satisfeitos ($nao_parseaveis não-parseaveis)"
 
