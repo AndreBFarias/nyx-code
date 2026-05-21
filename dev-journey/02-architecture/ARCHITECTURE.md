@@ -1,6 +1,7 @@
 # Arquitetura Nyx-Code
 
-**Atualizado:** 2026-04-05
+**Atualizado:** 2026-05-21
+**Nota:** este documento descreve a arquitetura conceitual. Para contagens em runtime (tools/commands/services/ADRs) e estado do gate v1.0, ver `dev-journey/08-templates/PROJECT_SNAPSHOT.md` (fonte autoritativa).
 
 ---
 
@@ -16,7 +17,7 @@
               ┌─────────────────────────┼─────────────────────────┐
               │                         │                         │
      ┌────────┴────────┐    ┌───────────┴──────────┐   ┌─────────┴────────┐
-     │   Commands (33)  │    │   AgentLoop          │   │  Services (8)    │
+     │   Commands (67)  │    │   AgentLoop          │   │  Services (15)   │
      │  /help /commit   │    │  nyx/agent/loop.py   │   │  tokens, hooks   │
      │  /diff /doctor   │    │  plan-execute-observe │   │  memory, compact │
      └─────────────────┘    └───────────┬──────────┘   └──────────────────┘
@@ -24,7 +25,7 @@
               ┌─────────────────────────┼─────────────────────────┐
               │                         │                         │
      ┌────────┴────────┐    ┌───────────┴──────────┐   ┌─────────┴────────┐
-     │   ActionParser   │    │   ToolRegistry (34)  │   │  ContextBudget   │
+     │   ActionParser   │    │   ToolRegistry (35)  │   │  ContextBudget   │
      │  7 níveis        │    │  read, write, edit   │   │  4 níveis        │
      │  EXACT->IMPLICIT │    │  bash, glob, search  │   │  compactação     │
      └─────────────────┘    └───────────┬──────────┘   └──────────────────┘

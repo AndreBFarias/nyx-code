@@ -110,8 +110,8 @@ Forma canônica literal (copiar-colar):
 > - ADR-020 Testes via run.sh: `./run.sh --gauntlet --only <fase>`.
 >
 > **Estado do sistema (na data da sprint):**
-> - Python 3.10+, modelo `qwen3:4b` no Ollama porta 11435, proxy 11436.
-> - 34 tools, 47 commands, 10 services. `cli.py` 722 linhas.
+> - Python 3.10+, modelo `qwen2.5-coder:3b` no Ollama porta 11435, proxy 11436 (ADR-031).
+> - 35 tools, 67 commands, 15 services. `cli.py` ~790 linhas.
 > - Sprint anterior: `<ID-ANTERIOR>` CONCLUIDA.
 
 ---

@@ -1,8 +1,9 @@
 # Port Status: OpenClaude TypeScript -> Nyx Python
 
-**Atualizado:** 2026-04-05
+**Atualizado:** 2026-05-21
 **Source TS:** `openclaud/src/` (127.516 linhas, 1.884 arquivos)
 **Destino Python:** `nyx/` (~6.000 linhas)
+**Nota:** este documento rastreia paridade vs OpenClaude TS. Para snapshot canônico do projeto (contagens, gate v1.0, sprints), ver `dev-journey/08-templates/PROJECT_SNAPSHOT.md`.
 
 ---
 
@@ -19,9 +20,9 @@ Meta: 100% (ADR-012)
 
 ---
 
-## 1. TOOLS (40 OpenClaude -> 34 Nyx)
+## 1. TOOLS (40 OpenClaude -> 35 Nyx)
 
-### Portadas (34)
+### Portadas (35)
 
 | OpenClaude | Nyx Python | Arquivo | Status |
 |-----------|-----------|---------|--------|
@@ -220,8 +221,8 @@ voice, voiceStreamSTT, voiceKeyterms, rateLimitMessages, rateLimitMocking, mockR
 | Persistence | `agent/persistence.py` | Luna persistence.py | OK |
 | SystemPrompt | `agent/prompt.py` | Luna prompt.py | OK |
 | Models | `agent/models.py` | Luna models.py | OK |
-| Commands | `agent/commands.py` | Luna commands.py | OK (33 cmds) |
-| ToolRegistry | `agent/tools/registry.py` | Luna tools/registry.py | OK (34 tools) |
+| Commands | `agent/commands.py` | Luna commands.py | OK (67 cmds) |
+| ToolRegistry | `agent/tools/registry.py` | Luna tools/registry.py | OK (35 tools) |
 | OllamaProvider | `providers/ollama.py` | Luna ollama_client/ | OK |
 | ProjectContext | `context/project.py` | openclaud context/ | OK |
 

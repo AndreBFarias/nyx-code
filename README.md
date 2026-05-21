@@ -4,7 +4,7 @@
 
 Agente de código local. 100% offline.
 
-Roda qwen2.5-coder:3b via Ollama com 34 tools funcionais, 47 commands, 10 services.
+Roda qwen2.5-coder:3b via Ollama com 35 tools funcionais, 67 commands, 15 services.
 Projeto standalone, otimizado para RTX 3050 4GB.
 
 ## Instalação rápida
@@ -83,7 +83,7 @@ run.sh ─────> Ollama (:11435) ──> GPU (num_gpu=12, qwen2.5-coder:3
   |
   +────────> Nyx CLI (nyx/cli.py)
               - REPL interativo com Rich output + prompt-toolkit
-              - 34 tools via ToolRegistry
+              - 35 tools via ToolRegistry
               - 67 slash commands
               - AgentLoop: plan-execute-observe (até 30 iterações)
               - ActionParser: 7 níveis de fallback
@@ -327,14 +327,16 @@ Uso:
 | 030 | MCP cliente stdio | ACEITO |
 | 031 | Modelo padrão qwen2.5-coder:3b | ACEITO |
 
-## Status atual (2026-05-18, Onda 24)
+## Status atual (2026-05-21, v1.3.0-rc2 backlog drenado)
 
-- **Gauntlet**: 320 testes registrados; `--only rapido` 11/11 APROVADO
+Para estado autoritativo consultar `dev-journey/08-templates/PROJECT_SNAPSHOT.md`.
+
+- **Gauntlet**: 225 testes em 53 fases; `--only rapido` 18/18 (1ª execução fresca); `--only proxy` 7/7 + `--only qualidade` 5/5 estáveis
 - **Smoke**: `boot ok` em ~0.14s (10x abaixo do critério v1.0 de 1.5s)
 - **Invariantes**: 14/14 PASS
-- **Cockpit**: operacional em `127.0.0.1:11437` com 17 endpoints HTTP + 2 WS
-- **Tag v1.0**: aguarda `VALIDATE-FINAL-01-PARTE-2` (screenshots + Docker + 47 commands manuais)
-- **Sprints pendentes**: 12 anti-débito materializadas em `dev-journey/06-sprints/producao/` (NYX-AUTO-APPROVE-01, COCKPIT-LIFECYCLE-FIX-01, NYX-NO-HALLUCINATE-TOOL-01, PROJECT-ROOTS-MULTI-01, SHIFT-TAB-CYCLE-01, SUDO-MODE-01, NYX-GSD-CHECKPOINTS-01, NYX-PROMPT-REINJECT-01, NYX-OUTPUT-LIMITS-01, PTY-PERMISSION-FLOW-01, HELP-COVERAGE-FIX-02, VALIDATE-FINAL-01-PARTE-2) + 51 RASCUNHOs SBOM em fila
+- **Cockpit**: operacional em `127.0.0.1:11437` com 21 endpoints HTTP + 2 WS
+- **Tag v1.0**: `VALIDATE-FINAL-01-PARTE-2` CONCLUIDA (2026-05-19); tag aguarda apenas comando humano (`git tag -a v1.0`) — sprint `RELEASE-V1.0-CUT-01` em `producao/`
+- **Backlog técnico**: ZERADO — 387 sprints concluídas, 1 em produção (RELEASE delegada ao humano)
 
 ## Requisitos
 
@@ -390,9 +392,9 @@ nyx/
     commands/          # 67 slash commands (incl. /aesthetic, /cancel)
     output.py          # Rich + theme_manager
     tools/             # 35 tools registradas
-    services/          # 14 services (incl. hook_runtime, plugin_manager, mcp_client)
+    services/          # 15 services (incl. hook_runtime, plugin_manager, mcp_client)
   cockpit/             # FastAPI server local (COCKPIT-01..05)
-    server.py          # 17 endpoints HTTP + 2 WS
+    server.py          # 21 endpoints HTTP + 2 WS
     pty_bridge.py      # PTY bridge para terminal embedded
     evidencia.py       # Captura PNG por feature (rotação 5)
     static/            # index.html (dashboard), terminal.html (xterm.js)
@@ -404,7 +406,7 @@ nyx/
   providers/ollama.py
   config/defaults.py   # NYX_AESTHETIC, NYX_ENTITY, COCKPIT_PORT, etc.
 scripts/
-  gauntlet/nyx_gauntlet.py  # 320 testes; --only fase|feature_id
+  gauntlet/nyx_gauntlet.py  # 225 testes em 53 fases; --only fase|feature_id
   menu_wizard.py            # TUI wizard (NYX-MENU-WIZARD-01)
   check_oom.sh              # Diagnóstico OOM (INFRA-OOM-01)
   sprint_invariants.sh      # 14 invariantes
