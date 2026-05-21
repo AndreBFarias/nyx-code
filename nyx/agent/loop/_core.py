@@ -62,6 +62,7 @@ class AgentLoop(_IterationMixin):
         on_permission: PermissionCallback | None = None,
         on_compaction: Optional[Callable[[int, int, float, float], None]] = None,
         on_model_state: Optional[Callable[[str], None]] = None,
+        on_thinking: Any = None,
         streaming: bool = True,
         settings: "NyxSettings | None" = None,
     ) -> None:
@@ -86,6 +87,9 @@ class AgentLoop(_IterationMixin):
         self._on_permission = on_permission
         self._on_compaction = on_compaction
         self._on_model_state = on_model_state
+        # TUI-REDESIGN-25-12-PARTE-2: amarra callback consumido em _iteration.py:502
+        # ao render_thinking_block (output.py:803). Quando None, propagação é no-op.
+        self._on_thinking = on_thinking
         self._streaming = streaming
         self._tool_durations: dict[str, list[float]] = {}
         self._model_state: str = "cold"

@@ -302,6 +302,7 @@ async def run_repl(
         on_permission=_make_ask_permission(app_state),
         on_compaction=callbacks["on_compaction"],
         on_model_state=callbacks["on_model_state"],
+        on_thinking=callbacks["on_thinking"],
         streaming=streaming,
         settings=settings,
     )

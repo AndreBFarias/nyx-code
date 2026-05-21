@@ -37,6 +37,7 @@ def build_render_callbacks(
     from nyx.agent.output import (
         is_tool_error,
         render_compaction_event,
+        render_thinking_block,
     )
 
     def stop_spinner() -> None:
@@ -135,6 +136,16 @@ def build_render_callbacks(
         app_state["model_state"] = state
         on_model_state_log(state)
 
+    def on_thinking(text: str) -> None:
+        """Render thinking colapsado (TUI-REDESIGN-25-12-PARTE-2).
+
+        Consome `nyx_reasoning` propagado por _iteration.py:502. Default
+        colapsado (1 linha preview); usuário expande via Tab (25-09-PARTE-2).
+        """
+        if not text:
+            return
+        render_thinking_block(text, duration_s=None, expanded=False)
+
     return {
         "stop_spinner": stop_spinner,
         "flush_buffer": flush_buffer,
@@ -143,6 +154,7 @@ def build_render_callbacks(
         "on_tool_result": on_tool_result,
         "on_compaction": on_compaction,
         "on_model_state": on_model_state,
+        "on_thinking": on_thinking,
     }
 
 
