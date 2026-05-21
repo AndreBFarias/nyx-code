@@ -50,7 +50,7 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (2026-05-21, commit ae004ac — 3 fixes aplicados + 1 descartado por alvo inexistente; MASTER entry 125ww APROVADO pelo validador)
 **Data criação:** 2026-05-21
 **Modelo obrigatório:** claude-opus-4-7
 
