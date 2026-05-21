@@ -692,7 +692,8 @@ Ordem: Fase 0 (materializar specs) → Fase 1 (27-01 suggester theme) → Fase 2
 | 164 | **COCKPIT-WEB-REDESIGN-03** | 26.2 Cockpit --web reformulado | MÉDIA | CONCLUIDA (2026-05-18) | COCKPIT-WEB-REDESIGN-02 |
 | 165 | **TUI-REDESIGN-26-01** | 26.1 Fidelidade visual | ALTA | CONCLUIDA (2026-05-18) | COCKPIT-WEB-REDESIGN-03 |
 | 166 | **TUI-REDESIGN-26-02** | 26.1 Fidelidade visual | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-26-01 |
-| 167 | **TUI-REDESIGN-26-03** | 26.1 Fidelidade visual | ALTA | CONCLUIDA_PARCIAL (2026-05-18; glyph-per-tool feito, alinhamento ações à direita pendente refinamento) | TUI-REDESIGN-26-02 |
+| 167 | **TUI-REDESIGN-26-03** | 26.1 Fidelidade visual | ALTA | CONCLUIDA (2026-05-18 glyph-per-tool + 2026-05-21 alinhamento ações à direita via PARTE-2-DEFAULT-PAD) | TUI-REDESIGN-26-02 |
+| 167b | **TUI-REDESIGN-26-03-PARTE-2** (DEFAULT_PAD) | 26.1 Fidelidade visual | MÉDIA | CONCLUIDA (2026-05-21, commit <hash> — render_tool_chip refatorado para layout 2-col com pad dinâmico via shutil.get_terminal_size; duration+status alinhados à direita também no caso default sem error_actions; fallback para terminal estreito; touches: nyx/agent/output.py ~21+/-7L; proof-of-work: smoke OK + invariantes 14/14 + acentuação rc=0 + asserto runtime pad detectado True) | TUI-REDESIGN-26-03 |
 | 168 | **TUI-REDESIGN-26-04** | 26.1 Fidelidade visual | ALTA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-26-03 |
 | 169 | **TUI-REDESIGN-26-05** | 26.3 Onboarding nome | MÉDIA | CONCLUIDA (2026-05-18) | TUI-REDESIGN-26-04 |
 

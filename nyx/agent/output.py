@@ -883,21 +883,35 @@ def render_tool_chip(
             arg_preview = _shorten_path(str(args[key]), project_root, 50)
             break
     duration = _format_duration(duration_ms)
-    parts = [
+    # TUI-REDESIGN-26-03-PARTE-2: layout 2-col [left] [right pad-aligned].
+    left_parts = [
         f"  {color}{glyph}{ANSI_RESET}",
         f"{ANSI_ACCENT_FG}{name}{ANSI_RESET}",
     ]
     if arg_preview:
-        parts.append(f"{ANSI_DIM}{arg_preview}{ANSI_RESET}")
-    parts.append(f"{ANSI_MUTED_FG}{duration}{ANSI_RESET}")
-    parts.append(f"{color}{status}{ANSI_RESET}")
-    chip_line = " ".join(parts)
+        left_parts.append(f"{ANSI_DIM}{arg_preview}{ANSI_RESET}")
+    left = " ".join(left_parts)
+    right = (
+        f"{ANSI_MUTED_FG}{duration}{ANSI_RESET} "
+        f"{color}{status}{ANSI_RESET}"
+    )
 
-    # TUI-REDESIGN-26-03-PARTE-2: chips de ações à direita se cabem.
+    cols = shutil.get_terminal_size(fallback=(80, 24)).columns
+    left_visible = _strip_ansi(left)
+    right_visible = _strip_ansi(right)
+    # Margem mínima de 2 colunas entre left e right.
+    pad_calc = cols - left_visible - right_visible - 2
+    if pad_calc >= 1:
+        chip_line = left + (" " * pad_calc) + "  " + right
+    else:
+        # Fallback terminal estreito: concatena com espaço único (layout antigo).
+        chip_line = left + " " + right
+
+    # TUI-REDESIGN-26-03-PARTE-2: chips de ações à direita sobrescrevem o
+    # lado direito (substituem duration+status quando presentes).
     actions_chip = ""
     actions_above = False
     if error_actions:
-        cols = shutil.get_terminal_size(fallback=(80, 24)).columns
         chips_parts = [
             f"{ANSI_ACCENT_FG}[{k}]{ANSI_RESET} {ANSI_DIM}{lbl}{ANSI_RESET}"
             for k, lbl, _cmd in error_actions
