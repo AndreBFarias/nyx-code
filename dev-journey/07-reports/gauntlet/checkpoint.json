@@ -1,62 +1,105 @@
 {
-  "timestamp": "2026-05-21T15:56:12.192893",
+  "timestamp": "2026-05-21T16:08:57.542578",
   "model": "qwen2.5-coder:3b",
   "phases_done": [],
   "results": [
     {
-      "feature_id": "Q-02",
-      "name": "Identidade (sem Qwen/GPT)",
-      "phase": "qualidade",
+      "feature_id": "P-01",
+      "name": "Request via proxy",
+      "phase": "proxy",
       "passed": true,
-      "elapsed_s": 6.81,
-      "tokens": 138,
-      "details": "Sou Nyx, codificadora local.",
+      "elapsed_s": 4.14,
+      "tokens": 38,
+      "details": "proxy ok",
       "error": "",
       "skipped": false
     },
     {
-      "feature_id": "Q-04",
-      "name": "Uso proativo de tools",
-      "phase": "qualidade",
+      "feature_id": "P-02",
+      "name": "think=false injetado",
+      "phase": "proxy",
       "passed": true,
-      "elapsed_s": 4.11,
-      "tokens": 189,
+      "elapsed_s": 0,
+      "tokens": 0,
+      "details": "sem <think>",
+      "error": "",
+      "skipped": false
+    },
+    {
+      "feature_id": "P-04",
+      "name": "Content array normalizado",
+      "phase": "proxy",
+      "passed": true,
+      "elapsed_s": 0.33,
+      "tokens": 38,
       "details": "",
       "error": "",
       "skipped": false
     },
     {
-      "feature_id": "Q-05",
-      "name": "Precisão de argumentos",
-      "phase": "qualidade",
+      "feature_id": "P-05",
+      "name": "Formato OpenAI correto",
+      "phase": "proxy",
       "passed": true,
-      "elapsed_s": 0,
+      "elapsed_s": 0.78,
       "tokens": 0,
-      "details": "['{\"file_path\": \"README.md\"}']",
+      "details": "choices=True usage=True message=True",
       "error": "",
       "skipped": false
     },
     {
-      "feature_id": "Q-06",
-      "name": "Sem emojis",
-      "phase": "qualidade",
+      "feature_id": "P-06",
+      "name": "Listagem /v1/models",
+      "phase": "proxy",
       "passed": true,
-      "elapsed_s": 1.25,
-      "tokens": 58,
-      "details": "Um proxy é um intermediário digital que interessa informaçõe",
+      "elapsed_s": 0.02,
+      "tokens": 0,
+      "details": "4 modelos",
       "error": "",
       "skipped": false
     },
     {
-      "feature_id": "Q-07",
-      "name": "Sem hallucination de paths",
-      "phase": "qualidade",
+      "feature_id": "P-07",
+      "name": "tool_calls propagam",
+      "phase": "proxy",
       "passed": true,
-      "elapsed_s": 3.42,
-      "tokens": 0,
-      "details": "{\"file_path\": \"/path/to/run.sh\"}",
+      "elapsed_s": 3.99,
+      "tokens": 190,
+      "details": "['{\"file_path\": \"/path/to/README.md\"}']",
       "error": "",
       "skipped": false
+    },
+    {
+      "feature_id": "P-09",
+      "name": "proxy emite nyx_reasoning quando think=true",
+      "phase": "proxy",
+      "passed": [
+        {
+          "id": "call_08db3de1",
+          "index": 0,
+          "type": "function",
+          "function": {
+            "name": "Read",
+            "arguments": "{\"file_path\": \"x.md\"}"
+          }
+        }
+      ],
+      "elapsed_s": 0.1,
+      "tokens": 0,
+      "details": "with_think=True without_think=True with_tools=[{'id': 'call_08db3de1', 'index': 0, 'type': 'function', 'function': {'name': 'Read', 'arguments': '{\"file_path\": \"x.md\"}'}}]",
+      "error": "",
+      "skipped": false
+    },
+    {
+      "feature_id": "P-09b",
+      "name": "E2E nyx_reasoning com qwen3:4b",
+      "phase": "proxy",
+      "passed": true,
+      "elapsed_s": 0.0,
+      "tokens": 0,
+      "details": "VRAM insuficiente: 500 MiB livres (mínimo 4096 MiB para qwen3:4b)",
+      "error": "",
+      "skipped": true
     }
   ],
   "kpis": {}
