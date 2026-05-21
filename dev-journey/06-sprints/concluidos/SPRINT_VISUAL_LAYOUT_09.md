@@ -61,7 +61,7 @@ sprint:
 
 # Sprint VISUAL-LAYOUT-09 — Banner consome aesthetic.glyphs + entity.accent (duas camadas)
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (2026-05-21)
 **Data criação:** 2026-05-21
 **Modelo obrigatório:** claude-opus-4-7 (executor-sprint via Agent tool)
 

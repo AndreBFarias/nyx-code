@@ -26,9 +26,12 @@ from nyx.themes.design_tokens import (
     ANSI_SUCCESS_FG,
     BOX_CHARS,
 )
-from nyx.themes.theme_manager import current_ansi
+from nyx.themes.theme_manager import current_ansi, current_glyphs
 
-# TUI-REDESIGN-28-09: glifos de junção para grid 2-col (tjoin/bjoin/ljoin/rjoin)
+# VISUAL-LAYOUT-09: junções de grade 2-col (tjoin/bjoin/ljoin/rjoin) não fazem
+# parte do schema aesthetic (que cobre apenas tl/tr/bl/br/h/v). São primitivas
+# estruturais transversais; vêm de BOX_CHARS legacy. Cantos+linhas migram para
+# current_glyphs() em build-time (resolução por aesthetic ativo).
 _TJOIN = BOX_CHARS["tjoin"]
 _BJOIN = BOX_CHARS["bjoin"]
 _LJOIN = BOX_CHARS["ljoin"]
@@ -36,6 +39,7 @@ _RJOIN = BOX_CHARS["rjoin"]
 
 # VISUAL-LAYOUT-CLI-CONSUME-01: accent/muted resolvidos em import-time via
 # theme_manager. Honra NYX_AESTHETIC + NYX_ENTITY. Default = paleta D.
+# Accent textual segue ADR-029: vem da ENTITY (luna roxa, mars vermelho, etc).
 _ANSI = current_ansi()
 ANSI_ACCENT_FG = _ANSI["accent"]
 ANSI_MUTED_FG = _ANSI["muted"]
@@ -75,12 +79,17 @@ def build_banner(
         except Exception:
             commands_count = 0
 
-    tl = BOX_CHARS["tl"]
-    tr = BOX_CHARS["tr"]
-    bl = BOX_CHARS["bl"]
-    br = BOX_CHARS["br"]
-    h = BOX_CHARS["h"]
-    v = BOX_CHARS["v"]
+    # VISUAL-LAYOUT-09: cantos+linhas resolvidos em BUILD-TIME via current_glyphs()
+    # para permitir override por NYX_AESTHETIC entre chamadas. cyberpunk → ┏┓┗┛━┃,
+    # brutalist → +|-, default → ╭╮╰╯─│. ADR-029 preservado: accent textual
+    # continua vindo da entity via current_ansi() (import-time).
+    glyphs = current_glyphs()
+    tl = glyphs["tl"]
+    tr = glyphs["tr"]
+    bl = glyphs["bl"]
+    br = glyphs["br"]
+    h = glyphs["h"]
+    v = glyphs["v"]
 
     accent = ANSI_ACCENT_FG
     muted = ANSI_MUTED_FG
