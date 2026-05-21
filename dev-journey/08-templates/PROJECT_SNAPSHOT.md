@@ -1,8 +1,33 @@
 # Project Snapshot — Nyx-Code
 
-**Atualizado em:** 2026-04-21
-**Versão do projeto:** em Onda 22 (rumo a v1.0)
+**Atualizado em:** 2026-05-21
+**Versão do projeto:** **v1.3.0-rc1 ready** (Ondas 22-28 concluídas)
+**Tag v1.0 status:** NÃO cortada (decisão delegada ao humano — sprint `RELEASE-V1.0-CUT-01` PENDENTE)
+
 **Este arquivo é referenciável por qualquer sprint** em vez de copiar o estado inline. Atualizar com regularidade (após fim de bloco, ou quando contagens mudarem).
+
+---
+
+## Estado v1.3.0-rc1 (2026-05-21)
+
+| Critério gate v1.0 (16 itens) | Status |
+|---|---|
+| 0 RASCUNHO em `producao/` | OK (só `RELEASE-V1.0-CUT-01` que aguarda humano) |
+| 0 PENDENTE no MASTER (exceto RELEASE-V1.0-CUT-01) | WARN — 5 anti-débitos BAIXA catalogados (125oo..125ss) não bloqueantes |
+| 0 CONCLUIDA_PARCIAL com pendência ativa | OK (3 fechadas em 2026-05-21: TUI-25-09-PARTE-3, TUI-25-12-PARTE-2, TUI-26-03-PARTE-2-DEFAULT-PAD) |
+| 0 DEFERIDA bloqueante | OK |
+| Smoke `boot ok` | OK |
+| Invariantes 14/14 PASS | OK |
+| Gauntlet completo 100% | OK 225/225 em 252s (2026-05-21) |
+| `audit_help_coverage.py` N/N | OK 67/67 |
+| `microcopy_audit.py --check` exit 0 | OK |
+| `validar-acentuacao.py --paths` exit 0 | OK em arquivos modificados |
+| `ruff check nyx/ scripts/` exit 0 | OK All checks passed |
+| `sbom_sync.py --check` exit 0 | OK |
+| `CHANGELOG.md` cobre Ondas 22-28 | OK [1.3.0-rc1] |
+| `PROJECT_SNAPSHOT.md` atualizado | OK (este) |
+| `README.md` contagens corretas | OK via update_docs.py (35 tools, 67 commands) |
+| `git status` clean | OK (só Checkpoint.md untracked por design + baselines do gauntlet) |
 
 ---
 
@@ -23,10 +48,11 @@ Fonte única de portas/URLs: `nyx/config/defaults.py` (ADR-AUDIT-FIX-03).
 
 ---
 
-## Contagens (verificadas em 2026-04-21, pós BANNER-TOOLS-COUNT-01)
+## Contagens (verificadas em 2026-05-21, pós gauntlet 225/225)
 
 Fonte de verdade executável: `python scripts/sync.py` imprime
 `inventario: tools=N, commands_unicos=M, services=S` na primeira linha.
+Também via `./run.sh --gauntlet` final summary block.
 
 Contagem de tools é **runtime** (ToolRegistry), não filesystem. Arquivos como
 `task_manager.py` (6 tools), `plan_mode.py` (2) e `worktree.py` (2) exportam
@@ -36,12 +62,12 @@ consome e o que o LLM recebe em `tool_defs`.
 | Categoria | Quantidade | Como verificar |
 |----------|------------|----------------|
 | Tools no registry (runtime) | 35 | `python -c "from nyx.agent.tools.registry import ToolRegistry; print(ToolRegistry('.').tool_count)"` |
-| Commands únicos (sem aliases) | 52 | `python -c "from nyx.agent.commands._registry import list_commands; print(len(list_commands()))"` (fonte runtime — cobre decorators multilinha; grep estático `@nyx_command\(name=` subestima em 1) |
-| Services | 9 | `find nyx/agent/services -maxdepth 1 -name '*.py' ! -name '__init__.py' \| wc -l` |
-| ADRs vigentes | 24 (ADR-023 e ADR-024 já criados na Onda 22) | `ls dev-journey/03-decisions/ADR_*.md \| wc -l` |
-| Testes no Gauntlet | 135 + crescendo por sprint | `./run.sh --gauntlet --only rapido` |
-| Sprints concluídas | 138 | `ls dev-journey/06-sprints/concluidos/*.md \| wc -l` |
-| Sprints pendentes | 21 (20 PENDENTE + CTX-04 DEFERIDA) | `ls dev-journey/06-sprints/producao/*.md \| wc -l` |
+| Commands únicos (sem aliases) | 67 | runtime via `list_commands()` |
+| Services | 15 | `find nyx/agent/services -maxdepth 1 -name '*.py' ! -name '__init__.py' \| wc -l` |
+| ADRs vigentes | 32 | `ls dev-journey/03-decisions/ADR_*.md \| wc -l` |
+| Testes no Gauntlet | 225 (53 fases) | `./run.sh --gauntlet` |
+| Sprints concluídas | 377 | `ls dev-journey/06-sprints/concluidos/*.md \| wc -l` |
+| Sprints pendentes | 5 anti-débitos BAIXA (125oo..125ss) + RELEASE-V1.0-CUT-01 | `ls dev-journey/06-sprints/producao/*.md \| wc -l` |
 
 ---
 
