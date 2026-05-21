@@ -44,7 +44,7 @@ sprint:
 
 ---
 
-**Status:** CONCLUIDA (2026-05-21, commit pendente)
+**Status:** CONCLUIDA (2026-05-21, commit d8a1e75)
 **Data criação:** 2026-05-21
 **Data conclusão:** 2026-05-21
 **Modelo obrigatório:** claude-opus-4-7
