@@ -1,33 +1,33 @@
 # Project Snapshot — Nyx-Code
 
-**Atualizado em:** 2026-05-21
-**Versão do projeto:** **v1.3.0-rc1 ready** (Ondas 22-28 concluídas)
+**Atualizado em:** 2026-05-21 (retomada da sessão pós-rc1 — backlog zerado)
+**Versão do projeto:** **v1.3.0-rc2 ready** (Ondas 22-28 concluídas + 5 anti-débitos drenados)
 **Tag v1.0 status:** NÃO cortada (decisão delegada ao humano — sprint `RELEASE-V1.0-CUT-01` PENDENTE)
 
 **Este arquivo é referenciável por qualquer sprint** em vez de copiar o estado inline. Atualizar com regularidade (após fim de bloco, ou quando contagens mudarem).
 
 ---
 
-## Estado v1.3.0-rc1 (2026-05-21)
+## Estado v1.3.0-rc2 (2026-05-21 — retomada pós-rc1)
 
 | Critério gate v1.0 (16 itens) | Status |
 |---|---|
 | 0 RASCUNHO em `producao/` | OK (só `RELEASE-V1.0-CUT-01` que aguarda humano) |
-| 0 PENDENTE no MASTER (exceto RELEASE-V1.0-CUT-01) | WARN — 5 anti-débitos BAIXA catalogados (125oo..125ss) não bloqueantes |
-| 0 CONCLUIDA_PARCIAL com pendência ativa | OK (3 fechadas em 2026-05-21: TUI-25-09-PARTE-3, TUI-25-12-PARTE-2, TUI-26-03-PARTE-2-DEFAULT-PAD) |
+| 0 PENDENTE no MASTER (exceto RELEASE-V1.0-CUT-01) | OK — 5 anti-débitos drenados em 2026-05-21 (125qq/rr/ss CONCLUIDA, 125ww BUNDLE CONCLUIDA com 125ll/mm/nn CONSOLIDADA + 125pp DESCARTADA, 125oo CONCLUIDA, 125tt CONCLUIDA, 125vv CONCLUIDA, 125xx CONCLUIDA, 125uu SUPERSEDED por 3727cb6 prévio); 2 achados meta novos (125yy + INFRA-COMMIT-HOOK-FILTER-01 já catalogada) PENDENTE BAIXA não bloqueantes |
+| 0 CONCLUIDA_PARCIAL com pendência ativa | OK |
 | 0 DEFERIDA bloqueante | OK |
 | Smoke `boot ok` | OK |
 | Invariantes 14/14 PASS | OK |
-| Gauntlet completo 100% | OK 225/225 em 252s (2026-05-21) |
+| Gauntlet completo 100% | OK 225/225 em 252s (2026-05-21 rc1); proxy 7/7 + qualidade 5/5 re-validados pelos validadores na rc2 |
 | `audit_help_coverage.py` N/N | OK 67/67 |
 | `microcopy_audit.py --check` exit 0 | OK |
 | `validar-acentuacao.py --paths` exit 0 | OK em arquivos modificados |
-| `ruff check nyx/ scripts/` exit 0 | OK All checks passed |
+| `ruff check nyx/ scripts/` exit 0 | OK All checks passed (warnings cosméticos noqa-acento neutralizados por external em pyproject.toml desde 3727cb6) |
 | `sbom_sync.py --check` exit 0 | OK |
-| `CHANGELOG.md` cobre Ondas 22-28 | OK [1.3.0-rc1] |
+| `CHANGELOG.md` cobre Ondas 22-28 | OK [1.3.0-rc1] + [1.3.0-rc2] backlog drenado |
 | `PROJECT_SNAPSHOT.md` atualizado | OK (este) |
 | `README.md` contagens corretas | OK via update_docs.py (35 tools, 67 commands) |
-| `git status` clean | OK (só Checkpoint.md untracked por design + baselines do gauntlet) |
+| `git status` clean | OK (Checkpoint.md untracked por design) |
 
 ---
 
@@ -66,8 +66,8 @@ consome e o que o LLM recebe em `tool_defs`.
 | Services | 15 | `find nyx/agent/services -maxdepth 1 -name '*.py' ! -name '__init__.py' \| wc -l` |
 | ADRs vigentes | 32 | `ls dev-journey/03-decisions/ADR_*.md \| wc -l` |
 | Testes no Gauntlet | 225 (53 fases) | `./run.sh --gauntlet` |
-| Sprints concluídas | 377 | `ls dev-journey/06-sprints/concluidos/*.md \| wc -l` |
-| Sprints pendentes | 5 anti-débitos BAIXA (125oo..125ss) + RELEASE-V1.0-CUT-01 | `ls dev-journey/06-sprints/producao/*.md \| wc -l` |
+| Sprints concluídas | 386 | `ls dev-journey/06-sprints/concluidos/*.md \| wc -l` |
+| Sprints pendentes | APENAS RELEASE-V1.0-CUT-01 + 2 achados meta BAIXA não bloqueantes (125yy, INFRA-COMMIT-HOOK-FILTER-01) | `ls dev-journey/06-sprints/producao/*.md \| wc -l` |
 
 ---
 

@@ -5,6 +5,43 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.3.0-rc2] - 2026-05-21
+
+Drena os 5 anti-débitos catalogados na rc1 + materializa 4 achados colaterais novos da pipeline. Backlog técnico zerado antes da decisão humana de cortar `v1.0`. Working tree limpo, invariantes 14/14 PASS, gauntlet `--only proxy` 7/7 + `--only qualidade` 5/5 re-validados em cada sprint.
+
+### Adicionado
+
+- **scripts/dispatch_pre_check.sh** (`INFRA-VALIDATOR-PRE-DISPATCH-RECHECK-01`, commit `d44bdf7`) — wrapper bash que parseia `acceptance_criteria` de specs e emite `PRE-SATISFEITA` quando todos critérios parseáveis já estão em verde antes do dispatch. Evita ciclo executor+validador para sprints redundantes (caso empírico: `MASTER-IDS-DEDUP-02` pre-satisfeita por commit `df1a8d9`). Mawk-compatible (não exige gawk).
+- **scripts/gauntlet/nyx_gauntlet.py P-09b gated** (`INFRA-GAUNTLET-E2E-THINKING-01`, commit `6566d5f`) — teste E2E real do path `proxy  ollama  nyx_reasoning` ativado por flag `--with-qwen3` + VRAM check (skip se < 4GB). Default sem flag mantém gauntlet `--only proxy` 7/7 (100%) sem regressão.
+- **dev-journey/08-templates/SPRINT_TEMPLATE_V2.md seção "Antes/Depois com trecho"** (`INFRA-PLANEJADOR-CODE-EXCERPT-IN-SPECS-01`, commit `801a0dd`) — exige fenced code block (≥3 linhas) em specs `type: Refactor` cirúrgico com `touches.length == 1`. Lição empírica: BUNDLE-01 teve 2/3 fixes com número de linha errado; texto-alvo inequívoco salvou.
+
+### Mudado
+
+- **nyx/agent/output.py `_strip_ansi` → `_visible_len`** (`OUTPUT-VISIBLE-LEN-RENAME-01`, commit `522fed0`) — rename semântico (função retorna `int` de largura visível, não `str`). Alias `_strip_ansi = _visible_len` preservado para retro-compat dos 4 callsites internos.
+- **scripts/gauntlet/nyx_gauntlet.py** (`INFRA-GAUNTLET-CLEANUP-BUNDLE-01`, commit `ae004ac`) — bundle anti-débito que consolida 3 fixes: `PROJECT_ROOT` via `parents[2]`, 2 `print()` → `logger.info()`, literais hardcoded `"qwen"`/`"alibaba"` → `mentions_provider()` de `nyx.agent.lang_check`. FIX-4 (`HARDCODED-PATHS`) DESCARTADO por alvo inexistente.
+- **dev-journey/06-sprints/SPRINT_ORDER_MASTER.md IDs renumerados** (`MASTER-IDS-DEDUP-01`, commit `b2f0054`) — 22 IDs numéricos duplicados pós-150 renumerados para série 200+ preservando chaves textuais e IDs históricos pré-150. Mapeamento: 110-115→200-205, 128b→206, 146-159→207-220, 162→221.
+- **dev-journey/06-sprints/SPRINT_ORDER_MASTER.md entry MCP-SERVER-03 desduplicada** (`MASTER-ENTRY-DEDUP-MCP-SERVER-03-01`, commit `7144786`) — 2 entries da mesma sprint consolidadas em 1 (linha 128b canônica com hash `5e1927e` preservada; linha 206 redundante removida).
+
+### Corrigido
+
+- **dev-journey/06-sprints/producao/SPRINT_INFRA_GAUNTLET_CLEANUP_BUNDLE_01.md** (`BUNDLE-01 spec`, commit `8d4dd0c`) — comando `python3 -m ruff check` substituído por `/home/andrefarias/.local/bin/ruff check` conforme `VALIDATOR_BRIEF` linha 37 (ruff não está como módulo Python no venv).
+
+### Status do backlog (zero PENDENTE bloqueante)
+
+- 5 sprints CONCLUIDA: 125qq/rr/ss/ww/oo
+- 1 SUPERSEDED: 125uu (pyproject.toml já tinha `external = ["noqa-acento"]` desde commit `3727cb6`)
+- 1 DESCARTADA: 125pp (alvo inexistente)
+- 3 CONSOLIDADAS: 125ll/mm/nn (absorvidas pelo BUNDLE)
+- 4 novas CONCLUIDA: 125tt/vv/xx + housekeeping da onda achados
+- 2 novos PENDENTE BAIXA não bloqueantes: 125yy (`INFRA-PLANEJADOR-FENCED-CHECK-01`) + `INFRA-COMMIT-HOOK-FILTER-01` (já catalogada)
+
+### Notas
+
+- Tag `v1.0` permanece **NÃO cortada** — decisão delegada ao humano. Sprint `RELEASE-V1.0-CUT-01` em `producao/`.
+- Próximo passo natural: `git tag -a v1.0 -m "Release v1.0: Claude Code offline opensource"` + `git push origin v1.0`.
+
+---
+
 ## [1.3.0-rc1] - 2026-05-21
 
 Release candidate cobrindo as Ondas 22 a 28: stack OOM consolidada, MCP/Plugin/Hook integrados ao ToolRegistry, redesign completo da TUI, cockpit web, aesthetics extensíveis, e ~70 sprints concluídas desde 1.2.0. Gauntlet 220/220 (100%) APROVADO em 252s. Tag `v1.0` permanece **NÃO cortada** — decisão delegada ao humano.
