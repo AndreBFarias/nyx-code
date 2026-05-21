@@ -4093,19 +4093,26 @@ class NyxGauntlet:
                 "cudaMalloc failed",
                 "requires more memory",
                 "out of memory: not enough free VRAM",
+                "failed to allocate buffer for kv cache",
+                "GGML_ASSERT: ggml-cuda.cu:1234: GGML_OK",
             ]
             detecta = is_oom is not None and all(is_oom(p) for p in padroes)
             nao_falso_positivo = is_oom is not None and not is_oom("resposta normal sem erro")
             src = proxy_py.read_text(encoding="utf-8")
             tem_retry = "OOM recovery OK" in src and 'num_gpu"] = 0' in src
-            ok = bool(has_flag and detecta and nao_falso_positivo and tem_retry)
+            # INFRA-OOM-PATTERNS-KV-CACHE-01: 9 patterns lowercase em _OOM_PATTERNS
+            tem_patterns_kv = '"kv cache"' in src and '"ggml_assert"' in src
+            ok = bool(has_flag and detecta and nao_falso_positivo and tem_retry and tem_patterns_kv)
             self._add(
                 "RB-03",
                 "Proxy detecta OOM e degrada num_gpu=0 (R-04)",
                 "robustez_boot",
                 ok,
                 time.monotonic() - t,
-                details=f"has_flag={has_flag} detecta={detecta} sem_fp={nao_falso_positivo} retry={tem_retry}",
+                details=(
+                    f"has_flag={has_flag} detecta={detecta} sem_fp={nao_falso_positivo} "
+                    f"retry={tem_retry} patterns_kv={tem_patterns_kv}"
+                ),
             )
         except Exception as e:
             self._add(

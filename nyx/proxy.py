@@ -77,6 +77,10 @@ _INITIAL_NUM_GPU = _DEFAULT_NUM_GPU
 # VRAM oscila no limite. ADR-001 Local First prioriza serviço vivo sobre
 # throughput.
 _OOM_DEGRADED = False
+# Cobertura empírica: 9 padrões observados em runtime real do RTX 3050 4GB
+# com qwen2.5-coder:3b. INFRA-OOM-PATTERNS-KV-CACHE-01 adicionou
+# 'kv cache' (Ollama kv cache buffer alloc fail) e 'ggml_assert'
+# (assert interno do llama.cpp via Ollama).
 _OOM_PATTERNS = (
     "out of memory",
     "cuda out of memory",
@@ -85,6 +89,8 @@ _OOM_PATTERNS = (
     "not enough memory",
     "no cuda device",
     "unable to allocate",
+    "kv cache",
+    "ggml_assert",
 )
 
 
