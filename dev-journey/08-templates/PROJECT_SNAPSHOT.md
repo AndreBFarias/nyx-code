@@ -1,7 +1,7 @@
 # Project Snapshot — Nyx-Code
 
 **Atualizado em:** 2026-05-21 (retomada da sessão pós-rc1 — backlog zerado)
-**Versão do projeto:** **v1.3.0-rc2 ready** (Ondas 22-28 concluídas + 5 anti-débitos drenados)
+**Versão do projeto:** **v1.3.0 ready** (Ondas 22-28 concluídas + 5 anti-débitos drenados)
 **Tag v1.0 status:** NÃO cortada (decisão delegada ao humano — sprint `RELEASE-V1.0-CUT-01` PENDENTE)
 
 **Este arquivo é referenciável por qualquer sprint** em vez de copiar o estado inline. Atualizar com regularidade (após fim de bloco, ou quando contagens mudarem).
@@ -36,7 +36,7 @@
 | Componente | Valor |
 |-----------|-------|
 | Python | 3.10+ |
-| LLM principal | `qwen3:4b` via Ollama |
+| LLM principal | `qwen2.5-coder:3b` via Ollama |
 | LLM visão | `moondream` via Ollama CPU (num_gpu=0, pendente VISION-01) |
 | Proxy | porta 11436 (think adaptativo, ADR-002) |
 | Ollama | porta 11435 |
@@ -65,7 +65,7 @@ consome e o que o LLM recebe em `tool_defs`.
 | Commands únicos (sem aliases) | 67 | runtime via `list_commands()` |
 | Services | 15 | `find nyx/agent/services -maxdepth 1 -name '*.py' ! -name '__init__.py' \| wc -l` |
 | ADRs vigentes | 32 | `ls dev-journey/03-decisions/ADR_*.md \| wc -l` |
-| Testes no Gauntlet | 225 (53 fases) | `./run.sh --gauntlet` |
+| Testes no Gauntlet | 320 (catalogados) | `./run.sh --gauntlet` |
 | Sprints concluídas | 387 | `ls dev-journey/06-sprints/concluidos/*.md \| wc -l` |
 | Sprints pendentes | APENAS RELEASE-V1.0-CUT-01 (humano corta tag) — backlog técnico ZERADO | `ls dev-journey/06-sprints/producao/*.md \| wc -l` |
 
@@ -96,9 +96,9 @@ consome e o que o LLM recebe em `tool_defs`.
 | `nyx/cli.py` | REPL, banner, toolbar, keybindings. `print()` permitido aqui. |
 | `nyx/agent/output.py` | render layer. `print()` permitido aqui (ADR-024). |
 | `nyx/agent/loop/` | AgentLoop, iteração, constantes, tipos. |
-| `nyx/agent/commands/` | 52 commands únicos (sem aliases) split em arquivos por categoria. |
-| `nyx/agent/tools/` | 28 arquivos, 35 tools no registry (runtime). |
-| `nyx/agent/services/` | 9 services (memory, summary, logging, vision, etc). |
+| `nyx/agent/commands/` | 67 commands únicos (sem aliases) split em arquivos por categoria. |
+| `nyx/agent/tools/` | 31 arquivos, 35 tools no registry (runtime). |
+| `nyx/agent/services/` | 15 services (memory, summary, logging, vision, etc). |
 | `nyx/themes/` | ThemeManager + `design_tokens.py` (pós UX-DESIGN-01). |
 | `nyx/providers/` | clientes HTTP (ollama, vision). |
 | `nyx/config/` | defaults, settings (NyxSettings). |
@@ -147,7 +147,7 @@ Estado dos callbacks observacionais (atualizado conforme sprints):
 | `./run.sh --headless` | protocolo JSON stdin/stdout |
 | `./run.sh --gauntlet` | gauntlet completo |
 | `./run.sh --gauntlet --only <fase>` | fase específica |
-| `bash scripts/sprint_invariants.sh` | 13 checks binários |
+| `bash scripts/sprint_invariants.sh` | 14 checks binários |
 | `python scripts/update_next_sprint.py` | auto-atualiza EXECUTAR_SPRINT.md |
 | `python scripts/scaffold.py` | cria tool/command/service novo |
 | `python scripts/sync.py` | consistência N-para-N |

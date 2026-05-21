@@ -292,7 +292,7 @@ Invariante #5 do `sprint_invariants.sh` vigia regressão futura.
 - **Apagar antes de migrar.** Deletar seção em TEMPLATE_V2 e só depois pensar em colocar em GAMBIARRAS. Proibido — migrar primeiro, verificar, depois remover.
 - **Link quebrado.** Substituir seção por link `GAMBIARRAS_POR_SPRINT.md` sem o anchor. Resultado: usuário pousa no topo e precisa caçar. Proibido — usar anchor explícito com slug.
 - **PROJECT_SNAPSHOT.md "preenchido depois".** Arquivo criado vazio com "TODO preencher". Proibido — dados reais na criação.
-- **Contagens preguiçosas.** Copiar "34 tools, 47 comandos" do GUIDE.md sem verificar. Proibido — rodar `find nyx/agent/tools -maxdepth 1 -name "*.py" ! -name "__init__.py" | wc -l` e similares.
+- **Contagens preguiçosas.** Copiar "35 tools, 67 comandos" do GUIDE.md sem verificar. Proibido — rodar `find nyx/agent/tools -maxdepth 1 -name "*.py" ! -name "__init__.py" | wc -l` e similares.
 - **Regenerar EXECUTAR_SPRINT.md sem ler antes.** Script que sobrescreve perdendo customização manual. Proibido — ler, regenerar, diff, aplicar.
 - **Header do sprint_invariants.sh "quase certo".** Manter "12" e adicionar comentário "+1 recente". Proibido — atualizar para "13" definitivo.
 - **Fluxo de 10 passos renumerado sem sincronizar referências.** Se GSD tem 10 passos e outro doc fala "passo 5", quebrar referência. Proibido — grep por "passo N" depois de reordenar.
