@@ -42,9 +42,12 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-21
+**Data conclusão:** 2026-05-21
+**Commit:** 522fed0
 **Modelo obrigatório:** claude-opus-4-7
+**Validador:** APROVADO_COM_RESSALVAS (achado colateral catalogado em 125uu — INFRA-RUFF-NOQA-FIX-01)
 
 ---
 

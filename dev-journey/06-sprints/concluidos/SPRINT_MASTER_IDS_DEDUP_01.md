@@ -37,9 +37,12 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-21
+**Data conclusão:** 2026-05-21
+**Commit:** b2f0054
 **Modelo obrigatório:** claude-opus-4-7
+**Validador:** APROVADO — 4 contratos do BRIEF passaram REAL (uniq -d=0, smoke ok, invariantes 14/14, acentuação rc=0); mapeamento 22→22 conferido (110-115→200-205, 128b→206, 146-159→207-220, 162→221); forbidden respeitado byte-a-byte; achado colateral MCP-SERVER-03 duplicação semântica confirmado e catalogado em 125tt MASTER-ENTRY-DEDUP-MCP-SERVER-03-01.
 
 ---
 
