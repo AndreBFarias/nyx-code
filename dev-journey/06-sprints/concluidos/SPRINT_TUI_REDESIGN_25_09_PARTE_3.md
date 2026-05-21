@@ -50,7 +50,7 @@ sprint:
 
 ---
 
-**Status:** CONCLUIDA (2026-05-21, commit __post_hash__)
+**Status:** CONCLUIDA (2026-05-21, commit b8516ab)
 **Data criação:** 2026-05-21
 **Data conclusão:** 2026-05-21
 **Modelo obrigatório:** claude-opus-4-7
