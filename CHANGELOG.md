@@ -5,6 +5,127 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.3.0-rc1] - 2026-05-21
+
+Release candidate cobrindo as Ondas 22 a 28: stack OOM consolidada, MCP/Plugin/Hook integrados ao ToolRegistry, redesign completo da TUI, cockpit web, aesthetics extensíveis, e ~70 sprints concluídas desde 1.2.0. Gauntlet 220/220 (100%) APROVADO em 252s. Tag `v1.0` permanece **NÃO cortada** — decisão delegada ao humano.
+
+### Adicionado
+
+- **Stack OOM resiliente (Ondas 22-25)** — sistema de degradação progressiva com 5 níveis quando GPU satura
+  - INFRA-OOM-01/02: detecção via `_OOM_PATTERNS` (9 strings incluindo "kv cache" e "GGML_ASSERT", consolidação 2026-05-21), retry CPU automático com `num_gpu` decrescente
+  - INFRA-OOM-HISTORY-01: persistência cross-session em `~/.nyx/proxy_stats.json` (schema v1, escrita atômica via tmp + os.replace, hidratação no boot, contrato `/admin/stats` em 4 chaves)
+  - INFRA-OOM-RETRY-STEP-01 + INFRA-OOM-STATS-CLI-01: novo slash `/stats` cliente do endpoint `/admin/stats`; RB-01..RB-06 cobertos pelo gauntlet
+  - INFRA-OOM-PATTERNS-KV-CACHE-01: cobertura adicional para erros llama.cpp recentes
+
+- **MCP / Plugin / Hook stack (Onda 23)** — feature parity com Claude Code
+  - MCP-SERVER-01/02/03: HTTP loopback transport (httpx async em 127.0.0.1 estrito), `ToolRegistry._load_mcp_tools()` com prefix `mcp_<server>_<tool>`, `McpToolAdapter` herda `RegisteredTool`, novo `ActionType.MCP_TOOL` em models
+  - PLUGINS-01/02/03: descoberta automática + integração `_load_plugin_tools()` no boot, fallback tolerante quando sem plugins
+  - HOOKS-DYNAMIC-01/02/03: `HookRuntime` amarrado ao `AgentLoop` em 4 eventos (pre-tool, post-tool, pre-prompt, post-prompt), plugins podem registrar hooks via @nyx_hook
+
+- **Redesign TUI completo (Ondas 24-26)** — fidelidade visual com aesthetics extensíveis
+  - TUI-REDESIGN-25-01..25-12: capitalização + acentuação PT-BR + thinking block recolhível + parser + side-rule streaming
+  - TUI-REDESIGN-25-09-PARTE-3 (2026-05-21): captura real do thinking via `nyx_reasoning` em `choices[0].message`; callback `_on_thinking` propaga
+  - TUI-REDESIGN-25-12-PARTE-2 (2026-05-21): amarra `_on_thinking` ao `render_thinking_block` (default colapsado, Tab expande)
+  - TUI-REDESIGN-26-01..26-04: glyph-per-tool, tool chips com layout 2-col
+  - TUI-REDESIGN-26-03-PARTE-2-DEFAULT-PAD (2026-05-21): pad dinâmico via `shutil.get_terminal_size`; duration+status alinhados à direita também sem `error_actions`
+  - Banner duas camadas (VISUAL-LAYOUT-09): aesthetic provê estrutura (glyphs+cantos), entity provê accent textual (ADR-029)
+
+- **Cockpit web (Onda 26)** — supervisor visual em browser
+  - COCKPIT-WEB-01..05: FastAPI + WebSocket + xterm.js embed
+  - PTY-PERMISSION-FLOW-01: overlay modal para aprovar permissões `CONFIRM_ONCE` do PTY (yes/yes_always/no), regex anti-injeção em `/permissions add <tool>`
+  - PTY-EMBEDDED-REPL-01..03: REPL embarcado via PTY com clipboard sync
+
+- **Aesthetics showcase (Onda 24)** — 5 aesthetics consumíveis
+  - VISUAL-LAYOUT-06: cyberpunk, brutalist, mecha, editorial + arcano (showcase) + default; cada uma com paleta + glyphs próprios
+  - Banner ganha consumo de `current_glyphs()` em build-time preservando `current_ansi()` em import-time
+
+- **Identity + Language enforce (Onda 27)** — defesa em profundidade contra vazamento de modelo
+  - IDENTITY-ENFORCE-01: espelho de LANG-ENFORCE; novo `mentions_provider(text)` em `lang_check.py` cobrindo 13 providers; word boundary customizado aceita "Qwen2.5"; retry 1x com hint anti-vazamento
+  - MEMORY-INTENT-ENFORCE-01: 3 camadas (`wants_save_memory` 9 padrões PT-BR + guardrail re-issue + parser shell-like fallback)
+  - LANG-ENFORCE-01..03: detecção PT-BR vs EN; retry com hint quando modelo responde no idioma errado
+
+- **Sudo session + GSD (Ondas 22-24)** — privilege management
+  - SUDO-SESSION-01..03: cache de sudo session com prompt único por sessão
+  - SECRET-MIGRATE-01: migração de secrets legados para `~/.config/nyx/secrets/`
+  - GSD-A/B/C: GitOps Self-Documenting (ActivePlan + render_active_plan_block + /plan command com 5 subcomandos)
+
+- **CTX continuous memory (Onda 24)**
+  - CTX-01..04: memory persistente cross-session, `/plan` checklist via `nyx/agent/active_plan.py` (singleton + write-through ~/.nyx/active_plan.md)
+
+- **CLI refactor monolítico → modular (Onda 25)**
+  - INFRA-CLI-SPLIT-01/02/03: `nyx/cli.py` 2223L → 792L extraindo `cli_headless.py` (298L), `cli_boot.py` (263L), `cli_callbacks.py` (150L), `cli_keybindings.py` (328L), `cli_handlers.py` (950L); meta GUIDE.md §6 `<800L` atingida
+
+- **Onboarding wizard (Onda 26)**
+  - REPL onboarding flow com nome + sandbox + aesthetic + GPU autotune
+  - INSTALL-SUDO-01 + INSTALL-ZSTD-FALLBACK-01: install.sh robusto com fallback de unpacker
+
+- **Gauntlet endurecido (Ondas 22-28)** — 220 testes em 53 fases
+  - Cobertura: proxy (P-01..P-09), interface (I-01..I-13), tools (T-01..T-10), CTX (CTX-01..14), portabilidade, robustez_boot (RB-01..06), MCP (M-01..05), plugins, hooks_dynamic, vision, sessão, install, mcp, p11_infra, p10_root
+  - INFRA-GAUNTLET-AUTO-SCAFFOLD: descoberta automática de novos comandos
+  - GAUNTLET-FIXTURES-SANDBOX-01: fixtures em `~/.nyx/gauntlet_tmp/`
+  - K08-VRAM-RUNNER-ISOLATION-01: runner com `scripts/vram_check.py` + 3 flags
+  - Tempo total: ~252s no RTX 3050 4GB
+
+- **Branding nyx  luna** — separação clara
+  - branding: glifo nyx/luna conforme modo de operação
+
+### Mudado
+
+- **ADR-031**: modelo padrão muda de `qwen3:4b` (thinking, vaza CoT em inglês) para `qwen2.5-coder:3b` (non-thinking, melhor tool calling); pilha de infra do Nyx eleva non-thinking compatíveis a score 96.8 (vs qwen3 score 34.6 com mesma infra)
+- **ADR-029**: `entity` sobrescreve `accent` em import-time (intencional para coerência visual)
+- **ADR-024**: `print()` permitido apenas em `cli*.py` / `output.py`; glob ampliado em `INFRA-CLI-SPLIT-02`
+- **ADR-013**: integração obrigatória — tools em ToolRegistry, commands `@nyx_command`, testes só via Gauntlet
+- **Invariantes 13 → 14**: novo check #14 (defesa anti-sanitizer) endurecido em INFRA-SANITIZER-FIX-01..05 usando `chr(0x25CB)` / `chr(0x25D0)` / `chr(0x25CF)` / `chr(0x25C6)` para impossibilitar auto-neutralização por sanitizer
+- **Sanitizer universal** (`~/.config/zsh/scripts/universal-sanitizer.py`): preserva glifos via `ALLOWED_GLYPHS` (○ ◐ ● ◆ ◇ ▶ ▼ ▸ ◼ ◻ ↗); pre-commit hook hardened
+- **VALIDATOR_BRIEF.md**: 14 lições empíricas catalogadas; auto-invocação de skill validação-visual quando diff toca UI; protocolo anti-débito rigoroso
+- **Defaults**: warmup on boot, proxy think adaptativo, log levels suprimidos no smoke
+
+### Corrigido
+
+- **NYX-OUTPUT-LIMITS-01**: log warning passivo se resposta parece truncada
+- **HOTFIX-GLYPHS-01**: glifos `▶` / `▼` no thinking block (eram fallback ASCII)
+- **BANNER-TOOLS-COUNT-01**: contagem de tools no banner via `len(list_tools())` dinâmico
+- **TUI-FIX-08/09/10**: artefatos de scroll, capacidade de paste collapse, render race
+- **TUI-INPUT-HEIGHT**: altura mínima respeitada
+- **TUI-POPUP-META-01**: metadados do popup
+- **UX-BUG-02C / 03**: pequenos polish de UX
+- **UX-LAYOUT-03**: alinhamento corrigido
+- **UX-COCKPIT-EXPERIENCE-01**: melhorias no cockpit
+- **DEPLOY-02**: pipeline corrigido
+- **PROXY-NUMGPU-RUNTIME-01**: num_gpu honrado em runtime
+- **TUI-SHUTDOWN-SILENT-01**: shutdown sem ruído
+- **HELP-COVERAGE-FIX-01**: cobertura do `/help` (66 → 67 commands)
+- **CHECKPOINT-ACENTUACAO-FIX-01**: 21 violações de acentuação em Checkpoint.md
+- **GAUNTLET-LOOP-PY-REF-FIX-01**: `loop.py` virou pacote, gauntlet atualizado
+- **GAUNTLET-ACENTUACAO-FIX-01**: 13 violações em nyx_gauntlet.py
+- **GAUNTLET-TOOLS-DESC-MATCH-01**: cross-validation contra alucinação `"Read Lê arquivo"` do modelo
+- **GAUNTLET-RB05-CAP-FIX-01**: cap-counter robusto via indentação
+- **GAUNTLET-SYNC-02-RECOVER-01**: aceita 4 formas de mensagem
+- **INFRA-RUFF-NOQA-FORMAT-01**: 7 warnings `Invalid noqa directive` silenciados
+- **INFRA-VALIDATE-ACENTUACAO-CLI-FIX-01**: padroniza `--paths` em templates
+- **INFRA-PLANEJADOR-ACENTUACAO-AUTO-01**: defesa 2-camadas PT-BR no planejador-sprint (template global + sanitizer local)
+- **MASTER-CLEANUP-01/02**: 168 specs em concluidos/ com header dessincronizado fixados em batch
+
+### Removido
+
+- Stubs e código morto detectados em PROD cleanup
+- Funções `render_tool_card_compact` / `render_tool_card_done` (renomeadas para `render_tool_chip` em TUI-REDESIGN-25-10)
+
+### Segurança
+
+- **PTY-PERMISSION-FLOW-01**: sanitização anti-injeção em `/permissions add <tool>` (regex `[A-Za-z_][A-Za-z0-9_]*`)
+- **MCP HTTP transport**: rejeita explicitamente `0.0.0.0` / IP-público / DNS; aceita apenas `127.0.0.1` / `localhost` / `::1` (loopback estrito)
+- **Sudo session**: cache em memória apenas, nunca persistido em disco
+- **Defesa anti-sanitizer**: invariante #14 endurecido contra auto-neutralização do defensor
+
+### Notas técnicas
+
+- **368 sprints CONCLUIDAS** acumuladas no MASTER (`dev-journey/06-sprints/SPRINT_ORDER_MASTER.md`)
+- **5 anti-débitos PENDENTES** catalogados (125oo..125ss) para follow-up controlado
+- **6 docs canônicos write-through**: PROJECT_SNAPSHOT (STATE), SPRINT_ORDER_MASTER (ROADMAP), CHANGELOG (este), REGISTRY.yaml + FEATURE_MAP.md (FEATURES), VALIDATOR_BRIEF (lições), Checkpoint.md (working state untracked)
+- **Hardware testado**: RTX 3050 Laptop 4GB VRAM, num_gpu=12, num_ctx=8192
+- **Modelo padrão**: qwen2.5-coder:3b (Ollama)
+
 ## [1.2.0] - 2026-04-16
 
 ### Adicionado
