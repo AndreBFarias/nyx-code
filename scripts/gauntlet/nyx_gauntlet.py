@@ -4179,15 +4179,25 @@ class NyxGauntlet:
             tem_log_step = "OOM degradation step" in src
             tem_chain = "GPU parcial" in src and "Degradando num_gpu=0" in src
             # Cap 2 retries: contar session.post chamadas dentro do branch OOM
-            # (linha "if _is_oom_error(text) and not _OOM_DEGRADED:" até próximo "else:")
+            # (linha "if _is_oom_error(text) and not _OOM_DEGRADED:" até próximo "else:"
+            # do MESMO nível de indentação do if que abriu o branch).
+            # GAUNTLET-RB05-CAP-FIX-01: heurística robusta de indentação
+            # (BRIEF §[CORE] Padrão para cap-counter em RB-* heurístico):
+            # else: interno do branch (ex.: dentro de if status == 200:) não fecha
+            # o branch externo; só fecha quando indent do else: <= indent do if.
             posts_no_branch_oom = 0
             in_branch = False
+            indent_branch_if = 0
             for line in src.splitlines():
                 if "if _is_oom_error(text)" in line and "_OOM_DEGRADED" in line:
                     in_branch = True
+                    indent_branch_if = len(line) - len(line.lstrip())
                     continue
                 if in_branch and line.lstrip().startswith("else:") and "if _is_oom_error" not in line:
-                    in_branch = False
+                    cur_indent = len(line) - len(line.lstrip())
+                    if cur_indent <= indent_branch_if:
+                        in_branch = False
+                        continue
                 if in_branch and "session.post" in line:
                     posts_no_branch_oom += 1
             cap_ok = posts_no_branch_oom <= 2
