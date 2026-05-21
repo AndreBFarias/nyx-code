@@ -64,6 +64,10 @@ class ToolRegistry:
         # permanecem 100% disponíveis. Roda 1x no boot — asyncio.run
         # síncrono é aceitável (timeout curto via connect_all_with_timeout).
         self._load_mcp_tools()
+        # PLUGINS-03: descoberta de plugins é boot-tolerante (mesmo padrão).
+        # Sem ~/.nyx/plugins não há side-effect; tools nativas + MCP ficam
+        # 100% disponíveis. AST check do PluginManager continua intocado.
+        self._load_plugin_tools()
 
     def _load_mcp_tools(self) -> None:
         """Descobre tools MCP no boot e registra com prefix mcp_<server>_<tool>.
@@ -125,6 +129,44 @@ class ToolRegistry:
                 logger.info("MCP discovery: %d tool(s) registradas no ToolRegistry", registered)
         except Exception as e:  # noqa: BLE001 -- envelope final anti-crash
             logger.warning("_load_mcp_tools: falha não-fatal capturada: %s", e)
+
+    def _load_plugin_tools(self) -> None:
+        """Descobre tools de plugins no boot e registra com prefix plugin_<plugin>_<tool>.
+
+        Boot-tolerante: try amplo envolve toda descoberta. Falha (diretório
+        ausente, manifest inválido, AST rejeitado, import quebrado) é logada
+        e ignorada. Tools nativas + MCP continuam disponíveis sem plugins.
+        PLUGINS-03 (replica padrão de _load_mcp_tools).
+        """
+        try:
+            from nyx.agent.services.plugin_manager import discover_plugin_tools
+
+            discovered = discover_plugin_tools()
+            if not discovered:
+                return
+            registered = 0
+            for plugin_name, tools_list in discovered.items():
+                for tool_def in tools_list:
+                    raw_name = tool_def.get("name") if isinstance(tool_def, dict) else None
+                    if not raw_name:
+                        continue
+                    tool_name = f"plugin_{plugin_name}_{raw_name}"
+                    if tool_name in self._tools:
+                        logger.warning(
+                            "Plugin tool %s já registrada (colisão); mantendo primeira",
+                            tool_name,
+                        )
+                        continue
+                    self._tools[tool_name] = PluginToolAdapter(
+                        plugin_name=plugin_name, tool_def=tool_def, name=tool_name
+                    )
+                    registered += 1
+            if registered:
+                logger.info(
+                    "Plugin discovery: %d tool(s) registradas no ToolRegistry", registered
+                )
+        except Exception as e:  # noqa: BLE001 -- envelope final anti-crash
+            logger.warning("_load_plugin_tools: falha não-fatal capturada: %s", e)
 
     def _load_tools(self) -> None:
         for cls in [
@@ -262,6 +304,55 @@ class McpToolAdapter(RegisteredTool):
             return ActionResult(success=False, error=f"MCP error: {err}")
         result = resp.get("result") if isinstance(resp, dict) else None
         output = json.dumps(result, ensure_ascii=False) if result is not None else ""
+        return ActionResult(success=True, output=output)
+
+
+class PluginToolAdapter(RegisteredTool):
+    """Wrap de tool de plugin em RegisteredTool nativo (PLUGINS-03).
+
+    Mantém `action_type = ActionType.PLUGIN_TOOL` para PermissionChecker
+    aplicar política específica (default sem rule = CONFIRM_ONCE, igual
+    às edit/write nativas). Cada chamada invoca o callable do plugin
+    via `fn(**params)`. Tools de plugin herdam as mesmas garantias de
+    hook pre/post das nativas via ToolRegistry.execute (sem bypass do
+    AST check do plugin_manager, que já rodou no momento da descoberta).
+    """
+
+    action_type = ActionType.PLUGIN_TOOL
+
+    def __init__(
+        self,
+        plugin_name: str,
+        tool_def: dict[str, Any],
+        name: str,
+    ) -> None:
+        self._plugin_name = plugin_name
+        self._callable = tool_def.get("callable") if isinstance(tool_def, dict) else None
+        description = tool_def.get("description") if isinstance(tool_def, dict) else None
+        self.tool_def = ToolDef(
+            name=name,
+            description=str(description or f"Plugin tool {name}"),
+            parameters={},
+            required=[],
+        )
+
+    def execute(self, params: dict[str, Any], project_root: str) -> ActionResult:
+        del project_root  # tool de plugin não usa cwd local
+        if not callable(self._callable):
+            return ActionResult(
+                success=False, error=f"Plugin tool {self.tool_def.name} sem callable"
+            )
+        try:
+            result = self._callable(**(params or {}))
+        except TypeError as e:
+            return ActionResult(
+                success=False, error=f"Plugin tool {self.tool_def.name}: argumentos inválidos: {e}"
+            )
+        except Exception as e:  # noqa: BLE001 -- erros de plugin best-effort
+            return ActionResult(
+                success=False, error=f"Plugin tool {self.tool_def.name} falhou: {e}"
+            )
+        output = result if isinstance(result, str) else json.dumps(result, ensure_ascii=False, default=str)
         return ActionResult(success=True, output=output)
 
 

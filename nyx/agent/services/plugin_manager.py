@@ -55,6 +55,11 @@ class Plugin:
     commands: list[str] = field(default_factory=list)
     loaded: bool = False
     error: str | None = None
+    # PLUGINS-03: referência ao módulo após import. Mantida None até
+    # PluginManager.load() concluir importlib.util.spec_from_file_location
+    # com sucesso. Usada por discover_plugin_tools() para resolver os
+    # callables das tools declaradas em manifest.tools[].
+    module: Any = None
 
 
 def _load_toml(path: Path) -> dict[str, Any]:
@@ -151,6 +156,7 @@ class PluginManager:
             mod = _ilu.module_from_spec(spec)
             spec.loader.exec_module(mod)
             plugin.loaded = True
+            plugin.module = mod  # PLUGINS-03: necessário para discover_plugin_tools
             logger.info("plugin %s carregado (v%s)", plugin.name, plugin.version)
             return True
         except Exception as exc:  # noqa: BLE001 -- import pode levantar qualquer coisa
@@ -213,3 +219,62 @@ class PluginManager:
         self.plugins_dir.mkdir(parents=True, exist_ok=True)
         shutil.copytree(src, dst)
         return str(name)
+
+
+def discover_plugin_tools(
+    plugins_dir: str | Path = NYX_PLUGINS_DIR,
+) -> dict[str, list[dict[str, Any]]]:
+    """Descobre tools expostas por plugins instalados (PLUGINS-03).
+
+    Itera ~/.nyx/plugins/, executa load_all() (que aplica AST check
+    anti-código-arbitrário do PLUGINS-01/02) e, para cada plugin
+    carregado, resolve os nomes em manifest.tools[] como callables no
+    módulo. Retorna mapeamento plugin_name -> lista de tool_defs:
+
+        {
+          "exemplo": [
+            {"name": "soma", "description": "...", "callable": <func>},
+            ...
+          ],
+          ...
+        }
+
+    Boot-tolerante: diretório ausente retorna {}. Plugin com erro
+    (AST, import, módulo sem o callable) é ignorado individualmente
+    sem derrubar a descoberta dos demais.
+    """
+    pm = PluginManager(plugins_dir=plugins_dir)
+    if not pm.plugins_dir.is_dir():
+        return {}
+    load_results = pm.load_all()
+    out: dict[str, list[dict[str, Any]]] = {}
+    for name, ok in load_results.items():
+        if not ok:
+            continue
+        plugin = pm.plugins.get(name)
+        if plugin is None or plugin.module is None:
+            continue
+        tool_defs: list[dict[str, Any]] = []
+        for tool_name in plugin.tools:
+            fn = getattr(plugin.module, tool_name, None)
+            if not callable(fn):
+                logger.warning(
+                    "plugin %s declara tool %s mas módulo não expõe callable",
+                    name,
+                    tool_name,
+                )
+                continue
+            description = (
+                getattr(fn, "__doc__", None)
+                or f"Plugin tool {name}.{tool_name}"
+            )
+            tool_defs.append(
+                {
+                    "name": tool_name,
+                    "description": str(description).strip().split("\n")[0],
+                    "callable": fn,
+                }
+            )
+        if tool_defs:
+            out[name] = tool_defs
+    return out

@@ -24,6 +24,7 @@ class ActionType(Enum):
     WEB_SEARCH = "web_search"
     WRITE_MEMORY = "write_memory"
     MCP_TOOL = "mcp_tool"
+    PLUGIN_TOOL = "plugin_tool"
     DONE = "done"
 
 

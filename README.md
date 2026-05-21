@@ -329,7 +329,7 @@ Uso:
 
 ## Status atual (2026-05-18, Onda 24)
 
-- **Gauntlet**: 313 testes registrados; `--only rapido` 11/11 APROVADO
+- **Gauntlet**: 315 testes registrados; `--only rapido` 11/11 APROVADO
 - **Smoke**: `boot ok` em ~0.14s (10x abaixo do critério v1.0 de 1.5s)
 - **Invariantes**: 14/14 PASS
 - **Cockpit**: operacional em `127.0.0.1:11437` com 17 endpoints HTTP + 2 WS
@@ -404,7 +404,7 @@ nyx/
   providers/ollama.py
   config/defaults.py   # NYX_AESTHETIC, NYX_ENTITY, COCKPIT_PORT, etc.
 scripts/
-  gauntlet/nyx_gauntlet.py  # 313 testes; --only fase|feature_id
+  gauntlet/nyx_gauntlet.py  # 315 testes; --only fase|feature_id
   menu_wizard.py            # TUI wizard (NYX-MENU-WIZARD-01)
   check_oom.sh              # Diagnóstico OOM (INFRA-OOM-01)
   sprint_invariants.sh      # 14 invariantes

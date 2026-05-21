@@ -939,7 +939,7 @@ class NyxGauntlet:
     # ═══════════════════════════════════════════════════════════════════
 
     # ═══════════════════════════════════════════════════════════════════
-    # FASE: PLUGINS (2 testes -- PLUGINS-01/02)
+    # FASE: PLUGINS (3 testes -- PLUGINS-01/02/03)
     # ═══════════════════════════════════════════════════════════════════
 
     async def _phase_plugins(self) -> None:
@@ -984,8 +984,65 @@ class NyxGauntlet:
                 details=f"results={results}",
             )
 
+        # PL-03: ToolRegistry integration (PLUGINS-03)
+        # (a) Boot sem ~/.nyx/plugins: tool_count >= 35, sem tools plugin_*.
+        # (b) Boot com plugin stub valido: tool plugin_<name>_<tool> aparece.
+        # (c) PluginToolAdapter herda RegisteredTool.
+        t = time.monotonic()
+        from nyx.agent.tools.registry import PluginToolAdapter, ToolRegistry
+
+        r1 = ToolRegistry(".")
+        base_count = r1.tool_count
+        no_plugin_tools = not any(name.startswith("plugin_") for name in r1._tools)
+
+        with tempfile.TemporaryDirectory(prefix="nyx-plugins-reg-") as tmp:
+            tmp_path = Path(tmp)
+            plug_dir = tmp_path / "calc"
+            plug_dir.mkdir()
+            (plug_dir / "manifest.toml").write_text(
+                '[plugin]\nname = "calc"\nversion = "0.1.0"\n'
+                'description = "stub para PL-03"\ntools = ["soma"]\n',
+                encoding="utf-8",
+            )
+            (plug_dir / "calc.py").write_text(
+                '"""stub"""\ndef soma(a, b):\n    return a + b\n',
+                encoding="utf-8",
+            )
+            # Monkey-patch discover_plugin_tools para apontar para o stub temp.
+            import nyx.agent.tools.registry as registry_mod
+            from nyx.agent.services import plugin_manager as plug_mod
+            original_disc = plug_mod.discover_plugin_tools
+            plug_mod.discover_plugin_tools = lambda plugins_dir=tmp_path: original_disc(tmp_path)
+            try:
+                r2 = ToolRegistry(".")
+                with_count = r2.tool_count
+                with_plugin = "plugin_calc_soma" in r2._tools
+            finally:
+                plug_mod.discover_plugin_tools = original_disc
+
+        adapter_is_registered = issubclass(PluginToolAdapter, registry_mod.RegisteredTool)
+        plugin_registry_ok = (
+            base_count >= 35
+            and no_plugin_tools
+            and with_count == base_count + 1
+            and with_plugin
+            and adapter_is_registered
+        )
+        self._add(
+            "PL-03",
+            "ToolRegistry integration: boot tolerante + PluginToolAdapter herda RegisteredTool",
+            "plugins",
+            plugin_registry_ok,
+            time.monotonic() - t,
+            details=(
+                f"base_count={base_count} with_count={with_count} "
+                f"no_plugin={no_plugin_tools} with_plugin={with_plugin} "
+                f"adapter_is_registered={adapter_is_registered}"
+            ),
+        )
+
     # ═══════════════════════════════════════════════════════════════════
-    # FASE: HOOKS_DYNAMIC (2 testes -- HOOKS-DYNAMIC-01/02)
+    # FASE: HOOKS_DYNAMIC (3 testes -- HOOKS-DYNAMIC-01/02/03)
     # ═══════════════════════════════════════════════════════════════════
 
     async def _phase_hooks_dynamic(self) -> None:
@@ -1028,6 +1085,89 @@ class NyxGauntlet:
             details=f"len={len(results)} ok={results[0].ok if results else None}",
         )
         Path(cfg_path).unlink(missing_ok=True)
+
+        # HOOKS-DYNAMIC-03: AgentLoop amarra HookRuntime em __init__/run/
+        # _execute_tool_calls. HD-03 valida quatro coisas:
+        #   (a) Boot tolerante: AgentLoop instancia _hooks com HookRuntime sempre
+        #       (HookRuntime.load() trata ausência de settings.json silenciosamente).
+        #   (b) Substituir _hooks por instância com settings.json controlado
+        #       carrega PreToolUse + PostToolUse com 1 hook cada. (Patch direto do
+        #       default SETTINGS_PATH não funciona porque o param default é
+        #       capturado em def-time; injeção pós-construção é a via canônica.)
+        #   (c) PreToolUse com block_on_failure=true marca HookResult.blocked=True
+        #       quando o comando do hook retorna exit != 0 (simulado via /bin/false).
+        #       Esse é exatamente o sinal que _execute_tool_calls inspeciona via
+        #       `any(r.blocked for r in pre_results)` para pular a tool.
+        #   (d) Contratos da integração presentes: run() async + _execute_tool_calls +
+        #       _run_loop (helper extraído para envelope try/finally do Stop).
+        t = time.monotonic()
+        hd03_steps: list[str] = []
+        ok3 = True
+        try:
+            from nyx.agent.loop._core import AgentLoop
+
+            # (a) boot tolerante (settings.json pode ou não existir no host;
+            # _hooks deve ser não-None em ambos os casos).
+            loop_a = AgentLoop(project_root=str(Path.cwd()))
+            cond_a = loop_a._hooks is not None and hasattr(loop_a._hooks, "hooks")
+            hd03_steps.append(f"boot_tolerante={cond_a}")
+            ok3 = ok3 and cond_a
+
+            # (b) injeta HookRuntime com settings.json controlado.
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".json", delete=False, encoding="utf-8"
+            ) as f2:
+                f2.write(
+                    '{"hooks": {'
+                    '"PreToolUse": [{"command": "/bin/false", "matcher": ".*",'
+                    ' "timeout": 5, "block_on_failure": true}],'
+                    '"PostToolUse": [{"command": "/bin/true", "matcher": ".*",'
+                    ' "timeout": 5, "block_on_failure": false}]'
+                    '}}'
+                )
+                cfg2 = f2.name
+            hr_real = HookRuntime(settings_path=cfg2)
+            loop_a._hooks = hr_real
+            cond_b = (
+                len(loop_a._hooks.hooks["PreToolUse"]) == 1
+                and len(loop_a._hooks.hooks["PostToolUse"]) == 1
+                and loop_a._hooks.hooks["PreToolUse"][0].block_on_failure is True
+            )
+            hd03_steps.append(f"settings_loaded={cond_b}")
+            ok3 = ok3 and cond_b
+
+            # (c) block_on_failure=true honrado.
+            blk = loop_a._hooks.run(
+                "PreToolUse", {"tool_name": "read_file", "tool_input": {}}
+            )
+            cond_c = len(blk) == 1 and blk[0].blocked is True and blk[0].ok is False
+            hd03_steps.append(f"block_on_failure={cond_c}")
+            ok3 = ok3 and cond_c
+
+            # (d) contratos integração presentes.
+            import inspect
+
+            cond_d = (
+                inspect.iscoroutinefunction(loop_a.run)
+                and hasattr(loop_a, "_execute_tool_calls")
+                and hasattr(loop_a, "_run_loop")
+            )
+            hd03_steps.append(f"api_contracts={cond_d}")
+            ok3 = ok3 and cond_d
+
+            Path(cfg2).unlink(missing_ok=True)
+        except Exception as e:
+            ok3 = False
+            hd03_steps.append(f"erro={type(e).__name__}: {e}")
+
+        self._add(
+            "HD-03",
+            "AgentLoop amarra HookRuntime: boot tolerante + carrega settings + block_on_failure honrado",
+            "hooks_dynamic",
+            ok3,
+            time.monotonic() - t,
+            details="; ".join(hd03_steps),
+        )
 
     # ═══════════════════════════════════════════════════════════════════
     # FASE: MCP (3 testes -- MCP-SERVER-01/02)
