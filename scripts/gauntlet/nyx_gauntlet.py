@@ -113,7 +113,7 @@ PHASE_GROUPS: dict[str, list[str]] = {
     "p11_infra": ["p11_infra"],
     "p11": ["p11_infra"],
     "vision": ["vision"],
-    "sessao": ["sessao"],  # noqa-acento
+    "sessao": ["sessao"],  # noqa  -- noqa-acento (marker do validar-acentuacao, palavra técnica PT-BR sem acento)
     "install": ["install"],
     "loop": ["loop"],
     "mcp": ["mcp"],
@@ -234,7 +234,7 @@ PHASE_TIMEOUTS: dict[str, int] = {
     "p10_root": 30,
     "p11_infra": 30,
     "vision": 90,
-    "sessao": 60,  # noqa-acento
+    "sessao": 60,  # noqa  -- noqa-acento (marker do validar-acentuacao, palavra técnica PT-BR sem acento)
     "install": 1200,
     "loop": 30,
     "mcp": 60,
@@ -1237,12 +1237,12 @@ class NyxGauntlet:
             )
             from nyx.agent.session import CodeSession, HistoryEntry
         except Exception as e:
-            self._add("S-01", "persistence imports", "sessao", False, 0, error=str(e))  # noqa-acento
+            self._add("S-01", "persistence imports", "sessao", False, 0, error=str(e))  # noqa  -- noqa-acento (marker do validar-acentuacao, palavra técnica PT-BR sem acento)
             return
         self._add(
             "S-01",
             "persistence imports + schema v1",
-            "sessao",  # noqa-acento
+            "sessao",  # noqa  -- noqa-acento (marker do validar-acentuacao, palavra técnica PT-BR sem acento)
             INDEX_SCHEMA_VERSION == 1,
             time.monotonic() - t,
             details=f"schema_version={INDEX_SCHEMA_VERSION}",
@@ -1258,7 +1258,7 @@ class NyxGauntlet:
             path = save_session(session, project_name="__gauntlet")
             dt = time.monotonic() - t
             if not path:
-                self._add("S-02", "save_session + index", "sessao", False, dt, error="save_session retornou None")  # noqa-acento
+                self._add("S-02", "save_session + index", "sessao", False, dt, error="save_session retornou None")  # noqa  -- noqa-acento (marker do validar-acentuacao, palavra técnica PT-BR sem acento)
                 return
             idx = load_index()
             gauntlet_entries = [e for e in idx if e.get("projeto") == "__gauntlet"]
@@ -1266,7 +1266,7 @@ class NyxGauntlet:
             self._add(
                 "S-02",
                 "save_session atualiza index com n_turnos=2",
-                "sessao",  # noqa-acento
+                "sessao",  # noqa  -- noqa-acento (marker do validar-acentuacao, palavra técnica PT-BR sem acento)
                 ok2,
                 dt,
                 details=f"entries={len(gauntlet_entries)} last={gauntlet_entries[-1] if gauntlet_entries else None}",
@@ -1280,7 +1280,7 @@ class NyxGauntlet:
             self._add(
                 "S-03",
                 "load_session_by_id por prefixo restaura history",
-                "sessao",  # noqa-acento
+                "sessao",  # noqa  -- noqa-acento (marker do validar-acentuacao, palavra técnica PT-BR sem acento)
                 ok3,
                 dt,
                 details=f"prefix={prefix!r} entries_restored={len(reloaded.history) if reloaded else 0}",
