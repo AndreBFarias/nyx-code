@@ -29,8 +29,9 @@ sprint:
     - cmd: "bash scripts/sprint_invariants.sh"
       timeout: 30
       assert: "PASS=14"
-    - cmd: "python3 -m ruff check scripts/gauntlet/nyx_gauntlet.py"
+    - cmd: "/home/andrefarias/.local/bin/ruff check scripts/gauntlet/nyx_gauntlet.py"
       assert: "All checks passed"
+      # NOTA: ruff invocado via binário direto, não `python3 -m ruff` (BRIEF linha 37 — falha com `No module named ruff` no venv).
     - cmd: "./run.sh --gauntlet --only proxy"
       assert: "100%"
     - cmd: "./run.sh --gauntlet --only qualidade"
