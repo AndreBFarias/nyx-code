@@ -211,7 +211,7 @@ bash scripts/sprint_invariants.sh > /tmp/inv_after_sanitizer05.txt 2>&1
 grep -c "^\[FAIL\]" /tmp/inv_after_sanitizer05.txt  # 0 esperado
 
 # 4. Verificar chr() no source
-python3 -c 'from pathlib import Path; src = Path("scripts/sprint_invariants.sh").read_text(); assert "chr(0x25CF)" in src and "chr(0x25CB)" in src and "chr(0x25D0)" in src, "chr() nao presente"; print("OK chr presente")'
+python3 -c 'from pathlib import Path; src = Path("scripts/sprint_invariants.sh").read_text(); assert "chr(0x25CF)" in src and "chr(0x25CB)" in src and "chr(0x25D0)" in src, "chr() não presente"; print("OK chr presente")'
 
 # 5. Acentuação
 python3 ~/.config/zsh/scripts/validar-acentuacao.py --paths scripts/sprint_invariants.sh VALIDATOR_BRIEF.md
@@ -268,7 +268,7 @@ echo "FAIL final: $FAIL_AFTER"
 [ "$FAIL_AFTER" -le "$FAIL_BEFORE" ] || { echo "REGRESSAO"; exit 1; }
 
 # Asserto da spec
-python3 -c 'from pathlib import Path; src = Path("scripts/sprint_invariants.sh").read_text(); assert "chr(0x25CF)" in src and "chr(0x25CB)" in src and "chr(0x25D0)" in src, "chr nao presente"; print("OK chr presente")'
+python3 -c 'from pathlib import Path; src = Path("scripts/sprint_invariants.sh").read_text(); assert "chr(0x25CF)" in src and "chr(0x25CB)" in src and "chr(0x25D0)" in src, "chr não presente"; print("OK chr presente")'
 
 # Acentuação
 python3 ~/.config/zsh/scripts/validar-acentuacao.py --paths scripts/sprint_invariants.sh VALIDATOR_BRIEF.md
@@ -316,7 +316,7 @@ python3 -c 'from pathlib import Path; src = Path("scripts/sprint_invariants.sh")
 
 # 3. Spec migrou
 ls dev-journey/06-sprints/concluidos/SPRINT_INFRA_SANITIZER_FIX_05.md   # deve existir
-ls dev-journey/06-sprints/producao/SPRINT_INFRA_SANITIZER_FIX_05.md     # NAO deve existir
+ls dev-journey/06-sprints/producao/SPRINT_INFRA_SANITIZER_FIX_05.md     # não deve existir
 ```
 
 ---
