@@ -73,8 +73,9 @@ sprint:
 
 # Sprint MCP-SERVER-03 — Fechar MCP-SERVER-02 (Registry + HTTP loopback)
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (2026-05-21, commit 5e1927e; APROVADO_COM_RESSALVAS pelo validador)
 **Data criação:** 2026-05-21
+**Data conclusão:** 2026-05-21
 **Modelo obrigatório:** claude-opus-4-7 (executor-sprint via Agent tool)
 
 ---
