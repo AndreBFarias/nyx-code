@@ -842,9 +842,15 @@ def render_thinking_block(
     _eprint(f"  {ANSI_PURPLE_FG}{rule}{ANSI_RESET}")
 
 
-def _strip_ansi(text: str) -> int:
+def _visible_len(text: str) -> int:
     """Comprimento visível ignorando escapes ANSI (TUI-REDESIGN-26-03-PARTE-2)."""
     return len(re.sub(r"\033\[[0-9;]*[A-Za-z]", "", text))
+
+
+# Alias retrocompatível (OUTPUT-VISIBLE-LEN-RENAME-01).
+# Nome antigo `_strip_ansi` era enganoso (retorna int, não str). Mantido até
+# callsites internos migrarem em sprint futura.
+_strip_ansi = _visible_len
 
 
 def render_tool_chip(
