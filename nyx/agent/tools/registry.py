@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any
 
-from nyx.agent.models import ActionResult
+from nyx.agent.models import ActionResult, ActionType
 from nyx.agent.services.hooks import ToolHooks
 from nyx.agent.services.logging_service import get_logger
-from nyx.agent.tools.base import RegisteredTool
+from nyx.agent.tools.base import RegisteredTool, ToolDef
 
 from .agent_tool import AgentTool
 from .analyze_tool import AnalyzeTool
@@ -58,6 +59,72 @@ class ToolRegistry:
         self._tools: dict[str, RegisteredTool] = {}
         self._hooks = ToolHooks()
         self._load_tools()
+        # MCP-SERVER-03: descoberta MCP é boot-tolerante (try amplo).
+        # Falha de descoberta NÃO derruba o registry; tools nativas
+        # permanecem 100% disponíveis. Roda 1x no boot — asyncio.run
+        # síncrono é aceitável (timeout curto via connect_all_with_timeout).
+        self._load_mcp_tools()
+
+    def _load_mcp_tools(self) -> None:
+        """Descobre tools MCP no boot e registra com prefix mcp_<server>_<tool>.
+
+        Boot-tolerante: try amplo envolve toda descoberta. Falha (mcp.json
+        ausente, server offline, timeout) é logada e ignorada. Tools
+        nativas continuam disponíveis sem MCP. MCP-SERVER-03.
+        """
+        try:
+            from nyx.agent.services.mcp_client import (
+                CONNECT_TIMEOUT_S,
+                McpClient,
+                load_mcp_servers,
+            )
+
+            servers = load_mcp_servers()
+            if not servers:
+                return
+            # Se já há event loop rodando (ToolRegistry instanciado dentro
+            # de contexto async, ex.: gauntlet, testes pytest-asyncio),
+            # asyncio.run rejeita e a descoberta MCP é pulada graciosamente.
+            # MCP discovery roda apenas no boot síncrono real do agente.
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                # Sem loop ativo: caminho normal síncrono asyncio.run.
+                logger.debug("MCP discovery: nenhum loop ativo, prossegue sincrono")
+            else:
+                logger.warning(
+                    "MCP discovery: event loop ativo no construtor — descoberta pulada"
+                )
+                return
+            client = McpClient(servers=servers)
+            try:
+                asyncio.run(client.connect_all_with_timeout(timeout=CONNECT_TIMEOUT_S))
+            except Exception as e:  # noqa: BLE001 -- descoberta MCP best-effort
+                logger.warning("MCP discovery falhou no boot: %s", e)
+                return
+            registered = 0
+            for server in client.servers.values():
+                if not getattr(server, "connected", False):
+                    continue
+                for tool_def in server.tools:
+                    raw_name = tool_def.get("name") if isinstance(tool_def, dict) else None
+                    if not raw_name:
+                        continue
+                    tool_name = f"mcp_{server.name}_{raw_name}"
+                    if tool_name in self._tools:
+                        logger.warning(
+                            "MCP tool %s já registrada (colisão); mantendo primeira",
+                            tool_name,
+                        )
+                        continue
+                    self._tools[tool_name] = McpToolAdapter(
+                        client=client, server=server, tool_def=tool_def, name=tool_name
+                    )
+                    registered += 1
+            if registered:
+                logger.info("MCP discovery: %d tool(s) registradas no ToolRegistry", registered)
+        except Exception as e:  # noqa: BLE001 -- envelope final anti-crash
+            logger.warning("_load_mcp_tools: falha não-fatal capturada: %s", e)
 
     def _load_tools(self) -> None:
         for cls in [
@@ -139,6 +206,63 @@ class ToolRegistry:
     @property
     def hooks(self) -> ToolHooks:
         return self._hooks
+
+
+class McpToolAdapter(RegisteredTool):
+    """Wrap de tool MCP em RegisteredTool nativo (MCP-SERVER-03).
+
+    Mantém `action_type = ActionType.MCP_TOOL` para PermissionChecker
+    aplicar política específica (default: always_confirm). Cada chamada
+    executa asyncio.run(call_tool) — caminho síncrono dentro do
+    ToolRegistry.execute. Tool MCP herda as mesmas garantias de hook
+    pre/post das nativas via ToolRegistry.execute (sem bypass).
+    """
+
+    action_type = ActionType.MCP_TOOL
+
+    def __init__(
+        self,
+        client: Any,
+        server: Any,
+        tool_def: dict[str, Any],
+        name: str,
+    ) -> None:
+        self._client = client
+        self._server = server
+        self._tool_def_mcp = tool_def
+        raw_schema = tool_def.get("inputSchema") if isinstance(tool_def, dict) else None
+        if not isinstance(raw_schema, dict):
+            raw_schema = {}
+        properties = raw_schema.get("properties") if isinstance(raw_schema.get("properties"), dict) else {}
+        required = raw_schema.get("required") if isinstance(raw_schema.get("required"), list) else []
+        description = tool_def.get("description") or f"MCP tool {name}"
+        self.tool_def = ToolDef(
+            name=name,
+            description=str(description),
+            parameters=dict(properties),
+            required=list(required),
+        )
+
+    def execute(self, params: dict[str, Any], project_root: str) -> ActionResult:
+        del project_root  # tool MCP não usa cwd local
+        raw_name = self._tool_def_mcp.get("name") if isinstance(self._tool_def_mcp, dict) else None
+        if not raw_name:
+            return ActionResult(success=False, error="MCP tool sem nome canônico")
+        try:
+            resp = asyncio.run(
+                self._client.call_tool(self._server.name, raw_name, params or {})
+            )
+        except RuntimeError as e:
+            # asyncio.run dentro de loop ativo: fallback explícito
+            return ActionResult(success=False, error=f"MCP call dentro de loop ativo: {e}")
+        except Exception as e:  # noqa: BLE001 -- erros MCP best-effort
+            return ActionResult(success=False, error=f"MCP call falhou: {e}")
+        if isinstance(resp, dict) and resp.get("error"):
+            err = resp["error"]
+            return ActionResult(success=False, error=f"MCP error: {err}")
+        result = resp.get("result") if isinstance(resp, dict) else None
+        output = json.dumps(result, ensure_ascii=False) if result is not None else ""
+        return ActionResult(success=True, output=output)
 
 
 # "O registro é a memória da máquina." -- Alan Turing

@@ -1039,14 +1039,22 @@ class NyxGauntlet:
         t = time.monotonic()
         try:
             from nyx.agent.services.mcp_client import (
+                HttpMcpServer,
                 McpClient,
                 McpServer,
+                _validate_loopback,
                 load_mcp_servers,
             )
         except Exception as e:
             self._add("M-01", "imports MCP", "mcp", False, 0, error=str(e))
             return
-        self._add("M-01", "imports MCP (McpClient/McpServer/load)", "mcp", True, time.monotonic() - t)
+        self._add(
+            "M-01",
+            "imports MCP (McpClient/McpServer/HttpMcpServer/load/_validate_loopback)",
+            "mcp",
+            True,
+            time.monotonic() - t,
+        )
 
         t = time.monotonic()
         with tempfile.TemporaryDirectory(prefix="nyx-mcp-") as tmp:
@@ -1077,6 +1085,88 @@ class NyxGauntlet:
             ok3 and not ping_ok,
             time.monotonic() - t,
             details=f"connect={results} ping={ping_ok}",
+        )
+
+        # M-04: HTTP loopback transport (MCP-SERVER-03)
+        # Valida (a) _validate_loopback aceita 127.0.0.1/localhost/::1 e
+        # rejeita não-loopback; (b) _connect_http marca server.error
+        # quando URL não-loopback sem crash.
+        t = time.monotonic()
+        loopback_ok = (
+            _validate_loopback("http://127.0.0.1:8765")
+            and _validate_loopback("http://localhost:8765")
+            and _validate_loopback("http://[::1]:8765")
+            and not _validate_loopback("http://192.168.1.100:8765")
+            and not _validate_loopback("http://0.0.0.0:8765")
+            and not _validate_loopback("http://example.com")
+        )
+        evil_server = HttpMcpServer(name="evil", url="http://192.168.1.100:8765")
+        evil_client = McpClient(servers=[evil_server])
+        evil_results = await evil_client.connect_all()
+        await evil_client.close_all()
+        evil_ok = (
+            evil_results == {"evil": False}
+            and evil_server.error is not None
+            and "não-loopback" in evil_server.error
+            and evil_server.client is None
+        )
+        self._add(
+            "M-04",
+            "HTTP loopback transport: _validate_loopback + _connect_http rejeita não-loopback sem crash",
+            "mcp",
+            loopback_ok and evil_ok,
+            time.monotonic() - t,
+            details=f"loopback_validation={loopback_ok} evil_error={evil_server.error!r}",
+        )
+
+        # M-05: ToolRegistry integration (MCP-SERVER-03)
+        # (a) Boot sem mcp.json: tool_count >= 35, sem tools mcp_*.
+        # (b) Boot com mcp.json apontando para command inexistente:
+        #     ToolRegistry permanece tolerante; tool_count nativas inalterado.
+        t = time.monotonic()
+        from nyx.agent.tools.registry import McpToolAdapter, ToolRegistry
+
+        r1 = ToolRegistry(".")
+        base_count = r1.tool_count
+        no_mcp_tools = not any(name.startswith("mcp_") for name in r1._tools)
+
+        with tempfile.TemporaryDirectory(prefix="nyx-mcp-reg-") as tmp:
+            stub_cfg = Path(tmp) / "mcp.json"
+            stub_cfg.write_text(
+                '{"servers": {"falho": {"command": "/usr/bin/false"}}}',
+                encoding="utf-8",
+            )
+            # Monkey-patch load_mcp_servers para apontar para o stub temp.
+            import nyx.agent.tools.registry as registry_mod
+            from nyx.agent.services import mcp_client as mcp_mod
+            original_loader = mcp_mod.load_mcp_servers
+            mcp_mod.load_mcp_servers = lambda path=stub_cfg: original_loader(stub_cfg)
+            try:
+                r2 = ToolRegistry(".")
+                tolerant_count = r2.tool_count
+            finally:
+                mcp_mod.load_mcp_servers = original_loader
+            tolerant_no_mcp = not any(name.startswith("mcp_") for name in r2._tools)
+
+        adapter_is_registered = issubclass(McpToolAdapter, registry_mod.RegisteredTool)
+        registry_ok = (
+            base_count >= 35
+            and no_mcp_tools
+            and tolerant_count == base_count
+            and tolerant_no_mcp
+            and adapter_is_registered
+        )
+        self._add(
+            "M-05",
+            "ToolRegistry integration: boot tolerante + McpToolAdapter herda RegisteredTool",
+            "mcp",
+            registry_ok,
+            time.monotonic() - t,
+            details=(
+                f"base_count={base_count} tolerant_count={tolerant_count} "
+                f"no_mcp={no_mcp_tools} tolerant_no_mcp={tolerant_no_mcp} "
+                f"adapter_is_registered={adapter_is_registered}"
+            ),
         )
 
     # ═══════════════════════════════════════════════════════════════════

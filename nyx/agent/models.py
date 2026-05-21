@@ -23,6 +23,7 @@ class ActionType(Enum):
     WEB_FETCH = "web_fetch"
     WEB_SEARCH = "web_search"
     WRITE_MEMORY = "write_memory"
+    MCP_TOOL = "mcp_tool"
     DONE = "done"
 
 
