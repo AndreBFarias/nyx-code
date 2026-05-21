@@ -1099,7 +1099,7 @@ class NyxGauntlet:
         #       Esse é exatamente o sinal que _execute_tool_calls inspeciona via
         #       `any(r.blocked for r in pre_results)` para pular a tool.
         #   (d) Contratos da integração presentes: run() async + _execute_tool_calls +
-        #       _run_loop (helper extraído para envelope try/finally do Stop).
+        #       _run_iterations (helper extraído para envelope try/finally do Stop).
         t = time.monotonic()
         hd03_steps: list[str] = []
         ok3 = True
@@ -1150,7 +1150,7 @@ class NyxGauntlet:
             cond_d = (
                 inspect.iscoroutinefunction(loop_a.run)
                 and hasattr(loop_a, "_execute_tool_calls")
-                and hasattr(loop_a, "_run_loop")
+                and hasattr(loop_a, "_run_iterations")
             )
             hd03_steps.append(f"api_contracts={cond_d}")
             ok3 = ok3 and cond_d

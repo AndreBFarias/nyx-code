@@ -58,8 +58,9 @@ sprint:
 
 # Sprint HOOKS-DYNAMIC-03 — Integração no ciclo do AgentLoop
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-21
+**Data conclusão:** 2026-05-21
 **Modelo obrigatório:** claude-opus-4-7
 
 ---

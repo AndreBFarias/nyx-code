@@ -132,12 +132,45 @@ class _IterationMixin:
             for warn in pf.warnings:
                 logger.info("[loop] preflight aviso para %s: %s", name, warn)
 
+            # HOOKS-DYNAMIC-03: PreToolUse antes da execução. block_on_failure
+            # honrado via HookResult.blocked=True -> pula tool (continue).
+            hooks = getattr(self, "_hooks", None)
+            if hooks is not None:
+                try:
+                    pre_results = hooks.run(
+                        "PreToolUse", {"tool_name": name, "tool_input": args}
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("hook PreToolUse falhou: %s", exc)
+                    pre_results = []
+                if any(r.blocked for r in pre_results):
+                    logger.warning("[loop] hook PreToolUse bloqueou %s", name)
+                    self._session.add_tool_call(
+                        name, args, f"Bloqueado por hook PreToolUse: {name}"
+                    )
+                    continue
+
             import time as _time
 
             _t0 = _time.monotonic()
             result = self._tools.execute(name, args)
             self._tool_durations.setdefault(name, []).append((_time.monotonic() - _t0) * 1000.0)
             self._tool_summary.track(name, args)
+
+            # HOOKS-DYNAMIC-03: PostToolUse com tool_result.
+            if hooks is not None:
+                try:
+                    hooks.run(
+                        "PostToolUse",
+                        {
+                            "tool_name": name,
+                            "tool_result": (
+                                result.output if result.success else (result.error or "")
+                            ),
+                        },
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("hook PostToolUse falhou: %s", exc)
 
             vr = post_validate(name, args, result)
             for warn in vr.warnings:

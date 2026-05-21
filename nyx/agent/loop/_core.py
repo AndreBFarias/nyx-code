@@ -147,6 +147,15 @@ class AgentLoop(_IterationMixin):
         self._guide_ctx = build_guide_md_context(project_root)
         self._rebuild_system_prompt()
 
+        # HOOKS-DYNAMIC-03: instanciar HookRuntime tolerante.
+        try:
+            from nyx.agent.services.hook_runtime import HookRuntime
+
+            self._hooks: "HookRuntime | None" = HookRuntime()
+        except Exception as exc:  # noqa: BLE001 -- hooks são extensão opcional
+            logger.warning("HookRuntime falhou ao instanciar: %s; sem hooks dinâmicos", exc)
+            self._hooks = None
+
     def _emit_state(self, state: str) -> None:
         """Atualiza estado interno e notifica observadores (UX-BUG-02B).
 
@@ -229,9 +238,33 @@ class AgentLoop(_IterationMixin):
         # NYX-GSD-CHECKPOINTS-01: registra pedido inicial em progress.md.
         self._gsd.user_input(user_input)
 
+        # HOOKS-DYNAMIC-03: UserPromptSubmit antes da primeira iteração.
+        if self._hooks is not None:
+            try:
+                self._hooks.run("UserPromptSubmit", {"content": user_input})
+            except Exception as exc:  # noqa: BLE001 -- hook não derruba loop
+                logger.warning("hook UserPromptSubmit falhou: %s", exc)
+
         if self._model_state != "warm":
             self._emit_state("warming")
 
+        # HOOKS-DYNAMIC-03: envelope try/finally para garantir Stop hook
+        # mesmo em retorno antecipado, exceção ou MAX_ITERATIONS.
+        status: SessionStatus | None = None
+        try:
+            status = await self._run_iterations(user_input)
+            return status
+        finally:
+            if self._hooks is not None:
+                try:
+                    summary = status.summary if status is not None else ""
+                    self._hooks.run("Stop", {"turn_summary": summary[:500]})
+                except Exception as exc:  # noqa: BLE001 -- hook não derruba loop
+                    logger.warning("hook Stop falhou: %s", exc)
+
+    async def _run_iterations(self, user_input: str) -> SessionStatus:
+        """Corpo do loop plan-execute-observe (HOOKS-DYNAMIC-03). Separado
+        de run() apenas para envelope try/finally do Stop hook."""
         for i in range(self._max_iterations):
             self._session.iteration = i + 1
             # NYX-PROMPT-REINJECT-01: zera tool calls da iteração para drift
