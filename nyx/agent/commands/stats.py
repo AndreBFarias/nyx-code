@@ -17,7 +17,8 @@ _CHAVES_OBRIGATORIAS = (
     name="stats",
     description="Estado do proxy local: OOM recovery, num_gpu, degradação",
     category="debug",
-    examples=["/stats"],
+    aliases=["proxy-stats"],
+    examples=["/stats", "/proxy-stats"],
 )
 def cmd_stats_proxy(_args: str, _root: str) -> str:
     """Retorna snapshot do estado do proxy via GET /admin/stats.
