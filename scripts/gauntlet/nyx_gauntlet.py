@@ -737,6 +737,105 @@ class NyxGauntlet:
                 error=str(e),
             )
 
+        # P-09b: E2E real do path proxy -> ollama -> nyx_reasoning com qwen3:4b.
+        # INFRA-GAUNTLET-E2E-THINKING-01. Gated por NYX_GAUNTLET_WITH_QWEN3=1
+        # (run.sh propaga via --with-qwen3) para evitar OOM no RTX 3050 4GB
+        # quando o modelo do gauntlet já está carregado. Se gating ativo mas
+        # VRAM livre < 4096 MiB, registra SKIP (não FAIL) -- contrato do
+        # forbidden da spec. Default (sem env var): teste nem aparece no tally.
+        if os.environ.get("NYX_GAUNTLET_WITH_QWEN3") == "1":
+            t = time.monotonic()
+            try:
+                from scripts.gauntlet.vram_check import probe as _vram_probe
+
+                snap = _vram_probe()
+                free_mib = snap.get("free_mib", -1)
+                if not snap.get("nvidia_smi_ok"):
+                    self._add_skip(
+                        "P-09b",
+                        "E2E nyx_reasoning com qwen3:4b",
+                        "proxy",
+                        details="nvidia-smi indisponível (sem GPU)",
+                    )
+                elif free_mib < 4096:
+                    self._add_skip(
+                        "P-09b",
+                        "E2E nyx_reasoning com qwen3:4b",
+                        "proxy",
+                        details=(
+                            f"VRAM insuficiente: {free_mib} MiB livres "
+                            "(mínimo 4096 MiB para qwen3:4b)"
+                        ),
+                    )
+                else:
+                    # Pull on-demand de qwen3:4b se ausente. Idempotente.
+                    try:
+                        subprocess.run(
+                            ["ollama", "pull", "qwen3:4b"],
+                            check=True,
+                            timeout=600,
+                            capture_output=True,
+                        )
+                    except (
+                        subprocess.CalledProcessError,
+                        subprocess.TimeoutExpired,
+                        FileNotFoundError,
+                    ) as pull_err:
+                        self._add(
+                            "P-09b",
+                            "E2E nyx_reasoning com qwen3:4b",
+                            "proxy",
+                            False,
+                            time.monotonic() - t,
+                            error=f"ollama pull falhou: {pull_err}",
+                        )
+                    else:
+                        # POST chat com qwen3:4b + tools (força think=true).
+                        tool = self._tool(
+                            "Read",
+                            "Lê arquivo",
+                            {"file_path": {"type": "string"}},
+                            ["file_path"],
+                        )
+                        payload = {
+                            "model": "qwen3:4b",
+                            "messages": [
+                                {"role": "user", "content": "leia README.md"}
+                            ],
+                            "tools": [tool],
+                        }
+                        async with httpx.AsyncClient(timeout=300) as c:
+                            r = await c.post(
+                                f"{self._proxy}/v1/chat/completions",
+                                json=payload,
+                            )
+                            data = r.json()
+                            msg = data.get("choices", [{}])[0].get("message", {})
+                            reasoning = msg.get("nyx_reasoning", "")
+                            ok = bool(reasoning) and r.status_code == 200
+                            self._add(
+                                "P-09b",
+                                "E2E nyx_reasoning com qwen3:4b",
+                                "proxy",
+                                ok,
+                                time.monotonic() - t,
+                                tokens=data.get("usage", {}).get("total_tokens", 0),
+                                details=(
+                                    f"nyx_reasoning={reasoning[:60]!r}"
+                                    if reasoning
+                                    else "nyx_reasoning ausente/vazio"
+                                ),
+                            )
+            except Exception as e:
+                self._add(
+                    "P-09b",
+                    "E2E nyx_reasoning com qwen3:4b",
+                    "proxy",
+                    False,
+                    time.monotonic() - t,
+                    error=str(e),
+                )
+
     # ═══════════════════════════════════════════════════════════════════
     # FASE: TOOLS (6 testes)
     # ═══════════════════════════════════════════════════════════════════

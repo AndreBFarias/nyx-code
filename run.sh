@@ -82,6 +82,7 @@ GAUNTLET_ONLY="completo"
 # K08-VRAM-RUNNER-ISOLATION-01: comportamento do pre-flight K-08.
 GAUNTLET_STRICT_VRAM=0
 GAUNTLET_ISOLATE_VRAM=0
+GAUNTLET_WITH_QWEN3=0
 COCKPIT_BG=0
 EXTRA_ARGS=()
 
@@ -124,6 +125,11 @@ while [[ $# -gt 0 ]]; do
             shift ;;
         --isolate-vram)
             GAUNTLET_ISOLATE_VRAM=1
+            shift ;;
+        --with-qwen3)
+            # INFRA-GAUNTLET-E2E-THINKING-01: ativa P-09b (E2E real
+            # com qwen3:4b). Gating + VRAM check no nyx_gauntlet.py.
+            GAUNTLET_WITH_QWEN3=1
             shift ;;
         --aesthetic)
             # VISUAL-LAYOUT-08: seta aesthetic visual antes do exec.
@@ -647,6 +653,10 @@ if [ "$GAUNTLET" -eq 1 ]; then
     GAUNTLET_VRAM_ARGS=()
     [ "$GAUNTLET_STRICT_VRAM" -eq 1 ] && GAUNTLET_VRAM_ARGS+=(--strict-vram)
     [ "$GAUNTLET_ISOLATE_VRAM" -eq 1 ] && GAUNTLET_VRAM_ARGS+=(--isolate-vram)
+    # INFRA-GAUNTLET-E2E-THINKING-01: propaga gating de P-09b via env var.
+    if [ "$GAUNTLET_WITH_QWEN3" -eq 1 ]; then
+        export NYX_GAUNTLET_WITH_QWEN3=1
+    fi
     "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/scripts/gauntlet/nyx_gauntlet.py" \
         --proxy-url "http://127.0.0.1:${NYX_PROXY_PORT}" \
         --ollama-url "http://${NYX_OLLAMA_HOST}:${NYX_OLLAMA_PORT}" \
