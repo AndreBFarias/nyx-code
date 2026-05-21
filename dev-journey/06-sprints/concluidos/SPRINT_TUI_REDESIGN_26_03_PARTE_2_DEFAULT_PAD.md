@@ -1,8 +1,10 @@
+# SPRINT TUI-REDESIGN-26-03-PARTE-2-DEFAULT-PAD — Alinhamento default das ações à direita em render_tool_chip
+
 ## 0. SPEC
 
 ```yaml
 sprint:
-  id: TUI-REDESIGN-26-03-PARTE-2
+  id: TUI-REDESIGN-26-03-PARTE-2-DEFAULT-PAD
   title: "Alinhamento das ações à direita nos tool chips (fecha CONCLUIDA_PARCIAL de 26-03)"
   onda: 26
   bloco: "26.1 Fidelidade visual"
