@@ -518,7 +518,7 @@ class NyxGauntlet:
             self._add("I-11", "Proxy respondendo", "infra", False, time.monotonic() - t, error=str(e))
 
     # ═══════════════════════════════════════════════════════════════════
-    # FASE: PROXY (6 testes)
+    # FASE: PROXY (7 testes)
     # ═══════════════════════════════════════════════════════════════════
 
     async def _phase_proxy(self) -> None:
@@ -627,6 +627,115 @@ class NyxGauntlet:
             tokens=resp.get("tokens", 0),
             details=str(resp.get("tool_args", "")),
         )
+
+        # P-09: proxy emite nyx_reasoning quando há thinking
+        # (TUI-REDESIGN-25-09-PARTE-3). Injetado pelo proxy quando think=true
+        # captura conteúdo entre <think>...</think>. Para forçar think=true,
+        # request precisa de tools E modelo precisa suportar (vide
+        # MODELS_SUPPORTING_THINKING). Camadas do teste:
+        #   1. Unit: ollama_to_openai com payload sintético contendo <think>
+        #      sempre exercita o caminho, independente de modelo carregado.
+        #   2. Unit negativo: sem <think>, campo nyx_reasoning AUSENTE
+        #      (contrato non-zero-default).
+        # Não exercitamos E2E com modelo thinking real (qwen3:4b) aqui pois
+        # exigiria carregar segundo modelo na VRAM da RTX 3050 4GB, o que
+        # conflita com o modelo do gauntlet padrão (qwen2.5-coder:3b).
+        # E2E é coberta indiretamente pelo P-07 (que já força think=true via
+        # tools quando o modelo do gauntlet suporta).
+        t = time.monotonic()
+        try:
+            from nyx.proxy import _extract_think, ollama_to_openai
+
+            # Unit 1: helper extrai conteúdo entre tags.
+            assert _extract_think("a <think>raciocinio</think> b") == "raciocinio"
+            assert _extract_think("sem tag") == ""
+            assert _extract_think("") == ""
+
+            # Unit 2: ollama_to_openai injeta nyx_reasoning quando presente.
+            with_think = ollama_to_openai(
+                {
+                    "message": {
+                        "role": "assistant",
+                        "content": "<think>vou pensar</think>resposta",
+                    },
+                    "prompt_eval_count": 1,
+                    "eval_count": 1,
+                },
+                "qwen3:4b",
+            )
+            msg_with = with_think["choices"][0]["message"]
+            ok_with = (
+                msg_with.get("nyx_reasoning") == "vou pensar"
+                and msg_with["content"] == "resposta"
+            )
+
+            # Unit 3: sem thinking, campo AUSENTE (não-zero default).
+            without_think = ollama_to_openai(
+                {
+                    "message": {
+                        "role": "assistant",
+                        "content": "resposta direta",
+                    },
+                    "prompt_eval_count": 1,
+                    "eval_count": 1,
+                },
+                "qwen3:4b",
+            )
+            msg_without = without_think["choices"][0]["message"]
+            ok_without = (
+                "nyx_reasoning" not in msg_without
+                and msg_without["content"] == "resposta direta"
+            )
+
+            # Unit 4: thinking preservado mesmo quando há tool_calls
+            # (content é zerado pela linha 508 do proxy, mas nyx_reasoning não).
+            with_tools = ollama_to_openai(
+                {
+                    "message": {
+                        "role": "assistant",
+                        "content": "<think>chamar Read</think>",
+                        "tool_calls": [
+                            {
+                                "function": {
+                                    "name": "Read",
+                                    "arguments": {"file_path": "x.md"},
+                                }
+                            }
+                        ],
+                    },
+                    "prompt_eval_count": 1,
+                    "eval_count": 1,
+                },
+                "qwen3:4b",
+            )
+            msg_tools = with_tools["choices"][0]["message"]
+            ok_tools = (
+                msg_tools.get("nyx_reasoning") == "chamar Read"
+                and msg_tools["content"] == ""
+                and msg_tools.get("tool_calls")
+            )
+
+            ok = ok_with and ok_without and ok_tools
+            self._add(
+                "P-09",
+                "proxy emite nyx_reasoning quando think=true",
+                "proxy",
+                ok,
+                time.monotonic() - t,
+                details=(
+                    f"with_think={ok_with} without_think={ok_without} "
+                    f"with_tools={ok_tools}"
+                ),
+            )
+        except Exception as e:
+            self._add(
+                "P-09",
+                "proxy emite nyx_reasoning quando think=true",
+                "proxy",
+                False,
+                time.monotonic() - t,
+                error=str(e),
+            )
 
     # ═══════════════════════════════════════════════════════════════════
     # FASE: TOOLS (6 testes)

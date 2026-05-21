@@ -493,6 +493,19 @@ class _IterationMixin:
             tc = msg.get("tool_calls", [])
             content = msg.get("content", "")
 
+            # TUI-REDESIGN-25-09-PARTE-3: thinking capturado pelo proxy chega
+            # como campo aditivo `nyx_reasoning`. Propaga via callback opcional
+            # `_on_thinking` (mesmo shape de _on_tool/_on_tool_result). Quando
+            # ausente, callsite/proxy não injetou — silêncio é correto.
+            reasoning = msg.get("nyx_reasoning", "")
+            if reasoning:
+                on_thinking = getattr(self, "_on_thinking", None)
+                if on_thinking:
+                    try:
+                        on_thinking(reasoning)
+                    except Exception as exc:  # noqa: BLE001 -- callback é best-effort
+                        logger.warning("[loop] on_thinking callback falhou: %s", exc)
+
             # NYX-OUTPUT-LIMITS-01: log warning se resposta parece truncada.
             # Heuristica passiva (so loga); não reissue para não bloquear ciclo.
             if content and not tc and _detect_truncate(content):

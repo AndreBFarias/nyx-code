@@ -1,38 +1,92 @@
 {
-  "timestamp": "2026-05-21T13:38:58.469830",
+  "timestamp": "2026-05-21T14:13:58.571329",
   "model": "qwen2.5-coder:3b",
   "phases_done": [],
   "results": [
     {
-      "feature_id": "HD-01",
-      "name": "HookRuntime import + 4 eventos canonicos",
-      "phase": "hooks_dynamic",
+      "feature_id": "P-01",
+      "name": "Request via proxy",
+      "phase": "proxy",
       "passed": true,
-      "elapsed_s": 0.0,
-      "tokens": 0,
-      "details": "events=('PreToolUse', 'PostToolUse', 'UserPromptSubmit', 'Stop')",
+      "elapsed_s": 4.35,
+      "tokens": 38,
+      "details": "Proxy OK",
       "error": "",
       "skipped": false
     },
     {
-      "feature_id": "HD-02",
-      "name": "run('PreToolUse', tool='echo_test') casa matcher 'echo' e executa /bin/true",
-      "phase": "hooks_dynamic",
+      "feature_id": "P-02",
+      "name": "think=false injetado",
+      "phase": "proxy",
       "passed": true,
-      "elapsed_s": 0.0,
+      "elapsed_s": 0,
       "tokens": 0,
-      "details": "len=1 ok=True",
+      "details": "sem <think>",
       "error": "",
       "skipped": false
     },
     {
-      "feature_id": "HD-03",
-      "name": "AgentLoop amarra HookRuntime: boot tolerante + carrega settings + block_on_failure honrado",
-      "phase": "hooks_dynamic",
-      "passed": false,
-      "elapsed_s": 0.26,
+      "feature_id": "P-04",
+      "name": "Content array normalizado",
+      "phase": "proxy",
+      "passed": true,
+      "elapsed_s": 0.43,
+      "tokens": 39,
+      "details": "",
+      "error": "",
+      "skipped": false
+    },
+    {
+      "feature_id": "P-05",
+      "name": "Formato OpenAI correto",
+      "phase": "proxy",
+      "passed": true,
+      "elapsed_s": 2.24,
       "tokens": 0,
-      "details": "erro=AttributeError: 'AgentLoop' object has no attribute '_hooks'",
+      "details": "choices=True usage=True message=True",
+      "error": "",
+      "skipped": false
+    },
+    {
+      "feature_id": "P-06",
+      "name": "Listagem /v1/models",
+      "phase": "proxy",
+      "passed": true,
+      "elapsed_s": 0.02,
+      "tokens": 0,
+      "details": "4 modelos",
+      "error": "",
+      "skipped": false
+    },
+    {
+      "feature_id": "P-07",
+      "name": "tool_calls propagam",
+      "phase": "proxy",
+      "passed": true,
+      "elapsed_s": 4.13,
+      "tokens": 190,
+      "details": "['{\"file_path\": \"/path/to/README.md\"}']",
+      "error": "",
+      "skipped": false
+    },
+    {
+      "feature_id": "P-09",
+      "name": "proxy emite nyx_reasoning quando think=true",
+      "phase": "proxy",
+      "passed": [
+        {
+          "id": "call_85573d26",
+          "index": 0,
+          "type": "function",
+          "function": {
+            "name": "Read",
+            "arguments": "{\"file_path\": \"x.md\"}"
+          }
+        }
+      ],
+      "elapsed_s": 0.14,
+      "tokens": 0,
+      "details": "with_think=True without_think=True with_tools=[{'id': 'call_85573d26', 'index': 0, 'type': 'function', 'function': {'name': 'Read', 'arguments': '{\"file_path\": \"x.md\"}'}}]",
       "error": "",
       "skipped": false
     }

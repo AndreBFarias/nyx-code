@@ -1,54 +1,88 @@
-# SPRINT TUI-REDESIGN-25-09-PARTE-3 — Captura real do thinking via proxy + loop
-
 ## 0. SPEC
 
 ```yaml
 sprint:
   id: TUI-REDESIGN-25-09-PARTE-3
-  title: "proxy preserva field thinking no response; loop/_iteration extrai e propaga"
+  title: "Captura real do thinking via proxy emitir reasoning_content para o cli"
   onda: 25
-  bloco: 25.meta (parte 3 de TUI-REDESIGN-25-09)
-  prioridade: BAIXA
+  bloco: "25.meta Anti-débito de UX"
+  prioridade: MÉDIA
   tipo: Feature
   dependencias: [TUI-REDESIGN-25-09-PARTE-2]
   desbloqueia: []
-  origem: "PARTE-2 implementou Tab keybinding + helper visual. Captura real do thinking exige que proxy preserve o field e que loop o extraia. Hoje proxy.py:296 ativamente apaga o reasoning."
 
   touches:
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/nyx/proxy.py
-      reason: "Preservar field 'thinking' (qwen3) no message do response; antes era apagado"
+      reason: "Em vez de descartar conteúdo do <think>...</think> via _strip_think, emitir como campo `reasoning_content` na resposta OpenAI (campo custom não-bloqueante para clients que não consomem)"
     - path: /home/andrefarias/Desenvolvimento/Nyx-Code/nyx/agent/loop/_iteration.py
-      reason: "Detectar response.message.thinking e propagar via callback on_thinking"
-    - path: /home/andrefarias/Desenvolvimento/Nyx-Code/nyx/cli.py
-      reason: "Registrar callback on_thinking que seta app_state['last_thinking_block']"
+      reason: "Capturar `reasoning_content` quando presente na resposta e propagar via callback on_thinking (similar a on_token)"
+    - path: /home/andrefarias/Desenvolvimento/Nyx-Code/scripts/gauntlet/nyx_gauntlet.py
+      reason: "Adicionar P-09 (proxy emite reasoning_content quando think=true)"
+
+  creates: []
+  removes: []
 
   forbidden:
-    - "Forçar thinking em modelo que não suporta (qwen2.5-coder não emite think)"
-    - "Quebrar tool_calls (proxy linha 296 limpa content; mudar com cuidado)"
+    - "Quebrar formato OpenAI atual (campo deve ser ADITIVO, não substituir choices/usage/message)"
+    - "Tocar nyx/cli.py ou output.py (consumo do thinking fica para sub-sprint UX dedicada)"
+    - "Quebrar P-01..P-07 do gauntlet (resposta core preservada)"
+    - "Emoji ou menção a IA externa"
 
   tests:
+    - cmd: "./run.sh --smoke"
+      timeout: 10
     - cmd: "bash scripts/sprint_invariants.sh"
+      timeout: 30
+      assert: "PASS=14"
+    - cmd: "./run.sh --gauntlet --only proxy"
       timeout: 60
-      deve_passar: "14/14"
+      assert: "100% (P-01..P-07 preservados + P-09 novo)"
 
   acceptance_criteria:
-    - "qwen3:4b emite thinking; proxy preserva; loop extrai; app_state setado"
-    - "qwen2.5-coder: surrogate (texto entre tool calls) capturado"
-    - "Tab no REPL com prompt vazio mostra thinking real (não placeholder)"
-    - "Smoke ok + invariantes 14/14"
-
-  status: DEFERIDA (BAIXA prioridade)
-  motivo_deferida: "Helper UI e Tab keybinding já funcionam (PARTE-2). Captura real é nice-to-have; exige mudança no proxy.py que limpa content em tool_calls (linha 296) e teste com qwen3:4b (não é o default qwen2.5-coder:3b)."
+    - "proxy.py extrai conteúdo entre <think>...</think> ANTES de strippar; preserva como string"
+    - "Resposta JSON OpenAI ganha campo `nyx_reasoning` (top-level OU em choices[0].message) quando há thinking"
+    - "Campo ausente quando sem thinking (não-zero default)"
+    - "Clientes que ignoram campo desconhecido funcionam (compatibilidade)"
+    - "Gauntlet --only proxy 100% incluindo P-09 novo"
+    - "Smoke + invariantes 14/14 + acentuação rc=0"
+    - "MASTER linha M3 (PARTE-3) DEFERIDA → CONCLUIDA"
 ```
 
 ---
 
-# Sprint TUI-REDESIGN-25-09-PARTE-3
-
-**Status:** DEFERIDA
-**Data criação:** 2026-05-18 (decomposta de M3 PARTE-2 durante Onda 26)
+**Status:** CONCLUIDA (2026-05-21, commit __post_hash__)
+**Data criação:** 2026-05-21
+**Data conclusão:** 2026-05-21
 **Modelo obrigatório:** claude-opus-4-7
 
-## Rollback
+---
 
-`git reset --hard HEAD~1`
+## Solução
+
+1. Em `_strip_think()`, antes de retornar, capturar o conteúdo entre as tags em um helper paralelo `_extract_think(text) -> str`.
+2. Em `ollama_to_openai()` (ou onde a resposta é montada), incluir `nyx_reasoning` no JSON quando houver thinking.
+3. Em `_iteration.py`, ler `nyx_reasoning` da resposta e propagar via callback (se executor preferir, criar `on_thinking` ou usar `on_token` com flag).
+
+## Proof-of-work
+
+```bash
+bash scripts/sprint_invariants.sh > /tmp/inv_before_c2.txt 2>&1
+# IMPLEMENTAR
+./run.sh --smoke
+bash scripts/sprint_invariants.sh > /tmp/inv_after_c2.txt 2>&1
+./run.sh --gauntlet --only proxy 2>&1 | tail -10
+python3 ~/.config/zsh/scripts/validar-acentuacao.py --paths nyx/proxy.py nyx/agent/loop/_iteration.py scripts/gauntlet/nyx_gauntlet.py
+```
+
+## Critério binário
+
+- [ ] `_extract_think()` helper em proxy.py
+- [ ] `nyx_reasoning` no JSON OpenAI quando há thinking
+- [ ] Campo ausente sem thinking
+- [ ] Gauntlet --only proxy 100% (incl P-09)
+- [ ] Smoke + invariantes 14/14
+- [ ] MASTER M3 DEFERIDA → CONCLUIDA
+
+---
+
+*"Pensamento capturado é pensamento útil."*

@@ -316,6 +316,33 @@ def _strip_think(text: str) -> str:
     return out.strip()
 
 
+# Pattern paralelo a THINK_PATTERN: captura o GRUPO interno (sem as tags).
+# TUI-REDESIGN-25-09-PARTE-3: anti-débito de descarte de raciocínio.
+# Em vez de strippar e perder o conteúdo, expomos como campo aditivo
+# `nyx_reasoning` em choices[0].message para clientes que queiram renderizar
+# o thinking (ex.: TUI mostra cinza-claro, prefixado por "Pensando:").
+_THINK_CAPTURE = re.compile(r"<think>(.*?)</think>", re.DOTALL)
+
+
+def _extract_think(text: str) -> str:
+    """Extrai o conteúdo do PRIMEIRO bloco <think>...</think> sem as tags.
+
+    Retorna string vazia quando não há thinking (campo deve ser omitido pelo
+    callsite, não enviado como string vazia — preserva o contrato "ausente
+    quando sem thinking", lição não-zero default).
+
+    Não trata o caso de </think> órfão sem abertura porque esse formato
+    (qwen3 com think=false) já é descartado por design — quando há thinking
+    real, vem sempre bem-formado com <think> de abertura.
+    """
+    if not text:
+        return ""
+    match = _THINK_CAPTURE.search(text)
+    if not match:
+        return ""
+    return match.group(1).strip()
+
+
 _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*", re.IGNORECASE)
 
 
@@ -437,7 +464,12 @@ def ollama_to_openai(
     (GAUNTLET-TOOLS-DESC-MATCH-01).
     """
     msg = data.get("message", {})
-    content = _strip_think(msg.get("content", ""))
+    raw_content = msg.get("content", "")
+    # TUI-REDESIGN-25-09-PARTE-3: captura o thinking ANTES de strippar.
+    # Campo aditivo, não substitui content (que segue limpo). Clientes que
+    # não conhecem nyx_reasoning ignoram silenciosamente.
+    reasoning = _extract_think(raw_content)
+    content = _strip_think(raw_content)
     choice: dict = {
         "index": 0,
         "message": {
@@ -446,6 +478,10 @@ def ollama_to_openai(
         },
         "finish_reason": "stop",
     }
+    # Inserir nyx_reasoning APENAS quando não-vazio. Campo ausente quando sem
+    # thinking (contrato non-zero-default; ver acceptance criteria PARTE-3).
+    if reasoning:
+        choice["message"]["nyx_reasoning"] = reasoning
     tool_calls = msg.get("tool_calls")
     # Fallback: quando o request tinha tools mas o modelo emitiu JSON inline.
     if not tool_calls and has_tools_request and content:
