@@ -43,9 +43,27 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** SUPERSEDED (por RUFF-EXTERNAL-NOQA-CONFIG-01 commit 3727cb6 de 2026-05-19)
 **Data criação:** 2026-05-21
+**Data SUPERSEDED:** 2026-05-21
 **Modelo obrigatório:** claude-opus-4-7
+
+---
+
+## NOTA DE SUPERSEDING
+
+Esta sprint foi catalogada como follow-up do validador OUTPUT-VISIBLE-LEN-RENAME-01,
+mas a solução proposta (opção c: `[tool.ruff.lint] external = ["noqa-acento"]` em
+pyproject.toml) JÁ ESTAVA aplicada em commit anterior `3727cb6` (sprint
+RUFF-EXTERNAL-NOQA-CONFIG-01 batch consolidado de 2026-05-19).
+
+Verificação empírica:
+- `pyproject.toml:53-62` já contém `external = ["noqa-acento"]` com comentário inline explicativo
+- `ruff check nyx/agent/output.py nyx/agent/lang_check.py nyx/proxy.py` exit 0, `All checks passed!`, zero warnings Invalid noqa
+- `validar-acentuacao.py --paths <mesmos arquivos>` rc=0
+
+Executor parou e reportou idempotência conforme protocolo `feedback_nenhum_debito.md`.
+Spec movida para `concluidos/` com este header de SUPERSEDED preservado.
 
 ---
 
