@@ -75,7 +75,7 @@ bash scripts/sprint_invariants.sh                       # PASS=14 FAIL=0
 ## Sanitização contínua (anti-drift)
 
 - O invariante #14 (`scripts/sprint_invariants.sh`) protege os glifos `○ ◐ ●` por **contagem de codepoint** em `nyx/cli.py`, `nyx/themes/design_tokens.py` e `nyx/agent/output.py`. Se algum strip silencioso ocorrer, o gate falha. **Nunca afrouxe** esse check.
-- Todo arquivo novo `.md` user-facing precisa passar pelo validador de acentos do usuário (`~/.config/zsh/scripts/validar-acentuacao.py`) quando aplicável.
+- Todo arquivo novo `.md` user-facing precisa passar pelo validador de acentos do usuário (`~/.config/zsh/scripts/validar-acentuacao.py --paths <arq1> <arq2>`) quando aplicável. Flag `--paths` é OBRIGATÓRIA — argumentos posicionais são rejeitados com `unrecognized arguments` (VALIDATOR_BRIEF.md §[CORE] Sintaxe correta de utilitários externos).
 - Hook global `~/.claude/hooks/guardian.py` bloqueia emoji no Write/Edit/Bash via PreToolUse. Se ele bloquear legitimamente, ajuste a string; se for falso-positivo (caso de subprocess/exec em Python), use string concatenation runtime (`getattr(asyncio, "create_subprocess_" + "exec")`).
 
 ## Regras de anti-débito (zero pendência implícita)
@@ -130,7 +130,7 @@ teste no Gauntlet correspondente à feature do `REGISTRY.yaml` (segundo critéri
 Ordem sugerida de promoção (Pareto):
 
 1. **Infraestrutura I-01..I-11** (11 features): boot/lifecycle, base de tudo.
-2. **Proxy P-01..P-08** (8): ponte OpenAI↔Ollama; gargalo histórico.
+2. **Proxy P-01..P-08** (8): ponte OpenAIOllama; gargalo histórico.
 3. **Tools T-01..T-10** (10): cobertura mínima de 6 tools.
 4. **Qualidade Q-01..Q-07** (7): PT-BR, identidade, concisão.
 5. **Performance K-01..K-10** (10): KPIs (alguns já cobertos por `perf_inference.py`).

@@ -166,7 +166,11 @@ python -m ruff check nyx/
 # 2. Teste da sprint
 ./run.sh --gauntlet --only <fase>
 
-# 3. Validação manual (checkpoint visual se aplicável)
+# 3. Acentuação PT-BR (BRIEF §[CORE] Sintaxe correta de utilitários externos)
+#    Flag --paths é OBRIGATÓRIA — argumentos posicionais são rejeitados.
+python3 ~/.config/zsh/scripts/validar-acentuacao.py --paths <arquivo1> <arquivo2>
+
+# 4. Validação manual (checkpoint visual se aplicável)
 ./run.sh
 # (instruções passo-a-passo)
 ```
