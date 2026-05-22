@@ -1,0 +1,14 @@
+/* Nyx-Code TUI styles — ONDA-30 SCAFFOLD placeholder.
+ *
+ * Paleta canônica (ADR-023): turquesa #00D4AA + roxo #9D4EDD + verde #4ADE80.
+ * Sub-sprints filhas (197+) populam classes específicas de cada widget.
+ */
+
+App {
+    background: $surface;
+}
+
+/* Tokens de cor reservados para uso pelas sub-sprints da ONDA-30. */
+$accent: #00D4AA;
+$primary: #9D4EDD;
+$success: #4ADE80;
