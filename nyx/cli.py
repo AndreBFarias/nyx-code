@@ -313,27 +313,42 @@ async def run_repl(
     )
     agent_ref[0] = agent
 
-    print(_build_banner(model, agent.tools_count, PROJECT_ROOT.name, settings=settings))
+    # TUI-BANNER-DEDUP-02: detecta cedo qual caminho será usado (Application vs
+    # PromptSession legacy) para condicionar o banner cru + blink async ao
+    # fallback legacy. No caminho Application (default), o banner aparece via
+    # append_to_buffer dentro do alternate-screen (linhas mais abaixo),
+    # eliminando o "banner fantasma" pré-render. Detecção definitiva (com
+    # eventual fallback se build_app falhar) acontece no bloco principal abaixo.
+    _legacy_env = os.environ.get("NYX_LEGACY_REPL", "").strip() == "1"
+    use_application = (
+        sys.stdin.isatty() and not _legacy_env and prompt_session is not None
+    )
 
-    # PROJECT-ROOTS-MULTI-01: linha discreta sob o banner contando extras
-    # autorizados. Mantém o grid do banner intacto (sem mutação de layout).
-    try:
-        from nyx.agent.tools.base import list_extra_roots as _extras
+    if not use_application:
+        # Caminho legacy PromptSession (NYX_LEGACY_REPL=1 ou stdin não-TTY):
+        # banner cru no stdout + blink async ~1.4s — único momento que o
+        # usuário verá o banner, pois não há alternate-screen para escondê-lo.
+        print(_build_banner(model, agent.tools_count, PROJECT_ROOT.name, settings=settings))
 
-        _ext = _extras()
-        if _ext:
-            print(f"  {DIM}+{len(_ext)} root(s) extra(s) autorizado(s) -- /sandbox list{NC}")
-    except Exception as _exc:  # noqa: BLE001 -- aviso best-effort
-        logger.debug("contagem de extra roots no banner falhou: %s", _exc)
+        # PROJECT-ROOTS-MULTI-01: linha discreta sob o banner contando extras
+        # autorizados. Mantém o grid do banner intacto (sem mutação de layout).
+        try:
+            from nyx.agent.tools.base import list_extra_roots as _extras
 
-    # TUI-REDESIGN-28-07: cursor blink async no banner $nyx.code (~1.4s).
-    # Skip silencioso em headless/CI (isatty=False) ou NYX_NO_ANIMATION=1.
-    try:
-        from nyx.agent.banner_blink import blink_cursor_at
+            _ext = _extras()
+            if _ext:
+                print(f"  {DIM}+{len(_ext)} root(s) extra(s) autorizado(s) -- /sandbox list{NC}")
+        except Exception as _exc:  # noqa: BLE001 -- aviso best-effort
+            logger.debug("contagem de extra roots no banner falhou: %s", _exc)
 
-        await blink_cursor_at()
-    except Exception as _blink_exc:  # noqa: BLE001 -- animação best-effort
-        logger.debug("blink_cursor_at falhou: %s", _blink_exc)
+        # TUI-REDESIGN-28-07: cursor blink async no banner $nyx.code (~1.4s).
+        # Skip silencioso em headless/CI (isatty=False) ou NYX_NO_ANIMATION=1.
+        try:
+            from nyx.agent.banner_blink import blink_cursor_at
+
+            await blink_cursor_at()
+        except Exception as _blink_exc:  # noqa: BLE001 -- animação best-effort
+            logger.debug("blink_cursor_at falhou: %s", _blink_exc)
 
     # SESSION-RESUME-01: --resume <id> ou prompt de retomada pós-banner.
     if resume_id:
@@ -399,10 +414,9 @@ async def run_repl(
     # use_application = True quando TTY real + NYX_LEGACY_REPL != "1" + prompt_session
     # disponível. Application full-screen ancora input no rodapé e output rolando
     # acima. NYX_LEGACY_REPL=1 mantém PromptSession (fallback de emergência).
-    _legacy_env = os.environ.get("NYX_LEGACY_REPL", "").strip() == "1"
-    use_application = (
-        sys.stdin.isatty() and not _legacy_env and prompt_session is not None
-    )
+    # TUI-BANNER-DEDUP-02: detecção foi promovida para antes do banner cru
+    # (acima, logo após agent_ref[0] = agent) para condicionar print()+blink ao
+    # caminho legacy. Aqui apenas reaproveita a variável já calculada.
     repl_app: object | None = None
     repl_output_buffer: object | None = None
     repl_input_buffer: object | None = None
