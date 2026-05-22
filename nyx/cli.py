@@ -409,6 +409,33 @@ async def run_repl(
     session_start = time.time()
     total_iterations = 0
 
+    # TEXTUAL-CUTOVER-01: dispatch opt-in via NYX_TUI_TEXTUAL=1.
+    # Default continua prompt_toolkit (zero regressao); env=1 troca para NyxTUI
+    # Textual. Quando ONDA-31 confirmar paridade, este branch vira default.
+    # Em caso de qualquer falha (import, runtime), cai para o caminho
+    # prompt_toolkit existente -- usuario nunca fica sem REPL.
+    _tui_textual = os.environ.get("NYX_TUI_TEXTUAL", "").strip() == "1"
+    if use_application and _tui_textual:
+        try:
+            from nyx.agent.tui.app import NyxTUI
+
+            nyx_tui_app = NyxTUI(
+                model=model,
+                tools_count=agent.tools_count,
+                project_name=PROJECT_ROOT.name,
+                slash_completer=[],
+                settings=settings,
+            )
+            tui_result = await nyx_tui_app.run_async()
+            if tui_result == "__quit__":
+                render_quit_card(agent, app_state, PROJECT_ROOT)
+                await run_quit_shutdown(proxy_url, logger)
+            return
+        except Exception as _texc:  # noqa: BLE001 -- fallback graciso
+            logger.warning(
+                "NyxTUI opt-in falhou, fallback prompt_toolkit: %s", _texc
+            )
+
     # TUI-REDESIGN-28-08c-PARTE-2: switch runtime entre Application e PromptSession.
     # use_application = True quando TTY real + NYX_LEGACY_REPL != "1" + prompt_session
     # disponível. Application full-screen ancora input no rodapé e output rolando
