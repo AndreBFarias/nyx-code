@@ -39,3 +39,12 @@ BannerWidget {
     height: auto;
     background: $surface;
 }
+
+/* Toolbar -- sub-sprint TEXTUAL-TOOLBAR-01.
+ * Bottom bar com reactive props (ctx, iter, lidos, modif, state, mode).
+ */
+Toolbar {
+    dock: bottom;
+    height: 1;
+    background: $surface;
+}
