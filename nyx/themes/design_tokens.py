@@ -92,6 +92,18 @@ SPINNER_FRAMES = ("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇",
 # Braille Patterns (U+2800-U+28FF) -- símbolo técnico, não emoji.
 
 
+# ── Glifos de estado do modelo (TUI-STATE-GLYPHS-SYNC-06) ───────────
+# Fonte única para os 3 estados visíveis no toolbar do REPL:
+# cold (○ U+25CB), warming (◐ U+25D0), warm (● U+25CF).
+# Uso chr() para imunidade contra sanitizers hostis (INFRA-SANITIZER-FIX-05).
+# Protegido pelo invariante #14 do scripts/sprint_invariants.sh.
+STATE_GLYPHS = {
+    "cold":    chr(0x25CB),
+    "warming": chr(0x25D0),
+    "warm":    chr(0x25CF),
+}
+
+
 # ── Vocabulário visual: boot vs sessão (TUI-REDESIGN-25-02) ─────────
 # Separação canônica entre fase de boot (log diagnóstico, prefixo
 # [nyx]) e fase de sessão REPL (diálogo, prefixo Nyx standalone).
@@ -145,7 +157,7 @@ __all__ = [
     "ANSI_ACCENT_FG", "ANSI_PURPLE_FG", "ANSI_PRIMARY_FG", "ANSI_MUTED_FG",
     "ANSI_ERROR_FG", "ANSI_SUCCESS_FG", "ANSI_WARNING_FG",
     "ANSI_DIM", "ANSI_BOLD", "ANSI_RESET",
-    "BOX_CHARS", "BULLETS", "SPINNER_FRAMES",
+    "BOX_CHARS", "BULLETS", "SPINNER_FRAMES", "STATE_GLYPHS",
     "GLYPHS_BOOT", "GLYPHS_SESSAO",
     "SIDE_RULE_USER", "SIDE_RULE_NYX", "PREFIX_USER", "PREFIX_NYX",
     "TOOL_GLYPHS",

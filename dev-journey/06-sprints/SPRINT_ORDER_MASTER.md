@@ -656,7 +656,7 @@ Promoção em batch durante a Fase H do plano canônico da sessão 2026-05-18.
 | # | Sprint | Bloco | Prioridade | Status | Depende de |
 |---|--------|-------|------------|--------|------------|
 | 191 | **INFRA-SANITIZER-RECIDIVA-06** | 29.hotfix Anti-sanitizer | CRÍTICA | CONCLUIDA (2026-05-21; restauração cirúrgica via `git checkout HEAD --` em 7 paths protegidos pelo invariante #14; byte-level grep confirma reintrodução dos glifos U+25CB/D0/CF/C6 com mínimos atendidos; pós-restauração `bash scripts/sprint_invariants.sh` PASS 14/14 FAIL 0; smoke `boot ok` exit 0; acentuação rc=0; sem recidiva imediata após 5s; achado colateral catalogado INFRA-SANITIZER-VECTOR-AUDIT-01 pendente — vetor que ataca os ARQUIVOS protegidos segue ativo apesar de INFRA-SANITIZER-FIX-05 ter imunizado o defensor) | -- |
-| 184 | **TUI-STATE-GLYPHS-SYNC-06** | 29.0 Pré-requisito | ALTA | PENDENTE | INFRA-SANITIZER-RECIDIVA-06 |
+| 184 | **TUI-STATE-GLYPHS-SYNC-06** | 29.0 Pré-requisito | ALTA | CONCLUIDA (2026-05-21; consolida `STATE_GLYPHS` em `nyx/themes/design_tokens.py` via `chr(0xNNNN)` + adiciona em `__all__`; imports unificados em `nyx/cli.py:64` e `nyx/agent/repl_app.py:95` substituem defs locais; literais ○ ◐ ● mantidos como comentário documentado em cli.py:75-80 para preservar mínimos do invariante #14; +25/-6 em 3 arquivos; smoke `boot ok` exit 0; invariantes 14/14 PASS; ruff All checks passed; acentuação rc=0; achados colaterais: nenhum) | INFRA-SANITIZER-RECIDIVA-06 |
 | 185 | **TUI-INPUT-DEADLOCK-01** | 29.1 P0 input | CRÍTICA | PENDENTE | TUI-STATE-GLYPHS-SYNC-06 |
 | 186 | **TUI-BANNER-DEDUP-02** | 29.1 P0 banner | ALTA | PENDENTE | INFRA-SANITIZER-RECIDIVA-06 |
 | 187 | **TUI-BANNER-BLINK-SOFT-03** | 29.1 P0 blink | MÉDIA | PENDENTE | TUI-BANNER-DEDUP-02 |

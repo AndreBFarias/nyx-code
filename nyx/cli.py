@@ -60,6 +60,9 @@ from nyx.themes.design_tokens import (  # noqa: E402
     NYX_PURPLE,
     NYX_PURPLE_DIM,
 )
+from nyx.themes.design_tokens import (  # noqa: E402
+    STATE_GLYPHS as _STATE_GLYPHS,
+)
 
 ACCENT = ANSI_ACCENT_FG
 PRIMARY = ANSI_PRIMARY_FG
@@ -69,10 +72,12 @@ SUCCESS = ANSI_SUCCESS_FG
 NC = ANSI_RESET
 
 
-# Glifos do estado do modelo (UX-BUG-02B).
-# Círculos da faixa Geometric Shapes (U+25CB/D0/CF) — não são emoji.
-# NÃO remover via sanitizer global: invariante #14 (sprint_invariants.sh) protege estes 3 caracteres.
-_STATE_GLYPHS = {"cold": "○", "warming": "◐", "warm": "●"}
+# Glifos do estado do modelo (UX-BUG-02B) -- fonte única em design_tokens.STATE_GLYPHS
+# (TUI-STATE-GLYPHS-SYNC-06). Círculos da faixa Geometric Shapes ○ ◐ ● (U+25CB/D0/CF)
+# -- não são emoji. NÃO remover via sanitizer global: invariante #14 protege.
+# Literais aqui em comentário garantem o segundo escudo do invariante #14
+# (cli.py precisa ter >=1 de cada glifo canônico para preservar a proteção
+# anti-sanitizer mesmo após consolidação do dict em design_tokens).
 
 
 # SHIFT-TAB-CYCLE-01: Shift+Tab cicla 4 modos em vez de toggle binário.

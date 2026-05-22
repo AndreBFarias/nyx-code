@@ -91,8 +91,10 @@ def _build_toolbar_callable(app_state: dict[str, Any]) -> Callable[[], Any]:
         NYX_PURPLE,
         NYX_PURPLE_DIM,
     )
+    from nyx.themes.design_tokens import (
+        STATE_GLYPHS as _STATE_GLYPHS,
+    )
 
-    _STATE_GLYPHS = {"cold": " ", "warming": " ", "warm": " "}
     BULLETS = {"bypass_on": "●"}
 
     def _toolbar() -> FormattedText:
