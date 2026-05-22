@@ -31,3 +31,11 @@ InputWidget {
     background: $surface;
     border: round $accent;
 }
+
+/* BannerWidget -- sub-sprint TEXTUAL-BANNER-WIDGET-01.
+ * Banner Nyx com cursor blink local; refresh por-widget, sem race global.
+ */
+BannerWidget {
+    height: auto;
+    background: $surface;
+}

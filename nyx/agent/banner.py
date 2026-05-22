@@ -57,11 +57,17 @@ def build_banner(
     memory_count: int | None = None,
     commands_count: int | None = None,
     session_type: str = "REPL",
+    cursor: str = chr(0x258C),
 ) -> str:
     """Constrói banner de abertura. Retorna string pronta para imprimir.
 
     TUI-REDESIGN-25-06: ``commands_count`` e ``session_type`` adicionados.
     Se ``commands_count`` é None, conta via list_commands() em tempo de chamada.
+
+    TEXTUAL-BANNER-WIDGET-01: parâmetro ``cursor`` permite à BannerWidget
+    (Textual) alternar entre U+258C (full block) e U+258F (thin block) para
+    animação local de blink, sem race com app.invalidate global. Default
+    preserva comportamento anterior (callsites prompt_toolkit não tocam).
     """
     import shutil
 
@@ -103,7 +109,8 @@ def build_banner(
 
     if cols < 80:
         return _build_compact(
-            model, project, ports_line, accent, muted, dim, nc, tl, tr, bl, br, h, v
+            model, project, ports_line, accent, muted, dim, nc, tl, tr, bl, br, h, v,
+            cursor=cursor,
         )
 
     return _build_wide(
@@ -125,6 +132,7 @@ def build_banner(
         br=br,
         h=h,
         v=v,
+        cursor=cursor,
     )
 
 
@@ -142,6 +150,7 @@ def _build_compact(
     br: str,
     h: str,
     v: str,
+    cursor: str = chr(0x258C),
 ) -> str:
     """Versão estreita (cols < 80): block '$ nyx.code' + 1 linha info.
 
@@ -151,7 +160,7 @@ def _build_compact(
     primary = ANSI_PRIMARY_FG
     success = ANSI_SUCCESS_FG
     block = (
-        f"  {purple}$ {primary}nyx{purple}.{primary}code{purple}▌{nc}"
+        f"  {purple}$ {primary}nyx{purple}.{primary}code{purple}{cursor}{nc}"
     )
     info = (
         f"  {dim}v{NYX_VERSION}{nc}  "
@@ -181,6 +190,7 @@ def _build_wide(
     br: str,
     h: str,
     v: str,
+    cursor: str = chr(0x258C),
 ) -> str:
     """Grid 2-col: '$ nyx.code▌' à esquerda + box info à direita (TUI-REDESIGN-28-09).
 
@@ -217,9 +227,11 @@ def _build_wide(
     # ---- conteúdo da coluna esquerda ----
     # "$ nyx.code▌" tem 11 chars visíveis; centralizado horizontalmente
     # dentro de left_w=18 e verticalmente na linha 3 (centro de 5 linhas).
-    nyx_visible = "$ nyx.code▌"  # 11 chars
+    # TEXTUAL-BANNER-WIDGET-01: cursor é parametrizado; default preserva ▌.
+    # A largura visível permanece 11 chars pois U+258C e U+258F têm width=1.
+    nyx_visible = f"$ nyx.code{cursor}"  # 11 chars
     nyx_text = (
-        f"{purple}$ {primary}nyx{purple}.{primary}code{purple}▌{nc}"
+        f"{purple}$ {primary}nyx{purple}.{primary}code{purple}{cursor}{nc}"
     )
     left_pad_total = left_w - len(nyx_visible)
     left_pad_l = left_pad_total // 2
