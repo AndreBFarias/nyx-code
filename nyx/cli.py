@@ -20,7 +20,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import os
-import signal
 import sys
 import time
 from pathlib import Path
@@ -782,8 +781,14 @@ async def run_repl(
 
 
 def main() -> None:
-    signal.signal(signal.SIGINT, lambda *_: None)
-
+    # TUI-SIGINT-RECLAIM-07: removido `signal.signal(SIGINT, lambda *_: None)`.
+    # Motivo: imports pesados (torch transitivo, prompt_toolkit, nyx.agent.*) já
+    # ocorreram no topo do módulo antes de main() rodar; o masking aqui só
+    # cobria argparse + bifurcação rápida e ficava ativo a sessão inteira,
+    # neutralizando Ctrl+C durante warmup (cleanup_old_sessions, memory.index)
+    # antes da Application/PromptSession assumir o terminal.
+    # Headless instala seu próprio handler em cli_headless.py:96.
+    # REPL deixa prompt_toolkit instalar via loop.add_signal_handler.
     parser = argparse.ArgumentParser(description="Nyx CLI -- Code Agent local")
     parser.add_argument("--no-stream", action="store_true", help="Desativa streaming de tokens")
     parser.add_argument("--headless", action="store_true", help="Modo headless: stdin/stdout JSON")
