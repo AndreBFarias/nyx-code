@@ -57,17 +57,11 @@ def build_banner(
     memory_count: int | None = None,
     commands_count: int | None = None,
     session_type: str = "REPL",
-    cursor: str | None = None,
 ) -> str:
     """Constrói banner de abertura. Retorna string pronta para imprimir.
 
     TUI-REDESIGN-25-06: ``commands_count`` e ``session_type`` adicionados.
     Se ``commands_count`` é None, conta via list_commands() em tempo de chamada.
-
-    TUI-BANNER-BLINK-SOFT-03: ``cursor`` permite alternar o glifo do cursor
-    do bloco "$ nyx.code". Default ``chr(0x258C)`` (full block ▌). Para o
-    frame "thin" da animação suave, passar ``chr(0x258F)`` (▏). Sempre é
-    um glifo de Geometric Shapes (U+25xx) — protegido pelo invariante #14.
     """
     import shutil
 
@@ -84,8 +78,6 @@ def build_banner(
             commands_count = len(list_commands())
         except Exception:
             commands_count = 0
-    if cursor is None:
-        cursor = chr(0x258C)  # U+258C full block ▌ (default)
 
     # VISUAL-LAYOUT-09: cantos+linhas resolvidos em BUILD-TIME via current_glyphs()
     # para permitir override por NYX_AESTHETIC entre chamadas. cyberpunk → ┏┓┗┛━┃,
@@ -111,8 +103,7 @@ def build_banner(
 
     if cols < 80:
         return _build_compact(
-            model, project, ports_line, accent, muted, dim, nc, tl, tr, bl, br, h, v,
-            cursor=cursor,
+            model, project, ports_line, accent, muted, dim, nc, tl, tr, bl, br, h, v
         )
 
     return _build_wide(
@@ -134,64 +125,6 @@ def build_banner(
         br=br,
         h=h,
         v=v,
-        cursor=cursor,
-    )
-
-
-def build_banner_frame_a(
-    model: str,
-    tools_count: int,
-    project: str,
-    settings: "NyxSettings | None" = None,
-    cols: int | None = None,
-    memory_count: int | None = None,
-    commands_count: int | None = None,
-    session_type: str = "REPL",
-) -> str:
-    """TUI-BANNER-BLINK-SOFT-03: banner com cursor em chr(0x258C) (full block).
-
-    Frame A da animação suave do cursor. Equivalente a chamar
-    ``build_banner(..., cursor=chr(0x258C))`` — wrapper de conveniência
-    para o blink loop em ``nyx/agent/repl_app.py``.
-    """
-    return build_banner(
-        model,
-        tools_count,
-        project,
-        settings=settings,
-        cols=cols,
-        memory_count=memory_count,
-        commands_count=commands_count,
-        session_type=session_type,
-        cursor=chr(0x258C),
-    )
-
-
-def build_banner_frame_b(
-    model: str,
-    tools_count: int,
-    project: str,
-    settings: "NyxSettings | None" = None,
-    cols: int | None = None,
-    memory_count: int | None = None,
-    commands_count: int | None = None,
-    session_type: str = "REPL",
-) -> str:
-    """TUI-BANNER-BLINK-SOFT-03: banner com cursor em chr(0x258F) (thin block).
-
-    Frame B da animação suave do cursor. Alterna com ``build_banner_frame_a``
-    via timer 0.5s no blink loop. Cursor sempre visível — nunca apaga.
-    """
-    return build_banner(
-        model,
-        tools_count,
-        project,
-        settings=settings,
-        cols=cols,
-        memory_count=memory_count,
-        commands_count=commands_count,
-        session_type=session_type,
-        cursor=chr(0x258F),
     )
 
 
@@ -209,8 +142,6 @@ def _build_compact(
     br: str,
     h: str,
     v: str,
-    *,
-    cursor: str = chr(0x258C),
 ) -> str:
     """Versão estreita (cols < 80): block '$ nyx.code' + 1 linha info.
 
@@ -220,7 +151,7 @@ def _build_compact(
     primary = ANSI_PRIMARY_FG
     success = ANSI_SUCCESS_FG
     block = (
-        f"  {purple}$ {primary}nyx{purple}.{primary}code{purple}{cursor}{nc}"
+        f"  {purple}$ {primary}nyx{purple}.{primary}code{purple}▌{nc}"
     )
     info = (
         f"  {dim}v{NYX_VERSION}{nc}  "
@@ -250,8 +181,6 @@ def _build_wide(
     br: str,
     h: str,
     v: str,
-    *,
-    cursor: str = chr(0x258C),
 ) -> str:
     """Grid 2-col: '$ nyx.code▌' à esquerda + box info à direita (TUI-REDESIGN-28-09).
 
@@ -288,12 +217,9 @@ def _build_wide(
     # ---- conteúdo da coluna esquerda ----
     # "$ nyx.code▌" tem 11 chars visíveis; centralizado horizontalmente
     # dentro de left_w=18 e verticalmente na linha 3 (centro de 5 linhas).
-    # TUI-BANNER-BLINK-SOFT-03: cursor parametrizado. Ambos chr(0x258C) ▌
-    # e chr(0x258F) ▏ têm 1 code-point e 1 cell de largura, então a
-    # aritmética de padding (11 chars) permanece correta para os dois.
-    nyx_visible = f"$ nyx.code{cursor}"  # 11 chars
+    nyx_visible = "$ nyx.code▌"  # 11 chars
     nyx_text = (
-        f"{purple}$ {primary}nyx{purple}.{primary}code{purple}{cursor}{nc}"
+        f"{purple}$ {primary}nyx{purple}.{primary}code{purple}▌{nc}"
     )
     left_pad_total = left_w - len(nyx_visible)
     left_pad_l = left_pad_total // 2
