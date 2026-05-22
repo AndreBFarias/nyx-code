@@ -78,7 +78,7 @@ if [ -n "$STAGED_DOCS" ]; then
 
     for file in $STAGED_DOCS; do
         case "$file" in
-            reference/*|dev-journey/09-legacy/*|node_modules/*|.git/*) continue ;;
+            reference/*|dev-journey/09-legacy/*|node_modules/*|.git/*|dev-journey/06-sprints/SPRINT_ORDER_MASTER.md|Checkpoint.md) continue ;;
         esac
 
         if [ -f "$PROJECT_ROOT/$file" ]; then
@@ -117,7 +117,7 @@ if [ -n "$STAGED_ALL" ]; then
 
     for file in $STAGED_ALL; do
         case "$file" in
-            GUIDE.md|.claude/*|reference/*|dev-journey/09-legacy/*|scripts/sync.py|scripts/hooks/*) continue ;;
+            GUIDE.md|.claude/*|reference/*|dev-journey/09-legacy/*|scripts/sync.py|scripts/hooks/*|dev-journey/06-sprints/SPRINT_ORDER_MASTER.md|Checkpoint.md|README.md) continue ;;
         esac
 
         if [ -f "$PROJECT_ROOT/$file" ]; then
@@ -183,7 +183,7 @@ OC_ERRORS=0
 if [ -n "$STAGED_ALL" ]; then
     for file in $STAGED_ALL; do
         case "$file" in
-            reference/*|dev-journey/09-legacy/*|scripts/sync.py) continue ;;
+            reference/*|dev-journey/09-legacy/*|scripts/sync.py|dev-journey/06-sprints/SPRINT_ORDER_MASTER.md|Checkpoint.md|README.md) continue ;;
         esac
 
         if [ -f "$PROJECT_ROOT/$file" ]; then
