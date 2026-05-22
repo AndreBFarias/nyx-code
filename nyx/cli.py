@@ -443,15 +443,43 @@ async def run_repl(
             # TUI-REDESIGN-28-08c-PARTE-3: output_window agora usa
             # FormattedTextControl(ANSI(buffer.text)); banner com escapes ANSI
             # é renderizado COM CORES pelo parser nativo do prompt_toolkit.
+            # TUI-BANNER-BLINK-SOFT-03: usar build_banner_frame_a (cursor ▌)
+            # como inicial; banner_blink_loop alterna com frame_b (cursor ▏)
+            # a cada 0.5s. Cursor sempre visível, pulsa intensidade.
+            _banner_frame_a: str | None = None
+            _banner_frame_b: str | None = None
             try:
-                from nyx.agent.banner import build_banner as _bb
-                _banner_str = _bb(model, agent.tools_count, PROJECT_ROOT.name, settings=settings)
-                append_to_buffer(repl_output_buffer, _banner_str + "\n")
+                from nyx.agent.banner import (
+                    build_banner_frame_a as _bb_a,
+                    build_banner_frame_b as _bb_b,
+                )
+                _banner_frame_a = _bb_a(model, agent.tools_count, PROJECT_ROOT.name, settings=settings)
+                _banner_frame_b = _bb_b(model, agent.tools_count, PROJECT_ROOT.name, settings=settings)
+                append_to_buffer(repl_output_buffer, _banner_frame_a + "\n")
             except Exception as _bexc:
                 logger.debug("pre-populate banner falhou: %s", _bexc)
             # Ativa routing global do _emit para o buffer da Application.
             set_repl_app_output(repl_output_buffer, app_state)
             app_state["repl_app_active"] = True
+
+            # TUI-BANNER-BLINK-SOFT-03: dispara loop de blink suave do cursor.
+            # Skip silencioso em NYX_NO_ANIMATION=1 e em não-TTY (guards
+            # internos do banner_blink_loop). Cancel via shutdown_repl
+            # (cli_boot.py:233-246 cancela TODAS as background tasks pendentes).
+            if _banner_frame_a is not None and _banner_frame_b is not None:
+                try:
+                    from nyx.agent.repl_app import banner_blink_loop
+                    _blink_task = asyncio.create_task(
+                        banner_blink_loop(
+                            repl_output_buffer,
+                            _banner_frame_a,
+                            _banner_frame_b,
+                        )
+                    )
+                    # Ref viva contra GC (fire-and-forget).
+                    app_state["_banner_blink_task"] = _blink_task
+                except Exception as _blink_exc:
+                    logger.debug("dispatch banner_blink_loop falhou: %s", _blink_exc)
         except Exception as _aexc:
             logger.warning(
                 "Application repl_app indisponível, fallback PromptSession: %s",
@@ -525,6 +553,14 @@ async def run_repl(
 
         if not user_input:
             continue
+
+        # TUI-CTRL-Q-OLLAMA-STOP-04: Application.exit(result="__quit__") via
+        # Ctrl+Q chega aqui como string literal (não passa por handle_command).
+        # Redireciona pro mesmo fluxo do /quit: card + shutdown ordenado.
+        if user_input == "__quit__":
+            render_quit_card(agent, app_state, PROJECT_ROOT)
+            await run_quit_shutdown(proxy_url, logger)
+            break
 
         if not user_input.startswith("/"):
             # VISION-02: expande [Image #N] pela descrição da imagem antes do

@@ -252,6 +252,31 @@ async def shutdown_repl(
         except Exception as exc:  # noqa: BLE001 -- shutdown best-effort
             logger.warning("Analytics.end_session falhou: %s", exc)
 
+    # TUI-CTRL-Q-OLLAMA-STOP-04: parar TODOS os modelos Ollama rodando no
+    # shutdown para liberar VRAM. Decisão de design: TUI Nyx-Code é cliente
+    # único do Ollama na máquina-padrão. Best-effort: timeout curto, warning
+    # se ollama CLI ausente ou parsing falhar; nunca bloqueia shutdown.
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["ollama", "ps"], capture_output=True, text=True, timeout=3,
+        )
+        lines = result.stdout.splitlines()
+        # Primeira linha é header (NAME, ID, SIZE, ...); restante são modelos.
+        for line in lines[1:]:
+            parts = line.split()
+            if not parts:
+                continue
+            model = parts[0]
+            try:
+                subprocess.run(
+                    ["ollama", "stop", model], timeout=5, check=False,
+                )
+            except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as exc:
+                logger.warning("ollama stop %s falhou: %s", model, exc)
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as exc:
+        logger.warning("ollama ps falhou (modelos não parados): %s", exc)
+
     from nyx.agent.persistence import save_session as _save_session
 
     project_name = project_root.name

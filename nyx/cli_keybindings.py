@@ -252,6 +252,16 @@ def build_keybindings(
         if text:
             buf.insert_text(text)
 
+    @kb.add("c-q")
+    def _quit_immediate(event: object) -> None:
+        """Ctrl+Q: fecha REPL imediatamente. Reusa fluxo de /quit via sentinel.
+
+        TUI-CTRL-Q-OLLAMA-STOP-04: convenção Unix de fechar app de terminal.
+        Shutdown ordenado (sudo wipe, analytics.end_session, ollama stop all,
+        save_session, agent.close) roda em cli.py + cli_boot.shutdown_repl.
+        """
+        event.app.exit(result="__quit__")  # type: ignore[attr-defined]
+
     return kb
 
 

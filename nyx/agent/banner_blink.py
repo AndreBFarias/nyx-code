@@ -4,7 +4,9 @@ Anima o cursor block '▌' do banner '$ nyx.code' por ~1.5s antes de ceder
 ao prompt. Skip em ambientes não-TTY ou quando NYX_NO_ANIMATION=1.
 
 Comportamento:
-  - Em TTY real: pisca o glifo '▌' em roxo, 4 ciclos on/off (~1.4s).
+  - Em TTY real: alterna o glifo entre chr(0x258C) ▌ (full block) e
+    chr(0x258F) ▏ (thin block) em roxo, 4 ciclos (~1.4s). Cursor SEMPRE
+    visível — frame "OFF" (thin) pulsa intensidade ao invés de apagar.
   - Em pipe/CI/gauntlet: retorna imediatamente (noop).
   - Com NYX_NO_ANIMATION=1: retorna imediatamente.
   - asyncio.CancelledError (Ctrl+C / cancelamento de task): restaura
@@ -12,6 +14,10 @@ Comportamento:
 
 Usa save/restore cursor (CSI s / CSI u) para reposicionar sobre o '▌'
 da linha 1 do banner e voltar ao prompt sem perturbar layout.
+
+TUI-BANNER-BLINK-SOFT-03: frame OFF passou de espaço (cursor sumia ~40%
+do tempo, parecendo bug) para chr(0x258F) em roxo — cursor pulsa entre
+full e thin block, oscilando intensidade sem desaparecer.
 """
 
 from __future__ import annotations
@@ -83,9 +89,11 @@ async def blink_cursor_at(
             sys.stdout.flush()
             await asyncio.sleep(period_s)
 
-            # OFF: mesma posição, escreve espaço (apaga visualmente).
+            # OFF: mesma posição, escreve thin block em roxo (cursor sempre
+            # visível, oscila intensidade entre full e thin). chr(0x258F)
+            # protegido contra sanitizer hostil — invariante #14 cobre.
             sys.stdout.write(f"\033[{rows_up}A\033[{cols_right}G")
-            sys.stdout.write(" ")
+            sys.stdout.write(f"{ANSI_PURPLE_FG}{chr(0x258F)}{ANSI_RESET}")
             sys.stdout.flush()
             sys.stdout.write("\033[u")
             sys.stdout.flush()

@@ -76,6 +76,105 @@ def append_to_buffer(buffer: Buffer, text: str) -> None:
         logger.debug("append_to_buffer sem app ativo: %s", exc)
 
 
+def replace_banner_prefix(buffer: Buffer, old_prefix: str, new_prefix: str) -> None:
+    """TUI-BANNER-BLINK-SOFT-03: substitui o prefixo do buffer.text.
+
+    Usado pelo banner blink loop para alternar entre frame_a (cursor ▌)
+    e frame_b (cursor ▏) sem mexer no resto do output. Como ambos frames
+    têm exatamente o mesmo número de bytes/code-points por construção
+    (chr(0x258C) e chr(0x258F) são single-cell, single-codepoint), a
+    substituição é byte-a-byte segura.
+
+    No-op silencioso se ``buffer.text`` não começar com ``old_prefix``
+    (defensivo: protege contra race onde o banner foi modificado por
+    outro path). Cursor preservado no fim (auto-scroll mantido).
+
+    Args:
+        buffer: ``output_buffer`` do REPL Application.
+        old_prefix: prefixo atual esperado (string completa do banner).
+        new_prefix: novo prefixo (deve ter o mesmo tamanho de old_prefix
+            para garantir alinhamento — validado por banner helpers).
+    """
+    if not old_prefix or not new_prefix:
+        return
+    try:
+        atual = buffer.text
+        if not atual.startswith(old_prefix):
+            # Banner não está mais no prefixo (foi sobrescrito ou nunca
+            # foi populado). No-op silencioso.
+            logger.debug("replace_banner_prefix: buffer não inicia com old_prefix; no-op")
+            return
+        novo = new_prefix + atual[len(old_prefix):]
+        buffer.document = Document(text=novo, cursor_position=len(novo))
+    except Exception as exc:
+        logger.debug("replace_banner_prefix falhou: %s", exc)
+        return
+    try:
+        app = get_app()
+        app.invalidate()
+    except Exception as exc:
+        logger.debug("replace_banner_prefix sem app ativo: %s", exc)
+
+
+async def banner_blink_loop(
+    buffer: Buffer,
+    frame_a: str,
+    frame_b: str,
+    *,
+    period_s: float = 0.5,
+) -> None:
+    """TUI-BANNER-BLINK-SOFT-03: alterna prefix do buffer entre frame_a e
+    frame_b a cada ``period_s``.
+
+    Loop infinito (cancelável via task.cancel()). Skip silencioso em
+    ``NYX_NO_ANIMATION=1`` e em não-TTY. ``frame_a`` e ``frame_b`` precisam
+    ter exatamente o mesmo número de code-points (validado em runtime —
+    banner helpers garantem isso por construção, pois ▌ e ▏ são ambos
+    1 code-point single-cell).
+
+    Padrão de cancel: o ``shutdown_repl`` em ``nyx/cli_boot.py:233-246``
+    chama ``task.cancel()`` em todas as tasks pendentes; este loop respeita
+    ``asyncio.CancelledError`` restaurando frame_a (estado normal) antes
+    de propagar.
+
+    Estado inicial: assume que o buffer já contém ``frame_a`` como prefix
+    (pré-populado por ``append_to_buffer`` no caller). O primeiro flip
+    ocorre após ``period_s`` segundos, trocando para frame_b.
+    """
+    import os
+
+    if os.environ.get("NYX_NO_ANIMATION") == "1":
+        return
+    if not sys.stdout.isatty():
+        return
+    if len(frame_a) != len(frame_b):
+        logger.debug(
+            "banner_blink_loop: frame_a e frame_b com tamanhos diferentes (%d vs %d), abortando",
+            len(frame_a),
+            len(frame_b),
+        )
+        return
+    if not frame_a:
+        return
+    # Estado: cur = prefixo atual no buffer. Começa em frame_a (caller
+    # pré-populou). Após cada flip, alterna entre frame_a e frame_b.
+    cur = frame_a
+    nxt = frame_b
+    try:
+        while True:
+            await asyncio.sleep(period_s)
+            replace_banner_prefix(buffer, cur, nxt)
+            cur, nxt = nxt, cur
+    except asyncio.CancelledError:
+        # Restaura frame_a (cursor full) antes de propagar — estado normal.
+        try:
+            if cur != frame_a:
+                replace_banner_prefix(buffer, cur, frame_a)
+        except Exception as exc:
+            logger.debug("banner_blink_loop cleanup falhou no cancel: %s", exc)
+        raise
+
+
 def _build_toolbar_callable(app_state: dict[str, Any]) -> Callable[[], Any]:
     """Recria o bottom_toolbar do PromptSession atual.
 
@@ -409,6 +508,22 @@ def build_app(
             return
         # Sem inflight: emit EOF semântico via exit(None).
         event.app.exit(exception=KeyboardInterrupt())
+
+    @kb.add("c-q")
+    def _quit_immediate_app(event: Any) -> None:
+        """Ctrl+Q: encerra Application imediatamente via sentinel __quit__.
+
+        TUI-CTRL-Q-OLLAMA-STOP-04: paridade com cli_keybindings legacy. Marca
+        submit_state para que o caller saiba que foi submit (consistência com
+        Enter), porém o resultado real flui via app.exit(result="__quit__")
+        que o loop em cli.py detecta como sentinel de shutdown ordenado.
+        """
+        submit_state["submitted"] = True
+        submit_state["text"] = "__quit__"
+        try:
+            get_app().exit(result="__quit__")
+        except Exception as exc:
+            logger.debug("c-q exit falhou: %s", exc)
 
     # ── Layout ───────────────────────────────────────────────────────────
     # TUI-REDESIGN-28-08c-PARTE-3: output_control via FormattedTextControl +
