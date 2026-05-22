@@ -383,23 +383,14 @@ async def run_repl(
     # anterior se ainda não terminou (evita acúmulo) e incluir no shutdown.
     summarize_task: "asyncio.Task | None" = None
 
-    # UX-BUG-02C: drenar stdin antes do primeiro prompt_async em tty real.
-    # Descarta keystrokes que o usuário digitou durante o cold-start, evitando
-    # que prompt_toolkit os interprete fora de ordem ao trocar para raw mode.
-    # Em não-tty (CI/headless/pipe) o flush é noop e tratamos com fallback
-    # silencioso. Em tty real, falhas viram logger.warning (nunca silent pass).
-    if sys.stdin.isatty():
-        try:
-            import termios
-
-            try:
-                termios.tcflush(sys.stdin.fileno(), termios.TCIFLUSH)
-            except (termios.error, OSError) as exc:
-                logger.warning("termios.tcflush falhou: %s", exc)
-        except ImportError as exc:
-            # termios só existe em POSIX; em outras plataformas o drain
-            # de stdin é noop e seguimos sem ele.
-            logger.debug("termios indisponível (plataforma não-POSIX): %s", exc)
+    # TUI-INPUT-DEADLOCK-01: a drenagem de stdin via termios.tcflush é executada
+    # imediatamente antes do primeiro Application.run_async() (ver _stdin_drained
+    # abaixo), e não aqui — passar pelo `await _warmup()` e import-overhead entre
+    # esta linha e o run_async() abria janela onde novas keystrokes do cold-start
+    # entravam após o flush e eram interpretadas fora de ordem ao trocar para
+    # raw mode. UX-BUG-02C original ficava aqui (linha 386); deslocado conforme
+    # spec da sprint.
+    _stdin_drained = False
 
     session_start = time.time()
     total_iterations = 0
@@ -482,6 +473,20 @@ async def run_repl(
                 else:
                     repl_input_buffer.text = ""
                     repl_input_buffer.cursor_position = 0
+                # TUI-INPUT-DEADLOCK-01: drena stdin no primeiro turno, imediatamente
+                # antes de transferir controle pro prompt_toolkit. Idempotente via
+                # _stdin_drained: rodar a cada iteração descartaria keystrokes
+                # válidas digitadas entre turns. Em não-tty, branch noop silencioso.
+                if not _stdin_drained and sys.stdin.isatty():
+                    try:
+                        import termios
+                        try:
+                            termios.tcflush(sys.stdin.fileno(), termios.TCIFLUSH)
+                        except (termios.error, OSError) as exc:
+                            logger.warning("termios.tcflush pré-run_async falhou: %s", exc)
+                    except ImportError as exc:
+                        logger.debug("termios indisponível (plataforma não-POSIX): %s", exc)
+                    _stdin_drained = True
                 _raw_result = await repl_app.run_async()  # type: ignore[attr-defined]
                 if _raw_result is None:
                     raise EOFError()

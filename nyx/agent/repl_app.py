@@ -478,13 +478,17 @@ def build_app(
         focused_element=input_window,
     )
 
+    # TUI-INPUT-DEADLOCK-01: passar editing_mode=None desativa o load_key_bindings
+    # padrão (Emacs/Vi) e deixa o BufferControl sem handlers para letras a-z, 0-9
+    # etc. Resultado: input visualmente vivo (cursor pisca) porém inerte. Default
+    # documentado em prompt_toolkit é EditingMode.EMACS — usamos o default
+    # implícito (omitindo o kwarg) para herdar o conjunto base de bindings.
     app: Application = Application(
         layout=layout,
         key_bindings=kb,
         full_screen=True,
         style=_build_style(),
         mouse_support=False,
-        editing_mode=None,  # default Emacs
     )
 
     # Anexa references para o caller acessar via app.<attr> (convenção).
