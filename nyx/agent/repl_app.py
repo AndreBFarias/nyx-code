@@ -525,6 +525,24 @@ def build_app(
         except Exception as exc:
             logger.debug("c-q exit falhou: %s", exc)
 
+    @kb.add("c-d")
+    def _quit_if_empty_app(event: Any) -> None:
+        """Ctrl+D em buffer vazio = EOF (paridade Unix). Caso contrário, deleta caractere forward.
+
+        TUI-CTRL-D-PARITY-05: convenção universal Unix (bash, zsh, python REPL).
+        Reusa sentinel __quit__ + submit_state do binding c-q da sprint CTRL-Q-04.
+        """
+        buf = event.current_buffer
+        if not buf.text:
+            submit_state["submitted"] = True
+            submit_state["text"] = "__quit__"
+            try:
+                get_app().exit(result="__quit__")
+            except Exception as exc:
+                logger.debug("c-d exit falhou: %s", exc)
+        else:
+            buf.delete()
+
     # ── Layout ───────────────────────────────────────────────────────────
     # TUI-REDESIGN-28-08c-PARTE-3: output_control via FormattedTextControl +
     # ANSI parser para que escapes \x1b[...m (cores, bold, dim) do banner e

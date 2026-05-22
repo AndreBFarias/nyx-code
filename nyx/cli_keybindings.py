@@ -262,6 +262,19 @@ def build_keybindings(
         """
         event.app.exit(result="__quit__")  # type: ignore[attr-defined]
 
+    @kb.add("c-d")
+    def _quit_if_empty(event: object) -> None:
+        """Ctrl+D em buffer vazio = EOF (paridade Unix). Caso contrário, deleta caractere forward.
+
+        TUI-CTRL-D-PARITY-05: convenção universal Unix (bash, zsh, python REPL).
+        Reusa sentinel __quit__ + fluxo shutdown da sprint CTRL-Q-04.
+        """
+        buf = event.current_buffer  # type: ignore[attr-defined]
+        if not buf.text:
+            event.app.exit(result="__quit__")  # type: ignore[attr-defined]
+        else:
+            buf.delete()
+
     return kb
 
 
