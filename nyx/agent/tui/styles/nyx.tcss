@@ -12,3 +12,12 @@ App {
 $accent: #00D4AA;
 $primary: #9D4EDD;
 $success: #4ADE80;
+
+/* OutputWidget -- sub-sprint 198 (TEXTUAL-OUTPUT-WIDGET-01).
+ * Rolling log de mensagens user (turquesa) / assistant (roxo) / tool (dim).
+ */
+OutputWidget {
+    height: 1fr;
+    background: $surface;
+    padding: 0 1;
+}
