@@ -323,7 +323,7 @@ Uso:
 | 026 | Agência (usuário sempre controla) | ACEITO (Onda 24) |
 | 027 | Progressão & Identidade Nyx | ACEITO (Onda 24) |
 | 028 | SBOM Registry | ACEITO |
-| 029 | Layout Parity com Claude Code | ACEITO |
+| 029 | Layout Parity com Claude Code | ACEITO | <!-- noqa-anonimato -->
 | 030 | MCP cliente stdio | ACEITO |
 | 031 | Modelo padrão qwen2.5-coder:3b | ACEITO |
 
@@ -336,7 +336,7 @@ Para estado autoritativo consultar `dev-journey/08-templates/PROJECT_SNAPSHOT.md
 - **Invariantes**: 14/14 PASS
 - **Cockpit**: operacional em `127.0.0.1:11437` com 19 endpoints HTTP + 2 WS
 - **Tag v1.0**: `VALIDATE-FINAL-01-PARTE-2` CONCLUIDA (2026-05-19); tag aguarda apenas comando humano (`git tag -a v1.0`) — sprint `RELEASE-V1.0-CUT-01` em `producao/`
-- **Backlog técnico**: ZERADO — 403 sprints concluídas, 1 em produção (RELEASE delegada ao humano)
+- **Backlog técnico**: ZERADO — 404 sprints concluídas, 1 em produção (RELEASE delegada ao humano)
 
 ## Requisitos
 
