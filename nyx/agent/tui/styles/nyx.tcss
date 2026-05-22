@@ -21,3 +21,13 @@ OutputWidget {
     background: $surface;
     padding: 0 1;
 }
+
+/* InputWidget -- sub-sprint 202 (TEXTUAL-INPUT-WIDGET-01).
+ * Prompt ancorado no rodape; paleta turquesa com borda accent.
+ */
+InputWidget {
+    dock: bottom;
+    height: 3;
+    background: $surface;
+    border: round $accent;
+}
