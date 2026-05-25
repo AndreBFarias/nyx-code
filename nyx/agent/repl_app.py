@@ -3,7 +3,7 @@
 Layout HSplit:
   - output_window  (FormattedTextControl + ANSI, ocupa altura disponível - 3 linhas)
   - separator      (1 linha, opcional)
-  - input_window   (BufferControl, min 1 max 5 linhas)
+  - input_window   (BufferControl, altura fixa 5 linhas + ScrollbarMargin)
   - toolbar_window (FormattedTextControl, 1 linha)
 
 TUI-REDESIGN-28-08c-PARTE-3: output_buffer (Buffer) é o storage canônico;
@@ -39,6 +39,7 @@ from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.layout import HSplit, Layout, Window
 from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
 from prompt_toolkit.layout.dimension import Dimension
+from prompt_toolkit.layout.margins import ScrollbarMargin
 from prompt_toolkit.layout.processors import BeforeInput
 from prompt_toolkit.styles import Style as PtkStyle
 
@@ -95,7 +96,7 @@ def _build_toolbar_callable(app_state: dict[str, Any]) -> Callable[[], Any]:
         STATE_GLYPHS as _STATE_GLYPHS,
     )
 
-    BULLETS = {"bypass_on": "●"}
+    BULLETS = {"bypass_on": ""}
 
     def _toolbar() -> FormattedText:
         parts: list[tuple[str, str]] = []
@@ -493,8 +494,9 @@ def build_app(
     )
     input_window = Window(
         content=input_control,
-        height=Dimension(min=1, max=5),
+        height=Dimension(min=5, max=5),
         wrap_lines=True,
+        right_margins=[ScrollbarMargin(display_arrows=False)],
     )
     toolbar_window = Window(
         content=toolbar_control,
