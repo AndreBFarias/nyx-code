@@ -91,6 +91,7 @@ _MODES: tuple[str, ...] = ("normal", "plan", "sudo", "bypass")
 from nyx.agent.banner import build_banner as _build_banner  # noqa: E402
 from nyx.agent.output import make_ask_permission as _make_ask_permission  # noqa: E402
 from nyx.agent.output import print_error as _print_error  # noqa: E402
+from nyx.agent.output import redirect_stdout_to_emit  # noqa: E402
 
 # INFRA-CLI-SPLIT-03: run_headless + boot pieces saem para módulos próprios.
 # Re-exports preservam compatibilidade (`from nyx.cli import run_headless`).
@@ -609,35 +610,42 @@ async def run_repl(
                 nc=NC,
             )
 
-            # Caminho rápido síncrono primeiro (a maioria dos sentinels).
-            if dispatch_sync(handler_ctx):
-                # /cd pode trocar project_root via mutação do agent + app_state.
-                new_pr = app_state.pop("__cd_new_root__", None)
-                if isinstance(new_pr, str):
-                    project_root = new_pr
-                continue
+            # TUI-SLASH-DISPATCH-INVESTIGATE-01: handlers em cli_handlers.py
+            # e RichOutput escrevem via print()/Console.print() em sys.stdout.
+            # Em modo Application (full_screen=True), stdout fica oculto pela
+            # tela do prompt_toolkit. redirect_stdout_to_emit() roteia para
+            # output_buffer enquanto o dispatch slash executa. No-op fora de
+            # Application mode (mantém semântica legacy/PromptSession/headless).
+            with redirect_stdout_to_emit():
+                # Caminho rápido síncrono primeiro (a maioria dos sentinels).
+                if dispatch_sync(handler_ctx):
+                    # /cd pode trocar project_root via mutação do agent + app_state.
+                    new_pr = app_state.pop("__cd_new_root__", None)
+                    if isinstance(new_pr, str):
+                        project_root = new_pr
+                    continue
 
-            # TUI-REDESIGN-27-03: modal radiolist movido para cli_boot.run_select_modal.
-            if result in ("__aesthetic_select__", "__schema_select__", "__theme_select__"):
-                kind = result.replace("__", "").replace("_select", "")
-                await run_select_modal(
-                    kind, app_state, build_prompt_style, _print_error,
-                    DIM, SUCCESS, NC,
-                )
-                continue
+                # TUI-REDESIGN-27-03: modal radiolist movido para cli_boot.run_select_modal.
+                if result in ("__aesthetic_select__", "__schema_select__", "__theme_select__"):
+                    kind = result.replace("__", "").replace("_select", "")
+                    await run_select_modal(
+                        kind, app_state, build_prompt_style, _print_error,
+                        DIM, SUCCESS, NC,
+                    )
+                    continue
 
-            # Handlers async (MCP).
-            if await dispatch_async(handler_ctx):
-                continue
+                # Handlers async (MCP).
+                if await dispatch_async(handler_ctx):
+                    continue
 
-            if "read_file" in result or "list_files" in result or "done(" in result:
-                user_input = result
-            else:
-                if use_rich and output:
-                    output("nyx", result)
+                if "read_file" in result or "list_files" in result or "done(" in result:
+                    user_input = result
                 else:
-                    print(result)
-                continue
+                    if use_rich and output:
+                        output("nyx", result)
+                    else:
+                        print(result)
+                    continue
 
         try:
             turn_state["streamed_text"] = ""

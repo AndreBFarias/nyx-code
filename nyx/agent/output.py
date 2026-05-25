@@ -112,6 +112,98 @@ def clear_repl_app_output() -> None:
     _APP_STATE_REF = None
 
 
+# TUI-SLASH-DISPATCH-INVESTIGATE-01: em modo Application (full_screen=True),
+# sys.stdout fica oculto pela tela do prompt_toolkit. Handlers de slash em
+# cli_handlers.py e o RichOutput._render escrevem via print()/Console.print()
+# direto em stdout, resultando em output invisível (causa-raiz do bug
+# reportado em 2026-05-25). Em vez de refatorar ~20 handlers, interceptamos
+# stdout durante o dispatch slash e roteamos via _emit -> output_buffer.
+class _StdoutToBufferProxy:
+    """File-like que captura writes e redireciona para output_buffer.
+
+    Quando repl_app_active==True, append no buffer via append_to_buffer.
+    Outside Application mode (durante __enter__ check falhou), fallback
+    para sys.__stdout__ original -- nunca sys.stdout (que aponta para self).
+    """
+
+    def write(self, text: str) -> int:  # type: ignore[override]
+        if not text:
+            return 0
+        # Guarda anti-recursão: escreve no stdout original (__stdout__),
+        # nunca em sys.stdout -- esse aponta para self enquanto o context
+        # manager estiver engaged.
+        if (
+            _APP_STATE_REF is not None
+            and _APP_STATE_REF.get("repl_app_active")
+            and _OUTPUT_BUFFER_REF is not None
+        ):
+            try:
+                from nyx.agent.repl_app import append_to_buffer
+                append_to_buffer(_OUTPUT_BUFFER_REF, text)  # type: ignore[arg-type]
+                return len(text)
+            except Exception as exc:
+                logger.debug("_StdoutToBufferProxy.write fallback: %s", exc)
+        sys.__stdout__.write(text)
+        try:
+            sys.__stdout__.flush()
+        except Exception as exc:
+            logger.debug("_StdoutToBufferProxy.flush falhou: %s", exc)
+        return len(text)
+
+    def flush(self) -> None:  # type: ignore[override]
+        return None
+
+    def isatty(self) -> bool:  # type: ignore[override]
+        # Rich Console consulta isatty() pra decidir colorização. Manter
+        # True preserva ANSI escapes que o output_buffer (via ANSI parser
+        # do repl_app) renderiza corretamente.
+        return True
+
+    def fileno(self) -> int:  # type: ignore[override]
+        # Alguns Console paths chamam fileno(); delegamos ao stdout real
+        # apenas para o número (não para escrita).
+        return sys.__stdout__.fileno()
+
+
+class _RedirectStdoutToEmit:
+    """Context manager: substitui sys.stdout pelo proxy em Application mode.
+
+    No-op fora de Application mode (fallback para stdout real preserva
+    semântica de testes/headless). Idempotente em entries aninhados.
+    """
+
+    def __init__(self) -> None:
+        self._saved: object | None = None
+        self._engaged = False
+
+    def __enter__(self) -> "_RedirectStdoutToEmit":
+        if (
+            _APP_STATE_REF is not None
+            and _APP_STATE_REF.get("repl_app_active")
+            and _OUTPUT_BUFFER_REF is not None
+        ):
+            self._saved = sys.stdout
+            sys.stdout = _StdoutToBufferProxy()  # type: ignore[assignment]
+            self._engaged = True
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        if self._engaged and self._saved is not None:
+            sys.stdout = self._saved  # type: ignore[assignment]
+            self._saved = None
+            self._engaged = False
+
+
+def redirect_stdout_to_emit() -> _RedirectStdoutToEmit:
+    """Context manager público para roteamento de stdout em Application mode.
+
+    Usar em `with redirect_stdout_to_emit():` em volta de blocos de código
+    que sabidamente fazem print() ou Console.print() e precisam aparecer
+    no output_buffer do Application em vez do stdout oculto.
+    """
+    return _RedirectStdoutToEmit()
+
+
 def _emit(text: str, *, end: str = "") -> None:
     """Routing helper: escreve em output_buffer (Application) ou stdout.
 
