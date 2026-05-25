@@ -457,6 +457,17 @@ class NyxSpinner:
         import sys
         import threading
 
+        # TUI-SPINNER-IN-NYX-BOX-01 (sprint 227): spinner ganha afixo PURPLE
+        # `│ ` à esquerda para criar coerência visual com o balão da Nyx
+        # (sprint 224) e com a side-rule do streaming (wrap_token_with_side_rule).
+        # Estratégia B-aprimorada documentada no spec: spinner não abre top do
+        # box (largura final ainda desconhecida; box materializa POS-TURNO em
+        # render_assistant_end), mas exibe a borda esquerda do bloco da Nyx
+        # como afixo. Quando stop_spinner() roda em on_token, o `\r\x1b[2K`
+        # limpa a linha e o stream começa já com a side-rule via
+        # wrap_token_with_side_rule -- mesma borda PURPLE, transição contínua.
+        from nyx.themes.design_tokens import ANSI_PURPLE_FG
+
         frames = _spinner_frames()
 
         def _resolve_message() -> str:
@@ -473,8 +484,13 @@ class NyxSpinner:
             while not self._stop_evt.is_set():
                 frame = frames[idx % len(frames)]
                 label = _resolve_message()
+                # Afixo PURPLE `│ ` casa com a borda esquerda do balão pós-turno
+                # da Nyx (sprint 224) e com a side-rule do streaming. Indentação
+                # de 2 espaços preservada (paridade com bullets e tool chips).
                 sys.stdout.write(
-                    f"\r\x1b[2K  {ANSI_ACCENT_FG}{frame}{ANSI_RESET}  {ANSI_DIM}{label}{ANSI_RESET}"
+                    f"\r\x1b[2K  {ANSI_PURPLE_FG}│{ANSI_RESET} "
+                    f"{ANSI_ACCENT_FG}{frame}{ANSI_RESET}  "
+                    f"{ANSI_DIM}{label}{ANSI_RESET}"
                 )
                 sys.stdout.flush()
                 idx += 1
