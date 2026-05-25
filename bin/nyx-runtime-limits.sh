@@ -12,11 +12,16 @@
 #
 # ADR-001 Local First: roda em userspace, sem alterar config global do kernel.
 
-# 8GB virt mem (qwen2.5-coder:3b consome ~2-3GB; folga p/ cockpit + buffers)
-ulimit -v 8000000 2>/dev/null || true
+# 16GB virt mem. SPRINT 234 INFRA-OOM-ULIMIT-EXPAND-01 (2026-05-25): elevado
+# de 8GB para 16GB porque CUDA UVA mappa toda VRAM (4GB) no virtual address
+# space + libcuda + buffer pools fazem virt cresce MUITO alem do RSS.
+# 8GB original (INFRA-OOM-01) gerava 46 OOMs/3h apos sprint 222 reduzir cap.
+# Logs mostravam "failed to allocate CPU buffer of size 276MB" com RSS=2.3GiB
+# e Max address space=8GiB. RAM fisica = 14GiB; 16GB virt fica seguro.
+ulimit -v 16000000 2>/dev/null || true
 
 # Memoria fisica preferida (kernel ignora em alguns sistemas, ok)
-ulimit -m 8000000 2>/dev/null || true
+ulimit -m 16000000 2>/dev/null || true
 
 # oom_score_adj negativo (-1000 a 0) = menos likely matar
 # Sem sudo: só funciona pra processos do própria usuário, best-effort.
