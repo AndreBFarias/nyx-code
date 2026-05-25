@@ -66,12 +66,14 @@ DEFAULT_MODEL = "qwen2.5-coder:3b"
 
 # Cap por VRAM total (ADR-003 + ADR-009). A heurística por VRAM livre é otimista
 # em hardware pequeno porque ignora overhead dinâmico do KV cache, buffers do
-# Ollama e compartilhamento com desktop. Tabela empírica:
-#   4GB  -> num_gpu=12 muito estável, 15 estável, 20 instável, 37 OOM
+# Ollama e compartilhamento com desktop. Tabela empírica revisada 2026-05-25
+# após audit de 23 OOMs consecutivos com cap=12 em RTX 3050 4GB com Chrome:
+#   4GB  -> num_gpu=6 estável, 12 OOM crônico (vide ~/.nyx/proxy_stats.json)
 #   6GB  -> num_gpu=28 confortável
 #   8GB  -> num_gpu=36 confortável (~full GPU)
+# Override agressivo via .env NYX_NUM_GPU=12 (auto-tune respeita o ENV).
 VRAM_CAP_MB_TO_LAYERS: list[tuple[int, int]] = [
-    (4096, 12),
+    (4096, 6),
     (6144, 28),
     (8192, 36),
 ]

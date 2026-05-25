@@ -64,3 +64,20 @@ NYX_VRAM_MAX=2.5  # Limite em GB (referência)
 
 O proxy (nyx/proxy.py) injeta num_gpu e num_ctx em toda request.
 O run.sh faz warmup com os mesmos parâmetros.
+
+## Revisão empírica 2026-05-25 (RTX 3050 4GB)
+
+Auditoria pós-ONDA-30 detectou padrão de 23 OOMs consecutivos em 4 dias com
+`num_gpu=12` cap original. Cap reduzido para 6 layers em RTX 3050 4GB.
+
+| VRAM | Cap antigo | Cap novo | Justificativa |
+|---|---|---|---|
+| 4096 MiB | 12 | **6** | OOM crônico com Chrome + terminal + Spellbook (~600 MiB residual). 6 layers cabem com folga. |
+| 6144 MiB | 28 | 28 | sem regressão reportada |
+| 8192 MiB | 36 | 36 | sem regressão reportada |
+
+Auditoria longitudinal: `cat ~/.nyx/proxy_stats.json` retorna `oom_recovery_count`.
+Padrão para detectar regressão: `grep "OOM degradation step:" logs/proxy.log`.
+
+Opt-in agressivo preserva paridade com hardware sem disputa: `.env`
+`NYX_NUM_GPU=12` ou env shell. Auto-tune respeita override do usuário.
