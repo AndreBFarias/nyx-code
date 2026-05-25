@@ -175,7 +175,7 @@ def _build_compact(
     )
     info = (
         f"  {dim}v{NYX_VERSION}{nc}  "
-        f"{accent}{nc} {success}100% offline{nc}  "
+        f"{accent}●{nc} {success}100% offline{nc}  "
         f"{muted}Modelo{nc} {primary}{model}{nc}  "
         f"{muted}Rede{nc} {primary}{ports_line}{nc}"
     )
@@ -208,7 +208,7 @@ def _build_wide(
     Layout (cols >= 80, largura interna total fixa = 70):
 
         ╭──────────────────┬───────────────────────────────────────────────────╮
-        │                  │  v1.2.0        100% offline                      │
+        │                  │  v1.2.0      ●  100% offline                      │
         │                  ├───────────────────────────────────────────────────┤
         │   $ nyx.code▌    │  MODELO qwen2.5-coder:3b │ PROJETO Nyx-Code        │
         │                  ├───────────────────────────────────────────────────┤
@@ -218,7 +218,7 @@ def _build_wide(
     Cores:
       - '$ ' roxo, 'nyx' primary, '.' roxo, 'code' primary, '▌' roxo.
       - Bordas ╭─╮│╰╯ e junções ┬├┤┴ accent.
-      - '' accent. '100% offline' verde NYX_SUCCESS.
+      - '●' accent. '100% offline' verde NYX_SUCCESS.
       - Rótulos CAPS muted; valores primary; versão dim.
       - Pipes internos │ entre seções em muted (mais discretos que as bordas).
       - 'Memória ativa' fixo, independente de memory_count.
@@ -266,12 +266,12 @@ def _build_wide(
     )
 
     # ---- row 1 (direita): versão + offline ----
-    # plain visible: "  v1.2.0        100% offline" within right_w
-    plain_r1 = f"  v{NYX_VERSION}        100% offline"
+    # plain visible: "  v1.2.0      ●  100% offline" within right_w
+    plain_r1 = f"  v{NYX_VERSION}      ●  100% offline"
     pad_r1 = max(1, right_w - len(plain_r1))
     row1_right = (
         f"  {dim}v{NYX_VERSION}{nc}      "
-        f"{accent}{nc}  "
+        f"{accent}●{nc}  "
         f"{success}100% offline{nc}"
         f"{' ' * pad_r1}"
     )

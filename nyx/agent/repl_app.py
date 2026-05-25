@@ -107,7 +107,7 @@ def _build_toolbar_callable(app_state: dict[str, Any]) -> Callable[[], Any]:
         STATE_GLYPHS as _STATE_GLYPHS,
     )
 
-    BULLETS = {"bypass_on": ""}
+    BULLETS = {"bypass_on": "●"}
 
     def _toolbar() -> FormattedText:
         parts: list[tuple[str, str]] = []

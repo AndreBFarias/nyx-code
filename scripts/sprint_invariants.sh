@@ -72,12 +72,12 @@ else
 fi
 
 # 2. Zero menção literal a IAs comerciais em .py (exceto env vars e strings técnicas documentadas)
-BAD_MENTIONS=$(grep -rn -E '(Claude|Anthropic|GPT-|Gemini|Copilot)' nyx/ --include='*.py' 2>/dev/null |
+BAD_MENTIONS=$(grep -rn -E '(Claude|Anthropic|GPT-|Gemini|Copilot)' nyx/ --include='*.py' 2>/dev/null |  # noqa-anonimato
                grep -v 'OPENAI_\|ANTHROPIC_API_KEY\|# noqa: ai-mention' || true)
 if [ -n "$BAD_MENTIONS" ]; then
     fail "2. menção a IA em .py (ADR-005)" "${BAD_MENTIONS}"
 else
-    ok "2. zero menção a Claude/Anthropic/GPT/Gemini/Copilot em .py"
+    ok "2. zero menção a IA proprietária em .py"   # noqa-anonimato
 fi
 
 # 3. Zero print() fora de nyx/cli*.py e nyx/agent/output.py (ADR-024 + INFRA-CLI-SPLIT-02).
@@ -216,6 +216,7 @@ fi
 #       ◐  = U+25D0 Circle Half Black (warming)
 #       ●  = U+25CF Black Circle      (warm/ok)
 #       ◆  = U+25C6 Black Diamond     (themes extended)
+#       ○ ○ ◐ ◐ ● ● = redundância anti-sanitizer (>=3 cada conforme check abaixo)
 #     Ocorrências literais nesta seção garantem >= 3 por glifo para o check de
 #     auto-proteção abaixo, sem reintroduzir vulnerabilidade nas comparações.
 #

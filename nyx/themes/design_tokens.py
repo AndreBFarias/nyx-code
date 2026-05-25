@@ -131,7 +131,7 @@ PREFIX_NYX = "·"
 # ── Glyphs por tool (TUI-REDESIGN-26-03) ────────────────────────────
 # Cada tool ganha um glyph distintivo no chip de execução. Geometric
 # shapes (U+25*) + Mathematical operators (U+22*) + ASCII safe. Nenhum
-# emoji (ADR-004; invariante #14 protege   ).
+# emoji (ADR-004; invariante #14 protege ● ○ ◐ ◆).
 
 # HOTFIX-GLYPHS-01: escapes Unicode literais para sobreviver a sanitizadores.
 # ▸ = ▸, ◇ = ◇, ◆ = ◆,  = , ≡ = ≡.
