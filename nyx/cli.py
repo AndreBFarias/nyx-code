@@ -474,11 +474,100 @@ async def run_repl(
                 from nyx.agent.banner import build_banner as _bb
                 _banner_str = _bb(model, agent.tools_count, PROJECT_ROOT.name, settings=settings)
                 append_to_buffer(repl_output_buffer, _banner_str + "\n")
+                app_state["_banner_str"] = _banner_str
             except Exception as _bexc:
                 logger.debug("pre-populate banner falhou: %s", _bexc)
+                _banner_str = None
             # Ativa routing global do _emit para o buffer da Application.
             set_repl_app_output(repl_output_buffer, app_state)
             app_state["repl_app_active"] = True
+
+            # TUI-BANNER-BLINK-DEFAULT-01: timer asyncio que alterna o cursor
+            # do banner entre "|" (chr 0x7C) e " " (espaço) a cada 0.5s,
+            # criando o blink visivel. Lição empirica da sprint 187 (revertida
+            # pela 193): app.invalidate() global em loop curto durante streaming
+            # cria flicker -- por isso o loop PAUSA quando inflight_task esta
+            # ativa (race fica neutralizada por design). Cleanup via
+            # shutdown_repl (cancela all_tasks com timeout). Necessario chamar
+            # app.invalidate() pois FormattedTextControl usa callable lambda
+            # que so re-renderiza quando o app sinaliza invalidacao -- a 0.5s
+            # com pause-during-streaming, o profile e benigno (vs 187 que
+            # invalidava 50ms continuo, incluindo durante stream).
+            if _banner_str is not None:
+                from prompt_toolkit.document import Document
+
+                _initial_banner_len = len(_banner_str) + 1  # +1 do "\n" final
+
+                async def _banner_blink_loop() -> None:
+                    visible = True
+                    prev_banner = _banner_str
+                    while True:
+                        try:
+                            await asyncio.sleep(0.5)
+                        except asyncio.CancelledError:
+                            return
+                        inflight = app_state.get("inflight_task")
+                        if inflight is not None and not getattr(
+                            inflight, "done", lambda: True,
+                        )():
+                            # Streaming ativo: pula este tick para evitar race
+                            # com tokens sendo apendados em paralelo.
+                            continue
+                        visible = not visible
+                        cursor = chr(0x7C) if visible else ""
+                        try:
+                            new_banner = _bb(
+                                model, agent.tools_count, PROJECT_ROOT.name,
+                                settings=settings, cursor=cursor,
+                            )
+                        except Exception as _exc:  # noqa: BLE001 -- blink best-effort
+                            logger.debug("blink rebuild banner falhou: %s", _exc)
+                            continue
+                        # Replace cirurgico do prefixo: assume banner sempre
+                        # no inicio do output_buffer (pre-populado em boot).
+                        # Comprimento do banner anterior pode mudar entre
+                        # frames (cursor "|" vs " " tem mesma largura em
+                        # _build_compact/_build_wide gracas a defesa em
+                        # banner.py); usamos len(prev_banner)+1 (com "\n").
+                        try:
+                            current = repl_output_buffer.text
+                            prefix_len = len(prev_banner) + 1
+                            if current.startswith(prev_banner):
+                                suffix = current[prefix_len:]
+                                novo = new_banner + "\n" + suffix
+                                repl_output_buffer.document = Document(
+                                    text=novo, cursor_position=len(novo),
+                                )
+                                prev_banner = new_banner
+                                # FormattedTextControl usa callable; precisa
+                                # de invalidate para chamar _ansi_output() de
+                                # novo e re-parsear ANSI escapes do banner.
+                                # Sem renderer.clear(), delta-rendering do
+                                # prompt_toolkit assume append-only e deixa o
+                                # banner antigo na tela com o novo overlaid
+                                # com offset -- vide debug 2026-05-25 18:25.
+                                try:
+                                    from prompt_toolkit.application import (
+                                        get_app as _get_app,
+                                    )
+                                    _app = _get_app()
+                                    try:
+                                        _app.renderer.clear()
+                                    except Exception as _cexc:  # noqa: BLE001
+                                        logger.debug(
+                                            "blink renderer.clear falhou: %s",
+                                            _cexc,
+                                        )
+                                    _app.invalidate()
+                                except Exception as _iexc:  # noqa: BLE001
+                                    logger.debug(
+                                        "blink invalidate falhou: %s", _iexc,
+                                    )
+                        except Exception as _exc:  # noqa: BLE001
+                            logger.debug("blink set_document falhou: %s", _exc)
+
+                _banner_blink_task = asyncio.create_task(_banner_blink_loop())
+                app_state["_banner_blink_task"] = _banner_blink_task
         except Exception as _aexc:
             logger.warning(
                 "Application repl_app indisponível, fallback PromptSession: %s",
