@@ -34,13 +34,52 @@ fi
 
 log_nyx()  { echo -e "  ${PRIMARY}[nyx]${NC} $1"; }
 log_ok()   { echo -e "  ${GREEN}[nyx]${NC} $1"; }
-log_warn() { echo -e "  ${ORANGE}[nyx]${NC} $1"; }
-log_err()  { echo -e "  ${RED}[nyx]${NC} $1"; }
+# SPRINT 237 UX-BOOT-SILENT-SPINNER-01: warn/err emitem em stderr para
+# sobreviver ao silenciamento de stdout durante boot. Mensagens criticas
+# continuam visiveis mesmo com spinner ativo.
+log_warn() { echo -e "  ${ORANGE}[nyx]${NC} $1" >&2; }
+log_err()  { echo -e "  ${RED}[nyx]${NC} $1" >&2; }
 
 # Mensagens de fase de boot (pré-TUI) vão só pro arquivo logs/boot.log.
-# Warnings e erros permanecem em stdout via log_warn/log_err.
+# Warnings e erros permanecem em stderr via log_warn/log_err.
 mkdir -p "$SCRIPT_DIR/logs" 2>/dev/null
 log_boot() { echo "$(date +%H:%M:%S) [nyx] $1" >> "$SCRIPT_DIR/logs/boot.log"; }
+
+# SPRINT 237 UX-BOOT-SILENT-SPINNER-01: spinner unico durante todo o boot.
+# stdout do bloco principal vai para boot.log (via tee implicito do
+# log_boot); stderr (log_warn/log_err) permanece visivel.
+BOOT_SPINNER_PID=""
+start_boot_spinner() {
+    # Skip em headless, gauntlet ou non-TTY (CI, pipe, redirect).
+    if [ ! -t 1 ] || [ "${HEADLESS:-0}" -eq 1 ] || [ "${GAUNTLET:-0}" -eq 1 ]; then
+        return 0
+    fi
+    # Salva stdout original em fd 3 e silencia stdout para boot.
+    exec 3>&1
+    exec >> "$SCRIPT_DIR/logs/boot.log"
+    (
+        local frames='|/-\'
+        local i=0
+        while :; do
+            local s=${frames:$i:1}
+            printf "\r  ${PURPLE}\$${NC} ${PRIMARY}nyx${PURPLE}.${PRIMARY}code${NC}  ${DIM}aquecendo ${s}${NC}" >&3
+            i=$(( (i+1) % 4 ))
+            sleep 0.15
+        done
+    ) &
+    BOOT_SPINNER_PID=$!
+    disown "$BOOT_SPINNER_PID" 2>/dev/null || true
+}
+stop_boot_spinner() {
+    [ -z "$BOOT_SPINNER_PID" ] && return 0
+    kill "$BOOT_SPINNER_PID" 2>/dev/null || true
+    wait "$BOOT_SPINNER_PID" 2>/dev/null || true
+    BOOT_SPINNER_PID=""
+    # Restaura stdout e limpa linha do spinner.
+    exec >&3
+    exec 3>&-
+    printf "\r\x1b[2K"
+}
 
 # ─── CARREGAR .env ────────────────────────────────────────
 if [ -f "$SCRIPT_DIR/.env" ]; then
@@ -482,6 +521,9 @@ show_banner() {
 # TUI-SHUTDOWN-SILENT-01: PIDs foram disowned, então não há report
 # implícito de "Morto" no stdout do shell pai. Cleanup permanece intacto.
 cleanup() {
+    # SPRINT 237: para spinner antes de qualquer log visivel (caso Ctrl+C
+    # durante boot, stdout ainda esta silenciado e log_nyx ficaria invisivel).
+    stop_boot_spinner 2>/dev/null || true
     echo ""
     log_nyx "Desconectando..."
     # Parar proxy
@@ -508,6 +550,12 @@ trap cleanup EXIT SIGINT SIGTERM SIGHUP
 # ═══════════════════════════════════════════════════════════
 
 validate
+
+# SPRINT 237 UX-BOOT-SILENT-SPINNER-01: spinner único `$ nyx.code aquecendo...`
+# substitui stream de mensagens `[nyx]` durante boot. Ativado apos validate
+# (validate pode imprimir erros criticos via log_err em stderr que devem
+# aparecer ANTES do spinner; com spinner ativo, log_err continua visivel).
+start_boot_spinner
 
 # UX-LIFECYCLE-01: lock antes de qualquer side effect.
 # Mata instância anterior gracefully; instância anterior limpa seu Ollama
@@ -624,17 +672,12 @@ fi
 # Reduz cold start da primeira mensagem do usuário de ~22s para <= 8s.
 # Pulado em modo gauntlet (próprio gauntlet exercita as fases) e --smoke.
 #
-# SPRINT 236 UX-WARMUP-BACKGROUND-01 (2026-05-25): warmup roda em
-# background em paralelo ao boot do CLI. Usuário vê prompt "Retomar
-# última sessão?" imediatamente; enquanto digita s/N, o modelo aquece.
-# Quando a primeira mensagem real chega, modelo geralmente já pronto.
-# Se warmup ainda estiver rodando, Ollama serializa a request sem erro,
-# só fica marginalmente mais lento. Logs do warmup vão pra logs/boot.log
-# via log_boot, então nenhum stdout poluído.
+# SPRINT 237 UX-BOOT-SILENT-SPINNER-01 reverte 236: warmup volta bloqueante
+# para que o spinner unico `$ nyx.code aquecendo...` aguarde o aquecimento
+# completar antes de abrir o CLI. Usuario quer ver a interface so quando
+# tudo estiver pronto, nao ver prompt enquanto modelo ainda aquece.
 if [ "$GAUNTLET" -eq 0 ]; then
-    warmup_model > /dev/null 2>&1 &
-    WARMUP_PID=$!
-    disown "$WARMUP_PID" 2>/dev/null || true
+    warmup_model
 fi
 
 NYX_SYSTEM_PROMPT="Sou Nyx. Codificadora. Vivo no terminal.
@@ -691,6 +734,9 @@ fi
 
 # ─── INICIAR NYX CLI (Python) ─────────────────────────────
 log_boot "Iniciando Nyx CLI..."
+# SPRINT 237 UX-BOOT-SILENT-SPINNER-01: para spinner e restaura stdout
+# antes de entregar o terminal ao CLI Python (que precisa de TTY limpa).
+stop_boot_spinner
 "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/nyx/cli.py"
 EXIT_CODE=$?
 
