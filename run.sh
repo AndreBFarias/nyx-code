@@ -23,13 +23,14 @@ if [ -t 1 ]; then
     GREEN=$'\033[38;2;0;212;170m'        # #00D4AA - sucesso (= primary)
     ORANGE=$'\033[38;2;255;184;108m'     # #FFB86C - avisos
     RED=$'\033[38;2;255;107;107m'        # #FF6B6B - erros (Nyx)
+    PURPLE=$'\033[38;2;157;78;221m'      # #9D4EDD - roxo Nyx (sprint 237 boot spinner)
     COMMENT=$'\033[38;2;108;122;137m'    # #6C7A89 - secundário
     FG=$'\033[38;2;232;232;232m'         # #E8E8E8 - texto primário
     BOLD=$'\033[1m'
     DIM=$'\033[2m'
     NC=$'\033[0m'
 else
-    PRIMARY='' SECONDARY='' ACCENT='' GREEN='' ORANGE='' RED='' COMMENT='' FG='' BOLD='' DIM='' NC=''
+    PRIMARY='' SECONDARY='' ACCENT='' GREEN='' ORANGE='' RED='' PURPLE='' COMMENT='' FG='' BOLD='' DIM='' NC=''
 fi
 
 log_nyx()  { echo -e "  ${PRIMARY}[nyx]${NC} $1"; }
