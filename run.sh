@@ -565,24 +565,18 @@ if [ -x "$SCRIPT_DIR/venv/bin/python" ]; then
     fi
 fi
 
-# ─── PRE-CARREGAR MODELO COM NUM_GPU LIMITADO ────────────
-if [ "$SKIP_PRELOAD" -eq 0 ]; then
-    log_boot "Pré-carregando modelo (num_gpu=$NYX_NUM_GPU)..."
-    if curl -sf --max-time 120 "http://${NYX_OLLAMA_HOST}:${NYX_OLLAMA_PORT}/api/chat" \
-        -H "Content-Type: application/json" \
-        -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"stream\":false,\"think\":false,\"options\":{\"num_gpu\":$NYX_NUM_GPU,\"num_ctx\":4096}}" \
-        > /dev/null 2>&1; then
-        log_boot "Modelo pré-carregado"
-    else
-        log_warn "Pré-carga falhou (modelo será carregado na primeira requisição)"
-    fi
-
-    # Verificar se Ollama sobreviveu ao pre-load
-    if ! kill -0 "$OLLAMA_PID" 2>/dev/null; then
-        log_warn "Ollama morreu durante pré-carga. Reiniciando..."
-        start_ollama
-    fi
-fi
+# ─── PRE-CARGA DELEGADA AO WARMUP VIA PROXY ──────────────
+# SPRINT 235 INFRA-PRELOAD-VIA-PROXY-01 (2026-05-25): bloco antigo de
+# pré-carga via curl direto ao Ollama (porta 11435) foi REMOVIDO porque
+# bypassava toda infra de resiliência do proxy. Fragmentação de VRAM
+# (Chrome+X11) fazia `ggml_cuda_pool_vmm5alloc` falhar mesmo com 3.7 GiB
+# livres, gerando warning visível ao usuário a cada boot.
+#
+# Solução estrutural: `warmup_model` abaixo (linha 629+) já faz exatamente
+# a mesma coisa MAS via proxy (porta 11436), que tem INFRA-OOM-RETRY-STEP-01
+# para degradar num_gpu automaticamente (12→6→3→0 CPU) sem expor erro.
+# Redundância eliminada; vetor do warning fechado.
+log_boot "Pré-carga delegada ao warmup via proxy (sprint 235)."
 
 # ─── INICIAR PROXY (think=false para tool calling) ───────
 log_boot "Iniciando proxy na porta $NYX_PROXY_PORT..."
