@@ -729,9 +729,16 @@ async def run_repl(
                     )
             except Exception:
                 _meta_tokens = None
+            # TUI-NYX-SOFT-BOX-01: body_text consolidado materializa o box
+            # roxo antes do footer (simetria com user box turquesa). Streamed
+            # tem precedência (já vimos a resposta linha-a-linha durante o
+            # turno); summary é fallback quando turno foi puramente tool calls
+            # sem stream textual.
+            _body_for_box: str | None = streamed or summary or None
             render_assistant_end(
                 start_monotonic=request_started,
                 tokens=_meta_tokens,
+                body_text=_body_for_box,
             )
 
             # UX-BUG-03: cancelar summarize anterior se ainda não terminou

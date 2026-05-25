@@ -1136,28 +1136,89 @@ def render_compaction_event(
 USER_INPUT_COLLAPSE_LINES = 8
 
 
-def _render_user_soft_box(display_text: str, user_name: str) -> None:
-    """TUI-REDESIGN-26-01: bubble user em ANSI soft-box.
+def _render_soft_box(display_text: str, label: str, ansi_color_fg: str) -> None:
+    """TUI-NYX-SOFT-BOX-01: soft-box ANSI genérico parametrizado por cor.
 
-    Formato: ╭─ Nome ─...─╮ / │ linha ... │ / ╰─...─╯ tudo em ACCENT.
-    Largura ajustada dinamicamente à linha mais longa + 2 padding.
-    Não usa Rich Panel (que tem aparência diferente). Schema=hybrid only.
+    Formato: ╭─ <label> ─...─╮ / │ linha ... │ / ╰─...─╯ tudo na cor passada.
+    Largura ajustada dinamicamente à linha mais longa + 2 padding, com cap
+    em min(console_width - 4, 100) para resposta longa da Nyx que vem como
+    uma única linha de tokens sem newline. Reutilizado por user (turquesa
+    ACCENT) e Nyx (roxo PURPLE), simetria visual exigida pelo feedback do
+    usuário (2026-05-25).
     """
+    import shutil
+    import textwrap
+
+    console_width = shutil.get_terminal_size(fallback=(80, 24)).columns
+    # 4 = 2 indent + 1 borda esquerda + 1 borda direita (+1 space pad cada lado)
+    # Mantém box dentro do terminal. 100 evita boxes ridiculamente largos em
+    # terminais ultra-wide.
+    max_inner = max(20, min(console_width - 6, 100))
+
     raw_lines = display_text.splitlines() or [display_text]
-    title = f"─ {user_name} ─"
-    max_line_w = max((len(line) for line in raw_lines), default=0)
+    # Wrap cada linha longa para caber em max_inner - 2 (descontando padding).
+    wrap_w = max_inner - 2
+    wrapped_lines: list[str] = []
+    for ln in raw_lines:
+        if not ln:
+            wrapped_lines.append("")
+            continue
+        # textwrap.wrap respeita palavras; se uma palavra sozinha exceder
+        # wrap_w, break_long_words=True fragmenta. drop_whitespace=False
+        # preserva indentação interna.
+        chunks = textwrap.wrap(
+            ln,
+            width=wrap_w,
+            break_long_words=True,
+            break_on_hyphens=False,
+            drop_whitespace=False,
+        ) or [""]
+        wrapped_lines.extend(chunks)
+
+    title = f"─ {label} ─"
+    max_line_w = max((len(line) for line in wrapped_lines), default=0)
     inner_w = max(max_line_w + 2, len(title) + 2)
+    # Cap final para não ultrapassar console.
+    inner_w = min(inner_w, max_inner)
     top = "╭" + title + "─" * (inner_w - len(title)) + "╮"
     bottom = "╰" + "─" * inner_w + "╯"
-    accent = ANSI_ACCENT_FG
     reset = ANSI_RESET
     _eprint()
-    _eprint(f"  {accent}{top}{reset}")
-    for line in raw_lines:
+    _eprint(f"  {ansi_color_fg}{top}{reset}")
+    for line in wrapped_lines:
+        # Trunca defensivamente se algum chunk excedeu (não deve acontecer
+        # com textwrap, mas paranoia evita assert).
+        if len(line) > inner_w - 2:
+            line = line[: inner_w - 2]
         pad = " " * (inner_w - len(line) - 2)
-        _eprint(f"  {accent}│{reset} {line}{pad} {accent}│{reset}")
-    _eprint(f"  {accent}{bottom}{reset}")
+        _eprint(f"  {ansi_color_fg}│{reset} {line}{pad} {ansi_color_fg}│{reset}")
+    _eprint(f"  {ansi_color_fg}{bottom}{reset}")
     _eprint()
+
+
+def _render_user_soft_box(display_text: str, user_name: str) -> None:
+    """TUI-REDESIGN-26-01: bubble user em ANSI soft-box turquesa (ACCENT).
+
+    Wrapper byte-a-byte sobre _render_soft_box. Call-sites antigos preservados.
+    """
+    _render_soft_box(display_text, user_name, ANSI_ACCENT_FG)
+
+
+def render_assistant_box(display_text: str) -> None:
+    """TUI-NYX-SOFT-BOX-01: bubble Nyx em ANSI soft-box roxo (PURPLE).
+
+    Simétrico ao box do usuário. Materializa ao FIM do turno (não durante
+    stream) para evitar cursor-up/repaint que dissolveu o box anterior em
+    TUI-REDESIGN-26-02. Largura ajustada à linha mais longa + 2 padding.
+
+    Chamado por render_assistant_end quando body_text é fornecido e
+    console_width >= 80. Em fallback (width < 80), end emite linha em branco
+    sem box, preservando comportamento da Sprint 26-02.
+    """
+    if not display_text.strip():
+        return
+    from nyx.themes.design_tokens import ANSI_PURPLE_FG
+    _render_soft_box(display_text, "Nyx", ANSI_PURPLE_FG)
 
 
 def render_user_input(
@@ -1279,14 +1340,26 @@ def render_assistant_start() -> None:
 def render_assistant_end(
     start_monotonic: float | None = None,
     tokens: int | None = None,
+    body_text: str | None = None,
 ) -> None:
-    """Rodapé do turno com meta opcional (TUI-REDESIGN-26-02 + 25-08).
+    """Rodapé do turno com meta opcional (TUI-REDESIGN-26-02 + 25-08 + 224).
+
+    TUI-NYX-SOFT-BOX-01: quando body_text é fornecido e console_width>=80,
+    materializa um soft-box roxo com o texto consolidado da Nyx ANTES do
+    footer. Caller (cli.py) passa turn_state['streamed_text']. Texto vazio
+    ou width<80 mantém comportamento prévio (sem box, footer direto).
 
     Se start_monotonic ou tokens informados, emite rodapé compacto:
       '└── 4.5s · 487 tokens'
     em PURPLE/DIM, simulando o fechamento do bloco do mockup.
     Sem dados, mantém comportamento antigo (linha em branco).
     """
+    if body_text is not None and body_text.strip():
+        import shutil
+        console_width = shutil.get_terminal_size(fallback=(80, 24)).columns
+        if console_width >= 80:
+            render_assistant_box(body_text)
+
     if start_monotonic is None and tokens is None:
         _eprint()
         return
