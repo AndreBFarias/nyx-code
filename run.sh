@@ -623,8 +623,18 @@ fi
 # Warmup duplo via proxy (chamada curta + chamada com tools).
 # Reduz cold start da primeira mensagem do usuário de ~22s para <= 8s.
 # Pulado em modo gauntlet (próprio gauntlet exercita as fases) e --smoke.
+#
+# SPRINT 236 UX-WARMUP-BACKGROUND-01 (2026-05-25): warmup roda em
+# background em paralelo ao boot do CLI. Usuário vê prompt "Retomar
+# última sessão?" imediatamente; enquanto digita s/N, o modelo aquece.
+# Quando a primeira mensagem real chega, modelo geralmente já pronto.
+# Se warmup ainda estiver rodando, Ollama serializa a request sem erro,
+# só fica marginalmente mais lento. Logs do warmup vão pra logs/boot.log
+# via log_boot, então nenhum stdout poluído.
 if [ "$GAUNTLET" -eq 0 ]; then
-    warmup_model
+    warmup_model > /dev/null 2>&1 &
+    WARMUP_PID=$!
+    disown "$WARMUP_PID" 2>/dev/null || true
 fi
 
 NYX_SYSTEM_PROMPT="Sou Nyx. Codificadora. Vivo no terminal.
