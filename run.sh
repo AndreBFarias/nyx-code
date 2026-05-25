@@ -58,14 +58,18 @@ start_boot_spinner() {
     # Salva stdout original em fd 3 e silencia stdout para boot.
     exec 3>&1
     exec >> "$SCRIPT_DIR/logs/boot.log"
+    # Hide cursor + imprime header FIXO uma vez + salva posição.
+    # Depois só sobrescreve o char animado via cursor restore (sem flicker
+    # da linha inteira). Cadência 0.5s (mais suave que 0.15s).
+    printf "\x1b[?25l\r  ${PRIMARY}\$ nyx.code${NC}  ${DIM}aquecendo${NC}  \x1b[s " >&3
     (
         local frames='|/-\'
         local i=0
         while :; do
             local s=${frames:$i:1}
-            printf "\r  ${PURPLE}\$${NC} ${PRIMARY}nyx${PURPLE}.${PRIMARY}code${NC}  ${DIM}aquecendo ${s}${NC}" >&3
+            printf "\x1b[u${DIM}%s${NC}" "$s" >&3
             i=$(( (i+1) % 4 ))
-            sleep 0.15
+            sleep 0.5
         done
     ) &
     BOOT_SPINNER_PID=$!
@@ -73,13 +77,15 @@ start_boot_spinner() {
 }
 stop_boot_spinner() {
     [ -z "$BOOT_SPINNER_PID" ] && return 0
-    kill "$BOOT_SPINNER_PID" 2>/dev/null || true
-    wait "$BOOT_SPINNER_PID" 2>/dev/null || true
+    # Mata spinner com TERM primeiro, depois KILL se sobreviver. Sem wait
+    # porque PID disowned pode travar `wait` no shell pai (sprint 237 hotfix).
+    kill -TERM "$BOOT_SPINNER_PID" 2>/dev/null || true
+    kill -KILL "$BOOT_SPINNER_PID" 2>/dev/null || true
     BOOT_SPINNER_PID=""
-    # Restaura stdout e limpa linha do spinner.
-    exec >&3
-    exec 3>&-
-    printf "\r\x1b[2K"
+    # Restaura stdout, mostra cursor de volta e limpa linha do spinner.
+    exec >&3 2>/dev/null || true
+    exec 3>&- 2>/dev/null || true
+    printf "\r\x1b[2K\x1b[?25h"
 }
 
 # ─── CARREGAR .env ────────────────────────────────────────
@@ -544,7 +550,12 @@ cleanup() {
     log_ok "Fim."
 }
 
-trap cleanup EXIT SIGINT SIGTERM SIGHUP
+# SPRINT 237 hotfix: trap separado para SIGINT/SIGTERM/SIGHUP que adiciona
+# exit explicito apos cleanup. Sem isso, Ctrl+C durante boot chamava
+# cleanup mas shell voltava a executar a linha seguinte (warmup_model
+# continuava), CLI abria, Ctrl+C parecia ignorado.
+trap cleanup EXIT
+trap 'cleanup; exit 130' SIGINT SIGTERM SIGHUP
 
 # ═══════════════════════════════════════════════════════════
 # EXECUÇÃO PRINCIPAL
