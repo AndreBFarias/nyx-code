@@ -63,11 +63,22 @@ def append_to_buffer(buffer: Buffer, text: str) -> None:
 
     Mantém cursor no final (auto-scroll). Usado por _emit em output.py para
     rotear streaming e prints para o output_window quando Application ativo.
+
+    TUI-CONVERSATION-SCROLLBAR-01: respeita app_state["_user_scrolled_up"].
+    Quando True (usuário rolou para cima manualmente), faz append silencioso
+    sem reposicionar cursor — auto-scroll-pause. Quando False, comportamento
+    legado (cursor ao fim, get_vertical_scroll do output_window leva ao bottom).
     """
     if not text:
         return
     novo = buffer.text + text
-    buffer.document = Document(text=novo, cursor_position=len(novo))
+    state = _resolve_app_state()
+    if state.get("_user_scrolled_up", False):
+        # Append sem mover cursor; usuário inspecionando histórico não é
+        # interrompido. _scroll_to_bottom respeita flag em paralelo.
+        buffer.text = novo
+    else:
+        buffer.document = Document(text=novo, cursor_position=len(novo))
     try:
         app = get_app()
         app.invalidate()
@@ -243,6 +254,10 @@ def build_app(
     def _accept(buf: Buffer) -> bool:
         submit_state["submitted"] = True
         submit_state["text"] = buf.text
+        # TUI-CONVERSATION-SCROLLBAR-01: novo turno reset auto-scroll-pause.
+        # Submit é intent forte de "volte ao bottom" — usuário quer ver resposta.
+        app_state["_user_scrolled_up"] = False
+        app_state["_output_scroll_offset"] = 0
         try:
             app = get_app()
             app.exit(result=buf.text)
@@ -445,6 +460,33 @@ def build_app(
         else:
             buf.delete()
 
+    # ── Scroll do output_window (TUI-CONVERSATION-SCROLLBAR-01) ──────────
+    # PgUp/PgDn/End operam no scroll do output mesmo com foco no input.
+    # Flag _user_scrolled_up pausa o auto-scroll do append_to_buffer.
+    @kb.add("pageup")
+    def _scroll_up_output(event: Any) -> None:
+        app_state["_user_scrolled_up"] = True
+        offset = int(app_state.get("_output_scroll_offset", 0))
+        app_state["_output_scroll_offset"] = offset + 1
+        event.app.invalidate()
+
+    @kb.add("pagedown")
+    def _scroll_down_output(event: Any) -> None:
+        offset = int(app_state.get("_output_scroll_offset", 0))
+        novo = max(0, offset - 1)
+        app_state["_output_scroll_offset"] = novo
+        if novo == 0:
+            # Voltou ao bottom: retoma auto-scroll.
+            app_state["_user_scrolled_up"] = False
+        event.app.invalidate()
+
+    @kb.add("end")
+    def _scroll_end_output(event: Any) -> None:
+        # Reset rápido: volta ao bottom e retoma auto-scroll.
+        app_state["_output_scroll_offset"] = 0
+        app_state["_user_scrolled_up"] = False
+        event.app.invalidate()
+
     # ── Layout ───────────────────────────────────────────────────────────
     # TUI-REDESIGN-28-08c-PARTE-3: output_control via FormattedTextControl +
     # ANSI parser para que escapes \x1b[...m (cores, bold, dim) do banner e
@@ -472,11 +514,21 @@ def build_app(
     # Auto-scroll: manter última linha visível. get_vertical_scroll devolve
     # max(0, n_linhas_total - altura_visivel), garantindo que novo conteúdo
     # appendado fique no rodapé do output_window.
+    #
+    # TUI-CONVERSATION-SCROLLBAR-01: quando app_state["_user_scrolled_up"]
+    # é True, subtrai _output_scroll_offset linhas para preservar a posição
+    # do usuário que rolou para cima via PgUp.
     def _scroll_to_bottom(window: Window) -> int:
         try:
             total = output_buffer.text.count("\n") + 1
             visible = window.render_info.window_height if window.render_info else 0
-            return max(0, total - visible)
+            bottom = max(0, total - visible)
+            if app_state.get("_user_scrolled_up", False):
+                offset = int(app_state.get("_output_scroll_offset", 0))
+                # offset em "páginas" (cada PgUp = uma janela visível menos 1).
+                step = max(1, visible - 1) if visible else 1
+                return max(0, bottom - offset * step)
+            return bottom
         except Exception:
             return 0
 
@@ -486,6 +538,7 @@ def build_app(
         always_hide_cursor=True,
         style="class:output",
         get_vertical_scroll=_scroll_to_bottom,
+        right_margins=[ScrollbarMargin(display_arrows=True)],
     )
     separator_window = Window(
         height=1,
