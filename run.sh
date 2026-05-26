@@ -696,6 +696,10 @@ fi
 # ─── COCKPIT (--web / --cockpit) ──────────────────────────
 if [ "$COCKPIT_BG" -eq 1 ]; then
     log_boot "Subindo cockpit em 127.0.0.1:11437..."
+    # UX-COCKPIT-CHROME-CLOSE-SHUTDOWN-01: sinaliza ao cockpit que ele foi subido
+    # por run.sh --web; ao fechar o navegador (WS disconnect real), o cockpit
+    # manda SIGTERM ao grupo do run.sh para shutdown ordenado (trap cleanup).
+    export NYX_COCKPIT_FROM_RUN_SH=1
     "$SCRIPT_DIR/venv/bin/python" -m nyx.cockpit.server \
         >> "$SCRIPT_DIR/logs/cockpit.log" 2>&1 &
     COCKPIT_PID=$!

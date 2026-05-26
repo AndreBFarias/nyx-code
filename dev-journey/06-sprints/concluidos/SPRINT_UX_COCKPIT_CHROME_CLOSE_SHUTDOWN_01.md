@@ -25,7 +25,7 @@ sprint:
 
 # Sprint 250 — UX-COCKPIT-CHROME-CLOSE-SHUTDOWN-01
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (2026-05-26)
 **Data criação:** 2026-05-25
 
 ## Contexto
@@ -85,3 +85,25 @@ finally:
 |---|---|
 | Refresh do Chrome reconecta WS mas sinaliza shutdown intermediário | Delay 2s no shutdown signal; se WS reconectar, cancela |
 | Multiple tabs: fechar uma mata tudo | OK (handover da 246 já fechou anteriores; última tab = última usuária) |
+
+## Proof-of-work (REAL, runtime cockpit, 2026-05-26)
+
+Implementado conforme Opção A do spec, com a guarda anti-handover do risco #1:
+- `run.sh` exporta `NYX_COCKPIT_FROM_RUN_SH=1` antes de subir o cockpit (confirmado
+  em `/proc/<pid>/environ`).
+- `server.py`: `import signal`; global `_shutdown_task`; helper `_delayed_shutdown()`
+  (sleep 2s -> se `_active_ws is None` ainda, `os.killpg(os.getpgid(os.getppid()),
+  SIGTERM)`); no `accept()` cancela shutdown pendente (nova conexão); no `finally`
+  agenda shutdown so se `was_active` (nao em handover) e env setada.
+
+Validado via Playwright (boot `./run.sh --web`, env confirmada no processo):
+- TEST A (refresh/handover): navigate 2x -> aguardado 4s -> run.sh+ollama+proxy+cockpit
+  TODOS VIVOS + /health UP. Handover NAO derruba (guarda cancela o shutdown). [PASS]
+- TEST B (fechar navegador): `page.close()` -> aguardado 5s -> run.sh (1304718),
+  ollama (1304782), proxy (1304881), cockpit (1304886) TODOS MORTOS;
+  `pgrep "ollama serve|cockpit.server|proxy.py"` VAZIO -- zero orfaos. [PASS]
+  (background task do run.sh terminou com exit 144 = SIGTERM esperado).
+
+`./run.sh --smoke` boot ok; invariantes 14/14. Modo default (sem --web) preservado
+(shutdown gated por NYX_COCKPIT_FROM_RUN_SH, so setada em --web); Ctrl+C intacto
+(trap inalterado).

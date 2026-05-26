@@ -22,6 +22,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import signal
 import time
 import uuid
 from pathlib import Path
@@ -92,6 +93,32 @@ _pty_lock = asyncio.Lock()
 _active_pty: PtyBridge | None = None
 _active_ws: WebSocket | None = None
 _ws_clients: set[WebSocket] = set()
+# UX-COCKPIT-CHROME-CLOSE-SHUTDOWN-01: task de shutdown atrasado do run.sh pai.
+_shutdown_task: asyncio.Task | None = None
+
+
+async def _delayed_shutdown() -> None:
+    """Encerra o run.sh pai quando o navegador fecha de vez (modo --web).
+
+    Delay curto + checagem de reconexao distingue fechamento real de handover
+    (refresh/F5/nova aba): se um novo /repl conectar dentro da janela, _active_ws
+    volta a != None e abortamos. So roda quando NYX_COCKPIT_FROM_RUN_SH=1.
+    """
+    try:
+        await asyncio.sleep(2.0)
+    except asyncio.CancelledError:
+        return
+    if _active_ws is not None:
+        return  # reconectou (handover) -- nao era fechamento real
+    try:
+        parent_pgid = os.getpgid(os.getppid())
+        logger.info(
+            "Cockpit: navegador fechou; SIGTERM ao grupo do run.sh (pgid=%s)",
+            parent_pgid,
+        )
+        os.killpg(parent_pgid, signal.SIGTERM)
+    except Exception as exc:  # noqa: BLE001 -- best-effort shutdown
+        logger.debug("Shutdown do run.sh pai falhou: %s", exc)
 
 # COCKPIT-03: registry de jobs em background.
 _jobs: dict[str, dict[str, Any]] = {}
@@ -547,8 +574,14 @@ async def repl(ws: WebSocket):
     Protocolo: bytes brutos do PTY -> WS frames binários, e vice-versa.
     Mensagens texto JSON são reservadas para metadados (ex: resize).
     """
-    global _active_pty, _active_ws
+    global _active_pty, _active_ws, _shutdown_task
     await ws.accept()
+
+    # UX-COCKPIT-CHROME-CLOSE-SHUTDOWN-01: nova conexao cancela um shutdown
+    # pendente -- handover/refresh nao deve derrubar o run.sh.
+    if _shutdown_task is not None and not _shutdown_task.done():
+        _shutdown_task.cancel()
+        _shutdown_task = None
 
     # UX-COCKPIT-PTY-HANDOVER-01: nova conexão substitui anterior em vez de
     # rejeitar com "busy". Caso típico: usuário faz refresh/F5 ou abre nova tab.
@@ -651,8 +684,14 @@ async def repl(ws: WebSocket):
             reader_task.cancel()
             bridge.close()
             _active_pty = None
-            if _active_ws is ws:
+            was_active = _active_ws is ws
+            if was_active:
                 _active_ws = None
+            # UX-COCKPIT-CHROME-CLOSE-SHUTDOWN-01: se ESTA era a conexao ativa
+            # (nao um handover ja substituido) e o cockpit foi subido por
+            # run.sh --web, agenda shutdown do run.sh pai (cancelado se reconectar).
+            if was_active and os.environ.get("NYX_COCKPIT_FROM_RUN_SH") == "1":
+                _shutdown_task = asyncio.create_task(_delayed_shutdown())
 
 
 def main() -> None:
