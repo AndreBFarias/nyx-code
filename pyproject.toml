@@ -61,9 +61,3 @@ select = ["E", "F", "W", "I"]
 # persistem mas exit code do ruff continua 0 — não bloqueia o invariante
 # #10 (que verifica exit code, não warnings).
 external = ["noqa-acento"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = "test_*.py"
-python_functions = "test_*"
-addopts = "-v --tb=short"

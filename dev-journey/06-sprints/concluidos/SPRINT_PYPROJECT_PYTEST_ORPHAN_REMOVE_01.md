@@ -42,7 +42,7 @@ sprint:
 
 # Sprint 259 — PYPROJECT-PYTEST-ORPHAN-REMOVE-01
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (2026-05-26)
 **Data criacao:** 2026-05-25
 
 ## Contexto
@@ -73,10 +73,18 @@ nyx.__version__.__version__`) segue resolvendo.
 - [ ] TOML valido (tomllib parse).
 - [ ] Smoke ok.
 
-## Proof-of-work
+## Proof-of-work (REAL, 2026-05-26)
+
+Removido o bloco `[tool.pytest.ini_options]` (5 linhas + linha em branco anterior).
+`external = ["noqa-acento"]` passa a ser a ultima linha do arquivo.
 
 ```
-grep -c "tool.pytest" pyproject.toml   # ANTES: 1 ; DEPOIS: 0
-python3 -c "import tomllib; print('TOML OK' if tomllib.load(open('pyproject.toml','rb')) else 'FAIL')"
-./run.sh --smoke   # boot ok
+grep -c "tool.pytest" pyproject.toml   # DEPOIS: 0
+python3 -c "import tomllib; tomllib.load(open('pyproject.toml','rb'))"  # TOML OK
+ruff check nyx/                          # All checks passed (le [tool.ruff] do mesmo arquivo)
+./run.sh --smoke                         # boot ok
+bash scripts/sprint_invariants.sh        # PASS 14 / FAIL 0
 ```
+
+[tool.ruff], [build-system] e [tool.setuptools.dynamic] (versao dinamica)
+preservados intactos.
