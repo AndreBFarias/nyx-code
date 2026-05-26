@@ -1,7 +1,7 @@
 # Sprint Order Master -- Nyx-Code
 
-**Versão:** v5.4.0
-**Data:** 2026-05-21 (v5.4.0 abre ONDA-29 hotfixes UX da v1.3.0 -- 7 sprints PENDENTE em producao/: TUI-STATE-GLYPHS-SYNC-06, TUI-INPUT-DEADLOCK-01, TUI-BANNER-DEDUP-02, TUI-BANNER-BLINK-SOFT-03, TUI-CTRL-Q-OLLAMA-STOP-04, TUI-CTRL-D-PARITY-05, TUI-SIGINT-RECLAIM-07; origem feedback usuário 2026-05-21 sobre input travado, banner fantasma, blink defeituoso, Ctrl+Q inerte + auditoria revelou bugs correlatos; plano canônico ~/.claude/plans/olha-s-na-nyx-jaunty-reef.md; v5.3.1 segunda sessão Validador adiciona CTX-04 CONCLUIDA via /plan checklist persistida — entry 159; v5.3 bump em SPRINT_ORDER-REFRESH-01 fecha auditoria do dia: 18 sprints CONCLUIDAS 2026-05-19 + reconciliação 10 sprints concluídas pendentes em producao/ + 1 duplicata removida + TUI-INPUT-HEIGHT fix-tag-along registrado; v5.2 ONDA-28 2026-05-18; v5.1 SPRINT_ORDER-REFRESH-01 2026-05-18)
+**Versão:** v5.5.0
+**Data:** 2026-05-26 (v5.5.0 ONDA-31: auditoria profunda 2026-05-25 + execução sprints 247-259 -- CONCLUIDAS 248 OUTPUT-DEDUP, 250 CHROME-CLOSE-SHUTDOWN, 254 INVARIANT-14-COVERAGE, 255 DOC-COUNT-SYNC, 259 PYPROJECT-PYTEST-CLEANUP, 253 WORKING-TREE-RESTORE; PENDENTE com root-cause documentado 247 RESPONSIVE-FIT (artefato de viewport Playwright, aguarda Chrome real) + 249 FLASH-PRETO (alternate-screen toggle, refactor in-app planejado); 256/257/258 ver blocos MANUAL_OVERRIDE_ONDA_31); 2026-05-21 (v5.4.0 abre ONDA-29 hotfixes UX da v1.3.0 -- 7 sprints PENDENTE em producao/: TUI-STATE-GLYPHS-SYNC-06, TUI-INPUT-DEADLOCK-01, TUI-BANNER-DEDUP-02, TUI-BANNER-BLINK-SOFT-03, TUI-CTRL-Q-OLLAMA-STOP-04, TUI-CTRL-D-PARITY-05, TUI-SIGINT-RECLAIM-07; origem feedback usuário 2026-05-21 sobre input travado, banner fantasma, blink defeituoso, Ctrl+Q inerte + auditoria revelou bugs correlatos; plano canônico ~/.claude/plans/olha-s-na-nyx-jaunty-reef.md; v5.3.1 segunda sessão Validador adiciona CTX-04 CONCLUIDA via /plan checklist persistida — entry 159; v5.3 bump em SPRINT_ORDER-REFRESH-01 fecha auditoria do dia: 18 sprints CONCLUIDAS 2026-05-19 + reconciliação 10 sprints concluídas pendentes em producao/ + 1 duplicata removida + TUI-INPUT-HEIGHT fix-tag-along registrado; v5.2 ONDA-28 2026-05-18; v5.1 SPRINT_ORDER-REFRESH-01 2026-05-18)
 **Modelo obrigatório:** Opus 4.7 (claude-opus-4-7) -- sem subagentes (planejador-sprint/executor-sprint/validador-sprint apenas no fluxo /sprint-ciclo; implementação direta no normal)
 
 ---
@@ -27,7 +27,7 @@ Port status: `dev-journey/PORT_STATUS.md`.
 
 ## Inventário
 
-> **Fonte única:** `dev-journey/08-templates/PROJECT_SNAPSHOT.md` §Contagens. Verificação executável: `python scripts/sync.py` imprime `inventario: tools=N, commands_unicos=M, services=S` na primeira linha. Em 2026-04-21 (pós BANNER-TOOLS-COUNT-01): **35 tools (runtime) · 52 commands únicos · 9 services · 24 ADRs · 135+ testes no Gauntlet**.
+> **Fonte única:** `dev-journey/08-templates/PROJECT_SNAPSHOT.md` §Contagens. Verificação executável: `python scripts/sync.py` imprime `inventario: tools=N, commands_unicos=M, services=S` na primeira linha. Em 2026-04-21 (pós BANNER-TOOLS-COUNT-01): **35 tools (runtime) · 52 commands únicos · 9 services · 24 ADRs · 135+ testes no Gauntlet**. Em 2026-05-26 (ONDA-31, `sync.py` autoritativo): **35 tools · 67 commands únicos · 15 services · 32 ADRs · 320 testes catalogados no Gauntlet** (números congelados servem só de marco histórico; a fonte viva é sempre `python scripts/sync.py`).
 
 **Nota histórica:**
 - **2026-04-09 (limpeza PROD):** removidos 27 command-stubs cloud e 11 service-stubs cloud. Port 1:1 do OpenClaude abandonado. Foco em funcionalidade local-first; features cloud/enterprise (voice, mobile, chrome, plugins, rate-limit, etc) não se aplicam. <!-- noqa-cli-externo --> <!-- noqa-anonimato -->
@@ -718,7 +718,7 @@ Plano canônico: `~/.claude/plans/olha-s-na-nyx-jaunty-reef.md`.
 | 259 | **PYPROJECT-PYTEST-ORPHAN-REMOVE-01** | 31.audit (auditoria profunda 2026-05-25) | BAIXA | CONCLUIDA (2026-05-26; removido bloco [tool.pytest.ini_options] 65-69 do pyproject.toml; [tool.ruff]/[build-system]/[tool.setuptools.dynamic] preservados; TOML válido via tomllib, ruff All checks passed, smoke ok, invariantes 14/14) | -- |
 | 258 | **PROXY-HANDLE-CHAT-REFACTOR-01** | 31.audit (auditoria profunda 2026-05-25) | BAIXA | PENDENTE (handle_chat 245L com 3 guardrails LANG/IDENTITY/MEMORY quase idênticos; extrair _retry_with_hint; mover _OOM_DEGRADED global para app[state]; refactor puro, gauntlet --only proxy 7/7 é a rede) | -- |
 | 257 | **SANITIZER-VENDOR-EXCLUDE-HARDEN-01** | 31.audit (auditoria profunda 2026-05-25) | BAIXA | PENDENTE (emoji_guardian.py IGNORE_DIRS sem vendor; universal-sanitizer já exclui; foi o emoji_guardian que corrompeu xterm.js; defense-in-depth + avaliar limpar .pyc desativado; touch EXTERNO ao repo) | SANITIZER-WORKING-TREE-RESTORE-09 |
-| 256 | **DOC-STATE-REFRESH-ONDA31-01** | 31.audit (auditoria profunda 2026-05-25) | BAIXA | PENDENTE (MASTER header v5.4.0/2026-05-21, Inventário de 2026-04-21, Projeção parada na Onda 22; README Status atual 2026-05-21; STATE sessão 2026-05-21; trabalho real na ONDA-31) | DOC-COUNT-INTERNAL-SYNC-01 |
+| 256 | **DOC-STATE-REFRESH-ONDA31-01** | 31.audit (auditoria profunda 2026-05-25) | BAIXA | CONCLUIDA (2026-05-26; append-style: MASTER header v5.4.0->v5.5.0 + entrada ONDA-31 na Data; Inventário apêndice 2026-05-26 35/67/15 apontando sync.py como fonte viva; Projeção de testes marcada histórica até Onda 22; README "Status atual" 2026-05-21->2026-05-26 ONDA-31; STATE.md local atualizado (gitignored, não commitado). smoke ok, invariantes 14/14) | DOC-COUNT-INTERNAL-SYNC-01 |
 | 255 | **DOC-COUNT-INTERNAL-SYNC-01** | 31.audit (auditoria profunda 2026-05-25) | BAIXA | CONCLUIDA (2026-05-26; README corpo 222 61->67 + 239 14->15; STATE.md 66->67/14->15 (gitignored, fix local); update_docs.py ganhou 2 regex em update_readme p/ reescrever headers das secoes Commands/Services -- idempotente, antes so o topo sincronizava; sync.py 35/67/15, ruff OK, invariantes 14/14) | -- |
 | 254 | **INVARIANT-14-COVERAGE-DOCS-VENDOR-01** | 31.audit (auditoria profunda 2026-05-25) | MÉDIA | CONCLUIDA (2026-05-26; sub-check no bloco Python do #14: conjunto-sentinela MICROCOPY.md + xterm.js vendored + ADR_027 compara contagem de codepoints Geometric Shapes U+25A0-U+25FF working vs git show HEAD; working<HEAD -> FAIL. Range em vez de literais (imune a sanitizer). Validado: NEGATIVO estripar 1 ● do MICROCOPY -> FAIL exit 1 (working=16<HEAD=17); POSITIVO tree limpa -> 14/14 PASS; tempo total 0.69s < 2s budget; restore -> PASS. Cobre o gap exato: antes passava 14/14 com 65 docs estripados) | SANITIZER-WORKING-TREE-RESTORE-09 |
 | 253 | **SANITIZER-WORKING-TREE-RESTORE-09** | 31.audit (auditoria profunda 2026-05-25) | ALTA | CONCLUIDA (2026-05-25; classificação rigorosa strip-non-ASCII HEAD vs working separou 65 em 61 dano-puro-glifo + 4 conteúdo-ASCII-legítimo; `git checkout` cirúrgico nos 61 preservando os 4 (checkpoint.json + baseline gauntlet + PROJECT_SNAPSHOT 387→434 + SPRINT_TEMPLATE_V2 cli.py 790→980, todos com glifos 10==10/0==0 intactos); xterm.js U+25C6 0→1, MICROCOPY glifos 0→17; smoke boot ok; invariantes 14/14 PASS; MASTER e os 7 specs 253-259 preservados fora do checkout; achado colateral materializado: recidiva xterm.js prova falta de exclusão /vendor/ no emoji_guardian → sprint 257) | -- |
@@ -987,6 +987,11 @@ Espelha o que SBOM-PROMOTE-IP (commit `1c5d264`) fez na Onda 24. 20 sprints `SPR
 ---
 
 ## Projeção de testes
+
+> **NOTA (ONDA-31, 2026-05-26):** esta projeção é **histórica até a Onda 22** (340
+> testes planejados). As ondas 23-31 não atualizaram esta tabela; o estado real de
+> testes vive em `python scripts/sync.py` e nos resultados do `./run.sh --gauntlet`
+> (320 testes catalogados). Tabela mantida como registro de planejamento original.
 
 | Onda | Conteúdo | Testes novos | Total |
 |------|---------|-------------|-------|

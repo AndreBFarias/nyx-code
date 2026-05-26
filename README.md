@@ -327,7 +327,7 @@ Uso:
 | 030 | MCP cliente stdio | ACEITO |
 | 031 | Modelo padrão qwen2.5-coder:3b | ACEITO |
 
-## Status atual (2026-05-21, v1.3.0-rc2 backlog drenado)
+## Status atual (2026-05-26, v1.3.0 ONDA-31)
 
 Para estado autoritativo consultar `dev-journey/08-templates/PROJECT_SNAPSHOT.md`.
 
@@ -336,7 +336,7 @@ Para estado autoritativo consultar `dev-journey/08-templates/PROJECT_SNAPSHOT.md
 - **Invariantes**: 14/14 PASS
 - **Cockpit**: operacional em `127.0.0.1:11437` com 19 endpoints HTTP + 2 WS
 - **Tag v1.0**: `VALIDATE-FINAL-01-PARTE-2` CONCLUIDA (2026-05-19); tag aguarda apenas comando humano (`git tag -a v1.0`) — sprint `RELEASE-V1.0-CUT-01` em `producao/`
-- **Backlog técnico**: ZERADO — 440 sprints concluídas, 1 em produção (RELEASE delegada ao humano)
+- **Backlog técnico**: ZERADO — 441 sprints concluídas, 1 em produção (RELEASE delegada ao humano)
 
 ## Requisitos
 

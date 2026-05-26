@@ -43,7 +43,7 @@ sprint:
 
 # Sprint 256 — DOC-STATE-REFRESH-ONDA31-01
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (2026-05-26)
 **Data criacao:** 2026-05-25
 
 ## Contexto
@@ -73,10 +73,24 @@ local sem commit.
 - [ ] STATE.md linha de retomada atual.
 - [ ] Smoke preservado.
 
-## Proof-of-work
+## Proof-of-work (REAL, 2026-05-26)
+
+Atualizado (append-style, sem apagar histórico):
+- MASTER header: Versão v5.4.0 -> v5.5.0; Data ganha entrada 2026-05-26 ONDA-31
+  (lista CONCLUIDAS/PENDENTE da onda) antes da entrada 2026-05-21.
+- MASTER Inventário: apêndice 2026-05-26 (ONDA-31) com 35/67/15/32 ADRs/320 testes
+  apontando `sync.py` como fonte viva (números congelados = só marco histórico).
+- MASTER Projeção de testes: nota de que é histórica até Onda 22; estado real em
+  `sync.py` + `--gauntlet`.
+- README "Status atual": (2026-05-21, v1.3.0-rc2) -> (2026-05-26, v1.3.0 ONDA-31).
+- STATE.md (gitignored, local): linha de retomada -> sessão 2026-05-26 ONDA-31.
 
 ```
-grep -n "ONDA-31\|2026-05-2" dev-journey/06-sprints/SPRINT_ORDER_MASTER.md | head
-grep -n "Status atual" README.md
-./run.sh --smoke   # boot ok
+grep -n "v5.5.0\|ONDA-31" dev-journey/06-sprints/SPRINT_ORDER_MASTER.md | head   # presente
+grep -n "Status atual" README.md   # 2026-05-26, v1.3.0 ONDA-31
+./run.sh --smoke                    # boot ok
+bash scripts/sprint_invariants.sh   # PASS 14 / FAIL 0
 ```
+
+STATE.md e VALIDATOR_BRIEF.md NAO commitados (gitignored por design, conforme
+forbidden do spec).
