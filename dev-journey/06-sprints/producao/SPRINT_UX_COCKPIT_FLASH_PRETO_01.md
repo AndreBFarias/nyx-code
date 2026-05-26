@@ -68,3 +68,51 @@ Fase 2 — fix cirúrgico:
 - [ ] `◆ NyxCode` + spinner aparece em <100ms após Enter.
 - [ ] Streaming substitui spinner suavemente.
 - [ ] Smoke + invariantes preservados.
+
+## ROOT-CAUSE CONFIRMADO (2026-05-26, repro empírico no cockpit)
+
+Reproduzido via Playwright + captura X11 @80ms (`/tmp/fl_008.png`): durante TODO o
+processamento a conversa some (tela vazia), reaparece com a resposta. NÃO é flash
+breve -- dura o turno inteiro.
+
+Causa-raiz REAL (mais profunda que as hipóteses originais -- é a #2 + #4 combinadas):
+- `repl_app.py:578` constrói a Application com `full_screen=True` (alternate screen).
+- `cli.py:640` faz `await repl_app.run_async()` POR TURNO: a Application roda só
+  para capturar input e SAI (`app.exit`) quando o usuário submete.
+- O `agent.run()` (cli.py:783) processa o turno com a Application JÁ ENCERRADA.
+- Ao sair do `run_async()`, o prompt_toolkit DEIXA a alternate screen -> o
+  `output_window` (que desenha a conversa) some -> tela principal em branco durante
+  todo o processamento. Próximo `run_async()` re-entra a alternate screen e
+  re-renderiza o `output_buffer` (agora com a resposta) -> conversa "volta".
+- Secundário: `NyxSpinner` (output.py:490,516) escreve `sys.stdout` CRU em vez de
+  `_emit`; em modo Application isso não aparece coerentemente.
+
+Por que "spinner no buffer" sozinho NÃO resolve: durante o processamento a
+Application está encerrada, logo o `output_buffer` nem é renderizado -- `◆ NyxCode`
++ spinner iriam para um buffer invisível.
+
+## SOLUÇÃO ESCOLHIDA (usuário 2026-05-26): refactor in-app
+
+Manter a Application VIVA durante o processamento (padrão moderno prompt_toolkit):
+- `run_async()` roda UMA vez (não por turno).
+- `accept_handler` (Enter), em vez de `app.exit(result=text)`, agenda o
+  processamento como background task: `app.create_background_task(process_turn(text))`
+  e NÃO sai da Application.
+- Extrair o corpo do turno atual (cli.py ~662-870: handle_command, agent.run,
+  render_assistant_start/end, summarize, cancel/erro) para uma coroutine
+  `process_turn(text)`.
+- Com a Application viva, `_emit`/`append_to_buffer` renderizam AO VIVO (visível);
+  `get_app()` funciona nos callbacks do event loop -> spinner pode animar no buffer
+  com line-replace + `app.invalidate()`.
+- Reentrância: desabilitar/ignorar submit enquanto `inflight` ativo (ou enfileirar).
+- Cancel (Ctrl+C / /cancel) cancela a background task.
+- Interação com 248: `suppress_live` permanece (box ao fim); o spinner cobre o
+  período de processamento; ao 1º token o spinner para e o box materializa ao fim.
+
+Risco ALTO (núcleo do REPL). Validar: smoke + invariantes + repro no cockpit
+(conversa NÃO some durante processamento; spinner "aquecendo" visível acima do
+NyxCode; resposta materializa o box sem flash). Considerar sub-sprint dedicada por
+ser refactor de ~250 linhas críticas.
+
+**Status permanece PENDENTE** -- diagnóstico e design prontos; implementação é o
+próximo passo focado.
