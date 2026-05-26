@@ -703,12 +703,14 @@ if [ "$COCKPIT_BG" -eq 1 ]; then
     sleep 2
     if curl -sf http://127.0.0.1:11437/health > /dev/null 2>&1; then
         log_boot "Cockpit pronto (PID: $COCKPIT_PID)"
-        # Abre browser default (xdg-open no Linux). Best-effort.
+        # SPRINT 239 hotfix3: abre DIRETO em /static/terminal.html (REPL)
+        # ao inves de / (dashboard de cards) -- usuario quer conversar com a
+        # Nyx imediatamente, nao ver feature catalog.
         if command -v xdg-open >/dev/null 2>&1; then
-            xdg-open http://127.0.0.1:11437/ > /dev/null 2>&1 &
-            log_nyx "browser aberto em http://127.0.0.1:11437/"
+            xdg-open http://127.0.0.1:11437/static/terminal.html > /dev/null 2>&1 &
+            log_nyx "browser aberto em http://127.0.0.1:11437/static/terminal.html"
         else
-            log_nyx "abra http://127.0.0.1:11437/ no browser"
+            log_nyx "abra http://127.0.0.1:11437/static/terminal.html no browser"
         fi
     else
         log_warn "Cockpit falhou. Veja logs/cockpit.log"
