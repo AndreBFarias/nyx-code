@@ -292,6 +292,39 @@ if inv.count(CB) < 3 or inv.count(D0) < 3 or inv.count(CF) < 3:
         f"(cb={inv.count(CB)}, d0={inv.count(D0)}, cf={inv.count(CF)}, "
         f"esperado>=3 cada para garantir check #14 não-neutralizado)"
     )
+# INVARIANT-14-COVERAGE-DOCS-VENDOR-01: o check acima só cobria runtime e passou
+# 14/14 com 65 docs + xterm.js estripados (auditoria 2026-05-25). Sub-check de
+# regressão para um conjunto-sentinela (docs + vendored): a working tree não pode
+# ter MENOS glifos da faixa Geometric Shapes (U+25A0-U+25FF: ○◐●◆◇▶▼ etc.) que o
+# HEAD. Strip de glifo = working < HEAD -> FAIL. Custo: 3 `git show` (~150ms).
+import subprocess
+SENTINELS = [
+    "dev-journey/05-guides/MICROCOPY.md",
+    "nyx/cockpit/static/vendor/xterm.js",
+    "dev-journey/03-decisions/ADR_027_PROGRESSAO_IDENTIDADE.md",
+]
+def _geo_count(text: str) -> int:
+    # Conta codepoints da faixa Geometric Shapes (allowlist canônica). Range em
+    # vez de literais: imune a sanitizer e cobre toda a allowlist de uma vez.
+    return sum(1 for ch in text if 0x25A0 <= ord(ch) <= 0x25FF)
+for _rel in SENTINELS:
+    _p = Path(_rel)
+    if not _p.exists():
+        continue
+    _work = _geo_count(_p.read_text(encoding="utf-8"))
+    try:
+        _head_txt = subprocess.run(
+            ["git", "show", f"HEAD:{_rel}"],
+            capture_output=True, text=True, timeout=5,
+        ).stdout
+    except Exception:  # noqa: BLE001 -- sem HEAD/arquivo novo: pula sentinela
+        continue
+    _head = _geo_count(_head_txt)
+    if _work < _head:
+        fails.append(
+            f"{_rel}: glifos Geometric Shapes removidos "
+            f"(working={_work} < HEAD={_head}) -- possível dano de sanitizer"
+        )
 print("; ".join(fails))
 PY
 )

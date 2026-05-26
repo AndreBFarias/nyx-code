@@ -39,7 +39,7 @@ sprint:
 
 # Sprint 254 — INVARIANT-14-COVERAGE-DOCS-VENDOR-01
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (2026-05-26)
 **Data criacao:** 2026-05-25
 
 ## Contexto
@@ -76,14 +76,29 @@ Ampliar o check #14 com uma sub-verificação de "glifo-orfao":
 - [ ] Tempo do check < 2s.
 - [ ] 14/14 PASS com tree limpa.
 
-## Proof-of-work
+## Proof-of-work (REAL, 2026-05-26)
+
+Implementado como sub-check dentro do bloco Python do check #14 em
+`sprint_invariants.sh`: para um conjunto-sentinela (`MICROCOPY.md`, vendored
+`xterm.js`, `ADR_027`), compara a contagem de codepoints da faixa Geometric
+Shapes (U+25A0-U+25FF, range em vez de literais -> imune a sanitizer e cobre
+toda a allowlist) na working tree vs `git show HEAD:<arquivo>`. Se working < HEAD
+-> FAIL. Custo: 3 `git show` (~150ms).
 
 ```
-# Reproducao negativa (deve FALHAR):
-cp MICROCOPY.md /tmp/mc.bak
-sed -i 's/U+25CF-literal//' dev-journey/05-guides/MICROCOPY.md
-bash scripts/sprint_invariants.sh ; echo "exit=$?"   # esperado: exit != 0, FAIL no #14
-cp /tmp/mc.bak dev-journey/05-guides/MICROCOPY.md
-# Reproducao positiva (deve PASSAR):
-bash scripts/sprint_invariants.sh   # PASS: 14 FAIL: 0
+# POSITIVO (tree limpa):
+bash scripts/sprint_invariants.sh   # exit 0; PASS 14 / FAIL 0; total 0.69s (< 2s)
+
+# NEGATIVO (estripar 1 glifo ● do MICROCOPY via python replace):
+#   ● antes=11 depois=10
+bash scripts/sprint_invariants.sh   # exit 1; FAIL no #14:
+#   "MICROCOPY.md: glifos Geometric Shapes removidos (working=16 < HEAD=17)
+#    -- possivel dano de sanitizer"
+
+# RESTORE (git checkout MICROCOPY):
+bash scripts/sprint_invariants.sh   # exit 0; PASS 14 / FAIL 0
 ```
+
+Cobre o gap exato da auditoria: o check passava 14/14 com 65 docs + xterm.js
+estripados. Agora um strip num sentinela (docs OU vendored) -> FAIL antes do commit.
+Sem falso-positivo em tree limpa; tempo total 0.69s respeita o budget do smoke.
