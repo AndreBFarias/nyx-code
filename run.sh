@@ -46,7 +46,7 @@ log_err()  { echo -e "  ${RED}[nyx]${NC} $1" >&2; }
 mkdir -p "$SCRIPT_DIR/logs" 2>/dev/null
 log_boot() { echo "$(date +%H:%M:%S) [nyx] $1" >> "$SCRIPT_DIR/logs/boot.log"; }
 
-# SPRINT 237 UX-BOOT-SILENT-SPINNER-01: spinner unico durante todo o boot.
+# SPRINT 237 UX-BOOT-SILENT-SPINNER-01: spinner único durante todo o boot.
 # stdout do bloco principal vai para boot.log (via tee implicito do
 # log_boot); stderr (log_warn/log_err) permanece visivel.
 BOOT_SPINNER_PID=""
@@ -67,13 +67,17 @@ start_boot_spinner() {
     # Loop usa \b (backspace) para voltar 1 char e sobrescrever -- funciona
     # em qualquer terminal. Paleta espelha banner.py:_build_wide.
     printf "\x1b[?25l\r  ${PURPLE}\$${NC} ${PRIMARY}nyx${PURPLE}.${PRIMARY}code${NC}  ${DIM}aquecendo${NC}   "
+    # SPRINT 241 hotfix spinner-anim: removido `local` em subshell.
+    # Em bash, `local` SO funciona dentro de função -- subshell ( ... )
+    # nao herda esse escopo. Com `set -u`, `local` em subshell aborta
+    # silenciosamente, congelando o spinner no primeiro frame.
     (
-        local frames='|/-\'
-        local i=0
+        _frames='|/-\'
+        _i=0
         while :; do
-            local s=${frames:$i:1}
-            printf "\b${DIM}%s${NC}" "$s"
-            i=$(( (i+1) % 4 ))
+            _s=${_frames:$_i:1}
+            printf "\b${DIM}%s${NC}" "$_s"
+            _i=$(( (_i+1) % 4 ))
             sleep 0.5
         done
     ) &
@@ -319,12 +323,34 @@ acquire_lock() {
 }
 
 # ─── PARAR OLLAMA EXISTENTE ──────────────────────────────
+# INFRA-BOOT-HANG-DIAGNOSE-01 (2026-05-25): lsof -ti:PORT trava
+# indefinidamente neste sistema (testado: 5+ rodadas com timeout 2s
+# todas estouram em 11435 E 8000 — não é especifico do Ollama). Usar
+# `ss -Hltnp` que retorna em <30ms. Fallback timeout em lsof se ss
+# falhar por iproute2 ausente. Veja boot.log para histórico de hangs.
+_port_owner_pid() {
+    local port="$1"
+    # ss canônico (iproute2, rápido, POSIX-friendly em Linux moderno)
+    if command -v ss >/dev/null 2>&1; then
+        ss -Hltnp 2>/dev/null | awk -v p="$port" '
+        {
+            split($4, a, ":"); lp = a[length(a)]
+            if (lp == p && match($0, /pid=[0-9]+/)) {
+                s = substr($0, RSTART, RLENGTH); sub("pid=", "", s); print s; exit
+            }
+        }'
+        return 0
+    fi
+    # Fallback: lsof com timeout 2s (defensivo — sistema sem ss).
+    timeout 2 lsof -nP -ti:"$port" 2>/dev/null | head -1 || true
+}
+
 kill_existing_ollama() {
     # Parar proxy anterior
     pkill -f "nyx/proxy.py" 2>/dev/null || true
 
     local existing_pid
-    existing_pid=$(lsof -ti:"$NYX_OLLAMA_PORT" 2>/dev/null || true)
+    existing_pid=$(_port_owner_pid "$NYX_OLLAMA_PORT")
     if [ -n "$existing_pid" ]; then
         local owner
         owner=$(ps -p "$existing_pid" -o comm= 2>/dev/null || echo "desconhecido")
@@ -584,8 +610,10 @@ acquire_lock
 # ─── AUTO-ATUALIZAR EXECUTAR_SPRINT.md ───────────────────
 # Não-bloqueante. Lê SPRINT_ORDER_MASTER.md, detecta próxima PENDENTE,
 # atualiza EXECUTAR_SPRINT.md se o ID mudou. Falha silencioso (|| true).
+# < /dev/null defensivo: subprocess herda stdin do shell; se algum FD
+# estiver em estado estranho, isolar evita propagar para o python.
 if [ -x "$SCRIPT_DIR/venv/bin/python" ] && [ -f "$SCRIPT_DIR/scripts/update_next_sprint.py" ]; then
-    _next_info="$("$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/scripts/update_next_sprint.py" 2>/dev/null || true)"
+    _next_info="$("$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/scripts/update_next_sprint.py" 2>/dev/null < /dev/null || true)"
     if [ -n "$_next_info" ]; then
         log_boot "$_next_info"
     fi
@@ -692,11 +720,31 @@ fi
 # Pulado em modo gauntlet (próprio gauntlet exercita as fases) e --smoke.
 #
 # SPRINT 237 UX-BOOT-SILENT-SPINNER-01 reverte 236: warmup volta bloqueante
-# para que o spinner unico `$ nyx.code aquecendo...` aguarde o aquecimento
-# completar antes de abrir o CLI. Usuario quer ver a interface so quando
-# tudo estiver pronto, nao ver prompt enquanto modelo ainda aquece.
+# para que o spinner único `$ nyx.code aquecendo...` aguarde o aquecimento
+# completar antes de abrir o CLI. Usuário quer ver a interface só quando
+# tudo estiver pronto, não ver prompt enquanto modelo ainda aquece.
 if [ "$GAUNTLET" -eq 0 ]; then
-    warmup_model
+    # SPRINT 241 hotfix warmup-timeout: limita warmup a 6s. Quando proxy
+    # degrada para CPU (OOM em GPU fragmentada -- caso comum com Chrome
+    # rodando, oom_recovery_count=85 historico), warmup em CPU leva 9-11s
+    # gerando UX de "trava na tela aquecendo". Com timeout, boot completa
+    # em <8s; primeira mensagem real do usuario absorve cold start via
+    # INFRA-OOM-RETRY-STEP-01 (sprint 125aa). Trade-off aceito: 1a msg
+    # marginalmente mais lenta vs boot rapido + interface visivel.
+    warmup_model &
+    _warmup_pid=$!
+    _warmup_done=0
+    for _ in $(seq 1 60); do  # 60 * 100ms = 6s ceiling
+        if ! kill -0 "$_warmup_pid" 2>/dev/null; then
+            _warmup_done=1
+            break
+        fi
+        sleep 0.1
+    done
+    if [ "$_warmup_done" -eq 0 ]; then
+        kill -9 "$_warmup_pid" 2>/dev/null || true
+        log_boot "Warmup timeout 6s -- primeira mensagem absorve cold start (INFRA-OOM-RETRY-STEP)"
+    fi
 fi
 
 NYX_SYSTEM_PROMPT="Sou Nyx. Codificadora. Vivo no terminal.
