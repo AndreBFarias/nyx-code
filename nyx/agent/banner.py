@@ -24,6 +24,7 @@ from nyx.themes.design_tokens import (
     ANSI_PURPLE_FG,
     ANSI_RESET,
     ANSI_SUCCESS_FG,
+    ANSI_WARNING_FG,
     BOX_CHARS,
 )
 from nyx.themes.theme_manager import current_ansi, current_glyphs
@@ -230,9 +231,19 @@ def _build_wide(
     """
     if cursor == "":
         cursor = " "
+    import os
+
     purple = ANSI_PURPLE_FG
     primary = ANSI_PRIMARY_FG
     success = ANSI_SUCCESS_FG
+    warning = ANSI_WARNING_FG
+
+    # UX-BANNER-GPU-STATUS-01: lê NYX_NUM_GPU (setado por run.sh após auto-tune).
+    # Valor inválido ou ausente cai em 0 (CPU mode).
+    try:
+        num_gpu = int(os.environ.get("NYX_NUM_GPU", "0"))
+    except ValueError:
+        num_gpu = 0
 
     # Largura total interna entre │ esquerda e │ direita.
     inner_w = 70
@@ -265,14 +276,25 @@ def _build_wide(
         f"  {accent}{v}{nc}{left_empty}{accent}{_LJOIN}{h * right_w}{_RJOIN}{nc}"
     )
 
-    # ---- row 1 (direita): versão + offline ----
-    # plain visible: "  v1.2.0      ●  100% offline" within right_w
-    plain_r1 = f"  v{NYX_VERSION}      ●  100% offline"
+    # ---- row 1 (direita): versão + offline + GPU/CPU ----
+    # UX-BANNER-GPU-STATUS-01: campo GPU/CPU após "100% offline", separado por
+    # '·' muted. GPU: N layers em accent (turquesa) se num_gpu > 0; CPU em
+    # warning (amarelo-âmbar) caso contrário.
+    if num_gpu > 0:
+        gpu_plain = f"GPU: {num_gpu} layers"
+        gpu_colored = f"{accent}GPU:{nc} {primary}{num_gpu} layers{nc}"
+    else:
+        gpu_plain = "CPU"
+        gpu_colored = f"{warning}CPU{nc}"
+    # plain visible: "  v1.3.0  ●  100% offline  ·  GPU: N layers" within right_w
+    plain_r1 = f"  v{NYX_VERSION}  ●  100% offline  ·  {gpu_plain}"
     pad_r1 = max(1, right_w - len(plain_r1))
     row1_right = (
-        f"  {dim}v{NYX_VERSION}{nc}      "
+        f"  {dim}v{NYX_VERSION}{nc}  "
         f"{accent}●{nc}  "
-        f"{success}100% offline{nc}"
+        f"{success}100% offline{nc}  "
+        f"{muted}·{nc}  "
+        f"{gpu_colored}"
         f"{' ' * pad_r1}"
     )
     linha_r1 = (

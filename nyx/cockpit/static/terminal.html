@@ -16,16 +16,22 @@
     }
     * { box-sizing: border-box; }
     html, body {
-      margin: 0; padding: 0; height: 100%;
+      margin: 0; padding: 0;
+      width: 100vw; height: 100vh;
+      overflow: hidden;
       background: var(--nyx-bg);
       color: var(--nyx-ink);
       font-family: ui-monospace, "JetBrains Mono", "Fira Mono", monospace;
     }
     .header {
-      padding: 0.5rem 1rem;
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 32px;
+      padding: 0 1rem;
       border-bottom: 1px solid var(--nyx-bg-soft);
       display: flex; align-items: center; gap: 1rem;
       font-size: 0.85rem;
+      background: var(--nyx-bg);
+      z-index: 10;
     }
     .header .brand {
       color: var(--nyx-accent);
@@ -45,8 +51,17 @@
     .status-dot.busy { background: var(--nyx-purple); }
     .status-dot.error { background: #FF6B6B; }
     #terminal {
-      height: calc(100vh - 2.5rem);
-      padding: 0.5rem;
+      position: fixed;
+      top: 32px; left: 0; right: 0; bottom: 0;
+      padding: 0.25rem;
+      overflow: hidden;
+    }
+    #terminal .terminal,
+    #terminal .xterm,
+    #terminal .xterm-viewport,
+    #terminal .xterm-screen {
+      width: 100% !important;
+      height: 100% !important;
     }
     .footer {
       position: fixed; bottom: 0; right: 0;
@@ -55,6 +70,7 @@
       color: var(--nyx-ink-dim);
       background: var(--nyx-bg-soft);
       border-top-left-radius: 4px;
+      z-index: 20;
     }
     /* PTY-PERMISSION-FLOW-01: modal overlay para aprovar CONFIRM_ONCE */
     #perm-overlay {
@@ -161,7 +177,49 @@
         brightWhite: "#E8E8E8",
       },
     });
-    term.open(document.getElementById("terminal"));
+    const termContainer = document.getElementById("terminal");
+    term.open(termContainer);
+
+    // UX-COCKPIT-FULLSCREEN-01: fit manual (xterm.js vendored sem FitAddon).
+    // Calcula cols/rows a partir do tamanho de celula real e dimensoes do
+    // container. Chamado apos open() e em todo resize do window (debounced).
+    function measureCell() {
+      const probe = document.createElement("span");
+      probe.style.cssText = (
+        "position:absolute; visibility:hidden; white-space:pre;" +
+        "font-family:" + term.options.fontFamily + ";" +
+        "font-size:" + term.options.fontSize + "px;" +
+        "line-height:" + (term.options.lineHeight || 1.0) + ";"
+      );
+      probe.textContent = "M".repeat(80);
+      termContainer.appendChild(probe);
+      const rect = probe.getBoundingClientRect();
+      const cellW = rect.width / 80;
+      const cellH = rect.height;
+      probe.remove();
+      return { cellW: cellW || 8, cellH: cellH || 16 };
+    }
+
+    function fitTerminal() {
+      if (!termContainer || !term.element) return;
+      const { cellW, cellH } = measureCell();
+      const padX = 8;   // 0.25rem * 2 do #terminal padding (aprox 8px)
+      const padY = 8;
+      const availW = Math.max(termContainer.clientWidth - padX, cellW * 20);
+      const availH = Math.max(termContainer.clientHeight - padY, cellH * 5);
+      const cols = Math.max(20, Math.floor(availW / cellW));
+      const rows = Math.max(5, Math.floor(availH / cellH));
+      if (cols !== term.cols || rows !== term.rows) {
+        try {
+          term.resize(cols, rows);
+        } catch (err) {
+          console.warn("[cockpit] term.resize falhou:", err);
+        }
+      }
+    }
+
+    // Primeira chamada apos layout estabilizar (font carrega assincrono).
+    requestAnimationFrame(() => requestAnimationFrame(fitTerminal));
 
     const wsProto = location.protocol === "https:" ? "wss:" : "ws:";
     const ws = new WebSocket(`${wsProto}//${location.host}/repl`);
@@ -169,7 +227,8 @@
 
     ws.onopen = () => {
       setStatus("connected", "conectado");
-      // Envia tamanho inicial
+      // UX-COCKPIT-FULLSCREEN-01: garante fit antes de enviar tamanho inicial.
+      fitTerminal();
       sendResize();
     };
     // PTY-PERMISSION-FLOW-01: detecta marca `[permissao: uma vez] Executar <tool>(`
@@ -245,6 +304,13 @@
       if (typeof e.data === "string") {
         try {
           const meta = JSON.parse(e.data);
+          if (meta.type === "replaced") {
+            // UX-COCKPIT-PTY-HANDOVER-01: nova aba assumiu o PTY; esta sessao
+            // foi substituida cleanly pelo servidor. Mensagem informativa, sem
+            // erro vermelho.
+            setStatus("info", "Sessao substituida por nova aba");
+            return;
+          }
           if (meta.type === "busy") {
             setStatus("busy", "PTY ocupado (outra sessao ativa)");
             term.write("\r\n\x1b[33m[cockpit] outra sessao PTY ativa. Aguarde ela fechar.\x1b[0m\r\n");
@@ -285,10 +351,16 @@
       if (ws.readyState !== WebSocket.OPEN) return;
       ws.send(JSON.stringify({ type: "resize", rows: term.rows, cols: term.cols }));
     }
+    // UX-COCKPIT-FULLSCREEN-01: resize debounced -> recalcula cols/rows pelo
+    // viewport via fitTerminal() e propaga via sendResize() para o PTY.
+    let _resizeTimer = null;
     window.addEventListener("resize", () => {
-      // xterm.js precisa de fitAddon para resize automatico; sem ele,
-      // o usuario pode disparar manualmente via 'r' no inicio.
-      sendResize();
+      if (_resizeTimer !== null) clearTimeout(_resizeTimer);
+      _resizeTimer = setTimeout(() => {
+        fitTerminal();
+        sendResize();
+        _resizeTimer = null;
+      }, 80);
     });
   </script>
 </body>

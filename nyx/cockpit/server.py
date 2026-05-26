@@ -90,6 +90,7 @@ def _choose_repl_command() -> list[str]:
 
 _pty_lock = asyncio.Lock()
 _active_pty: PtyBridge | None = None
+_active_ws: WebSocket | None = None
 _ws_clients: set[WebSocket] = set()
 
 # COCKPIT-03: registry de jobs em background.
@@ -546,9 +547,39 @@ async def repl(ws: WebSocket):
     Protocolo: bytes brutos do PTY -> WS frames binários, e vice-versa.
     Mensagens texto JSON são reservadas para metadados (ex: resize).
     """
-    global _active_pty
+    global _active_pty, _active_ws
     await ws.accept()
+
+    # UX-COCKPIT-PTY-HANDOVER-01: nova conexão substitui anterior em vez de
+    # rejeitar com "busy". Caso típico: usuário faz refresh/F5 ou abre nova tab.
+    # WS antigo recebe `replaced` (info, não erro) e fecha; PTY antigo é
+    # terminado; espera-se o lock liberar antes de spawnar o novo.
+    if _active_pty is not None:
+        try:
+            if _active_ws is not None:
+                await _active_ws.send_text(json.dumps({"type": "replaced"}))
+                await _active_ws.close(code=1000)
+        except Exception as exc:  # noqa: BLE001 -- WS antigo já podia estar morto
+            logger.debug("Falha ao notificar WS anterior (handover): %s", exc)
+        try:
+            # PtyBridge.close() envia SIGTERM ao processo PTY e libera master_fd;
+            # é idempotente (atributo _closed). Equivale ao terminate() pedido pela spec.
+            _active_pty.close()
+        except Exception as exc:  # noqa: BLE001 -- bridge pode já estar fechada
+            logger.debug("Falha ao terminar PTY anterior (handover): %s", exc)
+        _active_pty = None
+        _active_ws = None
+        # Aguarda o lock liberar (max 2s). Necessário porque o owner anterior
+        # ainda está no async with; o terminate() acima desbloqueia a leitura,
+        # que cai no finally e libera o lock.
+        for _ in range(20):
+            if not _pty_lock.locked():
+                break
+            await asyncio.sleep(0.1)
+
     if _pty_lock.locked():
+        # Lock ainda travado sem _active_pty: alguém legitimamente segurando
+        # antes do bind (race rara). Mantém o caminho busy original.
         await ws.send_text(json.dumps({"type": "busy", "reason": "PTY já alocado"}))
         await ws.close(code=1013)
         return
@@ -581,6 +612,7 @@ async def repl(ws: WebSocket):
             return
 
         _active_pty = bridge
+        _active_ws = ws
         try:
             bridge.start()
         except Exception as exc:  # noqa: BLE001 -- spawn falhou
@@ -588,6 +620,7 @@ async def repl(ws: WebSocket):
             await ws.send_text(json.dumps({"type": "error", "message": str(exc)}))
             await ws.close(code=1011)
             _active_pty = None
+            _active_ws = None
             return
 
         async def _pty_to_ws() -> None:
@@ -618,6 +651,8 @@ async def repl(ws: WebSocket):
             reader_task.cancel()
             bridge.close()
             _active_pty = None
+            if _active_ws is ws:
+                _active_ws = None
 
 
 def main() -> None:

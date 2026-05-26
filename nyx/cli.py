@@ -497,10 +497,15 @@ async def run_repl(
                 from prompt_toolkit.document import Document
 
                 _initial_banner_len = len(_banner_str) + 1  # +1 do "\n" final
+                # SPRINT 243 INFRA-BANNER-BLINK-INVESTIGATE-01: instrumentacao
+                # Fase 1 ativavel por env NYX_BLINK_DEBUG=1. Loga visible,
+                # confirmacao de set_document, e confirmacao de invalidate.
+                _blink_debug = bool(os.environ.get("NYX_BLINK_DEBUG"))
 
                 async def _banner_blink_loop() -> None:
                     visible = True
                     prev_banner = _banner_str
+                    tick = 0
                     while True:
                         try:
                             await asyncio.sleep(0.5)
@@ -515,6 +520,12 @@ async def run_repl(
                             continue
                         visible = not visible
                         cursor = chr(0x7C) if visible else ""
+                        tick += 1
+                        if _blink_debug:
+                            logger.info(
+                                "blink tick=%d visible=%s cursor=%r",
+                                tick, visible, cursor,
+                            )
                         try:
                             new_banner = _bb(
                                 model, agent.tools_count, PROJECT_ROOT.name,
@@ -539,6 +550,12 @@ async def run_repl(
                                     text=novo, cursor_position=len(novo),
                                 )
                                 prev_banner = new_banner
+                                if _blink_debug:
+                                    logger.info(
+                                        "blink tick=%d set_document OK "
+                                        "novo_len=%d",
+                                        tick, len(novo),
+                                    )
                                 # SPRINT 238 INFRA-BANNER-BLINK-NO-CLEAR-01
                                 # (2026-05-25): removido renderer.clear() que
                                 # limpava a tela INTEIRA a cada 0.5s causando
@@ -553,10 +570,19 @@ async def run_repl(
                                         get_app as _get_app,
                                     )
                                     _get_app().invalidate()
+                                    if _blink_debug:
+                                        logger.info(
+                                            "blink tick=%d invalidate OK", tick,
+                                        )
                                 except Exception as _iexc:  # noqa: BLE001
                                     logger.debug(
                                         "blink invalidate falhou: %s", _iexc,
                                     )
+                            elif _blink_debug:
+                                logger.info(
+                                    "blink tick=%d não startswith prev_banner "
+                                    "(buffer foi truncado/limpo)", tick,
+                                )
                         except Exception as _exc:  # noqa: BLE001
                             logger.debug("blink set_document falhou: %s", _exc)
 
