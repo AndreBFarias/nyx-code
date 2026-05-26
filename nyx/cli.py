@@ -539,26 +539,20 @@ async def run_repl(
                                     text=novo, cursor_position=len(novo),
                                 )
                                 prev_banner = new_banner
-                                # FormattedTextControl usa callable; precisa
-                                # de invalidate para chamar _ansi_output() de
-                                # novo e re-parsear ANSI escapes do banner.
-                                # Sem renderer.clear(), delta-rendering do
-                                # prompt_toolkit assume append-only e deixa o
-                                # banner antigo na tela com o novo overlaid
-                                # com offset -- vide debug 2026-05-25 18:25.
+                                # SPRINT 238 INFRA-BANNER-BLINK-NO-CLEAR-01
+                                # (2026-05-25): removido renderer.clear() que
+                                # limpava a tela INTEIRA a cada 0.5s causando
+                                # flicker total visivel (frame com 653 bytes
+                                # vs 28K normal -- captura empirica do usuario).
+                                # Mantido apenas invalidate() que re-chama o
+                                # callable do FormattedTextControl. Eventual
+                                # offset cosmetico do delta-rendering eh
+                                # preferivel a flicker total da Application.
                                 try:
                                     from prompt_toolkit.application import (
                                         get_app as _get_app,
                                     )
-                                    _app = _get_app()
-                                    try:
-                                        _app.renderer.clear()
-                                    except Exception as _cexc:  # noqa: BLE001
-                                        logger.debug(
-                                            "blink renderer.clear falhou: %s",
-                                            _cexc,
-                                        )
-                                    _app.invalidate()
+                                    _get_app().invalidate()
                                 except Exception as _iexc:  # noqa: BLE001
                                     logger.debug(
                                         "blink invalidate falhou: %s", _iexc,

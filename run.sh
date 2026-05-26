@@ -50,24 +50,29 @@ log_boot() { echo "$(date +%H:%M:%S) [nyx] $1" >> "$SCRIPT_DIR/logs/boot.log"; }
 # stdout do bloco principal vai para boot.log (via tee implicito do
 # log_boot); stderr (log_warn/log_err) permanece visivel.
 BOOT_SPINNER_PID=""
+BOOT_SPINNER_ACTIVE=0
 start_boot_spinner() {
     # Skip em headless, gauntlet ou non-TTY (CI, pipe, redirect).
     if [ ! -t 1 ] || [ "${HEADLESS:-0}" -eq 1 ] || [ "${GAUNTLET:-0}" -eq 1 ]; then
         return 0
     fi
-    # Salva stdout original em fd 3 e silencia stdout para boot.
-    exec 3>&1
-    exec >> "$SCRIPT_DIR/logs/boot.log"
-    # Hide cursor + imprime header FIXO uma vez + salva posição.
-    # Depois só sobrescreve o char animado via cursor restore (sem flicker
-    # da linha inteira). Cadência 0.5s (mais suave que 0.15s).
-    printf "\x1b[?25l\r  ${PRIMARY}\$ nyx.code${NC}  ${DIM}aquecendo${NC}  \x1b[s " >&3
+    BOOT_SPINNER_ACTIVE=1
+    # SPRINT 237 hotfix3: sem exec >> logs/boot.log (era fragil, quebrava
+    # comandos do boot que dependem do stdout). Em vez disso, log_nyx/log_ok
+    # sao redefinidas como silenciosas (so logam pra boot.log). log_warn /
+    # log_err continuam visiveis em stderr.
+    log_nyx() { echo "$(date +%H:%M:%S) [nyx] $1" >> "$SCRIPT_DIR/logs/boot.log"; }
+    log_ok()  { echo "$(date +%H:%M:%S) [nyx] $1" >> "$SCRIPT_DIR/logs/boot.log"; }
+    # Hide cursor + imprime header FIXO uma vez + 1 espaco placeholder.
+    # Loop usa \b (backspace) para voltar 1 char e sobrescrever -- funciona
+    # em qualquer terminal. Paleta espelha banner.py:_build_wide.
+    printf "\x1b[?25l\r  ${PURPLE}\$${NC} ${PRIMARY}nyx${PURPLE}.${PRIMARY}code${NC}  ${DIM}aquecendo${NC}   "
     (
         local frames='|/-\'
         local i=0
         while :; do
             local s=${frames:$i:1}
-            printf "\x1b[u${DIM}%s${NC}" "$s" >&3
+            printf "\b${DIM}%s${NC}" "$s"
             i=$(( (i+1) % 4 ))
             sleep 0.5
         done
@@ -76,15 +81,17 @@ start_boot_spinner() {
     disown "$BOOT_SPINNER_PID" 2>/dev/null || true
 }
 stop_boot_spinner() {
-    [ -z "$BOOT_SPINNER_PID" ] && return 0
+    [ "$BOOT_SPINNER_ACTIVE" -eq 0 ] && return 0
+    BOOT_SPINNER_ACTIVE=0
     # Mata spinner com TERM primeiro, depois KILL se sobreviver. Sem wait
-    # porque PID disowned pode travar `wait` no shell pai (sprint 237 hotfix).
-    kill -TERM "$BOOT_SPINNER_PID" 2>/dev/null || true
-    kill -KILL "$BOOT_SPINNER_PID" 2>/dev/null || true
+    # porque PID disowned pode travar `wait` no shell pai.
+    [ -n "$BOOT_SPINNER_PID" ] && kill -TERM "$BOOT_SPINNER_PID" 2>/dev/null || true
+    [ -n "$BOOT_SPINNER_PID" ] && kill -KILL "$BOOT_SPINNER_PID" 2>/dev/null || true
     BOOT_SPINNER_PID=""
-    # Restaura stdout, mostra cursor de volta e limpa linha do spinner.
-    exec >&3 2>/dev/null || true
-    exec 3>&- 2>/dev/null || true
+    # Restaura log_nyx/log_ok visiveis (para cleanup ao sair do CLI).
+    log_nyx()  { echo -e "  ${PRIMARY}[nyx]${NC} $1"; }
+    log_ok()   { echo -e "  ${GREEN}[nyx]${NC} $1"; }
+    # Mostra cursor de volta e limpa linha do spinner.
     printf "\r\x1b[2K\x1b[?25h"
 }
 
