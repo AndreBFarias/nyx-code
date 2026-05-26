@@ -804,6 +804,22 @@ log_boot "Iniciando Nyx CLI..."
 # SPRINT 237 UX-BOOT-SILENT-SPINNER-01: para spinner e restaura stdout
 # antes de entregar o terminal ao CLI Python (que precisa de TTY limpa).
 stop_boot_spinner
+
+# SPRINT 239 UX-WEB-NO-LOCAL-CLI-01: em modo --web/--cockpit, o CLI é
+# servido via PTY bridge do cockpit em /repl (WebSocket + xterm.js).
+# Subir cli.py local aqui duplicaria o consumidor de PTY e dispararia o
+# guard de sessão PTY exclusiva do cockpit. Bloqueia o script com
+# sleep loop; trap cleanup (linha 590-591) mata cockpit + proxy + ollama
+# em Ctrl+C/SIGTERM/SIGHUP. Modo default (sem --web) preserva o exec
+# antigo byte-a-byte.
+if [ "$COCKPIT_BG" -eq 1 ]; then
+    echo ""
+    log_nyx "Cockpit pronto em http://127.0.0.1:11437/"
+    log_nyx "Pressione Ctrl+C para encerrar."
+    echo ""
+    while true; do sleep 60; done
+fi
+
 "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/nyx/cli.py"
 EXIT_CODE=$?
 
