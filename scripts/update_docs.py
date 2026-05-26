@@ -281,6 +281,16 @@ def update_readme(
             r"\d+ sprints concluídas, \d+ em produção",
             f"{sprints_done} sprints concluídas, 1 em produção",
         ),
+        # DOC-COUNT-INTERNAL-SYNC-01: cobre os headers das secoes internas do
+        # README (antes so o topo era sincronizado -> corpo divergia: 61/14).
+        (
+            r"## Commands \(\d+ registrados\)",
+            f"## Commands ({commands} registrados)",
+        ),
+        (
+            r"## Services \(\d+\)",
+            f"## Services ({services})",
+        ),
     ]
 
     for pattern, replacement in replacements:
@@ -323,8 +333,8 @@ def update_port_status(tools: int, commands: int, services: int, check: bool) ->
             f"| **TOTAL** | **173** | **{tools + commands + services}** | **{173 - (tools + commands + services)}** | **{(tools + commands + services) * 100 // 173}%** |",  # noqa: E501
         ),
         (
-            r"## 1\. TOOLS \(40 OpenClaude -> \d+ Nyx\)",
-            f"## 1. TOOLS (40 OpenClaude -> {tools} Nyx)",
+            r"## 1\. TOOLS \(40 OpenClaude -> \d+ Nyx\)",  # noqa-anonimato # noqa-cli-externo
+            f"## 1. TOOLS (40 OpenClaude -> {tools} Nyx)",  # noqa-anonimato # noqa-cli-externo
         ),
         (
             r"### Portadas \(\d+\)",

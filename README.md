@@ -219,7 +219,7 @@ sem perguntar, ideal para CI/container.
 | Edição avançada | analyze, patch, multi_edit |
 | Utilidade | sleep, config, brief, tool_search, skill, send_message, ask_user |
 
-## Commands (61 registrados)
+## Commands (67 registrados)
 
 | Categoria | Commands |
 |-----------|----------|
@@ -236,7 +236,7 @@ sem perguntar, ideal para CI/container.
 | Avançado | /btw, /pr-comments |
 | Root | /advisor, /brief-cmd, /commit-push-pr, /insights, /security-review |
 
-## Services (14)
+## Services (15)
 
 tokens, compact, hooks, memory, summary, suggestions, analytics, diagnostics, logging_service, tool_use_summary, plugin_manager, mcp_client, hook_runtime, lifecycle.
 
@@ -336,7 +336,7 @@ Para estado autoritativo consultar `dev-journey/08-templates/PROJECT_SNAPSHOT.md
 - **Invariantes**: 14/14 PASS
 - **Cockpit**: operacional em `127.0.0.1:11437` com 19 endpoints HTTP + 2 WS
 - **Tag v1.0**: `VALIDATE-FINAL-01-PARTE-2` CONCLUIDA (2026-05-19); tag aguarda apenas comando humano (`git tag -a v1.0`) — sprint `RELEASE-V1.0-CUT-01` em `producao/`
-- **Backlog técnico**: ZERADO — 438 sprints concluídas, 1 em produção (RELEASE delegada ao humano)
+- **Backlog técnico**: ZERADO — 439 sprints concluídas, 1 em produção (RELEASE delegada ao humano)
 
 ## Requisitos
 

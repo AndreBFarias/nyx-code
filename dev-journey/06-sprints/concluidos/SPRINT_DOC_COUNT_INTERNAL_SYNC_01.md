@@ -41,7 +41,7 @@ sprint:
 
 # Sprint 255 — DOC-COUNT-INTERNAL-SYNC-01
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (2026-05-26)
 **Data criacao:** 2026-05-25
 
 ## Contexto
@@ -72,10 +72,21 @@ E `STATE.md` (linha 22) tem off-by-one: "Commands: 66 unicos, Services: 14".
 - [ ] STATE.md = 35/67/15.
 - [ ] update_docs.py cobre as tabelas internas (idempotente).
 
-## Proof-of-work
+## Proof-of-work (REAL, 2026-05-26)
+
+Corrigido README corpo (222: 61->67, 239: 14->15), STATE.md:22 (66->67, 14->15)
+e estendido `update_docs.py` (2 regex novos em `update_readme`) para reescrever os
+headers `## Commands (N registrados)` e `## Services (N)` a partir das contagens
+runtime -- antes so o topo era sincronizado.
 
 ```
 python scripts/sync.py | head -1   # inventario: tools=35, commands_unicos=67, services=15
-grep -nE "Commands \(|Services \(" README.md   # 67 e 15
-grep -nE "Commands:|Services:" STATE.md        # 67 e 15
+grep -nE "## Commands \(|## Services \(" README.md   # 222: 67 registrados ; 239: (15)
+grep -nE "Commands:.*Services:" STATE.md             # 22: Commands: 67 unicos, Services: 15
+python scripts/update_docs.py                        # idempotente: headers seguem 67/15
+ruff check scripts/update_docs.py                    # All checks passed
+bash scripts/sprint_invariants.sh                    # PASS 14 / FAIL 0
 ```
+
+Idempotencia confirmada: rodar `update_docs.py` apos o fix mantem 67/15 (nao
+re-introduz o drift).
