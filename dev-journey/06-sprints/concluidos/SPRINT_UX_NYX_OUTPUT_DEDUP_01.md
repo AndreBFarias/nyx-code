@@ -30,7 +30,7 @@ sprint:
 
 # Sprint 248 — UX-NYX-OUTPUT-DEDUP-01
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (2026-05-26)
 **Data criação:** 2026-05-25
 
 ## Contexto
@@ -99,3 +99,43 @@ Usuário reportou + mostrou exemplo literal:
 | Mudar `Nyx` → `NyxCode` quebra references textuais em outras sprints | Verificar grep `◆ Nyx` no codebase antes; se houver muitos sites, criar constante |
 | Streaming sem feedback visual durante turno = UX pior | Aceitar trade-off OU emitir spinner inline antes do box materializar |
 | Cálculo de elapsed em `render_assistant_end` se start_monotonic ausente | Fallback "(tempo indisponível)" ou omitir meta-line |
+
+## Proof-of-work (REAL, runtime cockpit, 2026-05-26)
+
+Reprodução empírica no cockpit (`./run.sh --web` + Playwright dirigindo o xterm,
+mensagem real "oi, tudo bem?" enviada à Nyx):
+
+ANTES (bate com "como é" do spec) -- `cockpit_248_resposta.png`:
+```
+◆ Nyx
+│ Oi! Tudo ótimo, obrigado pela pergunta. Como posso ajudar você hoje?   (side-rule)
+╭─ Nyx ──────────────────────────────────╮
+│ Oi! Tudo ótimo, obrigado pela pergunta...│   (box DUPLICA o texto)
+╰──────────────────────────────────────────╯
+└── 5.0s   (footer)
+```
+
+DEPOIS (bate com "como deveria ser") -- `cockpit_248_depois.png`:
+```
+◆ NyxCode
+│ Respondeu em apenas 0.8s   (meta-line DIM, ACIMA do box)
+╭──────────────────────────╮  (box SEM titulo "Nyx")
+│ Oi! Tudo ótimo, e você?   │
+╰──────────────────────────╯
+```
+
+4 mudanças aplicadas:
+- `output.py:render_assistant_start` -> header `◆ NyxCode` (era `◆ Nyx`).
+- `output.py:render_assistant_box` -> `_render_soft_box(text, "", PURPLE)` (box sem titulo);
+  `_render_soft_box` trata label vazio com `title = "─"`.
+- `output.py:render_assistant_end` -> quando box materializa (width>=80), meta-line
+  `│ Respondeu em apenas {elapsed:.1f}s` DIM ANTES do box; footer `└── Ns` removido
+  nesse caminho. Fallback width<80 preserva footer antigo.
+- `cli.py` seta `turn_state["suppress_live"]=True` quando width>=80 e
+  `cli_callbacks.py:flush_buffer` nao emite stream ao vivo nesse caso (elimina a
+  duplicacao stream+box). Texto acumula em `streamed_text`; box o consolida.
+
+Verificação: ruff All checks passed; `./run.sh --smoke` boot ok; invariantes 14/14.
+Fallback `console_width<80` (linha plain) e `--headless` (run_headless separado)
+NAO afetados. Nota: ha 1 linha em branco entre meta-line e box (leading `_eprint`
+de `_render_soft_box`) -- cosmetico, nao bloqueante.

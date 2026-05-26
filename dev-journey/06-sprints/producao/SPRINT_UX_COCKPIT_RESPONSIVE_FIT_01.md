@@ -91,3 +91,19 @@ Fase 2 — fix:
 ## Proof-of-work
 
 Captura visual antes/depois via `import -window` da janela maximizada. SHA distinto entre ANTES (640x500 efetivo) e DEPOIS (1900x1000 efetivo).
+
+## Investigação 2026-05-26 (NÃO reproduz no Playwright -- MANTÉM PENDENTE)
+
+Tentativa de repro no Chromium do Playwright + medição DOM:
+- Viewport limpa 1920x1080: `innerW=1920 termW=1920 vpW=1897 domRows=80` -> preenche.
+- Resize runtime 1366x768: `termW=1366 vpW=1343 domRows=56` -> re-ajusta (handler
+  `window.resize` existente funciona).
+- O "640x500" reproduzido foi ARTEFATO do investigador: viewport do Playwright
+  travada em 1280 + janela OS esticada a 1920 via `wmctrl` -> faixa preta. Confirmado
+  por readout (`screenW=1280 vvScale=1 dpr=1`) e flags do processo
+  (`--user-data-dir=.../ms-playwright/mcp-chrome-*`, `--no-sandbox`).
+
+PENDÊNCIA REAL: o bug foi reportado no Chrome DIÁRIO do usuário (perfil default,
+janelas "Ouroboros"), não medido aqui (extensão MCP do navegador desconectada). **Sprint
+permanece PENDENTE** até repro/medição no Chrome real do usuário. Decisão do usuário
+2026-05-26: "deixa em aberto, não classifica como concluída".

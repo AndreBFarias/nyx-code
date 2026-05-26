@@ -759,6 +759,14 @@ async def run_repl(
         try:
             turn_state["streamed_text"] = ""
             turn_state["token_buffer"] = ""
+            # UX-NYX-OUTPUT-DEDUP-01: se o box vai materializar ao fim (width>=80),
+            # suprime o stream ao vivo (side-rule) para nao duplicar texto que o
+            # box ja exibe consolidado. Em terminal estreito (<80) o box nao
+            # renderiza, entao o stream ao vivo continua (sem regressao).
+            import shutil as _shutil
+            turn_state["suppress_live"] = (
+                _shutil.get_terminal_size(fallback=(80, 24)).columns >= 80
+            )
             # UX-LOOP-VISIBILITY-01: label dinâmico do spinner reflete o
             # estado do modelo (warming/warm) lido de app_state e a duração
             # decorrida desde o Enter. Usuário vê " aquecendo modelo..."

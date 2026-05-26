@@ -49,6 +49,12 @@ def build_render_callbacks(
     def flush_buffer() -> None:
         buf = turn_state.get("token_buffer", "")
         if buf:
+            # UX-NYX-OUTPUT-DEDUP-01: turno que materializa box no fim nao emite
+            # stream ao vivo (evita duplicacao stream+box). Texto ja foi acumulado
+            # em turn_state["streamed_text"] por on_token e o box o consolida.
+            if turn_state.get("suppress_live"):
+                turn_state["token_buffer"] = ""
+                return
             from nyx.agent.output import _emit, wrap_token_with_side_rule
             wrapped = wrap_token_with_side_rule(buf, side_rule_state)
             # TUI-REDESIGN-28-08c-PARTE-2: routing via _emit quando Application

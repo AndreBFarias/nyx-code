@@ -1191,7 +1191,7 @@ def _render_soft_box(display_text: str, label: str, ansi_color_fg: str) -> None:
         ) or [""]
         wrapped_lines.extend(chunks)
 
-    title = f"─ {label} ─"
+    title = f"─ {label} ─" if label else "─"
     max_line_w = max((len(line) for line in wrapped_lines), default=0)
     inner_w = max(max_line_w + 2, len(title) + 2)
     # Cap final para não ultrapassar console.
@@ -1234,7 +1234,9 @@ def render_assistant_box(display_text: str) -> None:
     if not display_text.strip():
         return
     from nyx.themes.design_tokens import ANSI_PURPLE_FG
-    _render_soft_box(display_text, "Nyx", ANSI_PURPLE_FG)
+    # UX-NYX-OUTPUT-DEDUP-01: box sem titulo "Nyx" -- identidade ja vem no
+    # header "◆ NyxCode" acima; titulo no box era redundante.
+    _render_soft_box(display_text, "", ANSI_PURPLE_FG)
 
 
 def render_user_input(
@@ -1350,7 +1352,8 @@ def render_assistant_start() -> None:
     from nyx.themes.design_tokens import ANSI_BOLD, ANSI_PURPLE_FG
 
     # HOTFIX-GLYPHS-01: ◆ = ◆ (black diamond, header da Nyx)
-    _eprint(f"\n  {ANSI_PURPLE_FG}◆{ANSI_RESET} {ANSI_ACCENT_FG}{ANSI_BOLD}Nyx{ANSI_RESET}")
+    # UX-NYX-OUTPUT-DEDUP-01: "Nyx" -> "NyxCode" (identidade do projeto no header).
+    _eprint(f"\n  {ANSI_PURPLE_FG}◆{ANSI_RESET} {ANSI_ACCENT_FG}{ANSI_BOLD}NyxCode{ANSI_RESET}")
 
 
 def render_assistant_end(
@@ -1370,22 +1373,37 @@ def render_assistant_end(
     em PURPLE/DIM, simulando o fechamento do bloco do mockup.
     Sem dados, mantém comportamento antigo (linha em branco).
     """
-    if body_text is not None and body_text.strip():
-        import shutil
-        console_width = shutil.get_terminal_size(fallback=(80, 24)).columns
-        if console_width >= 80:
-            render_assistant_box(body_text)
+    import shutil
 
+    from nyx.themes.design_tokens import ANSI_PURPLE_FG
+
+    will_box = bool(body_text and body_text.strip()) and (
+        shutil.get_terminal_size(fallback=(80, 24)).columns >= 80
+    )
+    elapsed: float | None = None
+    if start_monotonic is not None:
+        import time
+        elapsed = time.monotonic() - start_monotonic
+
+    # UX-NYX-OUTPUT-DEDUP-01: quando o box materializa, o tempo vai numa
+    # meta-line DIM ACIMA do box (no lugar do footer "└── Ns" que vinha
+    # depois). A duplicacao stream+box ja foi eliminada por suppress_live.
+    if will_box:
+        if elapsed is not None:
+            _eprint(
+                f"  {ANSI_PURPLE_FG}│{ANSI_RESET} "
+                f"{ANSI_DIM}Respondeu em apenas {elapsed:.1f}s{ANSI_RESET}"
+            )
+        render_assistant_box(body_text)
+        return
+
+    # Fallback (width<80 ou turno sem texto): footer compacto antigo preservado.
     if start_monotonic is None and tokens is None:
         _eprint()
         return
 
-    from nyx.themes.design_tokens import ANSI_PURPLE_FG
-
     parts: list[str] = []
-    if start_monotonic is not None:
-        import time
-        elapsed = time.monotonic() - start_monotonic
+    if elapsed is not None:
         parts.append(f"{elapsed:.1f}s")
     if tokens is not None:
         parts.append(f"{tokens} tokens")
