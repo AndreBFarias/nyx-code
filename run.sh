@@ -813,6 +813,12 @@ stop_boot_spinner
 # em Ctrl+C/SIGTERM/SIGHUP. Modo default (sem --web) preserva o exec
 # antigo byte-a-byte.
 if [ "$COCKPIT_BG" -eq 1 ]; then
+    # SPRINT 239 hotfix2: em --web o cockpit é dono do PTY (via PtyBridge.preflight
+    # no /repl WS). O lock /tmp/nyx.pid setado por acquire_lock faz o cockpit
+    # recusar conexão WS com "outra sessao PTY ativa" (server.py:566). Cedemos
+    # o lock após o cockpit subir; o ciclo de vida fica gerenciado pelo trap
+    # cleanup do run.sh + pelo próprio cockpit que controla PTY exclusiva.
+    rm -f "$NYX_PID_FILE" 2>/dev/null || true
     echo ""
     log_nyx "Cockpit pronto em http://127.0.0.1:11437/"
     log_nyx "Pressione Ctrl+C para encerrar."
