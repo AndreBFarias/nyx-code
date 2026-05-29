@@ -72,10 +72,21 @@ VRAM_MAX_GB: float = 2.5
 MAX_ITERATIONS: int = 50
 TEMPERATURE: float = 0.3
 MAX_TOKENS: int = 2048
+# Janela de ENTRADA do Ollama (num_ctx enviado ao modelo). E uma das tres
+# camadas independentes de "contexto"; não confundir com:
+#   - ContextBudget.DEFAULT_MAX_TOKENS (nyx/agent/context.py): gatilho de
+#     compactação INTERNO do histórico, deliberadamente conservador.
+#   - NUM_PREDICT_BY_INTENT / num_predict_for (abaixo): orçamento de SAIDA.
 NUM_CTX: int = 4096
 CURL_TIMEOUT: int = 10
 OLLAMA_START_TIMEOUT: int = 30
 
+# INFRA-NUM-GPU-RECONCILE-01: estes valores sao INERTES no boot real.
+# A fonte de verdade do num_gpu e o auto-tune (scripts/detect_gpu.py),
+# que run.sh injeta sempre via --num-gpu (12 ou cap por VRAM). Em proxy.py
+# o argparse `--num-gpu default=15` popula app["state"]["num_gpu"] ANTES do
+# _on_startup, entao o setdefault(_INITIAL_NUM_GPU=NUM_GPU_3B) nunca alcanca
+# o -1. Mantidos apenas como fallback teorico / espelho de model_tier.
 NUM_GPU_7B: int = 18
 NUM_GPU_3B: int = -1
 

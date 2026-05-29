@@ -65,6 +65,9 @@ class Toolbar(Static):
     mods: reactive[int] = reactive(0)
     model_state: reactive[str] = reactive("cold")
     mode: reactive[str] = reactive("normal")
+    # TUI-AGENT-BRIDGE-01: True enquanto worker do turno esta rodando.
+    # NyxTUI seta antes de run_worker e reseta no finally do _process_turn.
+    inflight: reactive[bool] = reactive(False)
 
     def __init__(self, *, model: str = "qwen2.5-coder:3b") -> None:
         super().__init__()
@@ -92,6 +95,12 @@ class Toolbar(Static):
         msg.append("  |  ", style=NYX_MUTED)
         glyph = STATE_GLYPHS.get(self.model_state, STATE_GLYPHS["cold"])
         msg.append(f"{glyph} {self.model_state}", style=NYX_MUTED)
+        # TUI-AGENT-BRIDGE-01: indicador de turno em execução com hint
+        # de cancelamento via Ctrl+C. Inserido antes da secao do modo
+        # para preservar legibilidade da extrema direita (modo) intacta.
+        if self.inflight:
+            msg.append("  |  ", style=NYX_MUTED)
+            msg.append("executando (Ctrl+C cancela)", style=NYX_ACCENT)
         msg.append("    ", style=NYX_MUTED)
         if self.mode == "bypass":
             msg.append(" bypass ON (shift+tab) ", style=f"bold {NYX_PURPLE_DIM}")
@@ -122,6 +131,9 @@ class Toolbar(Static):
         self.refresh()
 
     def watch_mode(self, old: str, new: str) -> None:
+        self.refresh()
+
+    def watch_inflight(self, old: bool, new: bool) -> None:
         self.refresh()
 
 

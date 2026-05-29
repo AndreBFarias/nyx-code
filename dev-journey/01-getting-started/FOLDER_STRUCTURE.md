@@ -8,7 +8,7 @@ Nyx-Code/
 ├── dist -> reference/dist         # Symlink para bundle da TUI
 │
 ├── nyx/                           # Pacote Python principal
-│   ├── proxy.py                   # Proxy OpenAI -> Ollama nativa (think=false)
+│   ├── proxy.py                   # Proxy OpenAI -> Ollama nativa (think=false) <!-- noqa-anonimato -->
 │   ├── config/                    # Configuração centralizada
 │   │   ├── settings.py            # NyxSettings (carrega .env + CLI)
 │   │   └── defaults.py            # Constantes padrão
@@ -62,7 +62,6 @@ Nyx-Code/
 ├── run.sh                         # Launcher (Ollama + Proxy + TUI/Gauntlet)
 ├── install.sh                     # Instalação completa
 ├── uninstall.sh                   # Remoção limpa
-├── main.py                        # Entry point Python (esqueleto)
 ├── GUIDE.md                      # Regras e identidade Nyx
 ├── README.md                      # Documentação principal
 ├── .env.example                   # Template de configuração

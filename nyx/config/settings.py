@@ -45,12 +45,6 @@ class NyxSettings:
     def proxy_v1_url(self) -> str:
         return f"{self.proxy_url}/v1"
 
-    @property
-    def num_gpu(self) -> int:
-        if "7b" in self.model:
-            return defaults.NUM_GPU_7B
-        return defaults.NUM_GPU_3B
-
 
 def _load_toml_overrides() -> dict[str, Any]:
     """ONBOARDING-01: lê ~/.nyx/config.toml se existir. Vazio em <3.11 ou erro."""

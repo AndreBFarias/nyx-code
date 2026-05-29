@@ -54,8 +54,10 @@ class BannerWidget(Static):
 
     DEFAULT_CSS = """
     BannerWidget {
+        dock: top;
         height: auto;
         background: $surface;
+        padding: 0 1;
     }
     """
 

@@ -64,9 +64,9 @@ consome e o que o LLM recebe em `tool_defs`.
 | Tools no registry (runtime) | 35 | `python -c "from nyx.agent.tools.registry import ToolRegistry; print(ToolRegistry('.').tool_count)"` |
 | Commands únicos (sem aliases) | 67 | runtime via `list_commands()` |
 | Services | 15 | `find nyx/agent/services -maxdepth 1 -name '*.py' ! -name '__init__.py' \| wc -l` |
-| ADRs vigentes | 32 | `ls dev-journey/03-decisions/ADR_*.md \| wc -l` |
+| ADRs vigentes | 31 | `ls dev-journey/03-decisions/ADR_*.md \| wc -l` |
 | Testes no Gauntlet | 320 (catalogados) | `./run.sh --gauntlet` |
-| Sprints concluídas | 387 | `ls dev-journey/06-sprints/concluidos/*.md \| wc -l` |
+| Sprints concluídas | 455 | `ls dev-journey/06-sprints/concluidos/*.md \| wc -l` |
 | Sprints pendentes | APENAS RELEASE-V1.0-CUT-01 (humano corta tag) — backlog técnico ZERADO | `ls dev-journey/06-sprints/producao/*.md \| wc -l` |
 
 ---
@@ -112,8 +112,8 @@ consome e o que o LLM recebe em `tool_defs`.
 
 1. **Local First** (ADR-001): tudo offline.
 2. **Zero emoji** em código, commit, doc, resposta (ADR-004).
-3. **Anonimato**: sem menção a Claude/Anthropic/GPT/Gemini/Copilot (ADR-005).
-4. **PT-BR com acentuação** (ADR-006): nunca "funcao", sempre "função".
+3. **Anonimato**: sem menção a Claude/Anthropic/GPT/Gemini/Copilot (ADR-005). <!-- noqa-anonimato -->
+4. **PT-BR com acentuação** (ADR-006): nunca "funcao", sempre "função". <!-- noqa-acento -->
 5. **Render layer** (ADR-024): `print()` só em `cli.py` e `output.py`.
 6. **Portas** só em `nyx/config/defaults.py` (invariant #5).
 7. **Hex de cor** só em `nyx/themes/design_tokens.py` (invariant #6, ativo desde UX-DESIGN-01).
@@ -161,7 +161,7 @@ Ver detalhes em `GSD.md §Fluxo completo de uma sprint`.
 
 ```
 1. cat EXECUTAR_SPRINT.md              → pega ID da próxima PENDENTE + prompt
-2. Session nova de Claude Opus 4.7     → cola o prompt
+2. Session nova de Claude Opus 4.7     → cola o prompt <!-- noqa-anonimato -->
 3. Executora lê sprint + GAMBIARRAS    → plano apresentado ao usuário
 4. bash scripts/sprint_invariants.sh   → FAIL_BEFORE registrado
 5. Implementa seguindo o arquivo       → código + testes no Gauntlet

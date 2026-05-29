@@ -28,13 +28,13 @@ sprint:
   removes: []
 
   n_to_n_pairs:
-    - descricao: "Constante X existe em A e B — atualizar ambos"
+    - descricao: "Constante X existe em A e B — atualizar ambos"  # noqa-acento
       paths: [A, B]
 
   forbidden:
     - "Adicionar emoji"
     - "Usar 'print()' fora de cli.py"
-    - "Menção a Claude/GPT/Anthropic"
+    - "Menção a Claude/GPT/Anthropic" <!-- noqa-anonimato -->
     - "Path absoluto hardcoded fora de design_tokens/settings"
 
   tests:
@@ -111,7 +111,7 @@ Forma canônica literal (copiar-colar):
 >
 > **Estado do sistema (na data da sprint):**
 > - Python 3.10+, modelo `qwen2.5-coder:3b` no Ollama porta 11435, proxy 11436 (ADR-031).
-> - 35 tools, 67 commands, 15 services. `cli.py` ~790 linhas.
+> - 35 tools, 67 commands, 15 services. `cli.py` ~670 linhas.
 > - Sprint anterior: `<ID-ANTERIOR>` CONCLUIDA.
 
 ---

@@ -1,8 +1,8 @@
-"""NyxTUI -- App Textual principal compondo os 4 widgets da ONDA-30.
+"""NyxTUI -- App Textual principal compondo os 4 widgets da ONDA-30/32.
 
 Compose:
   - BannerWidget (top, com cursor blink local).
-  - OutputWidget (middle, rolling log).
+  - VerticalScroll(id="chat") (middle, container de ChatMessage widgets).
   - Toolbar (bottom-1, status).
   - InputWidget (bottom, prompt ancorado).
 
@@ -17,10 +17,11 @@ Dispatch:
   - Default: NUNCA dispatched (CLI continua usando repl_app.py).
   - Opt-in: env NYX_TUI_TEXTUAL=1 em cli.py dispara branch dedicado.
 
-Sub-sprint TEXTUAL-CUTOVER-01 da ONDA-30. Integração com Agent loop
-fica para sub-sprint ONDA-31 (cutover real). Por enquanto _on_input_submit
-apenas registra o texto no OutputWidget; a sprint atual entrega a UI shell
-estável e o dispatch opt-in.
+Sub-sprint TUI-VERTICAL-SCROLL-ADOPT-01 da ONDA-32 trocou o widget de
+output legado (RichLog placeholder) por VerticalScroll nativo + ChatMessage
+widgets mountados dinamicamente. Integração com Agent loop fica para
+sub-sprint TUI-AGENT-BRIDGE-01. Por enquanto _on_input_submit apenas
+monta a mensagem do usuário no chat scroll.
 """
 
 from __future__ import annotations
@@ -30,10 +31,11 @@ from typing import Any
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
+from textual.containers import VerticalScroll
 
 from nyx.agent.tui.widgets.banner import BannerWidget
+from nyx.agent.tui.widgets.chat_message import ChatMessage
 from nyx.agent.tui.widgets.input import InputWidget
-from nyx.agent.tui.widgets.output import OutputWidget
 from nyx.agent.tui.widgets.toolbar import Toolbar
 
 
@@ -75,6 +77,7 @@ class NyxTUI(App):
         project_name: str = "Nyx-Code",
         slash_completer: list[str] | None = None,
         settings: Any = None,
+        agent: Any = None,
     ) -> None:
         super().__init__()
         self._model = model
@@ -82,15 +85,44 @@ class NyxTUI(App):
         self._project_name = project_name
         self._slash_completer = slash_completer or []
         self._settings = settings
+        self._agent = agent
         self._mode_idx = 0
         self._last_input: str = ""
+        # TUI-AGENT-BRIDGE-01: ref ao ChatMessage("assistant", "") mountado
+        # no inicio de cada turno -- destino do streaming de tokens.
+        self._current_assistant: Any = None
+        # TUI-AGENT-BRIDGE-01: patch dos atributos privados do AgentLoop.
+        # FORBIDDEN explicito do spec: não modificar AgentLoop signature.
+        # AgentLoop expoe internamente `_on_token`, `_on_tool`,
+        # `_on_tool_result` (loop/_core.py:84-86) -- atributos publicos
+        # `on_token` etc. não existem. Setar `agent.on_token = ...` so
+        # cria atributo morto. Patchamos os privados.
+        # Para tokens: StreamingCollector e construido no __init__ do
+        # AgentLoop com o on_token capturado (loop/_core.py:119) -- sem
+        # patchar tambem `agent._collector._on_token`, o stream segue indo
+        # para o callback original (build_render_callbacks). Patch duplo
+        # garante que o NyxTUI recebe tokens via `_on_agent_token`.
+        if agent is not None:
+            agent._on_token = self._on_agent_token
+            agent._on_tool = self._on_agent_tool
+            agent._on_tool_result = self._on_agent_tool_result
+            collector = getattr(agent, "_collector", None)
+            if collector is not None:
+                collector._on_token = self._on_agent_token
 
     def compose(self) -> ComposeResult:
-        """Yield Banner, Output, Toolbar, Input nessa ordem.
+        """Yield Banner, VerticalScroll, Input, Toolbar -- ordem é crítica.
 
         BannerWidget e Toolbar não aceitam `id=` no construtor (não
         repassam ao super). Atribuímos `.id` após instanciar -- atributo
         público herdado de `textual.widget.Widget`.
+
+        Ordem de dock importa: widgets com `dock: bottom` empilham na
+        ordem em que são yielded -- o último fica MAIS PERTO da borda
+        inferior. Queremos Toolbar (h:1) na última linha e Input (h:5)
+        logo acima dela; portanto Input PRIMEIRO, Toolbar POR ÚLTIMO.
+        Sem isso a Toolbar fica coberta pelo Input (colisão de Y observada
+        em viewport 120x36: Input y=31..35 vs Toolbar y=35).
         """
         banner = BannerWidget(
             model=self._model,
@@ -101,12 +133,7 @@ class NyxTUI(App):
         banner.id = "banner"
         yield banner
 
-        output = OutputWidget(id="output")
-        yield output
-
-        toolbar = Toolbar(model=self._model)
-        toolbar.id = "toolbar"
-        yield toolbar
+        yield VerticalScroll(id="chat")
 
         yield InputWidget(
             id="input",
@@ -114,18 +141,163 @@ class NyxTUI(App):
             on_submit=self._on_input_submit,
         )
 
+        toolbar = Toolbar(model=self._model)
+        toolbar.id = "toolbar"
+        yield toolbar
+
     def _on_input_submit(self, text: str) -> None:
         """Callback do InputWidget.
 
-        Por enquanto apenas registra o input no OutputWidget e guarda o
-        último valor para recall via Ctrl+O. Integração com Agent loop
-        fica para sub-sprint ONDA-31.
+        Slash command (text.lstrip() comeca com "/"): roteia para
+        `_dispatch_slash` ANTES de qualquer dispatch de turno do agent.
+        Sem agent: paridade sub-sprint anterior -- so monta ChatMessage("user").
+        Com agent: monta user + assistant vazio, seta toolbar.inflight=True
+        e dispara worker thread para await agent.run() em background.
+
+        Streaming de tokens, tool calls e tool results retornam pelo bridge
+        de callbacks instalado no __init__ (`_on_agent_token`, `_on_agent_tool`,
+        `_on_agent_tool_result`). Cada um usa `call_from_thread` para agendar
+        update no event loop principal -- thread-safe por design.
         """
         if not text.strip():
             return
+        # TUI-SLASH-DISPATCH-MODAL-01: slash commands precedem o dispatch
+        # do agent. handle_command devolve None se não for comando, string
+        # se for, ou um sentinel específico ("__quit__", "__aesthetic_select__",
+        # etc.) -- _dispatch_slash isola toda essa lógica.
+        if text.lstrip().startswith("/"):
+            self._dispatch_slash(text)
+            return
         self._last_input = text
-        output = self.query_one("#output", OutputWidget)
-        output.write_user(text)
+        chat = self.query_one("#chat", VerticalScroll)
+        chat.mount(ChatMessage("user", text))
+        if self._agent is None:
+            chat.scroll_end(animate=False)
+            return
+        assistant = ChatMessage("assistant", "")
+        chat.mount(assistant)
+        chat.scroll_end(animate=False)
+        self._current_assistant = assistant
+        toolbar = self.query_one("#toolbar", Toolbar)
+        toolbar.inflight = True
+        # exclusive=True garante apenas 1 worker por vez; turnos sequencias
+        # ficam fila implicita. thread=True roda async coroutine em thread
+        # daemon -- callbacks do agent disparam de la e usam call_from_thread
+        # para tocar widgets seguros do event loop main.
+        self.run_worker(
+            self._process_turn(text), thread=True, exclusive=True
+        )
+
+    def _dispatch_slash(self, text: str) -> None:
+        """Roteia slash command via handle_command e trata sentinels.
+
+        Sentinels reconhecidos:
+          - `__quit__`           -> self.exit(result="__quit__")
+          - `__aesthetic_select__`/`__theme_select__`/`__schema_select__`
+                                -> run_worker(_open_select_modal(kind))
+          - outros               -> mountados como ChatMessage("tool", result)
+
+        Exceções do handler viram ChatMessage("tool", "[erro] ...") -- não
+        crasham a TUI. handle_command devolve None apenas quando o input não
+        começa com "/" (filtrado antes), então aqui um None significaria
+        comando sem retorno explícito (no-op silencioso).
+        """
+        from nyx.agent.commands import handle_command
+
+        chat = self.query_one("#chat", VerticalScroll)
+        chat.mount(ChatMessage("user", text))
+        chat.scroll_end(animate=False)
+        project_root = str(getattr(self._settings, "project_root", "."))
+        try:
+            result = handle_command(text, project_root)
+        except Exception as exc:
+            chat.mount(ChatMessage("tool", f"[erro] {exc}"))
+            return
+        if result is None:
+            return
+        if result == "__quit__":
+            self.exit(result="__quit__")
+            return
+        if result in (
+            "__aesthetic_select__",
+            "__theme_select__",
+            "__schema_select__",
+        ):
+            self.run_worker(
+                self._open_select_modal(result), exclusive=False
+            )
+            return
+        # Outros retornos (texto, sentinels de erro, etc.) viram ChatMessage tool.
+        chat.mount(ChatMessage("tool", str(result)))
+        chat.scroll_end(animate=False)
+
+    async def _open_select_modal(self, kind: str) -> None:
+        """Push SelectScreen e mounta resultado como ChatMessage("tool").
+
+        Stub mínimo: opções vêm de settings/theme_manager; sprint dedicada
+        popula. Aqui basta provar que push_screen_wait funciona e o ciclo
+        chega ao chat scroll com o valor escolhido (ou None se ESC cancelou).
+        """
+        from nyx.agent.tui.screens.select_screen import SelectScreen
+
+        options = [("opt1", "Opção 1"), ("opt2", "Opção 2")]
+        title = {
+            "__aesthetic_select__": "Estética",
+            "__theme_select__": "Tema",
+            "__schema_select__": "Schema",
+        }[kind]
+        selected = await self.push_screen_wait(SelectScreen(title, options))
+        chat = self.query_one("#chat", VerticalScroll)
+        chat.mount(ChatMessage("tool", f"{kind}: {selected}"))
+        chat.scroll_end(animate=False)
+
+    async def _process_turn(self, text: str) -> None:
+        """Worker async: aguarda agent.run() e reseta inflight no finally.
+
+        Try/except envolve o run() para garantir que toolbar.inflight = False
+        em qualquer caminho (sucesso ou excecao). Excecoes do agent sao
+        re-erguidas para o handler global do Textual (que loga e mostra
+        mensagem; não crasha a TUI).
+        """
+        try:
+            await self._agent.run(text)
+        finally:
+            toolbar = self.query_one("#toolbar", Toolbar)
+            self.call_from_thread(setattr, toolbar, "inflight", False)
+            chat = self.query_one("#chat", VerticalScroll)
+            self.call_from_thread(chat.scroll_end, False)
+
+    def _on_agent_token(self, token: str) -> None:
+        """Callback patcheado em agent._on_token (e collector._on_token).
+
+        Chamado de dentro do streaming (thread daemon). Agenda
+        append_text no event loop main via call_from_thread.
+        """
+        if self._current_assistant is not None and token:
+            self.call_from_thread(self._current_assistant.append_text, token)
+
+    def _on_agent_tool(self, name: str, args: Any) -> None:
+        """Callback patcheado em agent._on_tool.
+
+        Signature real do AgentLoop: `_on_tool(name, args)` -- 2 args
+        posicionais (ver loop/_iteration.py:85). Monta ChatMessage("tool")
+        com representacao compacta dos args.
+        """
+        args_str = "" if args is None else str(args)
+        chat = self.query_one("#chat", VerticalScroll)
+        tool_msg = ChatMessage("tool", f"{name}({args_str})")
+        self.call_from_thread(chat.mount, tool_msg)
+
+    def _on_agent_tool_result(self, name: str, result: Any = "") -> None:
+        """Callback patcheado em agent._on_tool_result.
+
+        Signature real do AgentLoop: `_on_tool_result(name, result.output
+        if result.success else result.error)` -- 2 args, segundo eh string
+        (output ou error). Ver loop/_iteration.py:183.
+        """
+        chat = self.query_one("#chat", VerticalScroll)
+        tool_msg = ChatMessage("tool", f"-> {name}: {result}")
+        self.call_from_thread(chat.mount, tool_msg)
 
     async def action_quit(self) -> None:
         """Ctrl+Q: fecha app via Application.exit(result=__quit__).

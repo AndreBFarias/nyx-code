@@ -33,7 +33,7 @@ _USAGE = (
     category="sessão",
     examples=[
         "/plan portar streaming do TS para Python",
-        "/plan add ler openclaud/src/streaming/",
+        "/plan add ler nyx/agent/streaming.py",
         "/plan done 1",
     ],
 )

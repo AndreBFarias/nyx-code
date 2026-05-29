@@ -87,147 +87,22 @@ def _reset_console_cache() -> None:
     _console_cache = None
 
 
-# TUI-REDESIGN-28-08b: routing de output (stdout vs Application buffer).
-# _OUTPUT_BUFFER_REF guarda referência ao Buffer do repl_app quando ativo.
-# _APP_STATE_REF guarda app_state injetado por cli.py para detectar modo.
-_OUTPUT_BUFFER_REF: object | None = None
-_APP_STATE_REF: dict | None = None
-
-
-def set_repl_app_output(buffer: object, app_state: dict) -> None:
-    """Registra o output_buffer do repl_app e o app_state para routing.
-
-    Chamado por cli.py logo após build_app. Quando app_state['repl_app_active']
-    é True, _emit roteia para o buffer; senão, escreve em stdout.
-    """
-    global _OUTPUT_BUFFER_REF, _APP_STATE_REF
-    _OUTPUT_BUFFER_REF = buffer
-    _APP_STATE_REF = app_state
-
-
-def clear_repl_app_output() -> None:
-    """Limpa as referências do repl_app (rollback/legacy fallback)."""
-    global _OUTPUT_BUFFER_REF, _APP_STATE_REF
-    _OUTPUT_BUFFER_REF = None
-    _APP_STATE_REF = None
-
-
-# TUI-SLASH-DISPATCH-INVESTIGATE-01: em modo Application (full_screen=True),
-# sys.stdout fica oculto pela tela do prompt_toolkit. Handlers de slash em
-# cli_handlers.py e o RichOutput._render escrevem via print()/Console.print()
-# direto em stdout, resultando em output invisível (causa-raiz do bug
-# reportado em 2026-05-25). Em vez de refatorar ~20 handlers, interceptamos
-# stdout durante o dispatch slash e roteamos via _emit -> output_buffer.
-class _StdoutToBufferProxy:
-    """File-like que captura writes e redireciona para output_buffer.
-
-    Quando repl_app_active==True, append no buffer via append_to_buffer.
-    Outside Application mode (durante __enter__ check falhou), fallback
-    para sys.__stdout__ original -- nunca sys.stdout (que aponta para self).
-    """
-
-    def write(self, text: str) -> int:  # type: ignore[override]
-        if not text:
-            return 0
-        # Guarda anti-recursão: escreve no stdout original (__stdout__),
-        # nunca em sys.stdout -- esse aponta para self enquanto o context
-        # manager estiver engaged.
-        if (
-            _APP_STATE_REF is not None
-            and _APP_STATE_REF.get("repl_app_active")
-            and _OUTPUT_BUFFER_REF is not None
-        ):
-            try:
-                from nyx.agent.repl_app import append_to_buffer
-                append_to_buffer(_OUTPUT_BUFFER_REF, text)  # type: ignore[arg-type]
-                return len(text)
-            except Exception as exc:
-                logger.debug("_StdoutToBufferProxy.write fallback: %s", exc)
-        sys.__stdout__.write(text)
-        try:
-            sys.__stdout__.flush()
-        except Exception as exc:
-            logger.debug("_StdoutToBufferProxy.flush falhou: %s", exc)
-        return len(text)
-
-    def flush(self) -> None:  # type: ignore[override]
-        return None
-
-    def isatty(self) -> bool:  # type: ignore[override]
-        # Rich Console consulta isatty() pra decidir colorização. Manter
-        # True preserva ANSI escapes que o output_buffer (via ANSI parser
-        # do repl_app) renderiza corretamente.
-        return True
-
-    def fileno(self) -> int:  # type: ignore[override]
-        # Alguns Console paths chamam fileno(); delegamos ao stdout real
-        # apenas para o número (não para escrita).
-        return sys.__stdout__.fileno()
-
-
-class _RedirectStdoutToEmit:
-    """Context manager: substitui sys.stdout pelo proxy em Application mode.
-
-    No-op fora de Application mode (fallback para stdout real preserva
-    semântica de testes/headless). Idempotente em entries aninhados.
-    """
-
-    def __init__(self) -> None:
-        self._saved: object | None = None
-        self._engaged = False
-
-    def __enter__(self) -> "_RedirectStdoutToEmit":
-        if (
-            _APP_STATE_REF is not None
-            and _APP_STATE_REF.get("repl_app_active")
-            and _OUTPUT_BUFFER_REF is not None
-        ):
-            self._saved = sys.stdout
-            sys.stdout = _StdoutToBufferProxy()  # type: ignore[assignment]
-            self._engaged = True
-        return self
-
-    def __exit__(self, *exc: object) -> None:
-        if self._engaged and self._saved is not None:
-            sys.stdout = self._saved  # type: ignore[assignment]
-            self._saved = None
-            self._engaged = False
-
-
-def redirect_stdout_to_emit() -> _RedirectStdoutToEmit:
-    """Context manager público para roteamento de stdout em Application mode.
-
-    Usar em `with redirect_stdout_to_emit():` em volta de blocos de código
-    que sabidamente fazem print() ou Console.print() e precisam aparecer
-    no output_buffer do Application em vez do stdout oculto.
-    """
-    return _RedirectStdoutToEmit()
+# TUI-DEFAULT-FLIP-LEGACY-RM-01 (ONDA-32): routing buffer prompt_toolkit
+# removido. NyxTUI Textual gerencia próprio output via ChatMessage widgets;
+# render_* helpers daqui ficam para o caminho legacy não-TTY (input() fallback
+# em cli.py) e --headless (cli_headless.py). Ambos escrevem direto em stdout.
 
 
 def _emit(text: str, *, end: str = "") -> None:
-    """Routing helper: escreve em output_buffer (Application) ou stdout.
+    """Routing helper: escreve em stdout.
 
-    Comportamento:
-      - app_state['repl_app_active'] == True E buffer registrado:
-        append no buffer + app.invalidate() via append_to_buffer.
-      - Caso contrário: sys.stdout.write(text + end); flush.
-
-    Mantém compatibilidade com headless e legacy NYX_LEGACY_REPL=1.
+    Após ONDA-32 a Application full_screen do prompt_toolkit não existe mais;
+    sys.stdout sempre está disponível para os render_* helpers. NyxTUI Textual
+    NÃO chama _emit -- usa pipeline próprio de mounting de ChatMessage.
     """
     payload = text + end
     if not payload:
         return
-    if (
-        _APP_STATE_REF is not None
-        and _APP_STATE_REF.get("repl_app_active")
-        and _OUTPUT_BUFFER_REF is not None
-    ):
-        try:
-            from nyx.agent.repl_app import append_to_buffer
-            append_to_buffer(_OUTPUT_BUFFER_REF, payload)  # type: ignore[arg-type]
-            return
-        except Exception as exc:
-            logger.debug("_emit fallback para stdout: %s", exc)
     sys.stdout.write(payload)
     try:
         sys.stdout.flush()
@@ -459,13 +334,9 @@ class NyxSpinner:
 
         # TUI-SPINNER-IN-NYX-BOX-01 (sprint 227): spinner ganha afixo PURPLE
         # `│ ` à esquerda para criar coerência visual com o balão da Nyx
-        # (sprint 224) e com a side-rule do streaming (wrap_token_with_side_rule).
-        # Estratégia B-aprimorada documentada no spec: spinner não abre top do
-        # box (largura final ainda desconhecida; box materializa POS-TURNO em
-        # render_assistant_end), mas exibe a borda esquerda do bloco da Nyx
-        # como afixo. Quando stop_spinner() roda em on_token, o `\r\x1b[2K`
-        # limpa a linha e o stream começa já com a side-rule via
-        # wrap_token_with_side_rule -- mesma borda PURPLE, transição contínua.
+        # (sprint 224) e com a side-rule do streaming. TUI-DEFAULT-FLIP-LEGACY-RM-01
+        # (ONDA-32): branch buffer_mode removido junto com routing prompt_toolkit;
+        # spinner agora sempre anima via raw stdout (NyxTUI usa pipeline próprio).
         from nyx.themes.design_tokens import ANSI_PURPLE_FG
 
         frames = _spinner_frames()

@@ -82,7 +82,7 @@ run.sh ─────> Ollama (:11435) ──> GPU (num_gpu=12, qwen2.5-coder:3
   |           - Controla num_gpu e num_ctx
   |
   +────────> Nyx CLI (nyx/cli.py)
-              - REPL interativo com Rich output + prompt-toolkit
+              - REPL interativo com Rich output + Textual
               - 35 tools via ToolRegistry
               - 67 slash commands
               - AgentLoop: plan-execute-observe (até 30 iterações)
@@ -291,7 +291,7 @@ Uso:
 /aesthetic set cyberpunk:mars      # mudar
 ```
 
-## ADRs (32)
+## ADRs (31)
 
 | # | Título | Status |
 |---|---|---|
@@ -336,7 +336,7 @@ Para estado autoritativo consultar `dev-journey/08-templates/PROJECT_SNAPSHOT.md
 - **Invariantes**: 14/14 PASS
 - **Cockpit**: operacional em `127.0.0.1:11437` com 19 endpoints HTTP + 2 WS
 - **Tag v1.0**: `VALIDATE-FINAL-01-PARTE-2` CONCLUIDA (2026-05-19); tag aguarda apenas comando humano (`git tag -a v1.0`) — sprint `RELEASE-V1.0-CUT-01` em `producao/`
-- **Backlog técnico**: ZERADO — 441 sprints concluídas, 1 em produção (RELEASE delegada ao humano)
+- **Backlog técnico**: ZERADO — 455 sprints concluídas, 1 em produção (RELEASE delegada ao humano)
 
 ## Requisitos
 
@@ -382,7 +382,7 @@ via `gtk-update-icon-cache` e `update-desktop-database` quando presentes.
 
 ```
 nyx/
-  cli.py               # REPL + modo headless + prompt-toolkit
+  cli.py               # REPL + modo headless + NyxTUI Textual
   cli_helpers.py       # Helpers extraídos do cli.py (INFRA-CLI-SPLIT-01)
   proxy.py             # Proxy think=false + num_predict adaptativo
   agent/
@@ -414,7 +414,7 @@ scripts/
 bin/
   nyx-runtime-limits.sh     # ulimit + oom_score_adj (sourced pelo run.sh)
 dev-journey/
-  03-decisions/       # 32 ADRs
+  03-decisions/       # 31 ADRs
   04-features/        # REGISTRY.yaml (62 features SBOM)
   05-guides/          # MICROCOPY.md, COCKPIT_API.md, etc.
   06-sprints/         # producao/ + concluidos/ + SPRINT_ORDER_MASTER

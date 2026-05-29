@@ -3986,8 +3986,8 @@ class NyxGauntlet:
 
             sess = CodeSession()
             sess.iteration = 5
-            sess.add_user("quero portar o módulo streaming do TS pra Python")
-            sess.add_tool_call("read_file", {"file_path": "openclaud/src/streaming/index.ts"}, "conteudo ...")
+            sess.add_user("quero entender o módulo de streaming do agente")
+            sess.add_tool_call("read_file", {"file_path": "nyx/agent/streaming.py"}, "conteudo ...")
             sess.add_assistant("Plano: port passo a passo")
             summ = SessionSummarizer(self._proxy, self._model)
             result = await summ.update(sess)

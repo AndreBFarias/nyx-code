@@ -17,6 +17,11 @@ from .session import CodeSession, HistoryEntry
 
 logger = get_logger("nyx.context")
 
+# Gatilho INTERNO de compactação do histórico (heurística ~4 ch/tok via
+# estimate_tokens), conservador de propósito para compactar antes de estourar.
+# Camada distinta de:
+#   - NUM_CTX (nyx/config/defaults.py): janela real do Ollama (entrada).
+#   - NUM_PREDICT_* (nyx/config/defaults.py): orçamento de SAIDA por intent.
 DEFAULT_MAX_TOKENS = 12000
 MAX_PARTIAL_ENTRIES = 8
 COMPACT_RECENT = 3

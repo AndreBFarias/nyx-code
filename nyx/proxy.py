@@ -1,4 +1,4 @@
-"""Proxy OpenAI -> Ollama nativa com think adaptativo.
+"""Proxy OpenAI -> Ollama nativa com think adaptativo.  # noqa-anonimato
 
 think=true quando há tools (qwen3 precisa raciocinar para gerar tool_calls).
 think=false quando é chat puro (economiza tokens).
@@ -56,6 +56,12 @@ NUM_CTX = _DEFAULT_NUM_CTX
 # PROXY-NUMGPU-RUNTIME-01: num_gpu deixa de ser módulo-global. Snapshot
 # inicial vai para app["num_gpu"] em _on_startup e pode ser re-tunado em
 # runtime via GET /admin/tune (loopback) sem reiniciar o proxy.
+#
+# INFRA-NUM-GPU-RECONCILE-01: cadeia REAL do num_gpu no boot e
+#   run.sh (auto-tune detect_gpu.py) -> --num-gpu -> app["state"]["num_gpu"].
+# O import de NUM_GPU_3B (=-1) e SO fallback teorico: o argparse
+# `--num-gpu default=15` ja popula state["num_gpu"] antes do _on_startup,
+# entao o setdefault(_INITIAL_NUM_GPU) abaixo nunca alcanca o import.
 _INITIAL_NUM_GPU = _DEFAULT_NUM_GPU
 
 # Graceful degradation: quando Ollama retorna OOM, cai pra CPU permanente
@@ -227,7 +233,7 @@ def _last_user_text(messages: list) -> str:
 
 
 def openai_to_ollama(body: dict, num_gpu: int) -> tuple[dict, str]:
-    """Converte request OpenAI -> Ollama nativa.
+    """Converte request OpenAI -> Ollama nativa.  # noqa-anonimato
 
     `num_gpu` é injetado pelo caller (vem de ``request.app["state"]["num_gpu"]``)
     para permitir re-tune em runtime via /admin/tune sem reiniciar o proxy.
@@ -268,6 +274,9 @@ def openai_to_ollama(body: dict, num_gpu: int) -> tuple[dict, str]:
     # resumo); senao usa o intent classificado pelo input do usuario.
     intent_for_budget = "tool" if has_tools else intent
     max_tok_override = body.get("max_tokens") or body.get("max_completion_tokens")
+    # Orçamento de SAIDA por intent (camada própria): independente da janela de
+    # ENTRADA NUM_CTX (options abaixo) e do budget de compactação interno
+    # ContextBudget.DEFAULT_MAX_TOKENS (nyx/agent/context.py).
     num_predict = _num_predict_for(intent_for_budget, max_tok_override)
 
     result: dict = {
@@ -352,7 +361,7 @@ def _extract_tool_call_from_content(text: str, allowed_names: list[str] | None =
     Modelos como qwen2.5-coder:3b não expõem `tool_calls` nativo do Ollama;
     emitem o tool_call como JSON dentro do content, geralmente envolvido em
     code fences. GAUNTLET-RAPIDO-FIXES-01 (P-07): normaliza para que clientes
-    OpenAI-compativel recebam o formato esperado.
+    OpenAI-compativel recebam o formato esperado.  # noqa-anonimato
 
     Aceita formatos:
         ```json
@@ -459,7 +468,7 @@ def ollama_to_openai(
     """Converte resposta Ollama nativa -> formato OpenAI.
 
     Se `has_tools_request` e o modelo emitiu JSON tool_call no content (formato
-    não-nativo), promove para tool_calls OpenAI (GAUNTLET-RAPIDO-FIXES-01 P-07).
+    não-nativo), promove para tool_calls OpenAI (GAUNTLET-RAPIDO-FIXES-01 P-07).  # noqa-anonimato
     `allowed_tool_names` habilita cross-validation contra a lista do request
     (GAUNTLET-TOOLS-DESC-MATCH-01).
     """
@@ -661,7 +670,7 @@ async def handle_chat(request: web.Request) -> web.StreamResponse:
     # Cobre saudacao/chat/comando; tool-needed fora do escopo (content é
     # descartado pelo agent loop quando há tool_calls).
     # Cap em 1 retry para não explodir P50 (mesmo padrão de LANG-ENFORCE).
-    # noqa: ai-mention -- hint do retry abaixo cita nomes intencionalmente
+    # noqa-anonimato -- hint do retry abaixo cita nomes intencionalmente
     if intent in ("saudacao", "chat", "comando"):
         choice_msg = result["choices"][0]["message"]
         content = choice_msg.get("content", "")
@@ -682,7 +691,7 @@ async def handle_chat(request: web.Request) -> web.StreamResponse:
                         "role": "user",
                         "content": (
                             "Você é Nyx, codificadora local. Não mencione modelo subjacente "
-                            "(Qwen, GPT, Claude, Llama, etc.). Refaça em PT-BR sem citar IA proprietária."  # noqa: ai-mention
+                            "(Qwen, GPT, Claude, Llama, etc.). Refaça em PT-BR sem citar IA proprietária."  # noqa-anonimato
                         ),
                     }
                 )

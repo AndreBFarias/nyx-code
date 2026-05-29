@@ -259,19 +259,14 @@ if out.count(D0) < 1:
         f"(d0={out.count(D0)})"
     )
 # INFRA-SANITIZER-FIX-04: cobertura ampliada para arquivos que o sanitizer
-# antigo destruiu mas o check #14 não cobria (banner.py, repl_app.py,
-# design_tokens_extended.py).
+# antigo destruiu mas o check #14 não cobria (banner.py, design_tokens_extended.py).
+# TUI-DEFAULT-FLIP-LEGACY-RM-01 (ONDA-32): repl_app.py removido junto com
+# toda stack prompt_toolkit -- check do glifo nele saiu daqui.
 bn = Path("nyx/agent/banner.py").read_text(encoding="utf-8")
 if bn.count(CF) < 4:
     fails.append(
         f"nyx/agent/banner.py: glifos {CF} insuficientes "
         f"(cf={bn.count(CF)}, esperado>=4 em _build_compact + _build_wide)"
-    )
-repl = Path("nyx/agent/repl_app.py").read_text(encoding="utf-8")
-if repl.count(CF) < 1:
-    fails.append(
-        f"nyx/agent/repl_app.py: glifo {CF} insuficiente "
-        f"(cf={repl.count(CF)}, esperado>=1)"
     )
 dte = Path("nyx/themes/design_tokens_extended.py").read_text(encoding="utf-8")
 if dte.count(DM) < 1:

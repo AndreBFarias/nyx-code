@@ -1,50 +1,184 @@
-/* Nyx-Code TUI styles — ONDA-30 SCAFFOLD placeholder.
+/* Nyx-Code TUI styles -- ONDA-32 LUNA-ADOPT.
  *
- * Paleta canônica (ADR-023): turquesa #00D4AA + roxo #9D4EDD + verde #4ADE80.
- * Sub-sprints filhas (197+) populam classes específicas de cada widget.
+ * Paleta canonica (ADR-023): turquesa #00D4AA + roxo #9D4EDD + verde #4ADE80.
+ * Template estrutural derivado de Luna templo_de_nyx.css (2 colunas adaptado
+ * para 1 coluna), mantendo identidade visual Nyx.
+ *
+ * Sub-sprints filhas da ONDA-32 consomem estes blocos:
+ *   - TUI-BANNER-DOCK-TOP-01      -> BannerWidget (dock: top)
+ *   - TUI-CHATMESSAGE-WIDGET-01   -> ChatMessage.{user,assistant,tool,system}
+ *   - TUI-VERTICAL-SCROLL-ADOPT-01-> #chat (VerticalScroll com scrollbar-*)
+ *   - TUI-DEFAULT-FLIP-LEGACY-RM-01 -> deletou OutputWidget legacy
  */
+
+/* ---------- Tokens canonicos (paridade ADR-023 / design_tokens.py) ---------- */
+
+$accent: #00D4AA;        /* turquesa NYX_ACCENT  -- accent principal */
+$primary: #9D4EDD;       /* roxo NYX_PURPLE      -- assistente, bypass, memoria */
+$success: #4ADE80;       /* verde NYX_SUCCESS    -- tool ok */
+$error: #EF4444;         /* vermelho NYX_ERROR   -- tool fail */
+$muted: #6B7280;         /* cinza NYX_MUTED      -- toolbar, system, tool */
+$surface: #0A0E14;       /* fundo escuro         -- base do tema */
+$foreground: #E6E4D9;    /* texto claro          -- corpo de mensagens */
+
+/* ---------- Telas raiz ---------- */
+
+Screen {
+    background: $surface;
+    color: $foreground;
+}
 
 App {
     background: $surface;
 }
 
-/* Tokens de cor reservados para uso pelas sub-sprints da ONDA-30. */
-$accent: #00D4AA;
-$primary: #9D4EDD;
-$success: #4ADE80;
+/* ---------- BannerWidget (dock: top fixo) ---------- */
+/* Sub-sprint TUI-BANNER-DOCK-TOP-01 ancora no topo independente do scroll
+ * do chat. Cursor blink local via BannerWidget.refresh() (sem race global). */
 
-/* OutputWidget -- sub-sprint 198 (TEXTUAL-OUTPUT-WIDGET-01).
- * Rolling log de mensagens user (turquesa) / assistant (roxo) / tool (dim).
- */
-OutputWidget {
+BannerWidget {
+    dock: top;
+    height: auto;
+    background: $surface;
+    padding: 0 1;
+    color: $accent;
+}
+
+/* ---------- #chat (VerticalScroll com scrollbar canonica) ---------- */
+/* Sub-sprint TUI-VERTICAL-SCROLL-ADOPT-01 consome height 1fr + scrollbar
+ * tematizada. Paleta scrollbar segue Luna: primary dim repouso, primary cheio
+ * hover, accent destacado em drag. */
+
+#chat {
     height: 1fr;
     background: $surface;
+    padding: 1 1;
+    scrollbar-background: $surface;
+    scrollbar-color: $primary 30%;
+    scrollbar-color-hover: $primary;
+    scrollbar-color-active: $accent;
+    scrollbar-corner-color: $surface;
+}
+
+/* ---------- ChatMessage (base + variantes) ---------- */
+/* Sub-sprint TUI-CHATMESSAGE-WIDGET-01 emite ChatMessage(role=...) com
+ * classes user/assistant/tool/system. Base define geometria; variantes
+ * coloram e destacam border-left. */
+
+ChatMessage {
+    height: auto;
+    background: $surface;
+    padding: 0 1;
+    margin: 0;
+}
+
+ChatMessage.user {
+    color: $accent;
+    border-left: heavy $accent;
+    padding: 0 1 0 2;
+    margin: 1 0 0 0;
+}
+
+ChatMessage.assistant {
+    color: $primary;
+    border-left: heavy $primary;
+    padding: 0 1 0 2;
+    margin: 1 0 0 0;
+}
+
+ChatMessage.tool {
+    color: $muted;
+    padding: 0 1 0 4;
+    margin: 0;
+}
+
+ChatMessage.system {
+    color: $muted;
+    text-style: italic;
+    padding: 0 1;
+    margin: 0;
+}
+
+/* ---------- InputWidget (dock: bottom, altura 5 fixa) ---------- */
+/* Paridade prompt_toolkit: 5 linhas visiveis, borda turquesa.
+ * Sub-sprint herdeira do widget atual; height 3 -> 5 nesta sprint. */
+
+InputWidget {
+    dock: bottom;
+    height: 5;
+    background: $surface;
+    border: round $accent;
     padding: 0 1;
 }
 
-/* InputWidget -- sub-sprint 202 (TEXTUAL-INPUT-WIDGET-01).
- * Prompt ancorado no rodape; paleta turquesa com borda accent.
- */
-InputWidget {
-    dock: bottom;
-    height: 3;
+InputWidget > TextArea, InputWidget > Input {
     background: $surface;
-    border: round $accent;
+    color: $foreground;
+    border: none;
 }
 
-/* BannerWidget -- sub-sprint TEXTUAL-BANNER-WIDGET-01.
- * Banner Nyx com cursor blink local; refresh por-widget, sem race global.
- */
-BannerWidget {
-    height: auto;
+InputWidget > TextArea:focus, InputWidget > Input:focus {
+    border: none;
     background: $surface;
 }
 
-/* Toolbar -- sub-sprint TEXTUAL-TOOLBAR-01.
- * Bottom bar com reactive props (ctx, iter, lidos, modif, state, mode).
- */
+/* ---------- Toolbar (dock: bottom, altura 1) ---------- */
+/* Paridade SHIFT-TAB-CYCLE-01 + bottom_toolbar do prompt_toolkit.
+ * Cor muted base; modos (normal/plan/sudo/bypass) sobrescrevem por
+ * classe inline (Toolbar.-plan, Toolbar.-sudo, Toolbar.-bypass) via
+ * watch_mode handler do widget. */
+
 Toolbar {
     dock: bottom;
     height: 1;
     background: $surface;
+    color: $muted;
+    padding: 0 1;
+}
+
+Toolbar.-plan {
+    color: $primary;
+}
+
+Toolbar.-sudo {
+    color: $error;
+}
+
+Toolbar.-bypass {
+    color: $primary;
+    text-style: dim;
+}
+
+/* ---------- Utility classes (paridade Luna) ---------- */
+/* Classes reutilizaveis para realce textual; aplicadas via add_class()
+ * a partir de widgets de ChatMessage. */
+
+.dim {
+    color: $muted;
+}
+
+.muted {
+    color: $muted;
+    text-style: dim;
+}
+
+.accent {
+    color: $accent;
+}
+
+.primary {
+    color: $primary;
+}
+
+.success {
+    color: $success;
+}
+
+.error {
+    color: $error;
+    text-style: bold;
+}
+
+.italic {
+    text-style: italic;
 }
