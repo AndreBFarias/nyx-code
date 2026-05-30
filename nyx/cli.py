@@ -542,6 +542,7 @@ async def run_repl(
             slash_completer=[c.name for c in list_commands()],
             settings=settings,
             agent=agent,
+            user_display_name=app_state.get("user_display_name", ""),
         )
         tui_result = await nyx_tui_app.run_async()
         total_iterations += nonlocal_total["iterations"]

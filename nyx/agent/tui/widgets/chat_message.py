@@ -18,6 +18,8 @@ from rich.text import Text
 from textual.app import RenderResult
 from textual.widgets import Static
 
+from nyx.themes.design_tokens import NYX_ACCENT, NYX_PURPLE
+
 _VALID_ROLES = ("user", "assistant", "tool", "system")
 
 # Glifo via chr() -- defesa anti-sanitizer (padrao do BRIEF).
@@ -27,12 +29,16 @@ _DIAMOND = chr(0x25C6)
 class ChatMessage(Static):
     """Mensagem individual da conversa.
 
-    Role determina CSS class (turquesa user, roxo assistant, dim tool/system).
+    Role determina a CSS class + border-left (turquesa user, roxo assistant,
+    dim tool/system). Desde TUI-CHAT-LABELS-COLORS-01 o NOME (label) leva a cor
+    de destaque da role e o CONTEÚDO fica em $foreground (neutro), via spans Rich.
     append_text(token) suporta streaming -- chamado via call_from_thread
     pelo Agent bridge (sprint TUI-AGENT-BRIDGE-01).
     """
 
-    def __init__(self, role: str, content: str = "") -> None:
+    def __init__(
+        self, role: str, content: str = "", *, display_name: str = ""
+    ) -> None:
         if role not in _VALID_ROLES:
             raise ValueError(
                 f"role deve ser um de {_VALID_ROLES}, got: {role!r}"
@@ -40,6 +46,10 @@ class ChatMessage(Static):
         super().__init__(classes=role)
         self._role = role
         self._content = content
+        # TUI-CHAT-LABELS-COLORS-01: nome de exibição do usuário (vindo de
+        # resolve_user_display_name via cli.py -> NyxTUI). Só usado no role
+        # "user"; o assistant rotula sempre "NyxCode".
+        self._display_name = display_name
 
     @property
     def role(self) -> str:
@@ -78,11 +88,22 @@ class ChatMessage(Static):
         idiomática (BannerWidget e Toolbar seguem o mesmo padrão).
         """
         if self._role == "user":
-            return Text(f"> {self._content}")
-        if self._role == "assistant":
+            # TUI-CHAT-LABELS-COLORS-01: nome em cor de destaque (turquesa,
+            # NYX_ACCENT); conteúdo neutro ($foreground via CSS). O Text vazio
+            # não tem cor-base, então o span do nome colore só o label e o
+            # append do conteúdo herda a cor do widget.
+            name = self._display_name or "Você"
+            text = Text()
+            text.append(f"> {name}", style=NYX_ACCENT)
             if self._content:
-                return Text(f"{_DIAMOND} NyxCode\n{self._content}")
-            return Text(f"{_DIAMOND} NyxCode")
+                text.append(f"\n{self._content}")
+            return text
+        if self._role == "assistant":
+            text = Text()
+            text.append(f"{_DIAMOND} NyxCode", style=NYX_PURPLE)
+            if self._content:
+                text.append(f"\n{self._content}")
+            return text
         if self._role == "tool":
             return Text(f"  {self._content}")
         return Text(self._content)  # system: sem prefixo

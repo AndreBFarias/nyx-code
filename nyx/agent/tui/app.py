@@ -87,12 +87,16 @@ class NyxTUI(App):
         slash_completer: list[str] | None = None,
         settings: Any = None,
         agent: Any = None,
+        user_display_name: str = "",
     ) -> None:
         super().__init__()
         self._model = model
         self._tools_count = tools_count
         self._project_name = project_name
         self._slash_completer = slash_completer or []
+        # TUI-CHAT-LABELS-COLORS-01: nome de exibição do usuário (de
+        # resolve_user_display_name, via cli.py) repassado ao ChatMessage("user").
+        self._user_display_name = user_display_name
         self._settings = settings
         self._agent = agent
         self._mode_idx = 0
@@ -228,7 +232,7 @@ class NyxTUI(App):
         self._history_idx = len(self._input_history)
         self._history_draft = ""
         chat = self.query_one("#chat", VerticalScroll)
-        chat.mount(ChatMessage("user", text))
+        chat.mount(ChatMessage("user", text, display_name=self._user_display_name))
         chat.scroll_end(animate=False)
         if self._agent is None:
             return
@@ -266,7 +270,7 @@ class NyxTUI(App):
         from nyx.agent.commands import handle_command
 
         chat = self.query_one("#chat", VerticalScroll)
-        chat.mount(ChatMessage("user", text))
+        chat.mount(ChatMessage("user", text, display_name=self._user_display_name))
         chat.scroll_end(animate=False)
         project_root = str(getattr(self._settings, "project_root", "."))
         try:

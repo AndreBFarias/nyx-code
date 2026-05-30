@@ -73,14 +73,18 @@ ChatMessage {
 }
 
 ChatMessage.user {
-    color: $accent;
+    /* TUI-CHAT-LABELS-COLORS-01: conteúdo neutro ($foreground); o nome leva a
+       cor de destaque (turquesa) via span Rich no render(). border-left mantém
+       a identidade da role. */
+    color: $foreground;
     border-left: heavy $accent;
     padding: 0 1 0 2;
     margin: 1 0 0 0;
 }
 
 ChatMessage.assistant {
-    color: $primary;
+    /* TUI-CHAT-LABELS-COLORS-01: idem -- nome roxo via span, conteúdo neutro. */
+    color: $foreground;
     border-left: heavy $primary;
     padding: 0 1 0 2;
     margin: 1 0 0 0;
