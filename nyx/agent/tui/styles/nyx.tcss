@@ -103,6 +103,14 @@ ChatMessage.system {
     margin: 0;
 }
 
+/* ---------- Collapsible.thinking (TUI-THINKING-EXPAND-01) ---------- */
+/* Bloco de raciocínio do modelo, recolhido por padrão. Cor muted (auxiliar,
+ * secundário à conversa); o expand/collapse é nativo do Textual. */
+Collapsible.thinking {
+    color: $muted;
+    margin: 1 0 0 0;
+}
+
 /* ---------- InputWidget (dock: bottom, altura crescente) ---------- */
 /* SPRINT 286: base TextArea multiline. A altura cresce com o conteudo
  * (Ctrl+J insere nova linha) ate max-height; depois scrolla internamente.

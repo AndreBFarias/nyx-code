@@ -29,14 +29,20 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from rich.markdown import Markdown
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import VerticalScroll
+from textual.widgets import Collapsible, Static
 
 from nyx.agent.tui.widgets.banner import BannerWidget
 from nyx.agent.tui.widgets.chat_message import ChatMessage
 from nyx.agent.tui.widgets.input import InputWidget
 from nyx.agent.tui.widgets.toolbar import Toolbar
+
+# TUI-THINKING-EXPAND-01: glifo via chr() (anti-sanitizer, padrão do BRIEF) para
+# o título do bloco de raciocínio recolhível. U+25D0 = circle half black (in-progress).
+_THINKING_GLYPH = chr(0x25D0)
 
 
 class NyxTUI(App):
@@ -138,6 +144,10 @@ class NyxTUI(App):
             agent._on_token = self._on_agent_token
             agent._on_tool = self._on_agent_tool
             agent._on_tool_result = self._on_agent_tool_result
+            # TUI-THINKING-EXPAND-01: a bridge passa a consumir o reasoning do
+            # modelo (antes dropado na TUI Textual). `_on_thinking(reasoning)` é
+            # chamado em loop/_iteration.py:517 (1 arg string, loop principal).
+            agent._on_thinking = self._on_agent_thinking
             collector = getattr(agent, "_collector", None)
             if collector is not None:
                 collector._on_token = self._on_agent_token
@@ -385,6 +395,27 @@ class NyxTUI(App):
         args_str = "" if args is None else str(args)
         chat = self.query_one("#chat", VerticalScroll)
         chat.mount(ChatMessage("tool", f"{name}({args_str})"))
+        chat.scroll_end(animate=False)
+
+    def _on_agent_thinking(self, reasoning: str) -> None:
+        """Callback patcheado em agent._on_thinking (loop/_iteration.py:517).
+
+        TUI-THINKING-EXPAND-01: monta um Collapsible RECOLHIDO com o raciocínio
+        do modelo no #chat. O expand/collapse é nativo do Textual (clique no
+        título ou foco+Enter) -- não reusa o Tab (accept-ghost do input, 286). O
+        reasoning chega após o stream da resposta; fica recolhido por padrão para
+        não poluir a conversa. Antes da migração Textual o reasoning era dropado.
+        """
+        if not reasoning:
+            return
+        chat = self.query_one("#chat", VerticalScroll)
+        block = Collapsible(
+            Static(Markdown(reasoning)),
+            title=f"{_THINKING_GLYPH} pensando",
+            collapsed=True,
+            classes="thinking",
+        )
+        chat.mount(block)
         chat.scroll_end(animate=False)
 
     def _on_agent_tool_result(self, name: str, result: Any = "") -> None:
