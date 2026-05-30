@@ -33,7 +33,7 @@ from typing import Any
 from rich.markdown import Markdown
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import VerticalScroll
+from textual.containers import Vertical, VerticalScroll
 from textual.widgets import Collapsible, Static
 
 from nyx.agent.tui.widgets.banner import BannerWidget
@@ -191,15 +191,23 @@ class NyxTUI(App):
         with VerticalScroll(id="chat"):
             yield banner
 
-        yield InputWidget(
-            id="input",
-            slash_completer=self._slash_completer,
-            on_submit=self._on_input_submit,
-        )
+        # TUI-INPUT-HEIGHT-5-SCROLL-01 (SPRINT 306): input + toolbar num único
+        # container dock:bottom. Dois widgets dock:bottom soltos não reservavam o
+        # espaço somado -- o #chat (1fr) descontava só o input e a toolbar caía
+        # sobre a borda inferior do input (o "corte" relatado). O Vertical
+        # dock:bottom reserva input (7) + toolbar (1) = 8 linhas e o #chat fica
+        # com o resto, sem sobreposição. A ordem interna (input acima, toolbar
+        # abaixo) deixa a toolbar na última linha, como antes.
+        with Vertical(id="bottombar"):
+            yield InputWidget(
+                id="input",
+                slash_completer=self._slash_completer,
+                on_submit=self._on_input_submit,
+            )
 
-        toolbar = Toolbar(model=self._model)
-        toolbar.id = "toolbar"
-        yield toolbar
+            toolbar = Toolbar(model=self._model)
+            toolbar.id = "toolbar"
+            yield toolbar
 
     def on_mount(self) -> None:
         """Foca o InputWidget ao montar -- TUI-FIX-INPUT-FOCUS-ON-MOUNT-01.

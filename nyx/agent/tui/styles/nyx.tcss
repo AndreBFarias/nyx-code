@@ -111,20 +111,36 @@ Collapsible.thinking {
     margin: 1 0 0 0;
 }
 
-/* ---------- InputWidget (dock: bottom, altura crescente) ---------- */
-/* SPRINT 286: base TextArea multiline. A altura cresce com o conteudo
- * (Ctrl+J insere nova linha) ate max-height; depois scrolla internamente.
- * min-height 3 mantem o prompt visivel de inicio; o crescimento empurra o
- * #chat para cima sem cobrir a Toolbar (h:1, dock abaixo). */
-
-InputWidget {
+/* ---------- #bottombar: container do input + toolbar (TUI-INPUT-HEIGHT-5-SCROLL-01) ---------- */
+/* SPRINT 306: agrupa InputWidget (h:7) e Toolbar (h:1) num unico container
+ * dock:bottom. Dois dock:bottom SOLTOS nao reservavam o espaco somado -- o
+ * #chat (1fr) descontava so o input e a toolbar caia sobre a borda inferior do
+ * input (o "corte"). Com o container, o rodape reserva 8 linhas (height:auto =
+ * soma dos filhos) e o #chat fica com o resto. */
+#bottombar {
     dock: bottom;
     height: auto;
-    min-height: 3;
-    max-height: 10;
+    background: $surface;
+}
+
+/* ---------- InputWidget (altura FIXA de 5 linhas; vive em #bottombar) ---------- */
+/* SPRINT 286: base TextArea multiline (Ctrl+J insere nova linha).
+ * TUI-INPUT-HEIGHT-5-SCROLL-01 (SPRINT 306): altura FIXA de 5 linhas de
+ * conteudo. `border: round` consome 2 linhas (topo+base) e o box-model do
+ * Textual inclui a borda em `height`, logo height = 5 + 2 = 7. Conteudo alem
+ * de 5 linhas rola DENTRO do TextArea (scroll interno nativo da base
+ * TextArea/ScrollView). O dock saiu daqui: o empilhamento e a reserva de
+ * espaco sao responsabilidade do #bottombar (acima). */
+
+InputWidget {
+    height: 7;
     background: $surface;
     border: round $accent;
     padding: 0 1;
+    scrollbar-size-vertical: 1;
+    scrollbar-color: $primary 30%;
+    scrollbar-color-hover: $primary;
+    scrollbar-color-active: $accent;
 }
 
 /* Placeholder do TextArea (classe interna distinta do .input--placeholder). */
@@ -146,7 +162,6 @@ InputWidget > .text-area--suggestion {
  * watch_mode handler do widget. */
 
 Toolbar {
-    dock: bottom;
     height: 1;
     background: $surface;
     color: $muted;
