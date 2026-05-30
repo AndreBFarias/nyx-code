@@ -1292,7 +1292,15 @@ def render_footer(
     reads: int,
     mods: int,
 ) -> None:
-    """Imprime footer 1 linha acima do prompt: '── ctx X% ── modelo ── iter N ──'.
+    """[LEGADO/MORTO — zero chamadores] Footer do REPL prompt_toolkit pré-Textual.
+
+    Substituído pelo widget Textual `agent/tui/widgets/toolbar.py` (ONDA-32).
+    Auditado em TUI-OUTPUT-CAPITALIZATION-AUDIT-01: como não tem chamador, os
+    labels minúsculos abaixo (ctx/iter/lidos/modif) são user-invisíveis e NÃO
+    recebem a capitalização aplicada à toolbar viva na SPRINT 287. Mantido (não
+    deletado) por GUIDE #3 "código morto: mencionar, não deletar".
+
+    Imprime footer 1 linha acima do prompt: '── ctx X% ── modelo ── iter N ──'.
 
     Degradação por largura:
       ≥80 cols: completo (ctx, modelo, iter, lidos, modif)
