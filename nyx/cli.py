@@ -102,7 +102,7 @@ async def run_repl(
     resume_id: str | None = None,
     no_resume_prompt: bool = False,
 ) -> int:
-    from nyx.agent.commands import handle_command
+    from nyx.agent.commands import handle_command, list_commands
     from nyx.agent.loop import AgentLoop
     from nyx.config.settings import load_settings
 
@@ -539,7 +539,7 @@ async def run_repl(
             model=model,
             tools_count=agent.tools_count,
             project_name=PROJECT_ROOT.name,
-            slash_completer=[],
+            slash_completer=[c.name for c in list_commands()],
             settings=settings,
             agent=agent,
         )
