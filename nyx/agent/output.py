@@ -638,7 +638,8 @@ def parse_todo_lines(text: str) -> list[tuple[bool, str]]:
 
 
 def render_todo_block(items: list[tuple[bool, str]]) -> None:
-    """[MORTO — zero chamadores; mantido por GUIDE #3] Lista de todos com checkboxes geometric shapes (TUI-REDESIGN-25-12).
+    """[MORTO — zero chamadores; mantido por GUIDE #3] Lista de todos com
+    checkboxes geometric shapes (TUI-REDESIGN-25-12).
 
     Done: ◼ (U+25FC, ◼) + texto em muted (visual strikethrough sutil).
     Pending: ◻ (U+25FB, ◻) + texto em ink. Glifos ADR-004 ok (não-emoji).
