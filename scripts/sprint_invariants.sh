@@ -167,15 +167,27 @@ else
 fi
 
 # 10. Ruff limpo em nyx/
-if command -v python3 >/dev/null && python3 -m ruff --version >/dev/null 2>&1; then
-    if python3 -m ruff check nyx/ >/dev/null 2>&1; then
-        ok "10. ruff check nyx/"
+# INFRA-INVARIANT-RUFF-SKIP-FALSE-OK-01: resolve o ruff tanto como binário
+# (command -v ruff) quanto como módulo (python3 -m ruff). Antes o check só tentava
+# o módulo; quando ele estava ausente (mas o binário ~/.local/bin/ruff existia, o
+# que é o caso comum), caía num falso [OK] "pulado" -- foi o que deixou o E501 da
+# SPRINT 293 passar batido e ressurgir depois. Preferir o binário torna o #10 estável
+# (independe da ativação do venv). Só pula de fato se ruff faltar em AMBAS as formas.
+RUFF_CMD=""
+if command -v ruff >/dev/null 2>&1; then
+    RUFF_CMD="ruff"
+elif command -v python3 >/dev/null 2>&1 && python3 -m ruff --version >/dev/null 2>&1; then
+    RUFF_CMD="python3 -m ruff"
+fi
+if [ -n "$RUFF_CMD" ]; then
+    if $RUFF_CMD check nyx/ >/dev/null 2>&1; then
+        ok "10. ruff check nyx/ (via ${RUFF_CMD})"
     else
-        RUFF_OUT=$(python3 -m ruff check nyx/ 2>&1 | tail -5)
+        RUFF_OUT=$($RUFF_CMD check nyx/ 2>&1 | tail -5)
         fail "10. ruff reclama" "${RUFF_OUT}"
     fi
 else
-    ok "10. ruff ausente (pulado)"
+    ok "10. ruff ausente (binário E módulo) -- lint NÃO verificado; instale ruff p/ cobrir o #10"
 fi
 
 # 11. Zero menção a 'os.environ.get("SKIP_' (flags de bypass sorrateiros)
