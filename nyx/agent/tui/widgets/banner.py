@@ -54,7 +54,8 @@ class BannerWidget(Static):
 
     DEFAULT_CSS = """
     BannerWidget {
-        dock: top;
+        /* TUI-BANNER-SCROLLABLE-01: sem dock; o banner é o 1º filho do #chat e
+           rola junto com a conversa (ver app.py compose + nyx.tcss). */
         height: auto;
         background: $surface;
         padding: 0 1;

@@ -32,12 +32,12 @@ App {
     background: $surface;
 }
 
-/* ---------- BannerWidget (dock: top fixo) ---------- */
-/* Sub-sprint TUI-BANNER-DOCK-TOP-01 ancora no topo independente do scroll
- * do chat. Cursor blink local via BannerWidget.refresh() (sem race global). */
+/* ---------- BannerWidget (rolável, 1o filho do #chat) ---------- */
+/* TUI-BANNER-DOCK-TOP-01 ancorava no topo (dock:top). TUI-BANNER-SCROLLABLE-01
+ * removeu o dock: o banner agora é o 1o filho do #chat e rola junto com a
+ * conversa. Cursor blink local via BannerWidget.refresh() (sem race global). */
 
 BannerWidget {
-    dock: top;
     height: auto;
     background: $surface;
     padding: 0 1;

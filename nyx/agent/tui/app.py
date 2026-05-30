@@ -143,7 +143,7 @@ class NyxTUI(App):
                 collector._on_token = self._on_agent_token
 
     def compose(self) -> ComposeResult:
-        """Yield Banner, VerticalScroll, Input, Toolbar -- ordem é crítica.
+        """Yield #chat (Banner como 1º filho rolável), Input, Toolbar -- ordem crítica.
 
         BannerWidget e Toolbar não aceitam `id=` no construtor (não
         repassam ao super). Atribuímos `.id` após instanciar -- atributo
@@ -164,9 +164,13 @@ class NyxTUI(App):
             settings=self._settings,
         )
         banner.id = "banner"
-        yield banner
 
-        yield VerticalScroll(id="chat")
+        # TUI-BANNER-SCROLLABLE-01: o banner deixa de ser dock:top fixo e vira o
+        # PRIMEIRO filho do #chat -- rola junto com a conversa (os ChatMessages
+        # são mountados depois, abaixo dele). A scrollbar do #chat passa a cobrir
+        # banner+chat; só o Input/Toolbar (dock:bottom) ficam fora do scroll.
+        with VerticalScroll(id="chat"):
+            yield banner
 
         yield InputWidget(
             id="input",
