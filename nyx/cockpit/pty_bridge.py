@@ -129,6 +129,16 @@ class PtyBridge:
             raise RuntimeError("PtyBridge.start() chamado mais de uma vez")
         master_fd, slave_fd = pty.openpty()
         self.master_fd = master_fd
+        # TUI-FIX-WEB-PTY-INITIAL-WINSIZE-01 (ONDA-34): pty.openpty() nasce 0x0.
+        # O Textual iniciava num terminal 0x0 e só re-renderizava quando o resize
+        # do xterm.js chegava (pós-onopen) -> render inicial degenerado (input/
+        # toolbar ausentes) e empilhamento no resize seguinte. Define 24x80
+        # (fallback clássico de TTY) antes do spawn; o resize real do cliente
+        # corrige em seguida, mas o 1o frame já sai válido.
+        try:
+            fcntl.ioctl(master_fd, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
+        except OSError as exc:  # noqa: BLE001 -- best-effort
+            logger.debug("winsize inicial falhou: %s", exc)
         # start_new_session=True isola o processo do shell pai
         # (evita herdar TTY do cockpit server)
         self.proc = subprocess.Popen(

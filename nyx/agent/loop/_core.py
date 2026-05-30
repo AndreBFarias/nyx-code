@@ -343,7 +343,7 @@ class AgentLoop(_IterationMixin):
             tool_calls = response.get("tool_calls", [])
 
             if tool_calls:
-                status = self._execute_tool_calls(tool_calls, i + 1)
+                status = await self._execute_tool_calls(tool_calls, i + 1)
                 if status:
                     return status
                 continue
@@ -369,7 +369,7 @@ class AgentLoop(_IterationMixin):
                         action.action_type.value,
                         parse_result.level.value,
                     )
-                    status = self._execute_parsed_action(action, i + 1)
+                    status = await self._execute_parsed_action(action, i + 1)
                     if status:
                         return status
                     continue

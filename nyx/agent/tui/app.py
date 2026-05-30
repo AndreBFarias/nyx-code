@@ -145,6 +145,18 @@ class NyxTUI(App):
         toolbar.id = "toolbar"
         yield toolbar
 
+    def on_mount(self) -> None:
+        """Foca o InputWidget ao montar -- TUI-FIX-INPUT-FOCUS-ON-MOUNT-01.
+
+        Sem isto, o Textual foca o primeiro widget focável da árvore, que é o
+        VerticalScroll(#chat) -- as teclas de texto vão para o container de
+        scroll (que as ignora) em vez do prompt. Efeito: a TUI parece "morta"
+        ao digitar (input nunca recebe caractere), embora bindings globais
+        como shift+tab funcionem. Reproduzido no caminho --web (cockpit/PTY +
+        xterm.js); focar o input explicitamente conserta os dois caminhos.
+        """
+        self.query_one("#input", InputWidget).focus()
+
     def _on_input_submit(self, text: str) -> None:
         """Callback do InputWidget.
 
@@ -156,8 +168,9 @@ class NyxTUI(App):
 
         Streaming de tokens, tool calls e tool results retornam pelo bridge
         de callbacks instalado no __init__ (`_on_agent_token`, `_on_agent_tool`,
-        `_on_agent_tool_result`). Cada um usa `call_from_thread` para agendar
-        update no event loop principal -- thread-safe por design.
+        `_on_agent_tool_result`). Como o turno roda como worker async no loop
+        principal (TUI-FIX-HTTPX-LOOP-AFFINITY-01), os callbacks tocam os
+        widgets direto -- sem `call_from_thread`.
         """
         if not text.strip():
             return
@@ -180,13 +193,15 @@ class NyxTUI(App):
         self._current_assistant = assistant
         toolbar = self.query_one("#toolbar", Toolbar)
         toolbar.inflight = True
-        # exclusive=True garante apenas 1 worker por vez; turnos sequencias
-        # ficam fila implicita. thread=True roda async coroutine em thread
-        # daemon -- callbacks do agent disparam de la e usam call_from_thread
-        # para tocar widgets seguros do event loop main.
-        self.run_worker(
-            self._process_turn(text), thread=True, exclusive=True
-        )
+        # TUI-FIX-HTTPX-LOOP-AFFINITY-01 (ONDA-33): worker async NO LOOP
+        # PRINCIPAL (sem thread=True). Antes, thread=True rodava agent.run()
+        # via asyncio.run() numa thread descartavel -- o httpx client do agent
+        # nascia preso a esse loop e morria com ele, causando "Event loop is
+        # closed" no 2o turno e no shutdown. Rodando no loop do Textual, o
+        # client vive no mesmo loop o tempo todo. A tool execution bloqueante
+        # sai do loop via asyncio.to_thread dentro do AgentLoop.
+        # exclusive=True mantem 1 turno por vez (fila implicita).
+        self.run_worker(self._process_turn(text), exclusive=True)
 
     def _dispatch_slash(self, text: str) -> None:
         """Roteia slash command via handle_command e trata sentinels.
@@ -252,29 +267,33 @@ class NyxTUI(App):
         chat.scroll_end(animate=False)
 
     async def _process_turn(self, text: str) -> None:
-        """Worker async: aguarda agent.run() e reseta inflight no finally.
+        """Worker async (loop principal): aguarda agent.run() e reseta inflight.
 
-        Try/except envolve o run() para garantir que toolbar.inflight = False
-        em qualquer caminho (sucesso ou excecao). Excecoes do agent sao
-        re-erguidas para o handler global do Textual (que loga e mostra
-        mensagem; não crasha a TUI).
+        TUI-FIX-HTTPX-LOOP-AFFINITY-01 (ONDA-33): roda no event loop do
+        Textual. Como estamos no loop main, widgets são tocados DIRETO --
+        `call_from_thread` aqui lançaria RuntimeError. Antes, o finally usava
+        `call_from_thread(chat.scroll_end, False)`, passando `False` como
+        argumento posicional para `scroll_end`, que só aceita `animate` por
+        keyword -- TypeError a cada turno (TUI-FIX-SCROLL-END-KWARG-01).
+
+        Try/finally garante toolbar.inflight = False em qualquer caminho.
+        Exceções do agent sobem para o handler global do Textual (loga e
+        mostra; não crasha a TUI).
         """
         try:
             await self._agent.run(text)
         finally:
-            toolbar = self.query_one("#toolbar", Toolbar)
-            self.call_from_thread(setattr, toolbar, "inflight", False)
-            chat = self.query_one("#chat", VerticalScroll)
-            self.call_from_thread(chat.scroll_end, False)
+            self.query_one("#toolbar", Toolbar).inflight = False
+            self.query_one("#chat", VerticalScroll).scroll_end(animate=False)
 
     def _on_agent_token(self, token: str) -> None:
         """Callback patcheado em agent._on_token (e collector._on_token).
 
-        Chamado de dentro do streaming (thread daemon). Agenda
-        append_text no event loop main via call_from_thread.
+        TUI-FIX-HTTPX-LOOP-AFFINITY-01: chamado de dentro de agent.run() no
+        loop principal -- toca o widget direto (sem call_from_thread).
         """
         if self._current_assistant is not None and token:
-            self.call_from_thread(self._current_assistant.append_text, token)
+            self._current_assistant.append_text(token)
 
     def _on_agent_tool(self, name: str, args: Any) -> None:
         """Callback patcheado em agent._on_tool.
@@ -285,8 +304,8 @@ class NyxTUI(App):
         """
         args_str = "" if args is None else str(args)
         chat = self.query_one("#chat", VerticalScroll)
-        tool_msg = ChatMessage("tool", f"{name}({args_str})")
-        self.call_from_thread(chat.mount, tool_msg)
+        chat.mount(ChatMessage("tool", f"{name}({args_str})"))
+        chat.scroll_end(animate=False)
 
     def _on_agent_tool_result(self, name: str, result: Any = "") -> None:
         """Callback patcheado em agent._on_tool_result.
@@ -296,8 +315,8 @@ class NyxTUI(App):
         (output ou error). Ver loop/_iteration.py:183.
         """
         chat = self.query_one("#chat", VerticalScroll)
-        tool_msg = ChatMessage("tool", f"-> {name}: {result}")
-        self.call_from_thread(chat.mount, tool_msg)
+        chat.mount(ChatMessage("tool", f"-> {name}: {result}"))
+        chat.scroll_end(animate=False)
 
     async def action_quit(self) -> None:
         """Ctrl+Q: fecha app via Application.exit(result=__quit__).

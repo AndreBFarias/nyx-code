@@ -155,7 +155,9 @@
       statusText.textContent = text;
     };
 
-    const term = new Terminal({
+    // TUI-FIX-WEB-RESIZE-TILING-01 (ONDA-34): opções extraídas p/ reuso no
+    // recreateTerminal() (recriação no resize). `term` é `let` por isso.
+    const TERM_OPTIONS = {
       cursorBlink: true,
       cursorStyle: "block",
       fontFamily: 'ui-monospace, "JetBrains Mono", "Fira Mono", monospace',
@@ -176,7 +178,8 @@
         brightMagenta: "#BD93F9",
         brightWhite: "#E8E8E8",
       },
-    });
+    };
+    let term = new Terminal(TERM_OPTIONS);
     const termContainer = document.getElementById("terminal");
     term.open(termContainer);
 
@@ -341,10 +344,35 @@
       console.error("[cockpit] WS error:", e);
     };
 
-    term.onData((d) => {
-      if (ws.readyState !== WebSocket.OPEN) return;
-      ws.send(new TextEncoder().encode(d));
-    });
+    function bindTermData() {
+      term.onData((d) => {
+        if (ws.readyState !== WebSocket.OPEN) return;
+        ws.send(new TextEncoder().encode(d));
+      });
+    }
+    bindTermData();
+
+    // TUI-FIX-WEB-RESIZE-TILING-01 (ONDA-34): recria o Terminal no resize.
+    // pyte (emulador correto) renderiza os MESMOS bytes do Textual em 1 input;
+    // o xterm.js só empilha ao redimensionar um alt-buffer EXISTENTE. Terminal
+    // novo = estado da conexão inicial (sempre limpa). Textual não re-envia
+    // ?1049h fora do boot -> reentramos no alt-screen manualmente; o frame full
+    // do Textual (pós-SIGWINCH do sendResize) preenche o terminal fresco.
+    function recreateTerminal() {
+      // Computa cols/rows ANTES de dispose (mede a célula com o term atual) e
+      // cria o terminal novo JÁ no tamanho alvo -- sem term.resize() depois,
+      // que reintroduziria o bug de resize do alt-buffer no próprio fresco.
+      const { cellW, cellH } = measureCell();
+      const availW = Math.max(termContainer.clientWidth - 8, cellW * 20);
+      const availH = Math.max(termContainer.clientHeight - 8, cellH * 5);
+      const cols = Math.max(20, Math.floor(availW / cellW));
+      const rows = Math.max(5, Math.floor(availH / cellH));
+      try { term.dispose(); } catch (_) { /* ja disposed */ }
+      term = new Terminal(Object.assign({}, TERM_OPTIONS, { cols, rows }));
+      term.open(termContainer);
+      bindTermData();
+      term.write("\x1b[?1049h");
+    }
 
     // COCKPIT-02: resize coordenado (xterm.js -> ws JSON meta)
     function sendResize() {
@@ -357,8 +385,8 @@
     window.addEventListener("resize", () => {
       if (_resizeTimer !== null) clearTimeout(_resizeTimer);
       _resizeTimer = setTimeout(() => {
-        fitTerminal();
-        sendResize();
+        recreateTerminal();   // terminal fresco JÁ no tamanho alvo (sem resize de buffer existente)
+        sendResize();         // PTY -> SIGWINCH -> Textual manda frame full -> preenche o fresco limpo
         _resizeTimer = null;
       }, 80);
     });

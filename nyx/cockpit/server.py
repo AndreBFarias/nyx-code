@@ -85,7 +85,14 @@ def _choose_repl_command() -> list[str]:
     """
     if _proxy_up() and VENV_PYTHON.is_file() and NYX_CLI.is_file():
         logger.info("PTY mode: REPL puro (proxy UP)")
-        return [str(VENV_PYTHON), str(NYX_CLI)]
+        # TUI-FIX-WEB-RESUME-PROMPT-BLOCKS-01 (ONDA-34, stopgap): --no-resume-prompt.
+        # O prompt input() "Retomar última sessão? [s/N]" roda ANTES do run_async()
+        # da NyxTUI (cli.py:238) e bloqueia o boot da TUI no PTY/xterm.js: ninguém
+        # responde s/N no fluxo web -> TUI nunca renderiza, lock fica preso, conexões
+        # seguintes veem "outra sessão PTY ativa". Fix próprio (ONDA-34): mover o
+        # resume para um modal Textual. Por ora, --web pula o prompt (/resume segue
+        # disponível dentro da TUI).
+        return [str(VENV_PYTHON), str(NYX_CLI), "--no-resume-prompt"]
     logger.info("PTY mode: ./run.sh completo (proxy DOWN ou venv ausente)")
     return [str(RUN_SH)]
 

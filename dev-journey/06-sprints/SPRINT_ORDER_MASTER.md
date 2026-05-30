@@ -774,6 +774,42 @@ Plano canônico: `~/.claude/plans/joyful-petting-steele.md`.
 
 <!-- MANUAL_OVERRIDE_ONDA_32_END -->
 
+<!-- MANUAL_OVERRIDE_ONDA_33_START -->
+
+### Bloco ONDA-33: Fixes de runtime da bridge agent-TUI Textual pós-cutover (2026-05-29)
+
+**Origem:** Após ONDA-32 (cutover Textual default, commit ef79c17), uso interativo real expôs 5 bugs de runtime na bridge agent-TUI que o teste estrutural não pegou. Detectados e corrigidos em sessão de debug 2026-05-29 (recuperada de 2 quedas de sessão). Provados em runtime: sessão de ~19 min multi-turno (nyx.log 14:31-14:49) com tool calls, sem crash e shutdown limpo. Revisados fix-a-fix (modelo de threading verificado). Plano canônico: `~/.claude/plans/redesign-auditoria-da-tender-beacon.md`.
+
+| ID | Sprint | Fase | Prio | Status | Dependência |
+|----|--------|------|------|--------|-------------|
+| 273 | **TUI-FIX-HTTPX-LOOP-AFFINITY-01** | 33.1 Bridge async | CRITICA | CONCLUIDA (2026-05-29; turno deixa de rodar em worker-thread (run_worker thread=True + asyncio.run() descartável fazia o httpx client morrer no 2o turno com "Event loop is closed"); agora roda no event loop principal do Textual; `_execute_tool_calls`/`_execute_parsed_action` viram async em loop/_iteration.py com `await asyncio.to_thread(self._tools.execute)`; callers com await em loop/_core.py; callbacks tocam widgets direto sem call_from_thread; smoke ok, invariantes 14/14, gauntlet rapido 19/19 + loop) | TUI-DEFAULT-FLIP-LEGACY-RM-01 |
+| 274 | **TUI-FIX-SCROLL-END-KWARG-01** | 33.2 Bug TypeError | ALTA | CONCLUIDA (2026-05-29; `scroll_end(animate=False)` substitui `call_from_thread(scroll_end, False)` que passava False posicional a um argumento kwarg-only, causando TypeError a cada turno; app.py _process_turn finally) | TUI-FIX-HTTPX-LOOP-AFFINITY-01 |
+| 275 | **TUI-FIX-WARMUP-KILL-NOISE-01** | 33.3 Ruído de boot | BAIXA | CONCLUIDA (2026-05-29; `disown "$_warmup_pid"` em run.sh remove a mensagem de job-control "PID Morto warmup_model" da tela de boot quando o timeout do warmup faz SIGKILL; kill -0/-9 por PID seguem funcionando) | -- |
+| 276 | **TUI-FIX-INPUT-FOCUS-ON-MOUNT-01** | 33.4 Foco morto | ALTA | CONCLUIDA (2026-05-29; `on_mount` foca `#input` em app.py; sem isso o Textual focava o VerticalScroll(#chat) e a TUI parecia morta ao digitar; conserta terminal e --web) | TUI-FIX-HTTPX-LOOP-AFFINITY-01 |
+| 277 | **TUI-FIX-CHATMESSAGE-RELAYOUT-01** | 33.5 Relayout streaming | MEDIA | CONCLUIDA (2026-05-29; `refresh(layout=True)` em ChatMessage.append_text/set_content para o widget assistant crescer em altura durante o streaming; chat_message.py) | TUI-FIX-HTTPX-LOOP-AFFINITY-01 |
+
+**ONDA-33 FECHADA 2026-05-29.** Achado colateral: proxy.py ganhou `# noqa: ai-mention` (supressão de falso-positivo de lint na linha do prompt de anonimização, que lista providers de propósito para a Nyx NÃO citá-los).
+
+<!-- MANUAL_OVERRIDE_ONDA_33_END -->
+
+<!-- MANUAL_OVERRIDE_ONDA_34_START -->
+
+### Bloco ONDA-34: Fixes do caminho --web (cockpit/xterm.js) destravando a TUI no browser (2026-05-29)
+
+**Origem:** Mesma sessão de debug 2026-05-29. Validação da TUI via `./run.sh --web` (playwright no cockpit) expôs que o --web não subia ("outra sessão PTY ativa") e empilhava o input no resize. Root-cause sistemático (instrumentação [PROBE] + probe PTY + pyte como emulador de referência). Plano canônico: `~/.claude/plans/redesign-auditoria-da-tender-beacon.md`.
+
+| ID | Sprint | Fase | Prio | Status | Dependência |
+|----|--------|------|------|--------|-------------|
+| 278 | **TUI-FIX-WEB-SESSION-REAP-01** | 34.1 Reap de órfãos | ALTA | CONCLUIDA (2026-05-29; kill_existing_ollama em run.sh ganha `pkill -f "nyx.cockpit.server"` + `pkill -f "nyx/cli.py"`; antes só matava proxy/ollama, e o cockpit --web (disowned/reparented) escapava do acquire_lock, causando amontoamento de sessões; provado: lançar run.sh B mata o cockpit A) | TUI-DEFAULT-FLIP-LEGACY-RM-01 |
+| 279 | **TUI-FIX-WEB-RESUME-PROMPT-BLOCKS-01** | 34.2 Prompt bloqueante | ALTA | CONCLUIDA (2026-05-29; cockpit spawna `cli.py --no-resume-prompt` em server.py _choose_repl_command; o prompt input() "Retomar última sessão?" rodava antes do run_async() da NyxTUI e travava o boot da TUI no PTY/xterm.js, pois ninguém responde s/N no fluxo web; fix próprio definitivo = mover o resume para um modal Textual, futuro) | TUI-FIX-WEB-SESSION-REAP-01 |
+| 280 | **TUI-FIX-WEB-PIDFILE-BOOT-RACE-01** | 34.3 Corrida de boot | CRITICA | CONCLUIDA (2026-05-29; `rm -f "$NYX_PID_FILE"` movido para logo após "Cockpit pronto" em run.sh, antes do warmup; causa-raiz do "outra sessão PTY ativa": o cockpit ficava healthy antes do rm (que rodava só no sleep loop pós-warmup, ~6s depois), e o PtyBridge.preflight lia o próprio PID do run.sh em /tmp/nyx.pid e recusava como sessão ativa; provado via instrumentação [PROBE] no handler /repl) | TUI-FIX-WEB-RESUME-PROMPT-BLOCKS-01 |
+| 281 | **TUI-FIX-WEB-PTY-INITIAL-WINSIZE-01** | 34.4 Winsize inicial | MEDIA | CONCLUIDA (2026-05-29; PtyBridge.start define winsize 24x80 via TIOCSWINSZ antes do spawn; pty.openpty() nascia 0x0 e o Textual renderizava degenerado (input/toolbar ausentes) até o resize do xterm.js chegar) | TUI-FIX-WEB-PIDFILE-BOOT-RACE-01 |
+| 282 | **TUI-FIX-WEB-RESIZE-TILING-01** | 34.5 Input empilhado no resize | ALTA | CONCLUIDA (2026-05-29; terminal.html recria o Terminal do xterm.js no resize, já no tamanho alvo (cols/rows nas options, sem term.resize() no fresco que reintroduziria o bug); causa-raiz provada via pyte (emulador correto renderiza os MESMOS bytes do Textual em 1 input, logo o bug é do xterm.js ao redimensionar um alt-buffer existente, NÃO do Textual cujo layout/output estão corretos por Pilot e byte-probe); de 9 input boxes empilhados permanentes para 1; validado em vários resizes + screenshot; caveat: transiente ocasional em resizes discretos muito rápidos, que se auto-corrige no resize seguinte) | TUI-FIX-WEB-PTY-INITIAL-WINSIZE-01 |
+
+**ONDA-34 em curso (5 fixes de destravamento CONCLUIDOS 2026-05-29).** O --web agora conecta e renderiza (cockpit "conectado", TUI Textual no xterm.js, resize limpo). Itens de UX/redesign da auditoria (input TextArea multiline + Ctrl+J, slash completer populado, ghost NyxCode no turno = balão assistant vazio, capitalização do footer, thinking-expand, histórico navegável, image-counter, ADR-022) seguem PENDENTES como continuação da ONDA-34 (IDs 283+; numeração tentativa do plano superada por este bloco). Diagnósticos reutilizáveis em /tmp/{pyte_repro,pty_resize_bytes,pilot_input_probe}.py.
+
+<!-- MANUAL_OVERRIDE_ONDA_34_END -->
+
 <!-- MANUAL_OVERRIDE_ONDA_28_START -->
 
 ### Bloco ONDA-28: TUI paridade Claude Code (boot silencioso + banner block + input fixo + wizard completo) (2026-05-18) <!-- noqa-anonimato -->

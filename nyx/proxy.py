@@ -691,7 +691,7 @@ async def handle_chat(request: web.Request) -> web.StreamResponse:
                         "role": "user",
                         "content": (
                             "Você é Nyx, codificadora local. Não mencione modelo subjacente "
-                            "(Qwen, GPT, Claude, Llama, etc.). Refaça em PT-BR sem citar IA proprietária."  # noqa-anonimato
+                            "(Qwen, GPT, Claude, Llama, etc.). Refaça em PT-BR sem citar IA proprietária."  # noqa-anonimato  # noqa: ai-mention
                         ),
                     }
                 )

@@ -349,6 +349,15 @@ kill_existing_ollama() {
     # Parar proxy anterior
     pkill -f "nyx/proxy.py" 2>/dev/null || true
 
+    # TUI-FIX-WEB-SESSION-REAP-01 (ONDA-34): reap de cockpit/CLI órfãos.
+    # Em modo --web o cockpit é disowned/reparented (deixa de ser descendente
+    # do run.sh anterior), então escapa do acquire_lock (pgrep -P pega só filhos
+    # diretos) e some do pid file. Resultado: cockpit.server / cli.py stale
+    # bloqueavam a nova sessão com "outra sessão PTY ativa" (amontoamento).
+    # pkill por padrão garante slate limpo a cada boot, independente do pid file.
+    pkill -f "nyx.cockpit.server" 2>/dev/null || true
+    pkill -f "nyx/cli.py" 2>/dev/null || true
+
     local existing_pid
     existing_pid=$(_port_owner_pid "$NYX_OLLAMA_PORT")
     if [ -n "$existing_pid" ]; then
@@ -707,6 +716,13 @@ if [ "$COCKPIT_BG" -eq 1 ]; then
     sleep 2
     if curl -sf http://127.0.0.1:11437/health > /dev/null 2>&1; then
         log_boot "Cockpit pronto (PID: $COCKPIT_PID)"
+        # TUI-FIX-WEB-PIDFILE-BOOT-RACE-01 (ONDA-34): cede o lock /tmp/nyx.pid
+        # AGORA (cockpit UP), não só na linha do sleep loop (pós-warmup, ~6s
+        # depois). Causa-raiz do "outra sessão PTY ativa": o cockpit fica healthy
+        # antes do rm; se um cliente conecta nessa janela, o PtyBridge.preflight
+        # lê o PRÓPRIO PID do run.sh em /tmp/nyx.pid e recusa como "sessão ativa".
+        # Cedendo aqui, o preflight vê lock livre e spawna a TUI normalmente.
+        rm -f "$NYX_PID_FILE" 2>/dev/null || true
         # SPRINT 239 hotfix3: abre DIRETO em /static/terminal.html (REPL)
         # ao inves de / (dashboard de cards) -- usuario quer conversar com a
         # Nyx imediatamente, nao ver feature catalog.
@@ -739,6 +755,11 @@ if [ "$GAUNTLET" -eq 0 ]; then
     # marginalmente mais lenta vs boot rapido + interface visivel.
     warmup_model &
     _warmup_pid=$!
+    # TUI-FIX-WARMUP-KILL-NOISE-01 (ONDA-33): disown tira o job da tabela do
+    # shell para que o SIGKILL do timeout abaixo NÃO vaze a mensagem de job
+    # control ("linha NNN: PID Morto warmup_model") na tela de boot. kill -0 e
+    # kill -9 seguem funcionando por PID mesmo após disown.
+    disown "$_warmup_pid" 2>/dev/null || true
     _warmup_done=0
     for _ in $(seq 1 60); do  # 60 * 100ms = 6s ceiling
         if ! kill -0 "$_warmup_pid" 2>/dev/null; then

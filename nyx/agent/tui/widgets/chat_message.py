@@ -52,18 +52,22 @@ class ChatMessage(Static):
     def append_text(self, token: str) -> None:
         """Append token ao conteudo e re-renderiza.
 
-        Thread-safe quando chamado via call_from_thread; o Textual driver
-        garante que refresh() agenda no event loop.
+        TUI-FIX-CHATMESSAGE-RELAYOUT-01 (ONDA-33): usa refresh(layout=True).
+        Um ChatMessage assistant cresce de 1 linha ("◆ NyxCode") para N linhas
+        conforme o streaming chega -- muda de ALTURA. refresh() simples só
+        repinta o widget na altura antiga; o texto novo não aparece (o input,
+        single-line, não tinha o problema). layout=True força o Textual a
+        recalcular a altura do widget no container de scroll.
         """
         if not token:
             return
         self._content += token
-        self.refresh()
+        self.refresh(layout=True)
 
     def set_content(self, content: str) -> None:
         """Substitui conteudo integral (sem append)."""
         self._content = content
-        self.refresh()
+        self.refresh(layout=True)
 
     def render(self) -> RenderResult:
         """Render via Text (não str) para evitar bug get_height do Textual 8.x.

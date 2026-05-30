@@ -8,6 +8,7 @@ _on_permission, _last_action, _consecutive_skips, _has_results, etc.).
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 from typing import Any
@@ -75,8 +76,15 @@ def _reminder_every() -> int:
 class _IterationMixin:
     """Métodos de iteração/LLM extraídos de AgentLoop."""
 
-    def _execute_tool_calls(self, tool_calls: list[dict], iteration: int) -> SessionStatus | None:
-        """Executa tool calls do LLM. Retorna SessionStatus se done/force_done."""
+    async def _execute_tool_calls(self, tool_calls: list[dict], iteration: int) -> SessionStatus | None:
+        """Executa tool calls do LLM. Retorna SessionStatus se done/force_done.
+
+        TUI-FIX-HTTPX-LOOP-AFFINITY-01 (ONDA-33): async para rodar no event
+        loop principal do Textual (sem worker thread). A execução bloqueante
+        da tool (`self._tools.execute`) vai para `asyncio.to_thread` para não
+        congelar a UI; os callbacks (`_on_tool`/`_on_tool_result`) permanecem
+        no loop principal -- podem tocar widgets sem `call_from_thread`.
+        """
         for tc in tool_calls:
             name = tc["name"]
             args = tc["arguments"]
@@ -153,7 +161,7 @@ class _IterationMixin:
             import time as _time
 
             _t0 = _time.monotonic()
-            result = self._tools.execute(name, args)
+            result = await asyncio.to_thread(self._tools.execute, name, args)
             self._tool_durations.setdefault(name, []).append((_time.monotonic() - _t0) * 1000.0)
             self._tool_summary.track(name, args)
 
@@ -206,8 +214,12 @@ class _IterationMixin:
 
         return None
 
-    def _execute_parsed_action(self, action: AgentAction, iteration: int) -> SessionStatus | None:
-        """Executa ação extraída pelo parser fallback."""
+    async def _execute_parsed_action(self, action: AgentAction, iteration: int) -> SessionStatus | None:
+        """Executa ação extraída pelo parser fallback.
+
+        TUI-FIX-HTTPX-LOOP-AFFINITY-01 (ONDA-33): async pelo mesmo motivo de
+        `_execute_tool_calls` -- `self._tools.execute` vai para `to_thread`.
+        """
         if action.action_type == ActionType.DONE:
             summary = action.params.get("summary", "Tarefa concluída.")
             self._session.add_tool_call("done", action.params, summary, is_key=True)
@@ -258,7 +270,7 @@ class _IterationMixin:
         import time as _time
 
         _t0 = _time.monotonic()
-        result = self._tools.execute(tool_name, remapped)
+        result = await asyncio.to_thread(self._tools.execute, tool_name, remapped)
         self._tool_durations.setdefault(tool_name, []).append((_time.monotonic() - _t0) * 1000.0)
 
         vr = post_validate(tool_name, remapped, result)
@@ -351,7 +363,7 @@ class _IterationMixin:
         # System role no histórico via add_user evitaria conflito de schema; usamos
         # add_user com prefixo canônico para que to_messages preserve role=user
         # mas o conteúdo entregue ao modelo seja o bloco system-reminder cru.
-        # Modelos OpenAI-compatible aceitam role=user com bloco <system-reminder>;
+        # Modelos OpenAI-compatible aceitam role=user com bloco <system-reminder>;  # noqa-anonimato
         # o que importa é a presença visual do bloco no contexto reduzido.
         self._session.add_user(reminder)
         self._last_reminder_at_count = count
