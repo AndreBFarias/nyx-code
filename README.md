@@ -119,6 +119,18 @@ Configura antes de bootar:
 
 Persiste em `~/.nyx/config.toml`. Próximo boot já adota.
 
+### Interface (TUI Textual)
+
+A TUI interativa (migrada de prompt_toolkit para Textual na ONDA-32, redesenhada na ONDA-34) é a mesma no terminal e no `--web` (espelhada via PTY + xterm.js):
+
+- **Markdown + syntax highlight** nas respostas do NyxCode (blocos ` ``` ` coloridos via pygments).
+- **Raciocínio recolhível** ("◐ pensando") quando o modelo pensa — expande no clique no título ou foco+Enter.
+- **Input multiline**: `Enter` envia · `Ctrl+J` nova linha · `Tab` aceita a sugestão ghost do slash command.
+- **Histórico de inputs**: `Ctrl+Up` / `Ctrl+Down` percorrem submissões anteriores.
+- **Copiar código**: `Ctrl+Y` copia o último bloco de código para a área de transferência (OSC52).
+- **Rodapé** com Ctx / Iter / Lidos / Modif e VRAM ao vivo; banner rolável junto com a conversa; label nominal do usuário com nome em cor de destaque.
+- `Ctrl+O` recall do último input · `Shift+Tab` troca de modo · `Ctrl+Q` sai · `Ctrl+D` sai (EOF).
+
 ### Cockpit Web (`--web`)
 
 Sobe o servidor FastAPI local (`127.0.0.1:11437`, ADR-001 Local First) e abre o browser default:

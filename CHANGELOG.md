@@ -5,6 +5,41 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.3.0] - 2026-05-30
+
+Migração da TUI de prompt_toolkit para Textual (ONDA-32) + redesign completo da interface interativa a partir de uma auditoria de UX (ONDA-34, sprints 283-301). Toda a matriz de auditoria resolvida (features, higiene e decisões). Invariantes 14/14 PASS, gauntlet `--only rapido` APROVADO re-validado por sprint; as features de UI foram validadas via Textual Pilot (headless, sem OOM).
+
+### Adicionado
+
+- **Markdown + syntax highlight no chat** (`TUI-CHAT-MARKDOWN-SYNTAX-01`) — o conteúdo do NyxCode renderiza como Markdown; blocos ` ``` ` ganham syntax highlight (Rich/pygments, tema Monokai), listas e ênfase formatadas.
+- **Bloco de raciocínio recolhível** (`TUI-THINKING-EXPAND-01`) — o reasoning do modelo (`think=true`), antes dropado na TUI Textual, volta como `Collapsible` recolhido ("◐ pensando"); expand/collapse nativo (clique no título ou foco+Enter), sem reusar o Tab.
+- **Copiar bloco de código** (`TUI-CODE-COPY-BUTTON-01`) — `Ctrl+Y` copia o último bloco ` ``` ` da última resposta para a área de transferência via OSC52 (funciona no terminal e no `--web`/xterm.js).
+- **Banner rolável** (`TUI-BANNER-SCROLLABLE-01`) — o banner deixa de ser fixo (`dock:top`) e vira o 1º filho do `#chat`, rolando junto com a conversa.
+- **Labels nominais + cores no chat** (`TUI-CHAT-LABELS-COLORS-01`) — mensagens do usuário ganham label com o nome (via `resolve_user_display_name`); o NOME leva a cor de destaque da role e o CONTEÚDO fica em `$foreground` (neutro).
+- **Histórico de inputs navegável** (`TUI-INPUT-HISTORY-NAV-01`) — `Ctrl+Up`/`Ctrl+Down` percorrem submissões anteriores (preservando rascunho), sem colidir com o cursor multiline.
+- **Input multiline** (`TUI-INPUT-TEXTAREA-MULTILINE-01`) — base migrada de `Input` para `TextArea`: `Enter` envia, `Ctrl+J` insere nova linha, `Tab` aceita a sugestão ghost.
+- **Slash completer ghost-inline** (`TUI-SLASH-COMPLETER-POPULATE-01`) — digitar `/` mostra sugestão dim do comando (67 comandos), `Tab` aceita.
+- **VRAM ao vivo no rodapé** (`TUI-FOOTER-VRAM-REALTIME-01`) — a toolbar mostra a VRAM em tempo real (nvidia-smi, polling 2s, degradação graciosa).
+- **Contador de imagem colada** (`TUI-IMAGE-PASTE-COUNTER-01`) — paste de imagem vira `[Image #N]` incremental.
+
+### Mudado
+
+- **TUI migrada de prompt_toolkit para Textual** (ONDA-32, `TUI-DEFAULT-FLIP-LEGACY-RM-01`) — a stack prompt_toolkit (incluindo `nyx/agent/repl_app.py`) foi removida; a interface passa a ser uma única TUI Textual, espelhada no `--web` via PTY + xterm.js.
+- **Ghost "◆ NyxCode" eliminado por lazy-mount** (`TUI-NYXCODE-GHOST-LAZY-MOUNT-01`) — o balão do assistant só monta no 1º token, sem fantasma vazio entre o envio e a resposta.
+- **Footer capitalizado** (`TUI-FOOTER-CAPITALIZATION-01`) — Ctx/Iter/Lidos/Modif.
+- **CSS do input saneado** (`TUI-INPUT-CSS-SANITIZE-01`) — remove seletores mortos e unifica a altura.
+
+### Corrigido
+
+- **`--web` destravado** — boot-race do pid-file (`TUI-FIX-WEB-PIDFILE-BOOT-RACE-01`), prompt de resume bloqueante (`-RESUME-PROMPT-BLOCKS-01`), reap de sessão anterior (`-SESSION-REAP-01`) e empilhamento do input no resize (`-RESIZE-TILING-01`: recriar o Terminal do xterm.js já no tamanho-alvo).
+- **Ponte agent↔Textual** — loop-affinity do httpx (`TUI-FIX-HTTPX-LOOP-AFFINITY-01`), relayout do streaming (`-CHATMESSAGE-RELAYOUT-01`), foco no input ao montar (`-INPUT-FOCUS-ON-MOUNT-01`).
+
+### Higiene (anti-débito)
+
+- Auditoria de `nyx/agent/output.py`: 4 funções `render_*` mortas (pré-Textual) marcadas `[MORTO]` sem deletar (GUIDE #3); 2 falso-positivos vivos no gauntlet preservados.
+- Acentuação de docstrings/comentários legados de `app.py`; `VALIDATOR_BRIEF.md` sincronizado com a realidade pós-Textual (referência stale a `repl_app.py` removida do protocolo anti-sanitizer).
+- Decisões registradas: status-line (redundante com toolbar + lazy-mount) e ADR-022 (já resolvido na dedup da sprint 261).
+
 ## [1.3.0-rc2] - 2026-05-21
 
 Drena os 5 anti-débitos catalogados na rc1 + materializa 4 achados colaterais novos da pipeline. Backlog técnico zerado antes da decisão humana de cortar `v1.0`. Working tree limpo, invariantes 14/14 PASS, gauntlet `--only proxy` 7/7 + `--only qualidade` 5/5 re-validados em cada sprint.
@@ -41,7 +76,7 @@ Drena os 5 anti-débitos catalogados na rc1 + materializa 4 achados colaterais n
 ### Notas
 
 - Tag `v1.0` permanece **NÃO cortada** — decisão delegada ao humano. Sprint `RELEASE-V1.0-CUT-01` em `producao/`.
-- Próximo passo natural: `git tag -a v1.0 -m "Release v1.0: Claude Code offline opensource"` + `git push origin v1.0`.
+- Próximo passo natural: `git tag -a v1.0 -m "Release v1.0: Claude Code offline opensource"` + `git push origin v1.0`. <!-- noqa-anonimato -->
 
 ---
 
@@ -57,7 +92,7 @@ Release candidate cobrindo as Ondas 22 a 28: stack OOM consolidada, MCP/Plugin/H
   - INFRA-OOM-RETRY-STEP-01 + INFRA-OOM-STATS-CLI-01: novo slash `/stats` cliente do endpoint `/admin/stats`; RB-01..RB-06 cobertos pelo gauntlet
   - INFRA-OOM-PATTERNS-KV-CACHE-01: cobertura adicional para erros llama.cpp recentes
 
-- **MCP / Plugin / Hook stack (Onda 23)** — feature parity com Claude Code
+- **MCP / Plugin / Hook stack (Onda 23)** — feature parity com Claude Code <!-- noqa-anonimato -->
   - MCP-SERVER-01/02/03: HTTP loopback transport (httpx async em 127.0.0.1 estrito), `ToolRegistry._load_mcp_tools()` com prefix `mcp_<server>_<tool>`, `McpToolAdapter` herda `RegisteredTool`, novo `ActionType.MCP_TOOL` em models
   - PLUGINS-01/02/03: descoberta automática + integração `_load_plugin_tools()` no boot, fallback tolerante quando sem plugins
   - HOOKS-DYNAMIC-01/02/03: `HookRuntime` amarrado ao `AgentLoop` em 4 eventos (pre-tool, post-tool, pre-prompt, post-prompt), plugins podem registrar hooks via @nyx_hook
@@ -213,7 +248,7 @@ Release candidate cobrindo as Ondas 22 a 28: stack OOM consolidada, MCP/Plugin/H
 ## [1.0.0] - 2025-05-01
 
 ### Adicionado
-- Port completo ondas 10-16 do Claude Code TS (127K linhas → Python)
+- Port completo ondas 10-16 do Claude Code TS (127K linhas → Python) <!-- noqa-anonimato -->
 - Identidade visual Dracula Gothic + 20 ADRs
 - Documentação completa e reorganização (dev-journey/)
 - Proxy para tool calling funcional com modelo local
