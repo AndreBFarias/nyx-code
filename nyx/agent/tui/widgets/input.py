@@ -43,17 +43,10 @@ class InputWidget(Input):
                         (lógica de N delegada ao caller via futura sprint).
     """
 
-    DEFAULT_CSS = """
-    InputWidget {
-        dock: bottom;
-        height: 3;
-        background: $surface;
-        border: round $accent;
-    }
-    InputWidget > .input--placeholder {
-        color: $accent 50%;
-    }
-    """
+    # Estilo do widget vive em nyx/agent/tui/styles/nyx.tcss (fonte unica).
+    # O bloco DEFAULT_CSS foi removido na SPRINT 285 para eliminar o conflito
+    # de height (3 aqui vs 5 no nyx.tcss); a regra de placeholder migrou para
+    # o seletor InputWidget > .input--placeholder no arquivo de estilos.
 
     def __init__(
         self,

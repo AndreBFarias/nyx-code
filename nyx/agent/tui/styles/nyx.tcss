@@ -111,15 +111,9 @@ InputWidget {
     padding: 0 1;
 }
 
-InputWidget > TextArea, InputWidget > Input {
-    background: $surface;
-    color: $foreground;
-    border: none;
-}
-
-InputWidget > TextArea:focus, InputWidget > Input:focus {
-    border: none;
-    background: $surface;
+/* Placeholder do Input (classe interna do componente, não widget filho). */
+InputWidget > .input--placeholder {
+    color: $accent 50%;
 }
 
 /* ---------- Toolbar (dock: bottom, altura 1) ---------- */
