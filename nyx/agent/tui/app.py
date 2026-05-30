@@ -86,6 +86,16 @@ class NyxTUI(App):
         # NyxCode via OSC52 (copy_to_clipboard nativo do Textual; funciona no
         # terminal e no --web/xterm.js). Ctrl+Y livre (o InputWidget não o consome).
         Binding("ctrl+y", "copy_last_code", "Copiar código", priority=True),
+        # TUI-CONVERSATION-SCROLL-TEXTUAL-01 (SPRINT 309): PgUp/PgDn rolam a
+        # CONVERSA (#chat) mesmo com o #input focado. O scroll por teclado se
+        # perdeu na migração ONDA-32 (vivia no repl_app.py, sprint 228); o
+        # VerticalScroll só rola por teclado quando focado, e o foco fica no
+        # #input (307). priority=True faz o App capturar antes do TextArea.
+        # PgUp/PgDn quase não servem à edição de um input de 5 linhas, então
+        # não há perda; Home/End ficam com o input. A roda do mouse já rola o
+        # #chat nativamente (VerticalScroll).
+        Binding("pageup", "scroll_chat_up", "Rolar conversa (cima)", priority=True),
+        Binding("pagedown", "scroll_chat_down", "Rolar conversa (baixo)", priority=True),
     ]
 
     # Atenção: `App.MODES` em Textual é dict[str, Screen] -- redefinir como
@@ -116,6 +126,10 @@ class NyxTUI(App):
         self._agent = agent
         self._mode_idx = 0
         self._last_input: str = ""
+        # TUI-CONVERSATION-SCROLL-TEXTUAL-01 (SPRINT 309): seguimento do fim
+        # (auto-scroll). True = novos tokens/tools rolam ao fim; PgUp desliga
+        # (usuário lendo histórico), PgDn-até-o-fim e o submit do usuário religam.
+        self._follow_output: bool = True
         # TUI-INPUT-HISTORY-NAV-01: store de histórico navegável (Ctrl+Up/Down).
         # `_input_history` guarda as submissões NÃO-slash em ordem cronológica
         # (mais antigo primeiro, mais recente no fim) -- paridade de semântica
@@ -278,6 +292,8 @@ class NyxTUI(App):
         self._history_draft = ""
         chat = self.query_one("#chat", VerticalScroll)
         chat.mount(ChatMessage("user", text, display_name=self._user_display_name))
+        # Enviar religa o auto-scroll e ancora no fim (TUI-CONVERSATION-SCROLL-TEXTUAL-01).
+        self._follow_output = True
         chat.scroll_end(animate=False)
         if self._agent is None:
             return
@@ -379,7 +395,7 @@ class NyxTUI(App):
             await self._agent.run(text)
         finally:
             self.query_one("#toolbar", Toolbar).inflight = False
-            self.query_one("#chat", VerticalScroll).scroll_end(animate=False)
+            self._follow_end(self.query_one("#chat", VerticalScroll))
             # TUI-NYXCODE-GHOST-LAZY-MOUNT-01: reset para None ao fim do turno.
             # Todos os tokens chegam ANTES do finally (agent.run() e awaited no
             # try, mesmo event loop -- loop affinity ONDA-33). Garante que o
@@ -408,13 +424,15 @@ class NyxTUI(App):
         """
         if not token:
             return
+        chat = self.query_one("#chat", VerticalScroll)
         if self._current_assistant is None:
-            chat = self.query_one("#chat", VerticalScroll)
             assistant = ChatMessage("assistant", "")
             chat.mount(assistant)
             self._current_assistant = assistant
-            chat.scroll_end(animate=False)
         self._current_assistant.append_text(token)
+        # TUI-CONVERSATION-SCROLL-TEXTUAL-01: acompanha o streaming respeitando
+        # o auto-scroll-pause (se o usuário rolou para cima, não puxa de volta).
+        self._follow_end(chat)
 
     def _on_agent_tool(self, name: str, args: Any) -> None:
         """Callback patcheado em agent._on_tool.
@@ -426,7 +444,7 @@ class NyxTUI(App):
         args_str = "" if args is None else str(args)
         chat = self.query_one("#chat", VerticalScroll)
         chat.mount(ChatMessage("tool", f"{name}({args_str})"))
-        chat.scroll_end(animate=False)
+        self._follow_end(chat)
 
     def _on_agent_thinking(self, reasoning: str) -> None:
         """Callback patcheado em agent._on_thinking (loop/_iteration.py:517).
@@ -447,7 +465,7 @@ class NyxTUI(App):
             classes="thinking",
         )
         chat.mount(block)
-        chat.scroll_end(animate=False)
+        self._follow_end(chat)
 
     def _on_agent_tool_result(self, name: str, result: Any = "") -> None:
         """Callback patcheado em agent._on_tool_result.
@@ -458,7 +476,7 @@ class NyxTUI(App):
         """
         chat = self.query_one("#chat", VerticalScroll)
         chat.mount(ChatMessage("tool", f"-> {name}: {result}"))
-        chat.scroll_end(animate=False)
+        self._follow_end(chat)
 
     async def action_quit(self) -> None:
         """Ctrl+Q: fecha app via Application.exit(result=__quit__).
@@ -573,6 +591,39 @@ class NyxTUI(App):
         self.notify(
             "Nenhum bloco de código para copiar.", severity="warning"
         )
+
+    def action_scroll_chat_up(self) -> None:
+        """PgUp: rola a conversa (#chat) uma página para cima.
+
+        TUI-CONVERSATION-SCROLL-TEXTUAL-01. Opera o #chat diretamente -- não
+        depende de ele ter foco (o foco fica no #input). Re-porta o scroll por
+        teclado da sprint 228, perdido na migração ONDA-32 com o repl_app.py.
+        """
+        # Usuário quer ler o histórico: pausa o auto-scroll (religado por PgDn
+        # até o fim ou pelo próximo envio).
+        self._follow_output = False
+        self.query_one("#chat", VerticalScroll).scroll_page_up()
+
+    def action_scroll_chat_down(self) -> None:
+        """PgDn: rola a conversa (#chat) para baixo; ao chegar no fim, religa o auto-scroll."""
+        chat = self.query_one("#chat", VerticalScroll)
+        chat.scroll_page_down()
+        if chat.scroll_offset.y >= chat.max_scroll_y - 2:
+            self._follow_output = True
+
+    def _follow_end(self, chat: VerticalScroll) -> None:
+        """Auto-scroll-pause: ancora no fim SÓ enquanto _follow_output está ativo.
+
+        TUI-CONVERSATION-SCROLL-TEXTUAL-01 (re-porta a flag _user_scrolled_up da
+        sprint 228, perdida na migração ONDA-32). PgUp desliga o seguimento
+        (action_scroll_chat_up) -- o usuário lê o histórico e novos tokens/tools
+        NÃO o puxam de volta; PgDn até o fim religa, assim como o submit do
+        usuário. Usar uma flag (e não a posição no momento do mount) é robusto:
+        mount/append muda max_scroll_y ANTES de medirmos, enganando um teste
+        posicional.
+        """
+        if self._follow_output:
+            chat.scroll_end(animate=False)
 
 
 __all__ = ["NyxTUI"]

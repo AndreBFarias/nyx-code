@@ -27,6 +27,20 @@ _VALID_ROLES = ("user", "assistant", "tool", "system")
 # Glifo via chr() -- defesa anti-sanitizer (padrao do BRIEF).
 _DIAMOND = chr(0x25C6)
 
+# TUI-CONVERSATION-SCROLL-TEXTUAL-01 (SPRINT 309): intervalo de coalescing dos
+# refreshes durante o streaming. render() reconstroi Markdown(self._content)
+# INTEIRO (com pygments no bloco de codigo) a cada repaint; refresh por token
+# era O(n^2) e travava a TUI inteira -- medido: 1.6k chars => 75s e ~3250
+# parses de Markdown, com scroll e teclado congelados junto (o "travou feio").
+# Coalescer em ~1 refresh por 100ms derruba o numero de parses em ordens de
+# magnitude, sem perda visual perceptivel (o crescimento de altura segue suave).
+_STREAM_REFRESH_INTERVAL = 0.1
+# Apos este tempo SEM novos tokens, o streaming "assenta": o conteudo passa a
+# ser renderizado como Markdown (com syntax highlight) UMA vez. Durante o
+# streaming o render e texto plano (barato) -- evita o re-parse O(n^2) que
+# travava a TUI. Cada token reagenda este timer (debounce).
+_SETTLE_INTERVAL = 0.3
+
 
 class ChatMessage(Static):
     """Mensagem individual da conversa.
@@ -52,6 +66,14 @@ class ChatMessage(Static):
         # resolve_user_display_name via cli.py -> NyxTUI). Só usado no role
         # "user"; o assistant rotula sempre "NyxCode".
         self._display_name = display_name
+        # TUI-CONVERSATION-SCROLL-TEXTUAL-01 (SPRINT 309): coalescing do refresh
+        # durante o streaming (ver append_text). _refresh_pending: ha refresh
+        # agendado. _streaming: tokens ainda chegando (render = texto plano
+        # barato); vira False no settle (render = Markdown 1x). _settle_timer:
+        # timer de debounce reagendado a cada token.
+        self._refresh_pending = False
+        self._streaming = False
+        self._settle_timer = None
 
     @property
     def role(self) -> str:
@@ -62,23 +84,54 @@ class ChatMessage(Static):
         return self._content
 
     def append_text(self, token: str) -> None:
-        """Append token ao conteudo e re-renderiza.
+        """Append token ao conteudo; agenda um refresh COALESCIDO (não por token).
 
-        TUI-FIX-CHATMESSAGE-RELAYOUT-01 (ONDA-33): usa refresh(layout=True).
-        Um ChatMessage assistant cresce de 1 linha ("◆ NyxCode") para N linhas
-        conforme o streaming chega -- muda de ALTURA. refresh() simples só
-        repinta o widget na altura antiga; o texto novo não aparece (o input,
-        single-line, não tinha o problema). layout=True força o Textual a
-        recalcular a altura do widget no container de scroll.
+        TUI-FIX-CHATMESSAGE-RELAYOUT-01 (ONDA-33): o refresh usa layout=True --
+        um ChatMessage assistant cresce de 1 linha ("◆ NyxCode") para N linhas
+        conforme o streaming chega (muda de ALTURA), e layout=True força o
+        Textual a recalcular a altura no container de scroll.
+
+        TUI-CONVERSATION-SCROLL-TEXTUAL-01 (SPRINT 309): o refresh NÃO é mais por
+        token. render() reconstrói Markdown(self._content) inteiro a cada repaint
+        (com pygments no bloco de código); chamar refresh por token era O(n^2) --
+        medido: 1.6k chars => 75s e ~3250 parses, travando a TUI e o scroll. Agora
+        o 1º token agenda um único timer (_STREAM_REFRESH_INTERVAL); os tokens que
+        chegam nesse meio-tempo só acumulam em _content. Quando o timer dispara
+        (_flush_refresh), faz UM refresh com todo o conteúdo acumulado. O último
+        token sempre é renderizado: seu timer pendente dispara após o fim do stream.
         """
         if not token:
             return
         self._content += token
+        self._streaming = True
+        self._bump_settle()
+        if self._refresh_pending:
+            return
+        self._refresh_pending = True
+        self.set_timer(_STREAM_REFRESH_INTERVAL, self._flush_refresh)
+
+    def _flush_refresh(self) -> None:
+        """Refresh coalescido do streaming (texto plano; TUI-CONVERSATION-SCROLL-TEXTUAL-01)."""
+        self._refresh_pending = False
         self.refresh(layout=True)
 
+    def _bump_settle(self) -> None:
+        """Reagenda o timer de settle (debounce): cada token adia o fim do stream."""
+        if self._settle_timer is not None:
+            self._settle_timer.stop()
+        self._settle_timer = self.set_timer(_SETTLE_INTERVAL, self._settle)
+
+    def _settle(self) -> None:
+        """Stream assentou: re-renderiza como Markdown (syntax highlight) UMA vez."""
+        self._settle_timer = None
+        if self._streaming:
+            self._streaming = False
+            self.refresh(layout=True)
+
     def set_content(self, content: str) -> None:
-        """Substitui conteudo integral (sem append)."""
+        """Substitui conteudo integral (sem append). Renderiza Markdown direto."""
         self._content = content
+        self._streaming = False  # substituicao integral não e streaming
         self.refresh(layout=True)
 
     def render(self) -> RenderResult:
@@ -108,8 +161,14 @@ class ChatMessage(Static):
             if self._content:
                 # TUI-CHAT-MARKDOWN-SYNTAX-01: conteúdo do assistant renderizado
                 # como Markdown -- blocos ``` ganham syntax highlight (Rich/pygments),
-                # listas e ênfase formatadas. Seguro no streaming (testado: sem o
-                # crash get_height; Markdown tolera ``` ainda aberto mid-stream).
+                # listas e ênfase formatadas.
+                # TUI-CONVERSATION-SCROLL-TEXTUAL-01 (309): enquanto _streaming,
+                # renderiza TEXTO PLANO (barato). Re-parsear Markdown a cada
+                # refresh durante o stream era O(n^2) e travava a TUI/scroll
+                # (1.6k chars => 75s). O Markdown (pygments) entra UMA vez quando
+                # o stream assenta (_settle), trocando o texto plano pelo formatado.
+                if self._streaming:
+                    return Group(label, Text(self._content))
                 return Group(label, Markdown(self._content))
             return label
         if self._role == "tool":
