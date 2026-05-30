@@ -112,22 +112,22 @@ class NyxTUI(App):
         self._history_draft: str = ""
         # TUI-NYXCODE-GHOST-LAZY-MOUNT-01: ref ao ChatMessage("assistant")
         # do turno corrente -- destino do streaming de tokens. Lazy-mount:
-        # fica None ate o 1o token truthy chegar em `_on_agent_token`, que
-        # entao cria e monta o widget. Antes era mountado vazio no inicio de
-        # cada turno em `_on_input_submit`, deixando um balao fantasma so com o
-        # cabecalho "NyxCode" (render() do ChatMessage assistant-vazio) visivel
-        # ate o 1o token -- e persistente em turnos so-tool/erro. `_process_turn`
+        # fica None até o 1o token truthy chegar em `_on_agent_token`, que
+        # então cria e monta o widget. Antes era mountado vazio no início de
+        # cada turno em `_on_input_submit`, deixando um balão fantasma só com o
+        # cabeçalho "NyxCode" (render() do ChatMessage assistant-vazio) visível
+        # até o 1o token -- e persistente em turnos só-tool/erro. `_process_turn`
         # reseta para None no finally, garantindo turno limpo.
         self._current_assistant: Any = None
         # TUI-AGENT-BRIDGE-01: patch dos atributos privados do AgentLoop.
         # FORBIDDEN explicito do spec: não modificar AgentLoop signature.
-        # AgentLoop expoe internamente `_on_token`, `_on_tool`,
-        # `_on_tool_result` (loop/_core.py:84-86) -- atributos publicos
-        # `on_token` etc. não existem. Setar `agent.on_token = ...` so
+        # AgentLoop expõe internamente `_on_token`, `_on_tool`,
+        # `_on_tool_result` (loop/_core.py:84-86) -- atributos públicos
+        # `on_token` etc. não existem. Setar `agent.on_token = ...` só
         # cria atributo morto. Patchamos os privados.
-        # Para tokens: StreamingCollector e construido no __init__ do
+        # Para tokens: StreamingCollector é construído no __init__ do
         # AgentLoop com o on_token capturado (loop/_core.py:119) -- sem
-        # patchar tambem `agent._collector._on_token`, o stream segue indo
+        # patchar também `agent._collector._on_token`, o stream segue indo
         # para o callback original (build_render_callbacks). Patch duplo
         # garante que o NyxTUI recebe tokens via `_on_agent_token`.
         if agent is not None:
@@ -189,16 +189,16 @@ class NyxTUI(App):
     def _on_input_submit(self, text: str) -> None:
         """Callback do InputWidget.
 
-        Slash command (text.lstrip() comeca com "/"): roteia para
+        Slash command (text.lstrip() começa com "/"): roteia para
         `_dispatch_slash` ANTES de qualquer dispatch de turno do agent.
-        Sem agent: paridade sub-sprint anterior -- so monta ChatMessage("user").
+        Sem agent: paridade sub-sprint anterior -- só monta ChatMessage("user").
         Com agent: monta APENAS o ChatMessage("user"), seta
         `self._current_assistant = None`, toolbar.inflight=True e dispara o
         worker para await agent.run() em background. O ChatMessage("assistant")
-        NÃO e mountado aqui -- TUI-NYXCODE-GHOST-LAZY-MOUNT-01: o lazy-mount
-        ocorre no 1o token truthy em `_on_agent_token`, evitando o balao
+        NÃO é mountado aqui -- TUI-NYXCODE-GHOST-LAZY-MOUNT-01: o lazy-mount
+        ocorre no 1o token truthy em `_on_agent_token`, evitando o balão
         fantasma "NyxCode" vazio entre o envio e o 1o token (e em turnos
-        so-tool/erro, que nunca produzem texto de assistant).
+        só-tool/erro, que nunca produzem texto de assistant).
 
         Streaming de tokens, tool calls e tool results retornam pelo bridge
         de callbacks instalado no __init__ (`_on_agent_token`, `_on_agent_tool`,
@@ -233,9 +233,9 @@ class NyxTUI(App):
         if self._agent is None:
             return
         # TUI-NYXCODE-GHOST-LAZY-MOUNT-01: NÃO montar o assistant aqui. O
-        # balao "assistant" so e criado/mountado quando o 1o token truthy
+        # balão "assistant" só é criado/mountado quando o 1o token truthy
         # chega em `_on_agent_token`. Partir de None deixa explicito que o
-        # lazy-mount ocorre no callback de token, nunca no inicio do turno.
+        # lazy-mount ocorre no callback de token, nunca no início do turno.
         self._current_assistant = None
         toolbar = self.query_one("#toolbar", Toolbar)
         toolbar.inflight = True
@@ -334,7 +334,7 @@ class NyxTUI(App):
             # TUI-NYXCODE-GHOST-LAZY-MOUNT-01: reset para None ao fim do turno.
             # Todos os tokens chegam ANTES do finally (agent.run() e awaited no
             # try, mesmo event loop -- loop affinity ONDA-33). Garante que o
-            # turno N+1 nunca faca append no balao do turno N antes do proprio
+            # turno N+1 nunca faça append no balão do turno N antes do próprio
             # lazy-mount disparar no 1o token.
             self._current_assistant = None
 
@@ -343,14 +343,14 @@ class NyxTUI(App):
 
         TUI-FIX-HTTPX-LOOP-AFFINITY-01: chamado de dentro de agent.run() no
         loop principal -- toca o widget direto (sem call_from_thread); aqui
-        `call_from_thread` lancaria RuntimeError.
+        `call_from_thread` lançaria RuntimeError.
 
         TUI-NYXCODE-GHOST-LAZY-MOUNT-01 (lazy-mount):
           - Token falsy (`not token`): retorna sem montar nada -- evita
-            materializar um balao vazio por token vazio.
+            materializar um balão vazio por token vazio.
           - `_current_assistant is None` (1o token truthy do turno): cria e
-            monta o ChatMessage("assistant") no #chat AGORA, na posicao
-            cronologica correta (apos eventuais ChatMessage("tool") ja
+            monta o ChatMessage("assistant") no #chat AGORA, na posição
+            cronológica correta (após eventuais ChatMessage("tool") já
             mountados), guarda a ref e ancora o scroll. scroll_end por keyword
             (TUI-FIX-SCROLL-END-KWARG-01).
           - Em seguida, com `_current_assistant` garantido, faz append_text --
