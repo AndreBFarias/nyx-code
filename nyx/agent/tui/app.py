@@ -88,8 +88,14 @@ class NyxTUI(App):
         self._agent = agent
         self._mode_idx = 0
         self._last_input: str = ""
-        # TUI-AGENT-BRIDGE-01: ref ao ChatMessage("assistant", "") mountado
-        # no inicio de cada turno -- destino do streaming de tokens.
+        # TUI-NYXCODE-GHOST-LAZY-MOUNT-01: ref ao ChatMessage("assistant")
+        # do turno corrente -- destino do streaming de tokens. Lazy-mount:
+        # fica None ate o 1o token truthy chegar em `_on_agent_token`, que
+        # entao cria e monta o widget. Antes era mountado vazio no inicio de
+        # cada turno em `_on_input_submit`, deixando um balao fantasma so com o
+        # cabecalho "NyxCode" (render() do ChatMessage assistant-vazio) visivel
+        # ate o 1o token -- e persistente em turnos so-tool/erro. `_process_turn`
+        # reseta para None no finally, garantindo turno limpo.
         self._current_assistant: Any = None
         # TUI-AGENT-BRIDGE-01: patch dos atributos privados do AgentLoop.
         # FORBIDDEN explicito do spec: não modificar AgentLoop signature.
@@ -163,8 +169,13 @@ class NyxTUI(App):
         Slash command (text.lstrip() comeca com "/"): roteia para
         `_dispatch_slash` ANTES de qualquer dispatch de turno do agent.
         Sem agent: paridade sub-sprint anterior -- so monta ChatMessage("user").
-        Com agent: monta user + assistant vazio, seta toolbar.inflight=True
-        e dispara worker thread para await agent.run() em background.
+        Com agent: monta APENAS o ChatMessage("user"), seta
+        `self._current_assistant = None`, toolbar.inflight=True e dispara o
+        worker para await agent.run() em background. O ChatMessage("assistant")
+        NÃO e mountado aqui -- TUI-NYXCODE-GHOST-LAZY-MOUNT-01: o lazy-mount
+        ocorre no 1o token truthy em `_on_agent_token`, evitando o balao
+        fantasma "NyxCode" vazio entre o envio e o 1o token (e em turnos
+        so-tool/erro, que nunca produzem texto de assistant).
 
         Streaming de tokens, tool calls e tool results retornam pelo bridge
         de callbacks instalado no __init__ (`_on_agent_token`, `_on_agent_tool`,
@@ -184,13 +195,14 @@ class NyxTUI(App):
         self._last_input = text
         chat = self.query_one("#chat", VerticalScroll)
         chat.mount(ChatMessage("user", text))
-        if self._agent is None:
-            chat.scroll_end(animate=False)
-            return
-        assistant = ChatMessage("assistant", "")
-        chat.mount(assistant)
         chat.scroll_end(animate=False)
-        self._current_assistant = assistant
+        if self._agent is None:
+            return
+        # TUI-NYXCODE-GHOST-LAZY-MOUNT-01: NÃO montar o assistant aqui. O
+        # balao "assistant" so e criado/mountado quando o 1o token truthy
+        # chega em `_on_agent_token`. Partir de None deixa explicito que o
+        # lazy-mount ocorre no callback de token, nunca no inicio do turno.
+        self._current_assistant = None
         toolbar = self.query_one("#toolbar", Toolbar)
         toolbar.inflight = True
         # TUI-FIX-HTTPX-LOOP-AFFINITY-01 (ONDA-33): worker async NO LOOP
@@ -285,15 +297,41 @@ class NyxTUI(App):
         finally:
             self.query_one("#toolbar", Toolbar).inflight = False
             self.query_one("#chat", VerticalScroll).scroll_end(animate=False)
+            # TUI-NYXCODE-GHOST-LAZY-MOUNT-01: reset para None ao fim do turno.
+            # Todos os tokens chegam ANTES do finally (agent.run() e awaited no
+            # try, mesmo event loop -- loop affinity ONDA-33). Garante que o
+            # turno N+1 nunca faca append no balao do turno N antes do proprio
+            # lazy-mount disparar no 1o token.
+            self._current_assistant = None
 
     def _on_agent_token(self, token: str) -> None:
         """Callback patcheado em agent._on_token (e collector._on_token).
 
         TUI-FIX-HTTPX-LOOP-AFFINITY-01: chamado de dentro de agent.run() no
-        loop principal -- toca o widget direto (sem call_from_thread).
+        loop principal -- toca o widget direto (sem call_from_thread); aqui
+        `call_from_thread` lancaria RuntimeError.
+
+        TUI-NYXCODE-GHOST-LAZY-MOUNT-01 (lazy-mount):
+          - Token falsy (`not token`): retorna sem montar nada -- evita
+            materializar um balao vazio por token vazio.
+          - `_current_assistant is None` (1o token truthy do turno): cria e
+            monta o ChatMessage("assistant") no #chat AGORA, na posicao
+            cronologica correta (apos eventuais ChatMessage("tool") ja
+            mountados), guarda a ref e ancora o scroll. scroll_end por keyword
+            (TUI-FIX-SCROLL-END-KWARG-01).
+          - Em seguida, com `_current_assistant` garantido, faz append_text --
+            tokens subsequentes do mesmo turno reusam o mesmo widget, que cresce
+            em altura via refresh(layout=True) (TUI-FIX-CHATMESSAGE-RELAYOUT-01).
         """
-        if self._current_assistant is not None and token:
-            self._current_assistant.append_text(token)
+        if not token:
+            return
+        if self._current_assistant is None:
+            chat = self.query_one("#chat", VerticalScroll)
+            assistant = ChatMessage("assistant", "")
+            chat.mount(assistant)
+            self._current_assistant = assistant
+            chat.scroll_end(animate=False)
+        self._current_assistant.append_text(token)
 
     def _on_agent_tool(self, name: str, args: Any) -> None:
         """Callback patcheado em agent._on_tool.
