@@ -26,6 +26,7 @@ monta a mensagem do usuário no chat scroll.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -43,6 +44,10 @@ from nyx.agent.tui.widgets.toolbar import Toolbar
 # TUI-THINKING-EXPAND-01: glifo via chr() (anti-sanitizer, padrão do BRIEF) para
 # o título do bloco de raciocínio recolhível. U+25D0 = circle half black (in-progress).
 _THINKING_GLYPH = chr(0x25D0)
+
+# TUI-CODE-COPY-BUTTON-01: captura o conteúdo interno de um bloco ``` (a 1ª linha
+# da fence pode trazer a linguagem, ex.: python). findall retorna todos; usamos o último.
+_CODE_FENCE_RE = re.compile(r"```[^\n]*\n(.*?)```", re.DOTALL)
 
 
 class NyxTUI(App):
@@ -77,6 +82,10 @@ class NyxTUI(App):
         # não há colisão com o movimento de cursor multiline da sprint 286.
         Binding("ctrl+up", "history_prev", "Histórico anterior", priority=True),
         Binding("ctrl+down", "history_next", "Histórico próximo", priority=True),
+        # TUI-CODE-COPY-BUTTON-01: copia o último bloco ``` da última mensagem do
+        # NyxCode via OSC52 (copy_to_clipboard nativo do Textual; funciona no
+        # terminal e no --web/xterm.js). Ctrl+Y livre (o InputWidget não o consome).
+        Binding("ctrl+y", "copy_last_code", "Copiar código", priority=True),
     ]
 
     # Atenção: `App.MODES` em Textual é dict[str, Screen] -- redefinir como
@@ -519,6 +528,29 @@ class NyxTUI(App):
         else:
             input_widget.text = self._input_history[self._history_idx]
         input_widget.move_cursor(input_widget.document.end)
+
+    def action_copy_last_code(self) -> None:
+        """Copia o último bloco de código (```) da última mensagem do NyxCode.
+
+        TUI-CODE-COPY-BUTTON-01: em vez de um botão por bloco (que exigiria
+        rearquitetar o render Markdown da 299 + plumbing de mouse/clipboard), o
+        atalho Ctrl+Y copia o último code block via `copy_to_clipboard` (OSC52
+        nativo do Textual -- funciona no terminal e no --web/xterm.js). Varre o
+        #chat de baixo para cima pela última mensagem assistant com fence ```.
+        """
+        messages = list(
+            self.query_one("#chat", VerticalScroll).query(ChatMessage)
+        )
+        for msg in reversed(messages):
+            if msg.role == "assistant" and "```" in msg.content:
+                blocks = _CODE_FENCE_RE.findall(msg.content)
+                if blocks:
+                    self.copy_to_clipboard(blocks[-1].rstrip("\n"))
+                    self.notify("Código copiado para a área de transferência.")
+                    return
+        self.notify(
+            "Nenhum bloco de código para copiar.", severity="warning"
+        )
 
 
 __all__ = ["NyxTUI"]
