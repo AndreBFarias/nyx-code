@@ -397,7 +397,7 @@ def nyx_spinner(message: "str | Callable[[], str]" = "pensando...") -> NyxSpinne
 
 
 def render_progress_bar(label: str, current: int, total: int, width: int = 30) -> None:
-    """Imprime barra de progresso discreta (VISION-01, absorve O-01).
+    """[MORTO — zero chamadores; mantido por GUIDE #3] Barra de progresso discreta (VISION-01, absorve O-01).
 
     Formato: '  ████████░░░░░░░░░░░░░░░░░░░░░░  42% label'.
 
@@ -638,7 +638,7 @@ def parse_todo_lines(text: str) -> list[tuple[bool, str]]:
 
 
 def render_todo_block(items: list[tuple[bool, str]]) -> None:
-    """Renderiza lista de todos com checkboxes geometric shapes (TUI-REDESIGN-25-12).
+    """[MORTO — zero chamadores; mantido por GUIDE #3] Lista de todos com checkboxes geometric shapes (TUI-REDESIGN-25-12).
 
     Done: ◼ (U+25FC, ◼) + texto em muted (visual strikethrough sutil).
     Pending: ◻ (U+25FB, ◻) + texto em ink. Glifos ADR-004 ok (não-emoji).
@@ -930,7 +930,7 @@ def render_tool_card_end(
     is_error: bool = False,
     extra_lines: list[str] | None = None,
 ) -> None:
-    """[DEPRECATED em TUI-REDESIGN-25-10] Use render_tool_chip.
+    """[DEPRECATED em TUI-REDESIGN-25-10; MORTO — zero chamadores] Use render_tool_chip.
 
     Fecha card de tool com duração e primeira linha do resultado.
     Mantido para callers legados; novos call-sites devem usar render_tool_chip.

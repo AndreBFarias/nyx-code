@@ -59,12 +59,18 @@ Ctx/Iter/Lidos/Modif aplicada à toolbar viva na SPRINT 287. Por GUIDE #3 a fun�
 explicando o veredito para futuros leitores (evita que alguém "conserte" os labels
 minúsculos re-descobrindo o mesmo código morto).
 
-**Achado colateral (anti-débito):** a auditoria-irmã das demais `render_*`/`print_*`
-de output.py revelou **mais 5 funções de módulo com zero chamadores**:
-`render_progress_bar`, `render_tool_card_start`, `render_todo_block`,
-`render_tool_card_end`, `render_diff` (todas pré-Textual). NÃO tratadas aqui (fora do
-escopo do achado 287, que é só render_footer); registradas como sprint PENDENTE
+**Achado colateral (anti-débito):** a auditoria-irmã das demais `render_*` de
+output.py revelou candidatas a órfãs. NÃO tratadas aqui (fora do escopo do achado
+287, que é só render_footer); registradas como sprint PENDENTE
 **INFRA-OUTPUT-DEAD-RENDER-CLUSTER-01** no SPRINT_ORDER_MASTER.md.
+
+> **Correção (aplicada na SPRINT 293):** a estimativa inicial desta sprint falava em
+> "+5 órfãs" porque a varredura só cobriu `nyx/`. Ao executar a 293, a reverificação
+> incluindo `scripts/` mostrou que **2 das 5 estão VIVAS** (usadas pelo gauntlet):
+> `render_tool_card_start` (scripts/gauntlet/fixtures/loop_benchmark.py) e
+> `render_diff` (scripts/gauntlet/nyx_gauntlet.py P7V-01). O cluster real é de **3**
+> mortas: `render_progress_bar`, `render_todo_block`, `render_tool_card_end`. (render_footer
+> desta 292 permanece confirmado morto também contra scripts/.)
 
 **Validação:**
 - `python3 -m py_compile nyx/agent/output.py`: OK.
