@@ -54,8 +54,8 @@ class InputWidget(TextArea):
 
     Métodos públicos:
       paste_text(text): cola texto no buffer; se prefixo `[clipboard-image]:`
-                        for detectado, insere placeholder `[Image #?]`
-                        (lógica de N delegada ao caller via futura sprint).
+                        for detectado, insere `[Image #N]`, com N vindo de um
+                        contador interno incremental por sessão (1, 2, 3, ...).
     """
 
     # Estilo do widget vive em nyx/agent/tui/styles/nyx.tcss (fonte unica).
@@ -85,6 +85,10 @@ class InputWidget(TextArea):
             tab_behavior="focus",
         )
         self._on_submit = on_submit
+
+        # Contador monotônico de imagens coladas na sessão; vira [Image #N] em
+        # paste_text. Acumulativo enquanto a instância viver (sem reset por turno).
+        self._image_count: int = 0
 
     def update_suggestion(self) -> None:
         """Hook do TextArea: recalcula o ghost-completer do slash (sprint 284).
@@ -141,12 +145,14 @@ class InputWidget(TextArea):
         """Insere texto no buffer respeitando o prefixo de imagem.
 
         Quando o texto começa com `[clipboard-image]:` o caller está
-        sinalizando que o clipboard continha uma imagem; substituímos pelo
-        placeholder visível `[Image #?]`. O número real é calculado por um
-        caller externo em sprint futura.
+        sinalizando que o clipboard continha uma imagem; substituímos por
+        `[Image #N]`, onde N é um contador monotônico de instância incrementado
+        a cada imagem colada na sessão (TUI-IMAGE-PASTE-COUNTER-01). A primeira
+        imagem vira `[Image #1]`, a segunda `[Image #2]`, e assim por diante.
         """
         if text.startswith("[clipboard-image]:"):
-            self.insert("[Image #?]")
+            self._image_count += 1
+            self.insert(f"[Image #{self._image_count}]")
         else:
             self.insert(text)
 
