@@ -76,22 +76,22 @@ class Toolbar(Static):
     def render(self) -> RenderResult:
         """Constrói Text com layout:
 
-            ctx X% | model | iter N | lidos M | modif K | glyph state | modo
+            Ctx X% | model | Iter N | Lidos M | Modif K | glyph state | modo
 
         Fallback do glyph: `STATE_GLYPHS.get(state, STATE_GLYPHS["cold"])`
         garante render mesmo se reactive `model_state` receber valor fora
         do conjunto canônico (cold/warming/warm).
         """
         msg = Text()
-        msg.append(f"ctx {self.ctx_pct}%", style=NYX_ACCENT)
+        msg.append(f"Ctx {self.ctx_pct}%", style=NYX_ACCENT)
         msg.append("  |  ", style=NYX_MUTED)
         msg.append(self._model, style=NYX_MUTED)
         msg.append("  |  ", style=NYX_MUTED)
-        msg.append(f"iter {self.iter_n}", style=NYX_MUTED)
+        msg.append(f"Iter {self.iter_n}", style=NYX_MUTED)
         msg.append("  |  ", style=NYX_MUTED)
-        msg.append(f"lidos {self.reads}", style=NYX_MUTED)
+        msg.append(f"Lidos {self.reads}", style=NYX_MUTED)
         msg.append("  |  ", style=NYX_MUTED)
-        msg.append(f"modif {self.mods}", style=NYX_MUTED)
+        msg.append(f"Modif {self.mods}", style=NYX_MUTED)
         msg.append("  |  ", style=NYX_MUTED)
         glyph = STATE_GLYPHS.get(self.model_state, STATE_GLYPHS["cold"])
         msg.append(f"{glyph} {self.model_state}", style=NYX_MUTED)
