@@ -125,10 +125,11 @@ class NyxTUI(App):
 
         Ordem de dock importa: widgets com `dock: bottom` empilham na
         ordem em que são yielded -- o último fica MAIS PERTO da borda
-        inferior. Queremos Toolbar (h:1) na última linha e Input (h:5)
-        logo acima dela; portanto Input PRIMEIRO, Toolbar POR ÚLTIMO.
-        Sem isso a Toolbar fica coberta pelo Input (colisão de Y observada
-        em viewport 120x36: Input y=31..35 vs Toolbar y=35).
+        inferior. Queremos Toolbar (h:1) na última linha e o Input
+        (TextArea de altura crescente, min-height 3) logo acima dela;
+        portanto Input PRIMEIRO, Toolbar POR ÚLTIMO. Sem isso a Toolbar
+        fica coberta pelo Input (colisão de Y observada em viewport
+        120x36: Input y=31..35 vs Toolbar y=35).
         """
         banner = BannerWidget(
             model=self._model,
@@ -369,7 +370,7 @@ class NyxTUI(App):
     async def action_quit_if_empty(self) -> None:
         """Ctrl+D: quit se input vazio, senão deleta caractere forward."""
         input_widget = self.query_one("#input", InputWidget)
-        if not input_widget.value:
+        if not input_widget.text:
             self.exit(result="__quit__")
         else:
             input_widget.action_delete_right()
@@ -402,7 +403,7 @@ class NyxTUI(App):
         """Ctrl+O: recarrega último input no buffer (UX-EXTRA-01)."""
         if self._last_input:
             input_widget = self.query_one("#input", InputWidget)
-            input_widget.value = self._last_input
+            input_widget.text = self._last_input
 
 
 __all__ = ["NyxTUI"]

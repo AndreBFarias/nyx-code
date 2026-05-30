@@ -99,21 +99,32 @@ ChatMessage.system {
     margin: 0;
 }
 
-/* ---------- InputWidget (dock: bottom, altura 5 fixa) ---------- */
-/* Paridade prompt_toolkit: 5 linhas visiveis, borda turquesa.
- * Sub-sprint herdeira do widget atual; height 3 -> 5 nesta sprint. */
+/* ---------- InputWidget (dock: bottom, altura crescente) ---------- */
+/* SPRINT 286: base TextArea multiline. A altura cresce com o conteudo
+ * (Ctrl+J insere nova linha) ate max-height; depois scrolla internamente.
+ * min-height 3 mantem o prompt visivel de inicio; o crescimento empurra o
+ * #chat para cima sem cobrir a Toolbar (h:1, dock abaixo). */
 
 InputWidget {
     dock: bottom;
-    height: 5;
+    height: auto;
+    min-height: 3;
+    max-height: 10;
     background: $surface;
     border: round $accent;
     padding: 0 1;
 }
 
-/* Placeholder do Input (classe interna do componente, não widget filho). */
-InputWidget > .input--placeholder {
+/* Placeholder do TextArea (classe interna distinta do .input--placeholder). */
+InputWidget > .text-area--placeholder {
     color: $accent 50%;
+}
+
+/* Ghost-completer do slash (sprint 284): sugestao dim na posicao do cursor.
+ * Reerguido sobre o reactive `suggestion` nativo do TextArea; cor da paleta
+ * Nyx (muted), sem hex hardcoded. */
+InputWidget > .text-area--suggestion {
+    color: $muted;
 }
 
 /* ---------- Toolbar (dock: bottom, altura 1) ---------- */
