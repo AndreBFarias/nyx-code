@@ -182,6 +182,11 @@
     let term = new Terminal(TERM_OPTIONS);
     const termContainer = document.getElementById("terminal");
     term.open(termContainer);
+    // TUI-INPUT-AUTOFOCUS-01 (ONDA-35): foca o xterm.js ao abrir. Sem isto o
+    // usuario precisa clicar no terminal antes de digitar -- as teclas do
+    // browser so chegam ao PTY quando o canvas do xterm.js tem foco no DOM.
+    // Reforcado no ws.onopen (conexao) e no recreateTerminal (resize).
+    term.focus();
 
     // UX-COCKPIT-FULLSCREEN-01: fit manual (xterm.js vendored sem FitAddon).
     // Calcula cols/rows a partir do tamanho de celula real e dimensoes do
@@ -233,6 +238,9 @@
       // UX-COCKPIT-FULLSCREEN-01: garante fit antes de enviar tamanho inicial.
       fitTerminal();
       sendResize();
+      // TUI-INPUT-AUTOFOCUS-01: refoca ao conectar (o open() inicial pode
+      // ocorrer antes de a aba estar ativa/visivel).
+      term.focus();
     };
     // PTY-PERMISSION-FLOW-01: detecta marca `[permissao: uma vez] Executar <tool>(`
     // no stream do PTY e abre overlay para aprovacao humana via clique.
@@ -372,6 +380,8 @@
       term.open(termContainer);
       bindTermData();
       term.write("\x1b[?1049h");
+      // TUI-INPUT-AUTOFOCUS-01: mantem o foco apos recriar o terminal no resize.
+      term.focus();
     }
 
     // COCKPIT-02: resize coordenado (xterm.js -> ws JSON meta)

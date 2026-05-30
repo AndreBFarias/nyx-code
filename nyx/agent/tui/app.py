@@ -211,6 +211,20 @@ class NyxTUI(App):
         como shift+tab funcionem. Reproduzido no caminho --web (cockpit/PTY +
         xterm.js); focar o input explicitamente conserta os dois caminhos.
         """
+        self._focus_input()
+        self.call_after_refresh(self._focus_input)
+
+    def _focus_input(self) -> None:
+        """Foca o #input (TUI-INPUT-AUTOFOCUS-01); chamado no mount e pós-refresh.
+
+        O `on_mount` sozinho não bastava no caminho --web: o mount da TUI no PTY
+        pode preceder o layout final e a conexão do xterm.js, e o foco se perdia.
+        `call_after_refresh` reaplica após o primeiro refresh (árvore já montada,
+        tamanho real resolvido). O #input é sempre yielded em compose(), então
+        query_one não falha após o mount -- sem try/except (invariante #4: zero
+        except silencioso). O foco no nível do DOM (canvas do xterm.js) é tratado
+        em terminal.html (`term.focus()`); este é o foco interno do Textual.
+        """
         self.query_one("#input", InputWidget).focus()
 
     def _on_input_submit(self, text: str) -> None:
