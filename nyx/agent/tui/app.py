@@ -62,6 +62,15 @@ class NyxTUI(App):
         Binding("shift+tab", "cycle_mode", "Trocar modo", priority=True),
         Binding("ctrl+v", "paste", "Colar", priority=True),
         Binding("ctrl+o", "recall_last", "Recall último input", priority=True),
+        # TUI-INPUT-HISTORY-NAV-01: navegação do histórico de inputs. Ctrl+Up
+        # recua para submissões mais antigas, Ctrl+Down avança de volta para
+        # as mais recentes (e restaura o rascunho ao passar do mais recente).
+        # priority=True (mesmo padrão dos atalhos acima) garante que o App
+        # captura a tecla antes do InputWidget focado -- e como o TextArea NÃO
+        # liga Ctrl+Up/Ctrl+Down (só `up`/`down` nuas = cursor_up/cursor_down),
+        # não há colisão com o movimento de cursor multiline da sprint 286.
+        Binding("ctrl+up", "history_prev", "Histórico anterior", priority=True),
+        Binding("ctrl+down", "history_next", "Histórico próximo", priority=True),
     ]
 
     # Atenção: `App.MODES` em Textual é dict[str, Screen] -- redefinir como
@@ -88,6 +97,19 @@ class NyxTUI(App):
         self._agent = agent
         self._mode_idx = 0
         self._last_input: str = ""
+        # TUI-INPUT-HISTORY-NAV-01: store de histórico navegável (Ctrl+Up/Down).
+        # `_input_history` guarda as submissões NÃO-slash em ordem cronológica
+        # (mais antigo primeiro, mais recente no fim) -- paridade de semântica
+        # com `_last_input`, que só é setado no ramo não-slash de
+        # `_on_input_submit`. `_history_idx` é o cursor de navegação: a
+        # convenção `idx == len(_input_history)` significa "fora do histórico"
+        # (mostrando o rascunho do usuário); após cada submit volta a esse
+        # valor. `_history_draft` preserva o buffer que estava sendo digitado
+        # quando a navegação começou, para restaurá-lo ao sair pelo lado
+        # recente (Ctrl+Down além do mais recente).
+        self._input_history: list[str] = []
+        self._history_idx: int = len(self._input_history)
+        self._history_draft: str = ""
         # TUI-NYXCODE-GHOST-LAZY-MOUNT-01: ref ao ChatMessage("assistant")
         # do turno corrente -- destino do streaming de tokens. Lazy-mount:
         # fica None ate o 1o token truthy chegar em `_on_agent_token`, que
@@ -194,6 +216,17 @@ class NyxTUI(App):
             self._dispatch_slash(text)
             return
         self._last_input = text
+        # TUI-INPUT-HISTORY-NAV-01: alimenta o histórico navegável no mesmo
+        # ponto (ramo não-slash) onde `_last_input` é setado, garantindo que
+        # slash commands ficam de fora (o ramo slash retorna antes, acima).
+        # Dedup só do consecutivo (não global) para não poluir com Enter
+        # repetido do mesmo comando, preservando a ordem de uso. Cada submit
+        # reposiciona o cursor de navegação para "fora do histórico" e limpa
+        # o rascunho preservado.
+        if not self._input_history or self._input_history[-1] != text:
+            self._input_history.append(text)
+        self._history_idx = len(self._input_history)
+        self._history_draft = ""
         chat = self.query_one("#chat", VerticalScroll)
         chat.mount(ChatMessage("user", text))
         chat.scroll_end(animate=False)
@@ -404,6 +437,49 @@ class NyxTUI(App):
         if self._last_input:
             input_widget = self.query_one("#input", InputWidget)
             input_widget.text = self._last_input
+
+    async def action_history_prev(self) -> None:
+        """Ctrl+Up: recua para submissões mais antigas do histórico.
+
+        TUI-INPUT-HISTORY-NAV-01. Convenção: `_history_idx == len(history)`
+        significa "fora do histórico". Ao entrar na navegação (primeiro
+        Ctrl+Up vindo de fora), o rascunho corrente é salvo em
+        `_history_draft` para poder ser restaurado depois por Ctrl+Down. No
+        topo (índice 0, item mais antigo) a tecla é um no-op -- o índice não
+        estoura. Após reescrever o buffer, o cursor vai para o fim do
+        documento (UX: comando recuperado pronto para editar/reenviar).
+        """
+        if not self._input_history:
+            return
+        input_widget = self.query_one("#input", InputWidget)
+        if self._history_idx == len(self._input_history):
+            self._history_draft = input_widget.text
+        if self._history_idx > 0:
+            self._history_idx -= 1
+        input_widget.text = self._input_history[self._history_idx]
+        input_widget.move_cursor(input_widget.document.end)
+
+    async def action_history_next(self) -> None:
+        """Ctrl+Down: avança para submissões mais recentes (ou ao rascunho).
+
+        TUI-INPUT-HISTORY-NAV-01. Espelho de `action_history_prev`. Quando já
+        está fora do histórico (`_history_idx >= len(history)`) é no-op. Ao
+        avançar além do mais recente, `_history_idx` reatinge `len(history)`
+        e o buffer é restaurado para `_history_draft` (string vazia se nada
+        estava sendo digitado quando a navegação começou). Cursor vai para o
+        fim do documento, idem `action_history_prev`.
+        """
+        if not self._input_history:
+            return
+        input_widget = self.query_one("#input", InputWidget)
+        if self._history_idx >= len(self._input_history):
+            return
+        self._history_idx += 1
+        if self._history_idx == len(self._input_history):
+            input_widget.text = self._history_draft
+        else:
+            input_widget.text = self._input_history[self._history_idx]
+        input_widget.move_cursor(input_widget.document.end)
 
 
 __all__ = ["NyxTUI"]
