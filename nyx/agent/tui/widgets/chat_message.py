@@ -14,6 +14,8 @@ anti-sanitizer).
 
 from __future__ import annotations
 
+from rich.console import Group
+from rich.markdown import Markdown
 from rich.text import Text
 from textual.app import RenderResult
 from textual.widgets import Static
@@ -84,8 +86,11 @@ class ChatMessage(Static):
 
         Static.update(str) faz wrapping interno que em alguns paths de
         arrange dispara `AttributeError: 'str' has no attribute get_height`.
-        Sobrescrever render() retornando Text contorna o issue de forma
-        idiomática (BannerWidget e Toolbar seguem o mesmo padrão).
+        Sobrescrever render() retornando renderables Rich (nunca str) contorna
+        o issue de forma idiomática (BannerWidget e Toolbar seguem o padrão).
+        O assistant retorna Group(label, Markdown(content)) -- Markdown traz
+        syntax highlight aos blocos ``` (TUI-CHAT-MARKDOWN-SYNTAX-01); os demais
+        roles retornam Text simples.
         """
         if self._role == "user":
             # TUI-CHAT-LABELS-COLORS-01: nome em cor de destaque (turquesa,
@@ -99,11 +104,14 @@ class ChatMessage(Static):
                 text.append(f"\n{self._content}")
             return text
         if self._role == "assistant":
-            text = Text()
-            text.append(f"{_DIAMOND} NyxCode", style=NYX_PURPLE)
+            label = Text(f"{_DIAMOND} NyxCode", style=NYX_PURPLE)
             if self._content:
-                text.append(f"\n{self._content}")
-            return text
+                # TUI-CHAT-MARKDOWN-SYNTAX-01: conteúdo do assistant renderizado
+                # como Markdown -- blocos ``` ganham syntax highlight (Rich/pygments),
+                # listas e ênfase formatadas. Seguro no streaming (testado: sem o
+                # crash get_height; Markdown tolera ``` ainda aberto mid-stream).
+                return Group(label, Markdown(self._content))
+            return label
         if self._role == "tool":
             return Text(f"  {self._content}")
         return Text(self._content)  # system: sem prefixo
