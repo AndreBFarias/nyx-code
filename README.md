@@ -125,11 +125,13 @@ A TUI interativa (migrada de prompt_toolkit para Textual na ONDA-32, redesenhada
 
 - **Markdown + syntax highlight** nas respostas do NyxCode (blocos ` ``` ` coloridos via pygments).
 - **Raciocínio recolhível** ("◐ pensando") quando o modelo pensa — expande no clique no título ou foco+Enter.
-- **Input multiline**: `Enter` envia · `Ctrl+J` nova linha · `Tab` aceita a sugestão ghost do slash command.
+- **Input multiline**: inicia focado (digite sem clicar); `Enter` envia · `Ctrl+J` nova linha (5 linhas fixas, com scrollbar interna ao exceder) · `Tab` aceita a sugestão ghost do slash command.
 - **Histórico de inputs**: `Ctrl+Up` / `Ctrl+Down` percorrem submissões anteriores.
 - **Copiar código**: `Ctrl+Y` copia o último bloco de código para a área de transferência (OSC52).
+- **Rolar a conversa**: `PgUp` / `PgDn` (ou a roda do mouse) percorrem o histórico mesmo com o input focado; o auto-scroll pausa ao subir e retoma ao voltar ao fim.
 - **Rodapé** com Ctx / Iter / Lidos / Modif e VRAM ao vivo; banner rolável junto com a conversa; label nominal do usuário com nome em cor de destaque.
-- `Ctrl+O` recall do último input · `Shift+Tab` troca de modo · `Ctrl+Q` sai · `Ctrl+D` sai (EOF).
+- **Modos** (`Shift+Tab` cicla, com comportamento real): `normal` · `plan` (só planeja, somente leitura) · `sudo` (elevação real, SUDO-MODE-01) · `bypass` (auto-aprova permissões).
+- `Ctrl+O` recall do último input · `Ctrl+Q` sai · `Ctrl+D` sai (EOF).
 
 ### Cockpit Web (`--web`)
 
