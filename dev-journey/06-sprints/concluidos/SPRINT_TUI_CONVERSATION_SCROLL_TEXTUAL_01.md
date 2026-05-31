@@ -61,9 +61,30 @@ sprint:
 
 # Sprint 309 — TUI-CONVERSATION-SCROLL-TEXTUAL-01
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-30
+**Data conclusão:** 2026-05-30
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
+
+---
+
+## RELATO DE CONCLUSÃO (2026-05-30)
+
+**Causa-raiz confirmada (FASE 0):** o "travou feio" NÃO era re-parse de Markdown no scroll (medido: **0** re-parses ao rolar conteúdo estático — o Textual cacheia o renderable). Era o **streaming**: `append_text` chamava `refresh(layout=True)` por token e `render()` reconstruía `Markdown(self._content)` inteiro (com pygments) a cada repaint — O(n^2). Medição direta: **1626 chars => 75s e ~3253 parses**, com a TUI e o scroll congelados. O scroll por teclado, à parte, não funcionava porque o foco fica no `#input` e o `VerticalScroll` só rola por teclado quando focado (binding perdido na migração ONDA-32, vinha do `repl_app.py`/sprint 228).
+
+**Fixes:**
+1. **Freeze** (`chat_message.py`): durante o streaming, `render()` devolve TEXTO PLANO (barato); o Markdown (pygments) entra UMA vez quando o stream assenta (debounce `_SETTLE_INTERVAL` + flag `_streaming`/`_settle`), com refresh coalescido (`_STREAM_REFRESH_INTERVAL`) em vez de por token. Pós-fix: **2 parses** (era 3253).
+2. **Scroll por teclado** (`app.py`): bindings `pageup`/`pagedown` (priority) → `action_scroll_chat_up/down` rolam o `#chat` mesmo com o `#input` focado.
+3. **Auto-scroll-pause** (`app.py`): flag `_follow_output` (re-porta `_user_scrolled_up` da 228) — PgUp pausa; PgDn-até-o-fim e o submit do usuário religam; callbacks de agent usam `_follow_end`.
+
+**Proof-of-work:**
+```
+FAIL_BEFORE=0 -> FAIL_AFTER=0 (14/14)   ruff: All checks passed!   acentuacao: rc=0
+gauntlet --only rapido: 19/19 (100%) APROVADO
+freeze (repro): Markdown 3253x/75600ms -> 2x  (conteudo final intacto)
+```
+- **Pilot** (`/tmp/val_309_scroll.py`): `#input` focado, PgUp rolou o #chat (y 68->53) sem vazar pro input; tool-result com follow=False NÃO puxou pro fim; PgDn-até-o-fim religou; novo tool-result voltou a acompanhar.
+- **--web real** (playwright, digitando sem clicar): 3x `/help` levaram ao fim (banner fora de vista); **PgUp 3x trouxe o banner de volta ao topo** sem vazar pro input (buffer `.xterm-rows`: `banner_voltou=true`, `input_text_vazou=false`).
 
 ---
 
