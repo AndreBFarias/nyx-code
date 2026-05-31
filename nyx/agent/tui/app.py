@@ -233,6 +233,10 @@ class NyxTUI(App):
         como shift+tab funcionem. Reproduzido no caminho --web (cockpit/PTY +
         xterm.js); focar o input explicitamente conserta os dois caminhos.
         """
+        # TUI-MODE-BEHAVIOR-01: estado de modo limpo no boot. plan_mode e
+        # sudo_session são singletons de módulo; uma sessão anterior poderia ter
+        # deixado um ativo. O ciclo começa sempre em normal.
+        self._apply_mode("normal")
         self._focus_input()
         self.call_after_refresh(self._focus_input)
 
@@ -497,11 +501,53 @@ class NyxTUI(App):
             input_widget.action_delete_right()
 
     async def action_cycle_mode(self) -> None:
-        """Shift+Tab: cicla normal -> plan -> sudo -> bypass -> normal."""
+        """Shift+Tab: cicla normal -> plan -> sudo -> bypass -> normal.
+
+        TUI-MODE-BEHAVIOR-01 (SPRINT 308): além do label visual na toolbar, o
+        modo passa a ter COMPORTAMENTO real, aplicado por _apply_mode.
+        """
         self._mode_idx = (self._mode_idx + 1) % len(self.MODE_CYCLE)
         new_mode = self.MODE_CYCLE[self._mode_idx]
         toolbar = self.query_one("#toolbar", Toolbar)
         toolbar.mode = new_mode
+        self._apply_mode(new_mode)
+
+    def _apply_mode(self, mode: str) -> None:
+        """Liga o COMPORTAMENTO real de cada modo (TUI-MODE-BEHAVIOR-01).
+
+        Antes da 308, Shift+Tab só mudava o label da toolbar (cosmético). Os
+        mecanismos já existiam isolados; aqui o cycle os aciona:
+        - plan   -> plan_mode.set_plan_mode(True): o loop bloqueia tools de
+          escrita (write/edit/create/patch/run_command) e o agente só explora e
+          planeja (is_tool_allowed_in_plan_mode em loop/_iteration.py).
+        - sudo   -> sudo_session.set_active(True): habilita a elevação real
+          (SUDO-MODE-01); a senha é fornecida via /sudo enable. Sair do sudo
+          faz wipe() (apaga o cache de senha -- segurança).
+        - bypass -> permissions.set_bypass(True): auto-aprova CONFIRM_ONCE
+          (equivalente ao --auto-approve); DENY e ALWAYS_CONFIRM seguem pedindo.
+        - normal -> desliga os três.
+
+        Os modos são exclusivos (o cycle troca um pelo outro), então ao entrar
+        em um, os outros são desligados. Sem agent (paridade pré-bridge), só
+        plan/sudo (estado de módulo) se aplicam; bypass depende do agente.
+        """
+        from nyx.agent.tools import sudo_session
+        from nyx.agent.tools.plan_mode import set_plan_mode
+
+        set_plan_mode(mode == "plan")
+
+        if mode == "sudo":
+            sudo_session.set_active(True)
+            if not sudo_session.has_password():
+                self.notify(
+                    "Modo sudo ativo. Forneça a senha com /sudo enable.",
+                    severity="warning",
+                )
+        elif sudo_session.is_active():
+            sudo_session.wipe()  # saiu do sudo: apaga o cache de senha
+
+        if self._agent is not None:
+            self._agent.permissions.set_bypass(mode == "bypass")
 
     async def action_paste(self) -> None:
         """Ctrl+V: cola texto do clipboard (lazy import VISION-02).

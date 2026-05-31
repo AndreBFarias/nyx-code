@@ -72,6 +72,19 @@ class PermissionChecker:
     def __init__(self, config: dict[str, Any] | None = None) -> None:
         self._config = config or _load_permissions()
         self._confirmed_actions: set[str] = set()
+        # TUI-MODE-BEHAVIOR-01 (SPRINT 308): modo bypass (Shift+Tab) auto-aprova
+        # CONFIRM_ONCE em runtime -- igual ao NYX_AUTO_APPROVE/--auto-approve,
+        # mas ligável/desligável pela TUI sem env. DENY e ALWAYS_CONFIRM mantêm
+        # o prompt (mesma garantia do modo automatizado documentado no README).
+        self._bypass: bool = False
+
+    def set_bypass(self, on: bool) -> None:
+        """Liga/desliga o auto-aprovar de CONFIRM_ONCE (modo bypass, SPRINT 308)."""
+        self._bypass = bool(on)
+
+    @property
+    def bypass(self) -> bool:
+        return self._bypass
 
     def check(self, action_type: str, params: dict[str, str] | None = None) -> str:
         params = params or {}
@@ -90,12 +103,14 @@ class PermissionChecker:
         # DENY já bloqueou acima; aqui só promovemos confirmações silenciáveis.
         # ALWAYS_CONFIRM permanece exigindo prompt (intenção do usuário ao
         # marcar tool como sempre-confirmar é nunca-automatizar).
-        auto_approve_env = os.environ.get("NYX_AUTO_APPROVE") == "1"
+        # SPRINT 308: bypass em runtime (Shift+Tab) OU env (--auto-approve)
+        # promovem CONFIRM_ONCE -> AUTO. ALWAYS_CONFIRM e DENY seguem intactos.
+        auto_approve = self._bypass or os.environ.get("NYX_AUTO_APPROVE") == "1"
 
         if action_type in self._config.get("confirm_once", []):
             if action_type in self._confirmed_actions:
                 return PermissionLevel.AUTO
-            if auto_approve_env:
+            if auto_approve:
                 return PermissionLevel.AUTO
             return PermissionLevel.CONFIRM_ONCE
 
