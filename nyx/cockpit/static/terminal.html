@@ -128,9 +128,9 @@
 <body>
   <div class="header">
     <span class="brand">Nyx</span>
-    <span class="muted">cockpit / terminal</span>
-    <a href="/dashboard" style="color: var(--nyx-ink-dim); margin-left: 1rem; text-decoration: none;">dashboard</a>
-    <span class="status"><span id="dot" class="status-dot"></span><span id="status-text">conectando...</span></span>
+    <span class="muted">Cockpit / Terminal</span>
+    <a href="/dashboard" style="color: var(--nyx-ink-dim); margin-left: 1rem; text-decoration: none;">Dashboard</a>
+    <span class="status"><span id="dot" class="status-dot"></span><span id="status-text">Conectando...</span></span>
   </div>
   <div id="terminal"></div>
   <div id="perm-overlay" role="dialog" aria-modal="true" aria-labelledby="perm-title">
@@ -144,7 +144,7 @@
       </div>
     </div>
   </div>
-  <div class="footer">Ctrl+C cancela | Ctrl+D sai | redimensione livremente</div>
+  <div class="footer">Ctrl+C Cancela | Ctrl+D Sai | Redimensione livremente</div>
 
   <script src="/static/vendor/xterm.js"></script>
   <script>
@@ -234,7 +234,7 @@
     ws.binaryType = "arraybuffer";
 
     ws.onopen = () => {
-      setStatus("connected", "conectado");
+      setStatus("connected", "Conectado");
       // UX-COCKPIT-FULLSCREEN-01: garante fit antes de enviar tamanho inicial.
       fitTerminal();
       sendResize();
@@ -326,7 +326,7 @@
             setStatus("busy", "PTY ocupado (outra sessao ativa)");
             term.write("\r\n\x1b[33m[cockpit] outra sessao PTY ativa. Aguarde ela fechar.\x1b[0m\r\n");
           } else if (meta.type === "error") {
-            setStatus("error", "erro");
+            setStatus("error", "Erro");
             term.write(`\r\n\x1b[31m[cockpit] erro: ${meta.message}\x1b[0m\r\n`);
           }
         } catch (_) {
@@ -344,7 +344,7 @@
       }
     };
     ws.onclose = () => {
-      setStatus("error", "desconectado");
+      setStatus("error", "Desconectado");
       term.write("\r\n\x1b[90m[cockpit] WebSocket fechado.\x1b[0m\r\n");
     };
     ws.onerror = (e) => {
