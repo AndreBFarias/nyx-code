@@ -396,7 +396,17 @@ class NyxTUI(App):
         mostra; não crasha a TUI).
         """
         try:
-            await self._agent.run(text)
+            status = await self._agent.run(text)
+            # TUI-DONE-SUMMARY-CLEAN-01 (SPRINT 303): o modelo às vezes emite
+            # `done(summary="...")` como TEXTO (parser fallback), que o streaming
+            # já exibiu CRU no balão do NyxCode. O summary limpo está no
+            # SessionStatus de run(); quando o balão contém a sintaxe crua
+            # `done(`, troca pelo summary. Resposta normal (texto puro) não casa
+            # a condição -- balão fica intacto.
+            if status is not None and self._current_assistant is not None:
+                summary = (getattr(status, "summary", "") or "").strip()
+                if summary and "done(" in self._current_assistant.content:
+                    self._current_assistant.set_content(summary)
         finally:
             self.query_one("#toolbar", Toolbar).inflight = False
             self._follow_end(self.query_one("#chat", VerticalScroll))
