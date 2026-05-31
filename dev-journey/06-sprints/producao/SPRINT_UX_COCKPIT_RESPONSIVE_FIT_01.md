@@ -107,3 +107,11 @@ PENDÊNCIA REAL: o bug foi reportado no Chrome DIÁRIO do usuário (perfil defau
 janelas "Ouroboros"), não medido aqui (extensão MCP do navegador desconectada). **Sprint
 permanece PENDENTE** até repro/medição no Chrome real do usuário. Decisão do usuário
 2026-05-26: "deixa em aberto, não classifica como concluída".
+
+## Investigação 2026-05-31 (pós-ONDA-35; re-disparada pelo usuário) — MANTÉM PENDENTE
+
+Re-verificado no playwright (viewport real via `setViewportSize`), já com as mudanças das ondas 32-35 no `terminal.html`:
+- **O fit FUNCIONA no testável.** 1920x1080: `innerW=1920 terminalW=1920 screenW=1912 viewportW=1897` → preenche; altura `1048/1040` (desconta o header de 32px). Resize runtime 1366x768: `screenW=1358` → re-ajusta. Sem regressão das ondas de TUI.
+- **Causa #1 (FontFace race) NÃO se aplica:** a fonte é `ui-monospace` (nativa do sistema, sem web font); `document.fonts.status == "loaded"`. Não há corrida de carregamento.
+- **Fix defensivo TENTADO e REVERTIDO — NÃO re-tentar:** um `ResizeObserver` no `#terminal` reusando o refit-por-recriação (`scheduleRefit`→`recreateTerminal`) causou **tiling (25 input boxes empilhados)** no resize: o `recreateTerminal` altera o layout interno e **re-dispara o ResizeObserver → novo recreate → loop**. `ResizeObserver` + `recreateTerminal` é incompatível. Revertido para `git diff` limpo (terminal.html idêntico ao commitado).
+- **Conclusão:** não é resolvível sem o ambiente do usuário. **Para avançar, medição no Chrome real dele** (cockpit maximizado, DevTools console): `document.getElementById('terminal').clientWidth`, `document.querySelector('.xterm-screen').clientWidth`, `window.innerWidth`. Se `screenW << innerW`, reproduz e revela a causa (provável: zoom/devtools/extensão do perfil alterando o layout sem disparar `window.resize`). Aí o fix vira cirúrgico (não especulativo).
