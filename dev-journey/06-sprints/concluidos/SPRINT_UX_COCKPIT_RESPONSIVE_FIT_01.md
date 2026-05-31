@@ -39,8 +39,9 @@ sprint:
 
 # Sprint 247 — UX-COCKPIT-RESPONSIVE-FIT-01
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-25
+**Data conclusão:** 2026-05-31
 
 ## Contexto
 
@@ -115,3 +116,9 @@ Re-verificado no playwright (viewport real via `setViewportSize`), já com as mu
 - **Causa #1 (FontFace race) NÃO se aplica:** a fonte é `ui-monospace` (nativa do sistema, sem web font); `document.fonts.status == "loaded"`. Não há corrida de carregamento.
 - **Fix defensivo TENTADO e REVERTIDO — NÃO re-tentar:** um `ResizeObserver` no `#terminal` reusando o refit-por-recriação (`scheduleRefit`→`recreateTerminal`) causou **tiling (25 input boxes empilhados)** no resize: o `recreateTerminal` altera o layout interno e **re-dispara o ResizeObserver → novo recreate → loop**. `ResizeObserver` + `recreateTerminal` é incompatível. Revertido para `git diff` limpo (terminal.html idêntico ao commitado).
 - **Conclusão:** não é resolvível sem o ambiente do usuário. **Para avançar, medição no Chrome real dele** (cockpit maximizado, DevTools console): `document.getElementById('terminal').clientWidth`, `document.querySelector('.xterm-screen').clientWidth`, `window.innerWidth`. Se `screenW << innerW`, reproduz e revela a causa (provável: zoom/devtools/extensão do perfil alterando o layout sem disparar `window.resize`). Aí o fix vira cirúrgico (não especulativo).
+
+## CONCLUSÃO 2026-05-31 — VERIFICADA no Chrome real do usuário
+
+O usuário rodou a medição no DevTools do seu Chrome (cockpit aberto): `inner 1365x864 | terminal 1365x832 | screen 1357x824`. **`terminal` == `inner` (1365)** → o terminal preenche 100% da largura da viewport; a largura ser 1365 (e não ~1905) é só o DevTools aberto na lateral. Altura `832 == 864-32` (header). **NÃO reproduz** o bug original ("~50% / 640px / scroll lateral") — resolvido (provavelmente pelas mudanças das ondas 32-35; o fit segue a viewport). De quebra, a captura confirmou a SPRINT 304 no Chrome real: header "Cockpit / Terminal", "Dashboard", "● Conectado" capitalizados. **Sprint CONCLUIDA (verificada).**
+
+**Achado colateral (vira sprint, anti-débito):** a captura mostrou `Uncaught TypeError: Cannot read properties of undefined (reading 'dimensions')` em `xterm.js` (`MouseService.getMouseReportCoords` ← `HTMLDocument.mouseup`) — listener de `mouseup` no `document` fica órfão após `term.dispose()` do `recreateTerminal` e acessa o render service descartado. Catalogado como `TUI-WEB-MOUSEUP-DISPOSE-LEAK-01` (BAIXA).
