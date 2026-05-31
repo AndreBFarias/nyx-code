@@ -5,6 +5,19 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.3.1] - 2026-05-31
+
+ONDA-35: correções de UX da TUI descobertas ao USAR a interface de verdade (digitando), que a validação por injeção (`/control/repl/send`) havia mascarado. Todas validadas digitando de verdade (Textual Pilot + `--web` via playwright `page.keyboard`). Invariantes 14/14, gauntlet `--only rapido` APROVADO por sprint.
+
+### Corrigido
+
+- **Autofoco do input** (`TUI-INPUT-AUTOFOCUS-01`) — ao abrir, o input já fica focado: `term.focus()` no xterm.js (abertura, conexão e resize) resolve o caso `--web` (as teclas do browser só chegavam ao PTY após clicar); `call_after_refresh` reforça o foco no nível Textual. Digitar passa a funcionar imediatamente, sem clique.
+- **Input de 5 linhas fixas sem corte** (`TUI-INPUT-HEIGHT-5-SCROLL-01`) — altura fixa (5 linhas de conteúdo + borda) com scrollbar interna no Ctrl+J; input e toolbar agrupados num container `#bottombar` (um único `dock:bottom`), eliminando o corte da borda inferior pela toolbar.
+- **Scroll da conversa + fim do travamento** (`TUI-CONVERSATION-SCROLL-TEXTUAL-01`) — re-porta o scroll perdido na migração ONDA-32: PgUp/PgDn rolam a conversa mesmo com o input focado e a roda do mouse funciona; o auto-scroll não puxa de volta ao fim enquanto se lê o histórico. O travamento era o streaming re-parseando o Markdown inteiro a cada token (O(n^2): ~1.6k caracteres levavam ~75s e 3253 parses) — agora o texto renderiza plano durante o stream e vira Markdown uma única vez ao assentar (2 parses).
+- **Modos Shift+Tab com comportamento real** (`TUI-MODE-BEHAVIOR-01`) — antes só mudavam o rótulo. Agora: **plan** = somente leitura (bloqueia escrita, só explora e planeja), **sudo** = elevação real (SUDO-MODE-01), **bypass** = auto-aprovar permissões (CONFIRM_ONCE; DENY e ALWAYS_CONFIRM seguem pedindo). Modos exclusivos; boot reseta para normal.
+- **Resposta final limpa** (`TUI-DONE-SUMMARY-CLEAN-01`) — quando o modelo emite `done(summary="...")` como texto, o balão exibe o summary limpo, não a sintaxe crua.
+- **Capitalização** — footer da TUI (`TUI-FOOTER-CAPITALIZE-TERMS-01`: Cold/Warming/Warm, Shift+Tab e nomes dos modos) e chrome do cockpit (`COCKPIT-CHROME-CAPITALIZE-01`: Cockpit / Terminal, Dashboard, Conectado, hint do rodapé).
+
 ## [1.3.0] - 2026-05-30
 
 Migração da TUI de prompt_toolkit para Textual (ONDA-32) + redesign completo da interface interativa a partir de uma auditoria de UX (ONDA-34, sprints 283-301). Toda a matriz de auditoria resolvida (features, higiene e decisões). Invariantes 14/14 PASS, gauntlet `--only rapido` APROVADO re-validado por sprint; as features de UI foram validadas via Textual Pilot (headless, sem OOM).
