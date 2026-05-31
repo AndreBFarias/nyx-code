@@ -171,7 +171,10 @@ class Toolbar(Static):
         msg.append(f"Modif {self.mods}", style=NYX_MUTED)
         msg.append("  |  ", style=NYX_MUTED)
         glyph = STATE_GLYPHS.get(self.model_state, STATE_GLYPHS["cold"])
-        msg.append(f"{glyph} {self.model_state}", style=NYX_MUTED)
+        # TUI-FOOTER-CAPITALIZE-TERMS-01 (SPRINT 305): estado capitalizado para
+        # exibição (Cold/Warming/Warm). O reactive model_state segue minúsculo
+        # (chave de STATE_GLYPHS e da lógica); só o texto mostrado capitaliza.
+        msg.append(f"{glyph} {self.model_state.capitalize()}", style=NYX_MUTED)
         # TUI-FOOTER-VRAM-REALTIME-01: campo VRAM em tempo real. Omitido
         # quando vazio (sem GPU / nvidia-smi ausente) -- degradação graciosa.
         # Rótulo/separador em NYX_MUTED, valor em NYX_ACCENT (zero hex).
@@ -185,14 +188,17 @@ class Toolbar(Static):
             msg.append("  |  ", style=NYX_MUTED)
             msg.append("executando (Ctrl+C cancela)", style=NYX_ACCENT)
         msg.append("    ", style=NYX_MUTED)
+        # TUI-FOOTER-CAPITALIZE-TERMS-01 (SPRINT 305): termos do footer
+        # capitalizados (Shift+Tab e os nomes dos modos). self.mode (a lógica)
+        # segue minúsculo; só o display muda.
         if self.mode == "bypass":
-            msg.append(" bypass ON (shift+tab) ", style=f"bold {NYX_PURPLE_DIM}")
+            msg.append(" Bypass ON (Shift+Tab) ", style=f"bold {NYX_PURPLE_DIM}")
         elif self.mode == "plan":
-            msg.append(" [plan] read-only (shift+tab) ", style=f"bold {NYX_PURPLE}")
+            msg.append(" [Plan] read-only (Shift+Tab) ", style=f"bold {NYX_PURPLE}")
         elif self.mode == "sudo":
-            msg.append(" [sudo] elevado (shift+tab) ", style=f"bold {NYX_ERROR}")
+            msg.append(" [Sudo] elevado (Shift+Tab) ", style=f"bold {NYX_ERROR}")
         else:
-            msg.append("shift+tab: normal/plan/sudo/bypass", style=NYX_MUTED)
+            msg.append("Shift+Tab: Normal/Plan/Sudo/Bypass", style=NYX_MUTED)
         return msg
 
     # Watch handlers: cada mudança de reactive property dispara
