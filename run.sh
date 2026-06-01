@@ -387,6 +387,14 @@ kill_existing_ollama() {
 
     # Matar processos ollama serve órfãos do Nyx-Code
     pkill -f "$OLLAMA_BIN serve" 2>/dev/null || true
+    # INFRA-OLLAMA-RUNNER-ORPHAN-CLEANUP-01 (ADR-034): VRAM escassa (RTX 3050 4GB)
+    # => UM projeto por vez usa o Ollama. Mata QUALQUER ollama serve/runner de
+    # qualquer projeto (Luna etc.) para o Nyx ter a GPU inteira no boot. Os
+    # `ollama runner` (filhos do serve) viram ÓRFÃOS quando o serve morre por
+    # SIGKILL/crash -- escapam do kill do serve e seguram VRAM/RAM; reapados aqui
+    # explicitamente. Achado: 8 runners órfãos acumulados de sessões anteriores.
+    pkill -f "ollama serve" 2>/dev/null || true
+    pkill -9 -f "ollama runner" 2>/dev/null || true
 
     log_boot "Limpando cache..."
     sleep 1
@@ -435,6 +443,9 @@ stop_ollama() {
     fi
     # Garantir que não ficou nenhum processo do nosso Ollama
     pkill -f "$OLLAMA_BIN serve" 2>/dev/null || true
+    # INFRA-OLLAMA-RUNNER-ORPHAN-CLEANUP-01: reap dos runners ao sair -- o Nyx não
+    # deixa `ollama runner` órfão segurando VRAM para a próxima sessão/projeto.
+    pkill -9 -f "ollama runner" 2>/dev/null || true
 }
 
 # ─── VERIFICAR E BAIXAR MODELO ───────────────────────────
