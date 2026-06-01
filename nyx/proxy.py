@@ -73,16 +73,19 @@ _INITIAL_NUM_GPU = _DEFAULT_NUM_GPU
 # Ação: ao primeiro hit, handle_chat tenta passo intermediário num_gpu // 2
 # antes do fallback CPU (INFRA-OOM-RETRY-STEP-01). Sequência: 15 -> 7 -> 0.
 # Se intermediário (GPU parcial) também retornar OOM, cai para num_gpu=0
-# e seta _OOM_DEGRADED=True. Cap de 2 retries total (sem loop).
+# e seta state["oom_degraded"]=True. Cap de 2 retries total (sem loop).
 # Incrementa state["oom_recovery_count"] uma vez por OOM event (não por retry).
 # Observabilidade via GET /admin/stats (INFRA-OOM-02).
 #
 # Permanência: a degradação é PERMANENTE até restart do proxy. handle_tune
-# respeita o fail-safe e NÃO reanima GPU após OOM (ver bloco _OOM_DEGRADED
+# respeita o fail-safe e NÃO reanima GPU após OOM (ver bloco state["oom_degraded"]
 # em handle_tune). Justificativa: evitar oscilação CPU<->GPU em loop quando
 # VRAM oscila no limite. ADR-001 Local First prioriza serviço vivo sobre
 # throughput.
-_OOM_DEGRADED = False
+#
+# PROXY-HANDLE-CHAT-REFACTOR-01: o flag vive em app["state"]["oom_degraded"]
+# (default False em _on_startup e main()), coerente com num_gpu e
+# oom_recovery_count, que já moraram em app["state"] desde PROXY-NUMGPU-RUNTIME-01.
 # INFRA-OOM-ADAPTIVE-GPU-01 (opt-in NYX_GPU_ADAPTIVE=1): reanimação de GPU.
 # Quando a sessão degradou para CPU mas a VRAM liberou depois (ex.: o usuário
 # fechou o Chrome), o Nyx volta ao num_gpu de boot em vez de ficar preso em CPU
@@ -280,9 +283,9 @@ def openai_to_ollama(body: dict, num_gpu: int) -> tuple[dict, str]:
     use_thinking = has_tools and _model_supports_thinking(model_name)
 
     # NYX-OUTPUT-LIMITS-01: num_predict adaptativo.
-    # Mapeia o intent canonico para a chave do dict: quando ha tools no payload
+    # Mapeia o intent canônico para a chave do dict: quando ha tools no payload
     # final, usa orcamento de 'tool' (resposta tipicamente envolve tool_call +
-    # resumo); senao usa o intent classificado pelo input do usuario.
+    # resumo); senao usa o intent classificado pelo input do usuário.
     intent_for_budget = "tool" if has_tools else intent
     max_tok_override = body.get("max_tokens") or body.get("max_completion_tokens")
     # Orçamento de SAIDA por intent (camada própria): independente da janela de
@@ -552,20 +555,21 @@ async def _maybe_reanimate_gpu(request: web.Request, model: str) -> None:
     """INFRA-OOM-ADAPTIVE-GPU-01: reanima a GPU se degradado e a VRAM liberou.
 
     Opt-in (NYX_GPU_ADAPTIVE=1). Só age quando: (a) já degradou para CPU
-    (_OOM_DEGRADED), (b) passou o cooldown desde o último OOM, e (c) o detect_gpu
-    (VRAM real, já capado pela tabela de fragmentação) sugere num_gpu > 0. Reseta
-    _OOM_DEGRADED e restaura o num_gpu sugerido. Se OOMar de novo, handle_chat
-    re-degrada e reinicia o cooldown -- 1 tentativa por cooldown, sem loop.
+    (state['oom_degraded']), (b) passou o cooldown desde o último OOM, e (c) o
+    detect_gpu (VRAM real, já capado pela tabela de fragmentação) sugere
+    num_gpu > 0. Reseta state['oom_degraded'] e restaura o num_gpu sugerido. Se
+    OOMar de novo, handle_chat re-degrada e reinicia o cooldown -- 1 tentativa
+    por cooldown, sem loop.
     """
-    global _OOM_DEGRADED
-    if not _GPU_ADAPTIVE or not _OOM_DEGRADED:
+    state = request.app["state"]
+    if not _GPU_ADAPTIVE or not state["oom_degraded"]:
         return
     if (time.monotonic() - _OOM_LAST_TS) < _REANIMATE_COOLDOWN_S:
         return
     new_value, stderr_tail = await _detect_num_gpu_async(model=model)
     if new_value and new_value > 0:
-        request.app["state"]["num_gpu"] = new_value
-        _OOM_DEGRADED = False
+        state["num_gpu"] = new_value
+        state["oom_degraded"] = False
         logger.info(
             "OOM reanimação: VRAM liberou (free=%s MB); num_gpu 0 -> %d (NYX_GPU_ADAPTIVE)",
             _parse_vram_free_mb(stderr_tail),
@@ -573,144 +577,167 @@ async def _maybe_reanimate_gpu(request: web.Request, model: str) -> None:
         )
 
 
-async def handle_chat(request: web.Request) -> web.StreamResponse:
-    global _OOM_DEGRADED, _OOM_LAST_TS
+async def _retry_with_hint(
+    session: ClientSession,
+    base_body: dict,
+    hint_text: str,
+    *,
+    result_transform,
+    validate,
+    prev_content: str | None = None,
+    tag: str = "RETRY",
+):
+    """Helper comum aos guardrails de saída (LANG/IDENTITY/MEMORY-INTENT).
 
-    body = await request.json()
-    model = body.get("model", _DEFAULT_MODEL)
-    state = request.app["state"]
-    # INFRA-OOM-ADAPTIVE-GPU-01: antes do turno, se opt-in e degradado, tenta
-    # reanimar a GPU quando a VRAM já liberou (no-op no caminho normal/não-degradado).
-    await _maybe_reanimate_gpu(request, model)
-    num_gpu = state["num_gpu"]
-    ollama_body, intent = openai_to_ollama(body, num_gpu)
+    Encapsula o padrão repetido: clona ``base_body``, anexa o turno anterior do
+    assistente (``prev_content``, quando informado) + um turno do usuário com
+    ``hint_text``, re-posta em ``/api/chat`` (cap 1 retry, sem loop) e converte
+    a resposta via ``result_transform(data) -> dict`` no formato OpenAI. Se a
+    re-resposta passa em ``validate(result) -> bool``, retorna o novo ``result``;
+    caso contrário (validação falhou, HTTP != 200) retorna ``None`` e o caller
+    preserva o ``result`` original. Mantém a semântica observável dos 3
+    guardrails idêntica: append assistant+user hint -> re-post -> valida -> troca.
+    """
+    retry_body = dict(base_body)
+    retry_messages = list(base_body.get("messages", []))
+    if prev_content:
+        retry_messages.append({"role": "assistant", "content": prev_content})
+    retry_messages.append({"role": "user", "content": hint_text})
+    retry_body["messages"] = retry_messages
+    async with session.post(f"{OLLAMA_URL}/api/chat", json=retry_body) as resp:
+        if resp.status != 200:
+            logger.warning("%s: retry HTTP %d; passa adiante", tag, resp.status)
+            return None
+        data = await resp.json()
+    candidate = result_transform(data)
+    if validate(candidate):
+        logger.info("%s: retry recuperou", tag)
+        return candidate
+    logger.info("%s: retry insistiu; passa adiante", tag)
+    return None
 
-    n_tools = len(body.get("tools", []))
-    logger.info("-> model=%s tools=%d intent=%s num_gpu=%d", model, n_tools, intent, num_gpu)
 
-    session = await _get_session(request.app)
+async def _post_chat_with_oom_recovery(
+    session: ClientSession,
+    ollama_body: dict,
+    state: dict,
+    num_gpu: int,
+) -> tuple[dict | None, web.Response | None]:
+    """Posta em /api/chat com a cascata de recuperação OOM em 4 camadas.
+
+    Retorna ``(data, None)`` no caminho de sucesso (resposta Ollama nativa) ou
+    ``(None, error_response)`` quando deve abortar com erro HTTP. Comportamento
+    observável idêntico ao bloco inline anterior (INFRA-OOM-RETRY-STEP-01):
+    1) post normal; 2) se 200, devolve; 3) se erro não-OOM ou já degradado,
+    devolve o erro; 4) se OOM e não-degradado: passo intermediário num_gpu//2
+    (se >0) e, persistindo o OOM, fallback CPU (num_gpu=0) com
+    ``state['oom_degraded']=True`` permanente. Incrementa ``oom_recovery_count``
+    uma vez por recuperação e persiste via _persist_stats (INFRA-OOM-HISTORY-01).
+    """
+    global _OOM_LAST_TS
     async with session.post(f"{OLLAMA_URL}/api/chat", json=ollama_body) as ollama_resp:
-        if ollama_resp.status != 200:
-            text = await ollama_resp.text()
-            logger.error("Ollama %d: %s", ollama_resp.status, text[:200])
+        if ollama_resp.status == 200:
+            return await ollama_resp.json(), None
+        text = await ollama_resp.text()
+        logger.error("Ollama %d: %s", ollama_resp.status, text[:200])
+        if not (_is_oom_error(text) and not state["oom_degraded"]):
+            return None, web.json_response(
+                {"error": {"message": text, "type": "api_error"}},
+                status=ollama_resp.status,
+            )
 
-            if _is_oom_error(text) and not _OOM_DEGRADED:
-                intermediate = _next_num_gpu_step(num_gpu)
-                recovered = False
+        intermediate = _next_num_gpu_step(num_gpu)
+        # 1o retry: passo intermediário (GPU parcial), apenas se intermediate > 0
+        if intermediate > 0:
+            logger.warning("OOM degradation step: %d -> %d", num_gpu, intermediate)
+            state["num_gpu"] = intermediate
+            ollama_body["options"]["num_gpu"] = intermediate
+            async with session.post(f"{OLLAMA_URL}/api/chat", json=ollama_body) as inter_resp:
+                if inter_resp.status == 200:
+                    data = await inter_resp.json()
+                    logger.info("OOM recovery OK: resposta via GPU parcial (num_gpu=%d)", intermediate)
+                    state["oom_recovery_count"] = state.get("oom_recovery_count", 0) + 1
+                    _persist_stats(state)  # INFRA-OOM-HISTORY-01
+                    return data, None
+                inter_text = await inter_resp.text()
+                if not _is_oom_error(inter_text):
+                    logger.error(
+                        "Retry intermediário falhou (não-OOM): %d %s",
+                        inter_resp.status,
+                        inter_text[:200],
+                    )
+                    return None, web.json_response(
+                        {"error": {"message": inter_text, "type": "api_error"}},
+                        status=inter_resp.status,
+                    )
+                # OOM também no intermediário: cai para fallback CPU abaixo
 
-                # 1o retry: passo intermediário (GPU parcial), apenas se intermediate > 0
-                if intermediate > 0:
-                    logger.warning("OOM degradation step: %d -> %d", num_gpu, intermediate)
-                    state["num_gpu"] = intermediate
-                    ollama_body["options"]["num_gpu"] = intermediate
-                    async with session.post(f"{OLLAMA_URL}/api/chat", json=ollama_body) as inter_resp:
-                        if inter_resp.status == 200:
-                            data = await inter_resp.json()
-                            logger.info("OOM recovery OK: resposta via GPU parcial (num_gpu=%d)", intermediate)
-                            state["oom_recovery_count"] = state.get("oom_recovery_count", 0) + 1
-                            _persist_stats(state)  # INFRA-OOM-HISTORY-01
-                            recovered = True
-                        else:
-                            inter_text = await inter_resp.text()
-                            if not _is_oom_error(inter_text):
-                                logger.error(
-                                    "Retry intermediário falhou (não-OOM): %d %s",
-                                    inter_resp.status,
-                                    inter_text[:200],
-                                )
-                                return web.json_response(
-                                    {"error": {"message": inter_text, "type": "api_error"}},
-                                    status=inter_resp.status,
-                                )
-                            # OOM também no intermediário: cai para fallback CPU abaixo
-
-                # 2o retry: fallback CPU (acionado se intermediate <= 0 OU se 1o retry também deu OOM)
-                if not recovered:
-                    _OOM_DEGRADED = True
-                    # INFRA-OOM-ADAPTIVE-GPU-01: inicia o cooldown de reanimação.
-                    _OOM_LAST_TS = time.monotonic()
-                    state["num_gpu"] = 0
-                    logger.warning("OOM detectado. Degradando num_gpu=0 (CPU) para esta sessão")
-                    ollama_body["options"]["num_gpu"] = 0
-                    async with session.post(f"{OLLAMA_URL}/api/chat", json=ollama_body) as retry_resp:
-                        if retry_resp.status != 200:
-                            retry_text = await retry_resp.text()
-                            logger.error("Retry CPU falhou: %d %s", retry_resp.status, retry_text[:200])
-                            return web.json_response(
-                                {"error": {"message": retry_text, "type": "api_error"}},
-                                status=retry_resp.status,
-                            )
-                        data = await retry_resp.json()
-                        logger.info("OOM recovery OK: resposta via CPU")
-                        state["oom_recovery_count"] = state.get("oom_recovery_count", 0) + 1
-                        _persist_stats(state)  # INFRA-OOM-HISTORY-01
-            else:
-                return web.json_response(
-                    {"error": {"message": text, "type": "api_error"}},
-                    status=ollama_resp.status,
+        # 2o retry: fallback CPU (intermediate <= 0 OU 1o retry também deu OOM)
+        state["oom_degraded"] = True
+        # INFRA-OOM-ADAPTIVE-GPU-01: inicia o cooldown de reanimação.
+        _OOM_LAST_TS = time.monotonic()
+        state["num_gpu"] = 0
+        logger.warning("OOM detectado. Degradando num_gpu=0 (CPU) para esta sessão")
+        ollama_body["options"]["num_gpu"] = 0
+        async with session.post(f"{OLLAMA_URL}/api/chat", json=ollama_body) as retry_resp:
+            if retry_resp.status != 200:
+                retry_text = await retry_resp.text()
+                logger.error("Retry CPU falhou: %d %s", retry_resp.status, retry_text[:200])
+                return None, web.json_response(
+                    {"error": {"message": retry_text, "type": "api_error"}},
+                    status=retry_resp.status,
                 )
-        else:
-            data = await ollama_resp.json()
+            data = await retry_resp.json()
+            logger.info("OOM recovery OK: resposta via CPU")
+            state["oom_recovery_count"] = state.get("oom_recovery_count", 0) + 1
+            _persist_stats(state)  # INFRA-OOM-HISTORY-01
+            return data, None
 
-    logger.info("Ollama raw keys: %s", list(data.get("message", {}).keys()))
-    logger.info("Ollama tool_calls: %s", data.get("message", {}).get("tool_calls", "NONE"))
-    has_tools_request = bool(body.get("tools"))
-    allowed_tool_names = [
-        t.get("function", {}).get("name", "")
-        for t in body.get("tools", [])
-        if isinstance(t, dict)
-    ]
-    allowed_tool_names = [n for n in allowed_tool_names if n]
-    result = ollama_to_openai(
-        data,
-        model,
-        has_tools_request=has_tools_request,
-        allowed_tool_names=allowed_tool_names or None,
-    )
 
+async def _apply_output_guardrails(
+    session: ClientSession,
+    ollama_body: dict,
+    body: dict,
+    result: dict,
+    *,
+    intent: str,
+    model: str,
+    has_tools_request: bool,
+    allowed_tool_names: list[str],
+) -> dict:
+    """Aplica os 3 guardrails de saída em sequência via _retry_with_hint.
+
+    Cada guardrail mantém seu gating e ordem originais (LANG -> IDENTITY ->
+    MEMORY-INTENT). Cap 1 retry por guardrail (preserva P50). Retorna o
+    ``result`` final (trocado se algum retry recuperou, original caso contrário).
+    """
     # LANG-ENFORCE-01: guardrail de idioma em respostas conversacionais.
     # Cobre saudacao/chat/comando (qwen2.5-coder:3b frequentemente responde
     # /help em inglês). tool-needed fora do escopo: pode envolver tool_calls
     # e o content é descartado pelo agent loop.
-    # Cap em 1 retry para não explodir P50.
     if intent in ("saudacao", "chat", "comando"):
         choice_msg = result["choices"][0]["message"]
         content = choice_msg.get("content", "")
         has_tc = bool(choice_msg.get("tool_calls"))
         if content and not has_tc and not _is_pt_br(content):
             logger.warning("LANG: resposta em ingles detectada (intent=%s); retry 1x com hint", intent)
-            retry_body = dict(ollama_body)
-            retry_messages = list(ollama_body.get("messages", []))
-            retry_messages.append({"role": "assistant", "content": content})
-            retry_messages.append(
-                {
-                    "role": "user",
-                    "content": (
-                        "Responda em português brasileiro. "
-                        "Sua resposta anterior estava em inglês; refaça em português."
-                    ),
-                }
+            recovered = await _retry_with_hint(
+                session,
+                ollama_body,
+                "Responda em português brasileiro. "
+                "Sua resposta anterior estava em inglês; refaça em português.",
+                result_transform=lambda d: ollama_to_openai(d, model),
+                validate=lambda r: bool(c := r["choices"][0]["message"].get("content", "")) and _is_pt_br(c),
+                prev_content=content,
+                tag="LANG",
             )
-            retry_body["messages"] = retry_messages
-            async with session.post(f"{OLLAMA_URL}/api/chat", json=retry_body) as lang_resp:
-                if lang_resp.status == 200:
-                    lang_data = await lang_resp.json()
-                    lang_result = ollama_to_openai(lang_data, model)
-                    lang_content = lang_result["choices"][0]["message"].get("content", "")
-                    if lang_content and _is_pt_br(lang_content):
-                        logger.info("LANG: retry recuperou PT-BR")
-                        result = lang_result
-                    else:
-                        logger.info("LANG: retry insistiu em ingles; passa adiante")
-                else:
-                    logger.warning("LANG: retry HTTP %d; passa adiante", lang_resp.status)
+            if recovered is not None:
+                result = recovered
 
     # IDENTITY-ENFORCE-01: guardrail de identidade Nyx (ADR-005 + ADR-027).
-    # Modelo (qwen2.5-coder:3b, qualquer outro) NUNCA pode mencionar
-    # nenhum provider proprietário no content. Identidade Nyx é inviolável.
-    # Cobre saudacao/chat/comando; tool-needed fora do escopo (content é
-    # descartado pelo agent loop quando há tool_calls).
-    # Cap em 1 retry para não explodir P50 (mesmo padrão de LANG-ENFORCE).
+    # Modelo (qwen2.5-coder:3b, qualquer outro) NUNCA pode mencionar nenhum
+    # provider proprietário no content. Identidade Nyx é inviolável. Cobre
+    # saudacao/chat/comando; tool-needed fora do escopo (content descartado).
     # noqa-anonimato -- hint do retry abaixo cita nomes intencionalmente
     if intent in ("saudacao", "chat", "comando"):
         choice_msg = result["choices"][0]["message"]
@@ -724,39 +751,27 @@ async def handle_chat(request: web.Request) -> web.StreamResponse:
                     leaked,
                     intent,
                 )
-                retry_body = dict(ollama_body)
-                retry_messages = list(ollama_body.get("messages", []))
-                retry_messages.append({"role": "assistant", "content": content})
-                retry_messages.append(
-                    {
-                        "role": "user",
-                        "content": (
-                            "Você é Nyx, codificadora local. Não mencione modelo subjacente "
-                            "(Qwen, GPT, Claude, Llama, etc.). Refaça em PT-BR sem citar IA proprietária."  # noqa-anonimato  # noqa: ai-mention
-                        ),
-                    }
+                recovered = await _retry_with_hint(
+                    session,
+                    ollama_body,
+                    "Você é Nyx, codificadora local. Não mencione modelo subjacente "
+                    "(Qwen, GPT, Claude, Llama, etc.). Refaça em PT-BR sem citar IA proprietária.",  # noqa-anonimato  # noqa: ai-mention
+                    result_transform=lambda d: ollama_to_openai(d, model),
+                    validate=lambda r: (
+                        bool(c := r["choices"][0]["message"].get("content", ""))
+                        and not _mentions_provider(c)
+                    ),
+                    prev_content=content,
+                    tag="IDENTITY",
                 )
-                retry_body["messages"] = retry_messages
-                async with session.post(f"{OLLAMA_URL}/api/chat", json=retry_body) as id_resp:
-                    if id_resp.status == 200:
-                        id_data = await id_resp.json()
-                        id_result = ollama_to_openai(id_data, model)
-                        id_content = id_result["choices"][0]["message"].get("content", "")
-                        if id_content and not _mentions_provider(id_content):
-                            logger.info("IDENTITY: retry recuperou identidade Nyx")
-                            result = id_result
-                        else:
-                            logger.info("IDENTITY: retry insistiu no vazamento; passa adiante")
-                    else:
-                        logger.warning("IDENTITY: retry HTTP %d; passa adiante", id_resp.status)
+                if recovered is not None:
+                    result = recovered
 
     # MEMORY-INTENT-ENFORCE-01: força write_memory quando usuário pede para
-    # lembrar de algo (ADR-026 Agência + filosofia "infra > modelo").
-    # Modelo (qwen2.5-coder:3b) frequentemente responde apenas com texto
-    # "ok, vou lembrar" sem chamar write_memory. CTX-11 do gauntlet captura.
-    # Gating: intent tool-needed + classifier wants_save_memory positivo +
-    # write_memory disponível em body['tools'] + modelo não chamou.
-    # Cap 1 retry (preserva P50).
+    # lembrar de algo (ADR-026 Agência + filosofia "infra > modelo"). Modelo
+    # frequentemente responde só texto "ok, vou lembrar" sem chamar a tool.
+    # Gating: intent tool-needed + wants_save_memory + write_memory disponível
+    # em body['tools'] + modelo não chamou. CTX-11 do gauntlet captura.
     if intent == "tool-needed":
         last_user = _last_user_text(ollama_body.get("messages", []))
         if _wants_save_memory(last_user):
@@ -774,49 +789,81 @@ async def handle_chat(request: web.Request) -> web.StreamResponse:
                 logger.warning(
                     "MEMORY: usuário pediu para lembrar; modelo não chamou write_memory; retry 1x com hint"
                 )
-                retry_body = dict(ollama_body)
-                retry_messages = list(ollama_body.get("messages", []))
-                prev_content = choice_msg.get("content", "")
-                if prev_content:
-                    retry_messages.append({"role": "assistant", "content": prev_content})
-                retry_messages.append(
-                    {
-                        "role": "user",
-                        "content": (
-                            "O usuário pediu para você LEMBRAR de algo importante. "
-                            "Use a tool write_memory AGORA. Responda APENAS com JSON "
-                            "no formato exato (sem texto antes/depois):\n"
-                            '```json\n'
-                            '{"name": "write_memory", "arguments": {'
-                            '"file": "<snake_case_curto>", '
-                            '"content": "<o fato a lembrar>", '
-                            '"reason": "<1 linha de motivo>"}}\n'
-                            '```'
-                        ),
-                    }
+                recovered = await _retry_with_hint(
+                    session,
+                    ollama_body,
+                    "O usuário pediu para você LEMBRAR de algo importante. "
+                    "Use a tool write_memory AGORA. Responda APENAS com JSON "
+                    "no formato exato (sem texto antes/depois):\n"
+                    '```json\n'
+                    '{"name": "write_memory", "arguments": {'
+                    '"file": "<snake_case_curto>", '
+                    '"content": "<o fato a lembrar>", '
+                    '"reason": "<1 linha de motivo>"}}\n'
+                    '```',
+                    result_transform=lambda d: ollama_to_openai(
+                        d,
+                        model,
+                        has_tools_request=has_tools_request,
+                        allowed_tool_names=allowed_tool_names or None,
+                    ),
+                    validate=lambda r: any(
+                        tc.get("function", {}).get("name") == "write_memory"
+                        for tc in (r["choices"][0]["message"].get("tool_calls", []) or [])
+                    ),
+                    prev_content=choice_msg.get("content", "") or None,
+                    tag="MEMORY",
                 )
-                retry_body["messages"] = retry_messages
-                async with session.post(f"{OLLAMA_URL}/api/chat", json=retry_body) as mem_resp:
-                    if mem_resp.status == 200:
-                        mem_data = await mem_resp.json()
-                        mem_result = ollama_to_openai(
-                            mem_data,
-                            model,
-                            has_tools_request=has_tools_request,
-                            allowed_tool_names=allowed_tool_names or None,
-                        )
-                        mem_tcs = mem_result["choices"][0]["message"].get("tool_calls", []) or []
-                        mem_called_wm = any(
-                            tc.get("function", {}).get("name") == "write_memory"
-                            for tc in mem_tcs
-                        )
-                        if mem_called_wm:
-                            logger.info("MEMORY: retry conseguiu chamar write_memory")
-                            result = mem_result
-                        else:
-                            logger.info("MEMORY: retry insistiu sem chamar; passa adiante")
-                    else:
-                        logger.warning("MEMORY: retry HTTP %d; passa adiante", mem_resp.status)
+                if recovered is not None:
+                    result = recovered
+
+    return result
+
+
+async def handle_chat(request: web.Request) -> web.StreamResponse:
+    body = await request.json()
+    model = body.get("model", _DEFAULT_MODEL)
+    state = request.app["state"]
+    # INFRA-OOM-ADAPTIVE-GPU-01: antes do turno, se opt-in e degradado, tenta
+    # reanimar a GPU quando a VRAM já liberou (no-op no caminho normal/não-degradado).
+    await _maybe_reanimate_gpu(request, model)
+    num_gpu = state["num_gpu"]
+    ollama_body, intent = openai_to_ollama(body, num_gpu)
+
+    n_tools = len(body.get("tools", []))
+    logger.info("-> model=%s tools=%d intent=%s num_gpu=%d", model, n_tools, intent, num_gpu)
+
+    session = await _get_session(request.app)
+    data, error = await _post_chat_with_oom_recovery(session, ollama_body, state, num_gpu)
+    if error is not None:
+        return error
+
+    logger.info("Ollama raw keys: %s", list(data.get("message", {}).keys()))
+    logger.info("Ollama tool_calls: %s", data.get("message", {}).get("tool_calls", "NONE"))
+    has_tools_request = bool(body.get("tools"))
+    allowed_tool_names = [
+        t.get("function", {}).get("name", "")
+        for t in body.get("tools", [])
+        if isinstance(t, dict)
+    ]
+    allowed_tool_names = [n for n in allowed_tool_names if n]
+    result = ollama_to_openai(
+        data,
+        model,
+        has_tools_request=has_tools_request,
+        allowed_tool_names=allowed_tool_names or None,
+    )
+
+    result = await _apply_output_guardrails(
+        session,
+        ollama_body,
+        body,
+        result,
+        intent=intent,
+        model=model,
+        has_tools_request=has_tools_request,
+        allowed_tool_names=allowed_tool_names,
+    )
 
     tc = result["choices"][0]["message"].get("tool_calls")
     if tc:
@@ -970,14 +1017,14 @@ async def handle_tune(request: web.Request) -> web.Response:
                 "new_num_gpu": old,
                 "vram_free_mb": vram_free_mb,
                 "changed": False,
-                "oom_degraded": _OOM_DEGRADED,
+                "oom_degraded": state["oom_degraded"],
                 "error": "detect_gpu falhou",
                 "stderr": stderr_tail[:200],
             },
             status=500,
         )
 
-    if _OOM_DEGRADED:
+    if state["oom_degraded"]:
         # Fail-safe vence: tune não reanima GPU após OOM nesta sessão.
         logger.info("tune: OOM já degradou; preservando num_gpu=0 (sugerido seria %d)", new_value)
         return web.json_response(
@@ -1029,7 +1076,7 @@ async def handle_stats(request: web.Request) -> web.Response:
             "oom_recovery_count": state.get("oom_recovery_count", 0),
             "num_gpu_current": state.get("num_gpu", 0),
             "num_gpu_initial": state.get("num_gpu_initial", state.get("num_gpu", 0)),
-            "oom_degraded": _OOM_DEGRADED,
+            "oom_degraded": state.get("oom_degraded", False),
         }
     )
 
@@ -1044,6 +1091,12 @@ async def _on_startup(app: web.Application) -> None:
     state.setdefault("num_gpu", _INITIAL_NUM_GPU)
     state.setdefault("num_gpu_initial", state["num_gpu"])
     state.setdefault("oom_recovery_count", 0)
+    # PROXY-HANDLE-CHAT-REFACTOR-01: fail-safe anti-oscilação OOM migrado de
+    # módulo-global para o dict de estado (coerência com num_gpu/oom_recovery_count).
+    # aiohttp roda single-threaded no event loop: a mutação de state é segura
+    # entre awaits porque cada seção crítica (checar -> escrever oom_degraded) não
+    # contém await no meio; um handler nunca é preemptado fora de um ponto await.
+    state.setdefault("oom_degraded", False)
     # INFRA-OOM-HISTORY-01: hidrata contador cross-session se arquivo existir.
     persisted = _load_persisted_stats()
     if persisted.get("oom_recovery_count", 0) > 0:
@@ -1084,6 +1137,7 @@ def main():
         "num_gpu": args.num_gpu,
         "num_gpu_initial": args.num_gpu,
         "oom_recovery_count": 0,
+        "oom_degraded": False,
     }
     app.on_startup.append(_on_startup)
     app.on_cleanup.append(_on_cleanup)
