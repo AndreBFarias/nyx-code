@@ -9,6 +9,7 @@ _on_permission, _last_action, _consecutive_skips, _has_results, etc.).
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 import os
 from typing import Any
@@ -117,6 +118,12 @@ class _IterationMixin:
             if perm in (PermissionLevel.CONFIRM_ONCE, PermissionLevel.ALWAYS_CONFIRM):
                 if self._on_permission:
                     approved = self._on_permission(perm, name, args)
+                    # TUI-PERMISSION-CONFIRM-01 (ONDA-37): suporta callback ASYNC -- a
+                    # TUI abre um ConfirmScreen e espera (push_screen_wait). Callback
+                    # síncrono (prompt_toolkit/headless) segue igual. Não muda a
+                    # assinatura pública (on_permission já é param de construção).
+                    if inspect.isawaitable(approved):
+                        approved = await approved
                     if not approved:
                         self._session.add_tool_call(name, args, f"Usuário negou: {name}")
                         continue

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -28,6 +29,18 @@ _NYX_DATA_DIR = Path.home() / ".nyx"
 # ~/.nyx/config.toml é opt-in do usuário (não toca aqui).
 _ACTIVE_ROOT: Path | None = None
 _EXTRA_ROOTS: list[Path] = []
+
+
+def _sandbox_strict() -> bool:
+    """NYX-FS-ACCESS-FREE-01 (ONDA-37): modo estrito do sandbox (opt-in).
+
+    Modelo do dono: por DEFAULT a Nyx acessa qualquer pasta (acesso amplo ao FS) --
+    a ESCRITA é governada pela camada de permissões (permissions.py: pergunta no
+    Normal, auto no Bypass) e o Plan bloqueia escrita no loop, não o sandbox de
+    pastas. Exporte NYX_SANDBOX_STRICT=1 para voltar ao comportamento restrito
+    (acesso só a project_root + ~/.nyx + extras de /sandbox add).
+    """
+    return os.environ.get("NYX_SANDBOX_STRICT") == "1"
 
 
 def _resolve(p: str | Path) -> Path:
@@ -144,6 +157,14 @@ def validate_path(file_path: str, project_root: str) -> Path:
         except ValueError:
             continue
 
+    # NYX-FS-ACCESS-FREE-01 (ONDA-37): por DEFAULT, fora dos roots = LIBERADO (acesso
+    # livre a qualquer pasta, modelo do dono "liberação pra tudo"). A escrita é
+    # governada pela camada de permissões (pergunta no Normal, auto no Bypass) e o
+    # Plan bloqueia escrita no loop. Só o modo estrito (NYX_SANDBOX_STRICT=1) mantém o
+    # bloqueio por raiz com a sugestão de /sandbox add.
+    if not _sandbox_strict():
+        logger.debug("Path fora dos roots liberado (acesso livre ONDA-37): %s", resolved)
+        return resolved
     logger.warning("Path bloqueado por traversal: %s -> %s", file_path, resolved)
     # PROJECT-ROOTS-MULTI-01: mensagem actionable cita /sandbox add com o
     # path-pai (parent) inferido para reduzir atrito do usuário.

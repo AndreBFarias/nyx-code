@@ -70,6 +70,12 @@ class SuggestionPanel(Static):
             return Text("")
         msg = Text()
         last = len(self._items) - 1
+        # TUI-SLASH-SUGGEST-WIDER-DESC-01 (ONDA-37): trunca a descrição pela LARGURA
+        # REAL do painel, não num teto fixo de 48 -- mostra muito mais da definição
+        # de cada comando. Desconta marker (2) + coluna do nome + espaço + padding (2)
+        # + folga (1). Fallback 100 quando size ainda não resolveu (1º render).
+        width = self.size.width or 100
+        desc_max = max(40, width - _NAME_COL - 6)
         for i, (name, desc) in enumerate(self._items):
             # Primeira linha destacada (turquesa); demais em roxo dim.
             marker = "> " if i == 0 else "  "
@@ -77,7 +83,7 @@ class SuggestionPanel(Static):
             msg.append(marker, style=NYX_MUTED)
             msg.append(f"{name:<{_NAME_COL}}", style=name_style)
             if desc:
-                shown = desc if len(desc) <= 48 else desc[:47] + "..."
+                shown = desc if len(desc) <= desc_max else desc[: desc_max - 1] + "..."
                 msg.append(f" {shown}", style=NYX_MUTED)
             if i < last:
                 msg.append("\n")

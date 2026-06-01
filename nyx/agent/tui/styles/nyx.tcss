@@ -111,6 +111,17 @@ Collapsible.thinking {
     margin: 1 0 0 0;
 }
 
+/* ---------- Static.thinking-live (TUI-THINKING-LIVE-01, ONDA-37) ---------- */
+/* Indicador efêmero "pensando... (Ns)" durante a inferência. Mesma moldura do
+ * balão do assistant (border-left roxo) -- parece a Nyx em progresso; removido
+ * quando o 1º token chega ou no fim do turno. */
+Static.thinking-live {
+    color: $muted;
+    border-left: heavy $primary;
+    padding: 0 1 0 2;
+    margin: 1 0 0 0;
+}
+
 /* ---------- #bottombar: container do input + toolbar (TUI-INPUT-HEIGHT-5-SCROLL-01) ---------- */
 /* SPRINT 306: agrupa InputWidget (h:7) e Toolbar (h:1) num unico container
  * dock:bottom. Dois dock:bottom SOLTOS nao reservavam o espaco somado -- o

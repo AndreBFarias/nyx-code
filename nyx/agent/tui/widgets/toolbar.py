@@ -93,9 +93,13 @@ class Toolbar(Static):
         local ao widget via `set_interval`, refresh por-widget. O Toolbar não
         tinha `on_mount`; Static não exige `super()`. A primeira chamada é
         agendada via `call_after_refresh` para o campo aparecer já no boot,
-        sem esperar os 2s do primeiro tick.
+        sem esperar o primeiro tick.
+
+        TUI-FOOTER-VRAM-REALTIME-FASTER-01 (ONDA-37): intervalo baixado de 2.0s para
+        1.0s -- a VRAM/% reflete o uso em tempo (quase) real conforme o modelo carrega
+        na GPU e libera. O poll é leve (nvidia-smi async, não-bloqueante, timeout 3s).
         """
-        self.set_interval(2.0, self._poll_vram)
+        self.set_interval(1.0, self._poll_vram)
         self.call_after_refresh(self._poll_vram)
 
     async def _poll_vram(self) -> None:

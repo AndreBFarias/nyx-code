@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Any
 
 from rich.markdown import Markdown
+from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical, VerticalScroll
@@ -43,6 +44,7 @@ from nyx.agent.tui.widgets.chat_message import ChatMessage
 from nyx.agent.tui.widgets.input import InputWidget
 from nyx.agent.tui.widgets.suggestions import SuggestionPanel
 from nyx.agent.tui.widgets.toolbar import Toolbar
+from nyx.themes.design_tokens import NYX_MUTED, NYX_PURPLE
 
 # TUI-WORKER-CRASH-GUARD-01 (ADR-033): logger que escreve em ~/.nyx/logs/nyx.log
 # via logging_service. Usado para PERSISTIR o traceback de turnos que falham --
@@ -165,6 +167,13 @@ class NyxTUI(App):
         # até o 1o token -- e persistente em turnos só-tool/erro. `_process_turn`
         # reseta para None no finally, garantindo turno limpo.
         self._current_assistant: Any = None
+        # TUI-THINKING-LIVE-01 (ONDA-37): indicador "pensando... (Ns)" ao vivo durante
+        # a inferência (regressão da migração Textual -- existia no prompt_toolkit via
+        # build_warming_label + nyx_spinner). Ref ao widget efêmero + t0 + timer de 1s;
+        # criado no submit, removido no 1º token de resposta ou no finally do turno.
+        self._thinking_indicator: Static | None = None
+        self._thinking_t0: float = 0.0
+        self._thinking_timer: Any = None
         # TUI-AGENT-BRIDGE-01: patch dos atributos privados do AgentLoop.
         # FORBIDDEN explicito do spec: não modificar AgentLoop signature.
         # AgentLoop expõe internamente `_on_token`, `_on_tool`,
@@ -184,6 +193,17 @@ class NyxTUI(App):
             # modelo (antes dropado na TUI Textual). `_on_thinking(reasoning)` é
             # chamado em loop/_iteration.py:517 (1 arg string, loop principal).
             agent._on_thinking = self._on_agent_thinking
+            # TUI-FOOTER-MODEL-STATE-LIVE-01 (ONDA-37): consome o estado do modelo
+            # (cold/warming/warm) emitido por _emit_state (loop/_core.py:163). Sem
+            # este patch o footer ficava "Cold" FIXO -- o app nunca atualizava
+            # toolbar.model_state. Agora reflete o aquecimento ao vivo no rodapé.
+            agent._on_model_state = self._on_agent_model_state
+            # TUI-PERMISSION-CONFIRM-01 (ONDA-37): a Nyx PERGUNTA antes de alterar
+            # (write/edit/run) no modo Normal -- callback async abre ConfirmScreen e
+            # espera a resposta. Bypass auto-aprova (CONFIRM_ONCE vira AUTO, não chega
+            # aqui); Plan bloqueia a escrita antes, no loop. Sobrescreve o callback
+            # síncrono do prompt_toolkit que o cli.py passa (não serve à TUI async).
+            agent._on_permission = self._on_agent_permission
             collector = getattr(agent, "_collector", None)
             if collector is not None:
                 collector._on_token = self._on_agent_token
@@ -338,6 +358,8 @@ class NyxTUI(App):
         self._current_assistant = None
         toolbar = self.query_one("#toolbar", Toolbar)
         toolbar.inflight = True
+        # TUI-THINKING-LIVE-01: indicador "pensando... (Ns)" ao vivo durante o turno.
+        self._start_thinking_indicator()
         # TUI-FIX-HTTPX-LOOP-AFFINITY-01 (ONDA-33): worker async NO LOOP
         # PRINCIPAL (sem thread=True). Antes, thread=True rodava agent.run()
         # via asyncio.run() numa thread descartavel -- o httpx client do agent
@@ -466,6 +488,9 @@ class NyxTUI(App):
                 )
             )
         finally:
+            # TUI-THINKING-LIVE-01: garante a remoção do indicador em qualquer caminho
+            # (turnos só-tool/erro que nunca emitem token de texto).
+            self._stop_thinking_indicator()
             self.query_one("#toolbar", Toolbar).inflight = False
             self._follow_end(self.query_one("#chat", VerticalScroll))
             # TUI-TURN-ELAPSED-01: registra o tempo do turno no balão do assistant
@@ -479,6 +504,44 @@ class NyxTUI(App):
             # turno N+1 nunca faça append no balão do turno N antes do próprio
             # lazy-mount disparar no 1o token.
             self._current_assistant = None
+
+    def _start_thinking_indicator(self) -> None:
+        """TUI-THINKING-LIVE-01: monta o indicador 'pensando... (Ns)' no chat e agenda
+        o tick de 1s. Reusa build_warming_label (output.py) com o model_state real do
+        footer. Removido no 1º token (_on_agent_token) ou no finally do turno.
+        """
+        chat = self.query_one("#chat", VerticalScroll)
+        self._thinking_t0 = time.monotonic()
+        self._thinking_indicator = Static(classes="thinking-live")
+        chat.mount(self._thinking_indicator)
+        self._refresh_thinking_label()
+        self._thinking_timer = self.set_interval(1.0, self._refresh_thinking_label)
+        self._follow_end(chat)
+
+    def _refresh_thinking_label(self) -> None:
+        """Atualiza o texto do indicador via build_warming_label (a cada 1s).
+
+        Estado do modelo vem do footer (item 2a): 'aquecendo modelo...' enquanto
+        warming nos 1ºs 3s, depois 'pensando...' e 'pensando... (Ns)' com cronômetro.
+        """
+        if self._thinking_indicator is None:
+            return
+        from nyx.agent.output import build_warming_label
+
+        state = self.query_one("#toolbar", Toolbar).model_state
+        label = build_warming_label(state, self._thinking_t0)
+        text = Text(f"{_THINKING_GLYPH} NyxCode", style=NYX_PURPLE)
+        text.append(f"  ·  {label}", style=NYX_MUTED)
+        self._thinking_indicator.update(text)
+
+    def _stop_thinking_indicator(self) -> None:
+        """Para o tick e remove o indicador (idempotente -- seguro chamar 2x)."""
+        if self._thinking_timer is not None:
+            self._thinking_timer.stop()
+            self._thinking_timer = None
+        if self._thinking_indicator is not None:
+            self._thinking_indicator.remove()
+            self._thinking_indicator = None
 
     def _on_agent_token(self, token: str) -> None:
         """Callback patcheado em agent._on_token (e collector._on_token).
@@ -503,6 +566,9 @@ class NyxTUI(App):
             return
         chat = self.query_one("#chat", VerticalScroll)
         if self._current_assistant is None:
+            # TUI-THINKING-LIVE-01: 1º token de resposta -> remove o indicador
+            # de carregando antes de materializar o balão do assistant.
+            self._stop_thinking_indicator()
             assistant = ChatMessage("assistant", "")
             chat.mount(assistant)
             self._current_assistant = assistant
@@ -543,6 +609,42 @@ class NyxTUI(App):
         )
         chat.mount(block)
         self._follow_end(chat)
+
+    async def _on_agent_permission(self, perm: str, name: str, args: Any) -> bool:
+        """Callback async patcheado em agent._on_permission (TUI-PERMISSION-CONFIRM-01).
+
+        Abre um ConfirmScreen e ESPERA a resposta (push_screen_wait) -- a Nyx pergunta
+        antes de alterar (write/edit/run) no modo Normal. Roda no worker do turno (loop
+        do Textual), então push_screen_wait (async) funciona. O loop dá `await` neste
+        callback (suporta sync/async via inspect.isawaitable em _iteration.py).
+        """
+        from nyx.agent.tui.screens.confirm_screen import ConfirmScreen
+
+        detail = self._format_perm_detail(name, args)
+        approved = await self.push_screen_wait(ConfirmScreen(name, detail))
+        return bool(approved)
+
+    @staticmethod
+    def _format_perm_detail(name: str, args: Any) -> str:
+        """Resumo legível dos args para o modal de confirmação (path/command/etc.)."""
+        if not isinstance(args, dict):
+            return str(args)[:200]
+        parts = [
+            f"{k}: {args[k]}"
+            for k in ("file_path", "path", "command", "cmd", "pattern", "url")
+            if k in args and args[k]
+        ]
+        return "  ".join(parts)[:200] if parts else str(args)[:200]
+
+    def _on_agent_model_state(self, state: str) -> None:
+        """Callback patcheado em agent._on_model_state (TUI-FOOTER-MODEL-STATE-LIVE-01).
+
+        Reflete o estado do modelo (cold/warming/warm) no footer AO VIVO. Chamado de
+        dentro de agent.run() no loop principal (loop affinity ONDA-33) -- toca o
+        widget direto. Exceções aqui são absorvidas pelo try/except do _emit_state
+        (loop/_core.py:172), então não derrubam o turno.
+        """
+        self.query_one("#toolbar", Toolbar).model_state = state
 
     def _on_agent_tool_result(self, name: str, result: Any = "") -> None:
         """Callback patcheado em agent._on_tool_result.
