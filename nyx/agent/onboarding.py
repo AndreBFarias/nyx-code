@@ -193,7 +193,7 @@ def run_first_run_wizard(force: bool = False) -> None:
 
     Sequência integrada de 7 passos:
 
-      01/07  Como devo te chamar? (default git config user.name, fallback 'visitante')
+      01/07  Como devo te chamar? (default: nome persistido -> git config user.name -> 'visitante')
       02/07  Aesthetic visual    (menu_wizard.main)
       03/07  Entidade            (menu_wizard.main)
       04/07  Schema de interface (menu_wizard.main)
@@ -203,6 +203,9 @@ def run_first_run_wizard(force: bool = False) -> None:
 
     Pula em ambiente não-tty (CI/pipe) e em segunda execução
     (``.first_run_done`` bloqueia via ``should_run_tutorial``).
+
+    ``force=True`` (modo replay via ``run.sh --onboarding``) re-pergunta o nome
+    mesmo com nome já persistido (ONBOARDING-REPLAY-FLAG-01).
 
     Persiste tudo em ``~/.nyx/config.toml`` (merge não-destrutivo) e marca
     ``.first_run_done`` ao final, idempotente.
