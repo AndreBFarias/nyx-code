@@ -83,6 +83,17 @@ _INITIAL_NUM_GPU = _DEFAULT_NUM_GPU
 # VRAM oscila no limite. ADR-001 Local First prioriza serviço vivo sobre
 # throughput.
 _OOM_DEGRADED = False
+# INFRA-OOM-ADAPTIVE-GPU-01 (opt-in NYX_GPU_ADAPTIVE=1): reanimação de GPU.
+# Quando a sessão degradou para CPU mas a VRAM liberou depois (ex.: o usuário
+# fechou o Chrome), o Nyx volta ao num_gpu de boot em vez de ficar preso em CPU
+# até reiniciar. Default OFF preserva o fail-safe estabilizado (CPU permanente,
+# anti-loop). NÃO sobe o cap de boot -- a fragmentação CUDA limita o teto
+# (ADR-003 / detect_gpu.py); a reanimação usa o num_gpu sugerido pelo detect_gpu
+# (já capado), nunca um valor maior.
+_GPU_ADAPTIVE = os.environ.get("NYX_GPU_ADAPTIVE") == "1"
+# time.monotonic() do último OOM; cooldown anti-thrash entre tentativas de reanimar.
+_OOM_LAST_TS = 0.0
+_REANIMATE_COOLDOWN_S = 120.0
 # Cobertura empírica: 9 padrões observados em runtime real do RTX 3050 4GB
 # com qwen2.5-coder:3b. INFRA-OOM-PATTERNS-KV-CACHE-01 adicionou
 # 'kv cache' (Ollama kv cache buffer alloc fail) e 'ggml_assert'
@@ -537,12 +548,40 @@ async def _get_session(app: web.Application) -> ClientSession:
     return app["http_session"]
 
 
-async def handle_chat(request: web.Request) -> web.StreamResponse:
+async def _maybe_reanimate_gpu(request: web.Request, model: str) -> None:
+    """INFRA-OOM-ADAPTIVE-GPU-01: reanima a GPU se degradado e a VRAM liberou.
+
+    Opt-in (NYX_GPU_ADAPTIVE=1). Só age quando: (a) já degradou para CPU
+    (_OOM_DEGRADED), (b) passou o cooldown desde o último OOM, e (c) o detect_gpu
+    (VRAM real, já capado pela tabela de fragmentação) sugere num_gpu > 0. Reseta
+    _OOM_DEGRADED e restaura o num_gpu sugerido. Se OOMar de novo, handle_chat
+    re-degrada e reinicia o cooldown -- 1 tentativa por cooldown, sem loop.
+    """
     global _OOM_DEGRADED
+    if not _GPU_ADAPTIVE or not _OOM_DEGRADED:
+        return
+    if (time.monotonic() - _OOM_LAST_TS) < _REANIMATE_COOLDOWN_S:
+        return
+    new_value, stderr_tail = await _detect_num_gpu_async(model=model)
+    if new_value and new_value > 0:
+        request.app["state"]["num_gpu"] = new_value
+        _OOM_DEGRADED = False
+        logger.info(
+            "OOM reanimação: VRAM liberou (free=%s MB); num_gpu 0 -> %d (NYX_GPU_ADAPTIVE)",
+            _parse_vram_free_mb(stderr_tail),
+            new_value,
+        )
+
+
+async def handle_chat(request: web.Request) -> web.StreamResponse:
+    global _OOM_DEGRADED, _OOM_LAST_TS
 
     body = await request.json()
     model = body.get("model", _DEFAULT_MODEL)
     state = request.app["state"]
+    # INFRA-OOM-ADAPTIVE-GPU-01: antes do turno, se opt-in e degradado, tenta
+    # reanimar a GPU quando a VRAM já liberou (no-op no caminho normal/não-degradado).
+    await _maybe_reanimate_gpu(request, model)
     num_gpu = state["num_gpu"]
     ollama_body, intent = openai_to_ollama(body, num_gpu)
 
@@ -588,6 +627,8 @@ async def handle_chat(request: web.Request) -> web.StreamResponse:
                 # 2o retry: fallback CPU (acionado se intermediate <= 0 OU se 1o retry também deu OOM)
                 if not recovered:
                     _OOM_DEGRADED = True
+                    # INFRA-OOM-ADAPTIVE-GPU-01: inicia o cooldown de reanimação.
+                    _OOM_LAST_TS = time.monotonic()
                     state["num_gpu"] = 0
                     logger.warning("OOM detectado. Degradando num_gpu=0 (CPU) para esta sessão")
                     ollama_body["options"]["num_gpu"] = 0
