@@ -419,24 +419,61 @@ class NyxTUI(App):
         chat.mount(ChatMessage("tool", str(result)))
         chat.scroll_end(animate=False)
 
-    async def _open_select_modal(self, kind: str) -> None:
-        """Push SelectScreen e mounta resultado como ChatMessage("tool").
+    @staticmethod
+    def _select_options_for(
+        kind: str,
+    ) -> tuple[str, str, list[tuple[str, str]]]:
+        """(título, env_key, options) reais para o SelectScreen (THEME-TEXTUAL-WIRE-01).
 
-        Stub mínimo: opções vêm de settings/theme_manager; sprint dedicada
-        popula. Aqui basta provar que push_screen_wait funciona e o ciclo
-        chega ao chat scroll com o valor escolhido (ou None se ESC cancelou).
+        Popula de list_aesthetics()/list_schemas() (não mais opt1/opt2). Helper
+        puro e estático para ser testável sem subir o event loop do Textual.
         """
-        from nyx.agent.tui.screens.select_screen import SelectScreen
+        from nyx.themes.design_tokens_extended import (
+            list_aesthetics,
+            list_schemas,
+        )
 
-        options = [("opt1", "Opção 1"), ("opt2", "Opção 2")]
-        title = {
-            "__aesthetic_select__": "Estética",
-            "__theme_select__": "Tema",
-            "__schema_select__": "Schema",
-        }[kind]
+        if kind == "__schema_select__":
+            return (
+                "Schema",
+                "NYX_SCHEMA",
+                [(s["id"], s["id"]) for s in list_schemas()],
+            )
+        title = "Estética" if kind == "__aesthetic_select__" else "Tema"
+        return (
+            title,
+            "NYX_AESTHETIC",
+            [(a["id"], a["name"]) for a in list_aesthetics()],
+        )
+
+    async def _open_select_modal(self, kind: str) -> None:
+        """Push SelectScreen com opções reais e registra a seleção (THEME-TEXTUAL-WIRE-01).
+
+        Ao escolher, seta a env var (NYX_AESTHETIC/NYX_SCHEMA) e limpa o cache do
+        theme_manager. ACHADO (THEME-TEXTUAL-RUNTIME-REPAINT-01): os widgets
+        Textual consomem CONSTANTES estáticas de design_tokens, não a paleta
+        dinâmica de resolve_palette(); logo o repaint visual em runtime exige
+        sprint dedicada. ESC/cancelar não toca env nem cache.
+        """
+        import os
+
+        from nyx.agent.tui.screens.select_screen import SelectScreen
+        from nyx.themes.theme_manager import clear_cache
+
+        title, env_key, options = self._select_options_for(kind)
         selected = await self.push_screen_wait(SelectScreen(title, options))
         chat = self.query_one("#chat", VerticalScroll)
-        chat.mount(ChatMessage("tool", f"{kind}: {selected}"))
+        if selected:
+            os.environ[env_key] = selected
+            clear_cache()
+            chat.mount(
+                ChatMessage(
+                    "tool",
+                    f"{title}: {selected} registrado (repaint em sprint dedicada)",
+                )
+            )
+        else:
+            chat.mount(ChatMessage("tool", f"{title}: seleção cancelada"))
         chat.scroll_end(animate=False)
 
     async def _process_turn(self, text: str) -> None:
