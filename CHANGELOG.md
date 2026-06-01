@@ -5,6 +5,26 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.3.3] - 2026-06-01
+
+ONDA-37: refino após o dono usar a Nyx de verdade. Modelo de permissões estilo CLI de código moderno: acesso de leitura livre a qualquer pasta por default; escrita controlada pelo modo (Normal pergunta, Plan planeja, Bypass altera livre).
+
+### Adicionado
+
+- **A Nyx pergunta antes de alterar** (`TUI-PERMISSION-CONFIRM-01`) -- no modo Normal, write/edit/run abrem um modal de confirmação (ConfirmScreen) e esperam aprovar/negar. Bypass auto-aprova; Plan bloqueia a escrita antes.
+- **Indicador "pensando... (Ns)" ao vivo** (`TUI-THINKING-LIVE-01`) -- durante a inferência, um indicador no chat mostra o cronômetro ("aquecendo modelo...", "pensando...", "pensando... (Ns)"); some quando a resposta começa. Tinha sumido na migração para Textual.
+- **Acesso livre a pastas** (`NYX-FS-ACCESS-FREE-01`) -- a Nyx lê qualquer pasta por default (não só os projetos do sandbox). `NYX_SANDBOX_STRICT=1` volta ao modo restrito. Segredos (`.ssh`/`.gnupg`/`.aws` e chaves privadas) ficam bloqueados mesmo no acesso livre.
+
+### Corrigido
+
+- **Estado do modelo ao vivo no footer** (`TUI-FOOTER-MODEL-STATE-LIVE-01`) -- Cold/Warming/Warm refletem o aquecimento real (antes ficava "Cold" fixo; o app não consumia o evento de estado).
+- **Descrição completa no autocomplete** (`TUI-SLASH-SUGGEST-WIDER-DESC-01`) -- o painel de comandos mostra a descrição pela largura da tela, não truncada em 48 caracteres.
+- **VRAM em tempo real** (`TUI-FOOTER-VRAM-REALTIME-FASTER-01`) -- o poll passa de 2s para 1s.
+
+### Confirmado
+
+- **Modo Plan** (`TUI-PLAN-MODE-VALIDATED-01`) -- bloqueia escrita (write/edit/run) e permite leitura/busca; integrado ao loop (`_iteration.py:104`).
+
 ## [1.3.2] - 2026-06-01
 
 ONDA-36 RESSURREIÇÃO: auditoria a fundo disparada por uso real (o app fechava sozinho, footer sem percentual, autocomplete vazio, tempo de resposta sumido, lentidão). Diagnóstico lido em código/logs/ADRs, sem suposição. A régua, agora escrita em ADR: a infra carrega o modelo nas costas -- nunca se troca de modelo nem de placa para resolver um problema de infra. Invariantes 14/14, validado por Textual Pilot + captura visual real + boot de integração end-to-end (a Nyx respondeu em português em 2s).

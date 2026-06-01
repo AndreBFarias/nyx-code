@@ -877,6 +877,26 @@ Diagnósticos antigos em /tmp/{pyte_repro,pty_resize_bytes,pilot_input_probe}.py
 
 <!-- MANUAL_OVERRIDE_ONDA_36_END -->
 
+<!-- MANUAL_OVERRIDE_ONDA_37_START -->
+
+### Bloco ONDA-37: refino pós-validação real -- UX + acesso a pastas (2026-06-01)
+
+**Origem:** o dono validou a ONDA-36 usando a Nyx de verdade e trouxe 5 ajustes. Plano: `~/.claude/plans/pode-seguir-streamed-goblet.md`. Modelo de permissões do dono: ACESSO (leitura) livre por default, independente do modo; ESCRITA controlada pelo modo (Normal pergunta antes de alterar, Plan planeja, Bypass altera livre).
+
+| ID | Sprint | Status |
+|----|--------|--------|
+| 318 | **TUI-SLASH-SUGGEST-WIDER-DESC-01** | CONCLUIDA (2026-06-01, commit 7eeb8b9; o painel de sugestões trunca a descrição pela LARGURA real (~98 chars na tela 118), não em 48 fixo; validado Pilot: "melhorias profundas" visível) |
+| 319 | **TUI-FOOTER-MODEL-STATE-LIVE-01** | CONCLUIDA (7eeb8b9; o app patcheia agent._on_model_state -> footer Cold/Warming/Warm AO VIVO; antes ficava "Cold" fixo porque o callback existia mas não era consumido; validado Pilot) |
+| 320 | **TUI-FOOTER-VRAM-REALTIME-FASTER-01** | CONCLUIDA (7eeb8b9; poll de VRAM 2.0s -> 1.0s para sensação de tempo real) |
+| 321 | **TUI-THINKING-LIVE-01** | CONCLUIDA (7eeb8b9; volta o indicador "pensando... (Ns)" ao vivo no chat durante a inferência (regressão da migração Textual); reusa build_warming_label + o model_state real; some no 1o token ou no finally; captura em proofs/ONDA37_REFINO/) |
+| 322 | **NYX-FS-ACCESS-FREE-01** | CONCLUIDA (7eeb8b9 + fix segurança; acesso de LEITURA a qualquer pasta por default -- validate_path libera fora dos roots; NYX_SANDBOX_STRICT=1 reverte ao restrito. Security review HIGH respondido: segredos .ssh/.gnupg/.aws + chaves privadas bloqueados MESMO no acesso livre (defesa em profundidade); polaridade default-livre mantida por ser pedido explícito do dono + offline (ADR-001) mitigar exfiltração) |
+| 323 | **TUI-PERMISSION-CONFIRM-01** | CONCLUIDA (7eeb8b9; a Nyx PERGUNTA antes de alterar (write/edit/run) no Normal -- novo ConfirmScreen (modal) + app patcheia agent._on_permission async; o loop dá await no callback via inspect.isawaitable (não muda a assinatura pública); Bypass auto-aprova, Plan bloqueia escrita antes; validado Pilot via worker: aprovar=True, negar=False) |
+| 324 | **TUI-PLAN-MODE-VALIDATED-01** | CONCLUIDA (validação sem código; o modo Plan JÁ funciona -- loop/_iteration.py:104 bloqueia write/edit/run/create/patch e permite read/list/search; o caso "estudar ~/Imagens em Plan" falhava pelo sandbox (resolvido na 322), não pelo Plan) |
+
+**ONDA-37 CONCLUIDA -- 7 sprints (318-324).** Suggester com descrição completa, footer com estado do modelo ao vivo + VRAM a 1s, indicador de "pensando" de volta, acesso livre a pastas (com segredos protegidos), a Nyx pergunta antes de alterar (modelo de permissões do dono), Plan validado.
+
+<!-- MANUAL_OVERRIDE_ONDA_37_END -->
+
 <!-- MANUAL_OVERRIDE_ONDA_28_START -->
 
 ### Bloco ONDA-28: TUI paridade Claude Code (boot silencioso + banner block + input fixo + wizard completo) (2026-05-18) <!-- noqa-anonimato -->
