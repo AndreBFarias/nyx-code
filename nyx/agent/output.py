@@ -692,7 +692,7 @@ def _render_stats_inline(
         short = _shorten_path(saved_path, project_root, 60)
         _eprint(f"  {ANSI_MUTED_FG}salvo em  {ANSI_RESET} {ANSI_DIM}{short}{ANSI_RESET}")
     _eprint()
-    _eprint(f"  {ANSI_ACCENT_FG}até.{ANSI_RESET}")
+    _eprint(f"  {ANSI_ACCENT_FG}Até breve.{ANSI_RESET}")
     _eprint()
 
 
@@ -716,7 +716,7 @@ def render_session_stats_card(
       │ Tempo     1m32s │ Tokens     1487 │ Sessão abc12345 │
       ╰─────────────────┴─────────────────┴─────────────────╯
       salvo em ~/.nyx/sessions/abc12
-      até.
+      Até breve.
 
     Fallback < 80 cols: render_stats_inline (versão 25-14, 3 linhas).
     """
@@ -776,7 +776,7 @@ def render_session_stats_card(
         short = _shorten_path(saved_path, project_root, 60)
         _eprint(f"  {muted}salvo em  {reset} {dim}{short}{reset}")
     _eprint()
-    _eprint(f"  {accent}até.{reset}")
+    _eprint(f"  {accent}Até breve.{reset}")
     _eprint()
 
 

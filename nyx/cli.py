@@ -616,9 +616,9 @@ async def run_repl(
         # DEPLOY-02 absorve O-04: feedback verde + path + dica /resume.
         from nyx.themes.design_tokens import ANSI_SUCCESS_FG
 
-        print(f"\n  {ANSI_SUCCESS_FG} sessão salva{ANSI_RESET}")
-        print(f"  {DIM}  {saved.resolve()}{NC}")
-        print(f"  {DIM}  use /resume na próxima abertura para retomar{NC}")
+        print(f"\n  {ANSI_SUCCESS_FG} Sessão salva:{ANSI_RESET}")
+        print(f"  {DIM}|  {saved.resolve()}{NC}")
+        print(f"  {DIM}|  Use /resume na próxima abertura para retomar.{NC}")
     return 0
 
 
