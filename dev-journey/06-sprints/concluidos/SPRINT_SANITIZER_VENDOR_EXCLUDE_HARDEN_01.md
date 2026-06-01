@@ -39,8 +39,9 @@ sprint:
 
 # Sprint 257 — SANITIZER-VENDOR-EXCLUDE-HARDEN-01
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criacao:** 2026-05-25
+**Data conclusão:** 2026-05-31 (fix no ambiente do usuário, externo ao repo)
 
 ## Contexto
 
@@ -65,9 +66,13 @@ aqui por anti-debito (feedback_nenhum_debito). Executar com cuidado cross-repo.
 
 ## Acceptance
 
-- [ ] 'vendor'/'third_party' em IGNORE_DIRS.
-- [ ] Teste empirico: vendored nao e tocado.
-- [ ] test_sanitizer_invariance.sh PASSA.
+- [x] 'vendor'/'third_party' em IGNORE_DIRS.
+- [x] Teste empirico: vendored nao e tocado.
+- [x] test_sanitizer_invariance.sh PASSA.
+
+## CONCLUSÃO 2026-05-31
+
+Fix aplicado em `~/Controle de Bordo/.sistema/scripts/emoji_guardian.py` (EXTERNO ao repo Nyx-Code — não entra no commit; registrado aqui por anti-débito): `'vendor', 'third_party'` adicionados a `IGNORE_DIRS`. **Validado:** `py_compile` OK; teste empírico — emoji (U+26A1) em `vendor/lib.js` **preservado** (dir ignorado; "Arquivos processados: 1" exclui o vendor) e o mesmo emoji em `src/normal.md` **removido** (função primária do guardian preservada); `test_sanitizer_invariance.sh` 6/6 OK (rodado do CWD do universal-sanitizer). Repo Nyx intocado (smoke ok, invariantes 14/14). Itens OPCIONAIS não feitos (mínimo que resolve): `EXCLUDED_NAME_SUFFIXES` (.min.js) e limpeza do `.pyc` arquivado em `_desativados/` — ficam como nota caso ressurjam.
 
 ## Proof-of-work
 
