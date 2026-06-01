@@ -66,7 +66,7 @@ consome e o que o LLM recebe em `tool_defs`.
 | Services | 15 | `find nyx/agent/services -maxdepth 1 -name '*.py' ! -name '__init__.py' \| wc -l` |
 | ADRs vigentes | 34 | `ls dev-journey/03-decisions/ADR_*.md \| wc -l` |
 | Testes no Gauntlet | 320 (catalogados) | `./run.sh --gauntlet` |
-| Sprints concluídas | 488 | `ls dev-journey/06-sprints/concluidos/*.md \| wc -l` |
+| Sprints concluídas | 494 | `ls dev-journey/06-sprints/concluidos/*.md \| wc -l` |
 | Sprints pendentes | APENAS RELEASE-V1.0-CUT-01 (humano corta tag) — backlog técnico ZERADO | `ls dev-journey/06-sprints/producao/*.md \| wc -l` |
 
 ---

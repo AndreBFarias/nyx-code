@@ -207,9 +207,13 @@ def _get_next_sprint() -> str:
     content = master.read_text(encoding="utf-8")
     producao = PROJECT_ROOT / "dev-journey" / "06-sprints" / "producao"
 
+    # INFRA-SPRINT-SOURCES-RECONCILE-01: "PENDENTE" pode aparecer na DESCRIÇÃO
+    # de uma sprint já fechada (ex.: "linha 125jj PENDENTE -> CONCLUIDA"). Um
+    # status terminal na mesma linha desqualifica a sprint como "próxima".
+    _TERMINAL = ("CONCLUIDA", "BLOQUEADA", "DEFERIDA", "ABSORVIDA")
     for line in content.split("\n"):
         match = re.search(r"\*\*([A-Z0-9-]+)\*\*", line)
-        if match and "PENDENTE" in line:
+        if match and "PENDENTE" in line and not any(t in line for t in _TERMINAL):
             sprint_id = match.group(1)
             for f in producao.glob("SPRINT_*.md"):
                 if sprint_id.replace("-", "") in f.stem.upper().replace("_", "").replace("-", ""):
