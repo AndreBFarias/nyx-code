@@ -27,6 +27,7 @@ monta a mensagem do usuário no chat scroll.
 from __future__ import annotations
 
 import re
+import time
 from pathlib import Path
 from typing import Any
 
@@ -40,6 +41,7 @@ from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tui.widgets.banner import BannerWidget
 from nyx.agent.tui.widgets.chat_message import ChatMessage
 from nyx.agent.tui.widgets.input import InputWidget
+from nyx.agent.tui.widgets.suggestions import SuggestionPanel
 from nyx.agent.tui.widgets.toolbar import Toolbar
 
 # TUI-WORKER-CRASH-GUARD-01 (ADR-033): logger que escreve em ~/.nyx/logs/nyx.log
@@ -117,6 +119,7 @@ class NyxTUI(App):
         tools_count: int = 35,
         project_name: str = "Nyx-Code",
         slash_completer: list[str] | None = None,
+        slash_commands: list[tuple[str, str]] | None = None,
         settings: Any = None,
         agent: Any = None,
         user_display_name: str = "",
@@ -126,6 +129,9 @@ class NyxTUI(App):
         self._tools_count = tools_count
         self._project_name = project_name
         self._slash_completer = slash_completer or []
+        # TUI-SLASH-SUGGEST-PANEL-01: lista (nome, descrição) para o painel de
+        # sugestões de >=3 linhas (decisão do dono). Vazia => painel desativado.
+        self._slash_commands = slash_commands or []
         # TUI-CHAT-LABELS-COLORS-01: nome de exibição do usuário (de
         # resolve_user_display_name, via cli.py) repassado ao ChatMessage("user").
         self._user_display_name = user_display_name
@@ -220,10 +226,16 @@ class NyxTUI(App):
         # com o resto, sem sobreposição. A ordem interna (input acima, toolbar
         # abaixo) deixa a toolbar na última linha, como antes.
         with Vertical(id="bottombar"):
+            # TUI-SLASH-SUGGEST-PANEL-01: painel de sugestões ACIMA do input
+            # (primeiro filho). Vazio => some (classe -empty, display:none); cresce
+            # o #bottombar para cima quando há matches de `/`, sem cobrir a toolbar.
+            yield SuggestionPanel(id="suggestions")
             yield InputWidget(
                 id="input",
                 slash_completer=self._slash_completer,
+                slash_commands=self._slash_commands or None,
                 on_submit=self._on_input_submit,
+                on_suggestions=self._update_suggestions_panel,
             )
 
             toolbar = Toolbar(model=self._model)
@@ -260,6 +272,15 @@ class NyxTUI(App):
         """
         self.query_one("#input", InputWidget).focus()
 
+    def _update_suggestions_panel(self, matches: list[tuple[str, str]]) -> None:
+        """TUI-SLASH-SUGGEST-PANEL-01: atualiza o painel de sugestões.
+
+        Callback passado ao InputWidget; chamado a cada edição com os comandos
+        que casam o prefixo digitado (lista de (/nome, descrição)). Lista vazia
+        esconde o painel (classe -empty no SuggestionPanel).
+        """
+        self.query_one("#suggestions", SuggestionPanel).update_items(matches)
+
     def _on_input_submit(self, text: str) -> None:
         """Callback do InputWidget.
 
@@ -282,6 +303,8 @@ class NyxTUI(App):
         """
         if not text.strip():
             return
+        # TUI-SLASH-SUGGEST-PANEL-01: some o painel de sugestões ao submeter.
+        self._update_suggestions_panel([])
         # TUI-SLASH-DISPATCH-MODAL-01: slash commands precedem o dispatch
         # do agent. handle_command devolve None se não for comando, string
         # se for, ou um sentinel específico ("__quit__", "__aesthetic_select__",
@@ -413,6 +436,8 @@ class NyxTUI(App):
         _handle_exception do Textual, com o traceback indo para stderr/devtools
         e sumindo quando o terminal fechava -- o "crash invisível").
         """
+        # TUI-TURN-ELAPSED-01: marca o início para medir a duração do turno.
+        _t0 = time.monotonic()
         try:
             status = await self._agent.run(text)
             # TUI-DONE-SUMMARY-CLEAN-01 (SPRINT 303): o modelo às vezes emite
@@ -443,6 +468,11 @@ class NyxTUI(App):
         finally:
             self.query_one("#toolbar", Toolbar).inflight = False
             self._follow_end(self.query_one("#chat", VerticalScroll))
+            # TUI-TURN-ELAPSED-01: registra o tempo do turno no balão do assistant
+            # (se houve resposta de texto; turnos só-tool/erro não têm balão, então
+            # o tempo é omitido nesses casos). Antes do reset abaixo.
+            if self._current_assistant is not None:
+                self._current_assistant.set_elapsed(time.monotonic() - _t0)
             # TUI-NYXCODE-GHOST-LAZY-MOUNT-01: reset para None ao fim do turno.
             # Todos os tokens chegam ANTES do finally (agent.run() e awaited no
             # try, mesmo event loop -- loop affinity ONDA-33). Garante que o

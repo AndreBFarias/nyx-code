@@ -68,13 +68,25 @@ class InputWidget(TextArea):
         self,
         *,
         slash_completer: list[str] | None = None,
+        slash_commands: list[tuple[str, str]] | None = None,
         on_submit: Callable[[str], None] | None = None,
+        on_suggestions: Callable[[list[tuple[str, str]]], None] | None = None,
         placeholder: str = "Digite uma mensagem ou /comando",
         id: str | None = None,
     ) -> None:
-        # Lista de slash commands completos (`/<nome>`) usada pelo ghost manual.
-        # O TextArea não tem suggester; computamos a sugestão em update_suggestion.
-        self._slash_full = [f"/{c}" for c in (slash_completer or [])]
+        # TUI-SLASH-SUGGEST-PANEL-01: lista de (/nome, descrição) para o painel de
+        # sugestões E o ghost. Compat: se vier só `slash_completer` (nomes), as
+        # descrições ficam vazias; `_slash_full` (nomes completos) preserva o ghost.
+        # Setados ANTES do super().__init__: o TextArea pode chamar update_suggestion
+        # durante a construção, e ele depende destes atributos + _on_suggestions.
+        if slash_commands is not None:
+            self._slash_items: list[tuple[str, str]] = [
+                (f"/{n}", d) for n, d in slash_commands
+            ]
+        else:
+            self._slash_items = [(f"/{c}", "") for c in (slash_completer or [])]
+        self._slash_full = [name for name, _ in self._slash_items]
+        self._on_suggestions = on_suggestions
 
         # tab_behavior="focus": Tab não indenta (reservado para aceitar o ghost
         # ou trocar foco); soft_wrap=True para quebra visual de linhas longas.
@@ -91,24 +103,41 @@ class InputWidget(TextArea):
         self._image_count: int = 0
 
     def update_suggestion(self) -> None:
-        """Hook do TextArea: recalcula o ghost-completer do slash (sprint 284).
+        """Hook do TextArea: recalcula o ghost E o painel de sugestões.
 
-        Chamado pelo TextArea a cada edição. Quando o texto inteiro começa com
-        `/` (sem nova linha) e há um match por prefixo case-insensitive em
-        `self._slash_full`, expomos o sufixo restante no reactive `suggestion`,
-        que o `_render_line` do TextArea desenha dim na posição do cursor.
-        Sem match, limpamos a sugestão.
+        Chamado pelo TextArea a cada edição. Quando o texto começa com `/` (sem
+        nova linha), computa TODOS os comandos que casam o prefixo
+        (case-insensitive) e:
+          - ghost (reactive `suggestion`): sufixo do 1º match != texto, desenhado
+            dim na posição do cursor pelo `_render_line` do TextArea;
+          - painel (TUI-SLASH-SUGGEST-PANEL-01): a lista de (/nome, desc) vai ao
+            callback `_on_suggestions`, que o app usa para popular o
+            SuggestionPanel (>=3 linhas, decisão do dono 2026-05-31).
+        Sem `/` ou sem match: limpa o ghost e esvazia o painel.
         """
         text = self.text
         if not self._slash_full or not text.startswith("/") or "\n" in text:
             self.suggestion = ""
+            self._emit_suggestions([])
             return
         lowered = text.lower()
-        for full in self._slash_full:
-            if full.lower().startswith(lowered) and full != text:
-                self.suggestion = full[len(text) :]
-                return
-        self.suggestion = ""
+        matches = [
+            (name, desc)
+            for name, desc in self._slash_items
+            if name.lower().startswith(lowered)
+        ]
+        ghost = ""
+        for name, _desc in matches:
+            if name != text:
+                ghost = name[len(text) :]
+                break
+        self.suggestion = ghost
+        self._emit_suggestions(matches)
+
+    def _emit_suggestions(self, matches: list[tuple[str, str]]) -> None:
+        """TUI-SLASH-SUGGEST-PANEL-01: repassa os matches ao painel, se houver callback."""
+        if self._on_suggestions is not None:
+            self._on_suggestions(matches)
 
     async def _on_key(self, event: events.Key) -> None:
         """Inverte a semântica de Enter/Ctrl+J e aceita o ghost com Tab.

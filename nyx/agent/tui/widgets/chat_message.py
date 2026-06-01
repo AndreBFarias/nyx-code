@@ -20,7 +20,7 @@ from rich.text import Text
 from textual.app import RenderResult
 from textual.widgets import Static
 
-from nyx.themes.design_tokens import NYX_ACCENT, NYX_PURPLE
+from nyx.themes.design_tokens import NYX_ACCENT, NYX_MUTED, NYX_PURPLE
 
 _VALID_ROLES = ("user", "assistant", "tool", "system")
 
@@ -40,6 +40,17 @@ _STREAM_REFRESH_INTERVAL = 0.1
 # streaming o render e texto plano (barato) -- evita o re-parse O(n^2) que
 # travava a TUI. Cada token reagenda este timer (debounce).
 _SETTLE_INTERVAL = 0.3
+
+
+def _format_elapsed(seconds: float) -> str:
+    """TUI-TURN-ELAPSED-01: duração do turno legível.
+
+    < 60s -> '3.2s'; >= 60s -> '2m04s' (respostas longas em CPU degradado).
+    """
+    if seconds < 60:
+        return f"{seconds:.1f}s"
+    minutes, secs = divmod(int(seconds), 60)
+    return f"{minutes}m{secs:02d}s"
 
 
 class ChatMessage(Static):
@@ -74,6 +85,10 @@ class ChatMessage(Static):
         self._refresh_pending = False
         self._streaming = False
         self._settle_timer = None
+        # TUI-TURN-ELAPSED-01: duração do turno em segundos, setada por
+        # set_elapsed() ao fim do _process_turn. None = ainda não medido (durante
+        # o streaming) ou role não-assistant. Aparece no label do balão NyxCode.
+        self._elapsed_s: float | None = None
 
     @property
     def role(self) -> str:
@@ -134,6 +149,16 @@ class ChatMessage(Static):
         self._streaming = False  # substituicao integral não e streaming
         self.refresh(layout=True)
 
+    def set_elapsed(self, seconds: float) -> None:
+        """TUI-TURN-ELAPSED-01: registra a duração do turno (segundos).
+
+        Chamado no finally do _process_turn quando há um balão de assistant no
+        turno. Aparece no label do balão como ' NyxCode  ·  3.2s', dando de volta
+        o feedback de tempo de resposta que existia antes da migração Textual.
+        """
+        self._elapsed_s = seconds
+        self.refresh(layout=True)
+
     def render(self) -> RenderResult:
         """Render via Text (não str) para evitar bug get_height do Textual 8.x.
 
@@ -158,6 +183,11 @@ class ChatMessage(Static):
             return text
         if self._role == "assistant":
             label = Text(f"{_DIAMOND} NyxCode", style=NYX_PURPLE)
+            # TUI-TURN-ELAPSED-01: tempo de resposta em muted, logo após o nome.
+            if self._elapsed_s is not None:
+                label.append(
+                    f"  ·  {_format_elapsed(self._elapsed_s)}", style=NYX_MUTED
+                )
             if self._content:
                 # TUI-CHAT-MARKDOWN-SYNTAX-01: conteúdo do assistant renderizado
                 # como Markdown -- blocos ``` ganham syntax highlight (Rich/pygments),

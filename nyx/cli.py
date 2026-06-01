@@ -535,11 +535,14 @@ async def run_repl(
 
         from nyx.agent.tui.app import NyxTUI
 
+        _cmds = list_commands()
         nyx_tui_app = NyxTUI(
             model=model,
             tools_count=agent.tools_count,
             project_name=PROJECT_ROOT.name,
-            slash_completer=[c.name for c in list_commands()],
+            slash_completer=[c.name for c in _cmds],
+            # TUI-SLASH-SUGGEST-PANEL-01: nome + descrição para o painel de >=3 linhas.
+            slash_commands=[(c.name, c.description) for c in _cmds],
             settings=settings,
             agent=agent,
             user_display_name=app_state.get("user_display_name", ""),

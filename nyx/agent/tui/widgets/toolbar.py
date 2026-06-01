@@ -143,8 +143,13 @@ class Toolbar(Static):
             logger.debug("nvidia-smi saída inesperada: %r", first[:80])
             self.vram = ""
             return
-        # Paridade com system.py:129 -- "({used}/{total} MiB)".
-        self.vram = f"VRAM {used}/{total} MiB"
+        # TUI-FOOTER-VRAM-PERCENT-01 (BLOCO 3): inclui o PERCENTUAL de uso, que
+        # faltava no footer. Guarda total>0 (defensivo contra divisão por zero;
+        # nvidia-smi reporta total>0 quando há GPU). O poll de 2s mantém o valor
+        # em tempo real -- quando o modelo está na GPU o % sobe, quando degradou
+        # para CPU o % fica baixo (sinal honesto de que NÃO está usando a GPU).
+        pct = (used * 100 // total) if total > 0 else 0
+        self.vram = f"VRAM {used}/{total} MiB ({pct}%)"
 
     def render(self) -> RenderResult:
         """Constrói Text com layout:
