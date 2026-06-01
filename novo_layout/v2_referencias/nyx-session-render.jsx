@@ -49,7 +49,7 @@ const Hr = ({ theme, label }) => {
         color: theme.faint, margin: "20px 0", fontSize: 11,
       }}>
         <span style={{ flex: 1, height: 1, background: `linear-gradient(to right, transparent, ${theme.faint})` }}/>
-        <span style={{ letterSpacing: 2 }}>✦ {label || ""} ✦</span>
+        <span style={{ letterSpacing: 2 }}>◆ {label || ""} ◆</span>
         <span style={{ flex: 1, height: 1, background: `linear-gradient(to left, transparent, ${theme.faint})` }}/>
       </div>
     );
@@ -136,7 +136,7 @@ const BootBlock = ({ data, theme }) => {
               background: c.ok ? theme.ok + "22" : theme.err + "22",
               color: c.ok ? theme.ok : theme.err,
               fontSize: 11, fontWeight: 700,
-            }}>{c.ok ? "✓" : "✕"}</span>
+            }}>{c.ok ? "●" : "○"}</span>
             <span style={{ color: theme.fg }}>{c.label}</span>
             <span style={{ color: theme.muted }}>· {c.detail}</span>
           </div>
@@ -442,7 +442,7 @@ const ThinkingBlock = ({ t, theme, open: openInit }) => {
           cursor: "pointer",
           display: "flex", alignItems: "center", gap: 8,
         }}>
-        <span style={{ color: theme.accent }}>✦</span>
+        <span style={{ color: theme.accent }}>◆</span>
         <span>pensando · {t.duration}</span>
         <span style={{ color: theme.faint, fontStyle: "italic", flex: 1, marginLeft: 8 }}>
           {t.preview}
@@ -630,7 +630,7 @@ const BodyChunk = ({ b, theme }) => {
                 border: `1.5px solid ${it.done ? theme.ok : theme.faint}`,
                 background: it.done ? theme.ok + "22" : "transparent",
                 color: theme.ok, fontSize: 10, fontWeight: 700,
-              }}>{it.done ? "✓" : ""}</span>
+              }}>{it.done ? "●" : ""}</span>
               <span style={{
                 color: it.done ? theme.fg : theme.muted,
                 textDecoration: "none",

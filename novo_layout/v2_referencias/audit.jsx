@@ -76,7 +76,7 @@ const PROBLEMS = [
     n: 11,
     title: "Sem estrutura no conteúdo (to-do, ações, listas)",
     bad: "Tudo vira parágrafo. Listas viram bullets numéricos cruzados com **markdown bruto**.",
-    good: "To-do real com checkboxes ✓, ações nomeadas (a/b/c) com comandos chip.",
+    good: "To-do real com checkboxes ●, ações nomeadas (a/b/c) com comandos chip.",
     note: "Quando a Nyx falar de \"tarefas concluídas\", elas viram um TodoBlock visual.",
   },
   {
