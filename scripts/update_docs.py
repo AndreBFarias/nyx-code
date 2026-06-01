@@ -73,6 +73,37 @@ def _count_gauntlet_tests() -> int:
     return len(re.findall(r"self\._add\(", content))
 
 
+def _count_gauntlet_phases() -> int:
+    """Conta fases reais executaveis do Gauntlet.
+
+    Fonte: dict PHASE_TIMEOUTS em scripts/gauntlet/nyx_gauntlet.py.
+    Cada chave e uma fase com timeout próprio, 1:1 com os metodos
+    _phase_* (cruzamento verificado: zero falta, zero sobra -- 60 vs 60).
+    Definicao escolhida em INFRA-DOC-SYNC-COVERAGE-01 (Opção A) por
+    coerencia com o objetivo anti-debito desta sprint: len(PHASE_TIMEOUTS)
+    e a contagem estavel das fases executaveis, em vez de
+    len(PHASE_GROUPS['completo'])=53 (subset que pode divergir se uma fase
+    nova entrar em PHASE_TIMEOUTS mas esquecer de entrar em 'completo').
+    """
+    gauntlet = PROJECT_ROOT / "scripts" / "gauntlet" / "nyx_gauntlet.py"
+    if not gauntlet.exists():
+        return 0
+    import ast as _ast
+
+    src = gauntlet.read_text(encoding="utf-8")
+    try:
+        for node in _ast.walk(_ast.parse(src)):
+            if (
+                isinstance(node, _ast.AnnAssign)
+                and isinstance(node.target, _ast.Name)
+                and node.target.id == "PHASE_TIMEOUTS"
+            ):
+                return len(_ast.literal_eval(node.value))
+    except (SyntaxError, ValueError):
+        pass
+    return 0
+
+
 def _count_cockpit_endpoints() -> tuple[int, int]:
     """Conta endpoints HTTP (@app.get/post/...) e WebSocket no cockpit.
 
@@ -121,6 +152,20 @@ def _default_model() -> str:
     src = defaults.read_text(encoding="utf-8")
     m = re.search(r'^DEFAULT_MODEL[^=]*=\s*"([^"]+)"', src, re.MULTILINE)
     return m.group(1) if m else "qwen2.5-coder:3b"
+
+
+def _read_max_iterations() -> int:
+    """Lê MAX_ITERATIONS de nyx/config/defaults.py.
+
+    A linha real e `MAX_ITERATIONS: int = 50`; o regex casa o anotador
+    de tipo `: int ` antes do `=` (espelho de _default_model).
+    """
+    defaults = PROJECT_ROOT / "nyx" / "config" / "defaults.py"
+    if not defaults.exists():
+        return 50
+    src = defaults.read_text(encoding="utf-8")
+    m = re.search(r"^MAX_ITERATIONS[^=]*=\s*(\d+)", src, re.MULTILINE)
+    return int(m.group(1)) if m else 50
 
 
 def _read_version() -> str:
@@ -239,6 +284,9 @@ def update_readme(
     cockpit_http: int,
     cockpit_ws: int,
     sprints_done: int,
+    max_iterations: int,
+    adrs: int,
+    phases: int,
     check: bool,
 ) -> bool:
     """Atualiza README.md com números reais."""
@@ -281,7 +329,7 @@ def update_readme(
             r"\d+ sprints concluídas, \d+ em produção",
             f"{sprints_done} sprints concluídas, 1 em produção",
         ),
-        # DOC-COUNT-INTERNAL-SYNC-01: cobre os headers das secoes internas do
+        # DOC-COUNT-INTERNAL-SYNC-01: cobre os headers das seções internas do
         # README (antes so o topo era sincronizado -> corpo divergia: 61/14).
         (
             r"## Commands \(\d+ registrados\)",
@@ -290,6 +338,25 @@ def update_readme(
         (
             r"## Services \(\d+\)",
             f"## Services ({services})",
+        ),
+        # INFRA-DOC-SYNC-COVERAGE-01: iteracoes do AgentLoop.
+        # DIVERGENCIA real: README narrava 30, defaults.py usa 50.
+        (
+            r"plan-execute-observe \(até \d+ iterações\)",
+            f"plan-execute-observe (até {max_iterations} iterações)",
+        ),
+        # INFRA-DOC-SYNC-COVERAGE-01: header de ADRs (correto hoje, sem
+        # regex ate agora -- bomba-relogio no 35o ADR).
+        (
+            r"## ADRs \(\d+\)",
+            f"## ADRs ({adrs})",
+        ),
+        # INFRA-DOC-SYNC-COVERAGE-01: linha narrativa do Gauntlet que o
+        # regex de "catalogados" NÃO casa (termina em '; --only rapido',
+        # não em '--only fase|feature_id'). Ancorada em '**Gauntlet**:'.
+        (
+            r"\*\*Gauntlet\*\*: \d+ testes em \d+ fases;",
+            f"**Gauntlet**: {tests} testes em {phases} fases;",
         ),
     ]
 
@@ -553,6 +620,38 @@ def update_sprint_template(tools: int, commands: int, services: int, cli_lines: 
     return changed
 
 
+def _coverage_meta_check(values: dict[str, int]) -> list[str]:
+    """META-CHECK anti-debito de cobertura (INFRA-DOC-SYNC-COVERAGE-01).
+
+    Para cada numero auto-derivavel conhecido, verifica se a forma
+    sincronizada ESPERADA aparece no README. Retorna lista de alertas
+    (vazia = cobertura ok).
+
+    Objetivo: impedir que um numero derivavel novo passe a existir num doc
+    sem regex correspondente e divirja silenciosamente -- exatamente o que
+    aconteceu com README:88 (iteracoes 30 vs 50) e README:351 (fases). Se
+    alguem remover um dos regex de sincronizacao, este check acusa a lacuna
+    em vez de deixar a documentacao mentir em silencio.
+    """
+    readme = PROJECT_ROOT / "README.md"
+    if not readme.exists():
+        return []
+    txt = readme.read_text(encoding="utf-8")
+    alerts: list[str] = []
+    checks = {
+        "max_iterations": f"até {values['max_iterations']} iterações",
+        "adrs": f"## ADRs ({values['adrs']})",
+        "gauntlet_phases": f"em {values['gauntlet_phases']} fases",
+    }
+    for nome, esperado in checks.items():
+        if esperado not in txt:
+            alerts.append(
+                f"COBERTURA: '{nome}' esperado '{esperado}' ausente no README "
+                f"(numero auto-derivavel sem regex sincronizando -- adicionar)"
+            )
+    return alerts
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Atualiza docs com estado real do código")
     parser.add_argument("--check", action="store_true", help="Só verifica, não escreve")
@@ -571,6 +670,8 @@ def main() -> None:
     invariants = _count_invariants()
     default_model = _default_model()
     version = _read_version()
+    max_iterations = _read_max_iterations()
+    gauntlet_phases = _count_gauntlet_phases()
 
     print()
     print("=" * 50)
@@ -580,7 +681,9 @@ def main() -> None:
     print(f"  Commands:  {commands}")
     print(f"  Services:  {services}")
     print(f"  Testes:    {tests} (catalogados em self._add)")
+    print(f"  Fases:     {gauntlet_phases} (PHASE_TIMEOUTS)")
     print(f"  ADRs:      {adrs}")
+    print(f"  MaxIter:   {max_iterations}")
     print(f"  Cockpit:   {cockpit_http} HTTP + {cockpit_ws} WS")
     print(f"  cli.py:    {cli_lines} linhas")
     print(f"  tools/:    {tool_files} arquivos")
@@ -596,7 +699,10 @@ def main() -> None:
     changes = []
     if update_guide_md(tools, commands, services, tests, adrs, sprints, args.check):
         changes.append("GUIDE.md")
-    if update_readme(tools, commands, services, tests, cockpit_http, cockpit_ws, sprints["concluidos"], args.check):
+    if update_readme(
+        tools, commands, services, tests, cockpit_http, cockpit_ws, sprints["concluidos"],
+        max_iterations, adrs, gauntlet_phases, args.check,
+    ):
         changes.append("README.md")
     if update_port_status(tools, commands, services, args.check):
         changes.append("PORT_STATUS.md")
@@ -619,7 +725,26 @@ def main() -> None:
         print("  Docs já estão atualizados.")
     print()
 
-    if args.check and changes:
+    # META-CHECK anti-debito (INFRA-DOC-SYNC-COVERAGE-01): roda APOS os
+    # updates. Em modo escrita o README ja foi reescrito acima, entao a
+    # cobertura passa limpa (idempotencia). Em modo --check, acusa qualquer
+    # numero auto-derivavel que tenha ficado sem regex sincronizando -- mesmo
+    # que algum regex tenha sido removido (caso em que update_readme não
+    # detectaria a divergencia por falta de padrão para casar).
+    coverage_alerts = _coverage_meta_check(
+        {
+            "max_iterations": max_iterations,
+            "adrs": adrs,
+            "gauntlet_phases": gauntlet_phases,
+        }
+    )
+    if coverage_alerts:
+        print("  [META-CHECK cobertura] lacunas detectadas:")
+        for alerta in coverage_alerts:
+            print(f"    - {alerta}")
+        print()
+
+    if args.check and (changes or coverage_alerts):
         sys.exit(1)
 
 

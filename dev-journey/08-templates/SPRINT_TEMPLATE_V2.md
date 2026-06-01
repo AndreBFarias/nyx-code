@@ -111,7 +111,7 @@ Forma canônica literal (copiar-colar):
 >
 > **Estado do sistema (na data da sprint):**
 > - Python 3.10+, modelo `qwen2.5-coder:3b` no Ollama porta 11435, proxy 11436 (ADR-031).
-> - 35 tools, 67 commands, 15 services. `cli.py` ~690 linhas.
+> - 35 tools, 67 commands, 15 services. `cli.py` ~710 linhas.
 > - Sprint anterior: `<ID-ANTERIOR>` CONCLUIDA.
 
 ---
