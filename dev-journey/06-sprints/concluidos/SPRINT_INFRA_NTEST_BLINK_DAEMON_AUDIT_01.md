@@ -23,8 +23,9 @@ sprint:
 
 # Sprint 252 — INFRA-NTEST-BLINK-DAEMON-AUDIT-01
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-25
+**Data conclusão:** 2026-05-31
 
 ## Contexto
 
@@ -48,6 +49,8 @@ Apesar de identificada, há lição catalogável:
 
 ## Aceitação
 
-- [ ] Relatório `dev-journey/07-reports/AUDIT_NTEST_BLINK_DAEMON.md` com investigação + lição.
-- [ ] Recomendação: executores em paralelo declaram seus sub-processos via TASK metadata + integrador coleta cleanup pendente.
-- [ ] Smoke + invariantes (doc-only).
+- [x] Relatório `dev-journey/07-reports/AUDIT_NTEST_BLINK_DAEMON.md` criado (investigação + lição).
+- [x] Recomendação documentada (cleanup obrigatório no `finally` + lock cooperativo entre executores paralelos).
+- [x] Smoke + invariantes (doc-only): boot ok, 14/14.
+
+**CONCLUSÃO 2026-05-31:** `NYX_BLINK_DEBUG` sem rastro no código (instrumentação efêmera do executor 243); zero processos ntest vivos. Não era daemon — era o executor paralelo da sprint 243. Relatório completo no AUDIT_NTEST_BLINK_DAEMON.md.

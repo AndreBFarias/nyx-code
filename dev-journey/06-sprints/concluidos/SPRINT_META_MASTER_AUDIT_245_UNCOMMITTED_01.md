@@ -25,8 +25,9 @@ sprint:
 
 # Sprint 251 — META-MASTER-AUDIT-245-UNCOMMITTED-01
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-25
+**Data conclusão:** 2026-05-31
 
 ## Contexto
 
@@ -58,6 +59,8 @@ Adicionar à pré-validação de cada executor-sprint:
 
 ## Aceitação
 
-- [ ] Relatório `dev-journey/07-reports/AUDIT_MASTER_UNCOMMITTED_245.md` com tabela das sprints da ONDA-31, status MASTER, status git log.
-- [ ] Sugestão de protocolo: marcar `STAGED_FOR_COMMIT` ou similar.
-- [ ] Smoke + invariantes preservados (sprint é doc-only).
+- [x] Relatório `dev-journey/07-reports/AUDIT_MASTER_UNCOMMITTED_245.md` criado.
+- [x] Protocolo sugerido (`git diff HEAD --stat <touches>` == 0 antes de CONCLUIDA, ou `STAGED_FOR_COMMIT`) + commit-por-sprint aplicado nesta sessão.
+- [x] Smoke + invariantes preservados (doc-only): boot ok, 14/14.
+
+**CONCLUSÃO 2026-05-31:** a discrepância da 245 foi resolvida em `e1d5706`; working tree sem código pendente (só drift do gauntlet). Relatório completo no AUDIT_MASTER_UNCOMMITTED_245.md.
