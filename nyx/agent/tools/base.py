@@ -43,6 +43,23 @@ def _sandbox_strict() -> bool:
     return os.environ.get("NYX_SANDBOX_STRICT") == "1"
 
 
+# NYX-FS-ACCESS-FREE-01: segredos criptográficos notórios ficam bloqueados MESMO no
+# acesso livre (defesa em profundidade contra leitura acidental / prompt-injection --
+# achado do security review da ONDA-37). Não atrapalha estudar código/projetos; cobre
+# os diretórios de chave/credencial e nomes de chave privada SSH. Confidencialidade de
+# chaves não é coberta pelo write-confirm; o offline mitiga exfiltração, mas leitura
+# por injeção não deve alcançar ~/.ssh & cia.
+_SECRET_DIR_NAMES = frozenset({".ssh", ".gnupg", ".aws"})
+_SECRET_FILE_NAMES = frozenset({"id_rsa", "id_ed25519", "id_dsa", "id_ecdsa"})
+
+
+def _is_secret_path(resolved: Path) -> bool:
+    """True se o path resolvido toca um diretório/arquivo de segredo notório."""
+    if _SECRET_DIR_NAMES.intersection(resolved.parts):
+        return True
+    return resolved.name in _SECRET_FILE_NAMES
+
+
 def _resolve(p: str | Path) -> Path:
     return Path(p).expanduser().resolve()
 
@@ -163,6 +180,15 @@ def validate_path(file_path: str, project_root: str) -> Path:
     # Plan bloqueia escrita no loop. Só o modo estrito (NYX_SANDBOX_STRICT=1) mantém o
     # bloqueio por raiz com a sugestão de /sandbox add.
     if not _sandbox_strict():
+        # Defesa em profundidade (security review ONDA-37): segredos criptográficos
+        # seguem bloqueados mesmo no acesso livre -- leitura acidental/injeção não
+        # deve alcançar chaves/credenciais.
+        if _is_secret_path(resolved):
+            logger.warning("Path de segredo bloqueado (acesso livre): %s", resolved)
+            raise ValueError(
+                f"Acesso negado por segurança: '{file_path}' toca chaves/credenciais "
+                "(.ssh/.gnupg/.aws). Bloqueado mesmo no acesso livre."
+            )
         logger.debug("Path fora dos roots liberado (acesso livre ONDA-37): %s", resolved)
         return resolved
     logger.warning("Path bloqueado por traversal: %s -> %s", file_path, resolved)
