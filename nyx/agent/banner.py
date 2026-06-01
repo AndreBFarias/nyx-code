@@ -209,11 +209,11 @@ def _build_wide(
     Layout (cols >= 80, largura interna total fixa = 70):
 
         ╭──────────────────┬───────────────────────────────────────────────────╮
-        │                  │  v1.2.0      ●  100% offline                      │
+        │                  │  v1.3.0      ●  100% offline                      │
         │                  ├───────────────────────────────────────────────────┤
         │   $ nyx.code▌    │  MODELO qwen2.5-coder:3b │ PROJETO Nyx-Code        │
         │                  ├───────────────────────────────────────────────────┤
-        │                  │  TOOLS 35 │ COMANDOS 62 │ MEMÓRIA ativa            │
+        │                  │  TOOLS 35 │ COMANDOS 67 │ MEMÓRIA ativa            │
         ╰──────────────────┴───────────────────────────────────────────────────╯
 
     Cores:

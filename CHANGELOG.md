@@ -5,6 +5,30 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.3.2] - 2026-06-01
+
+ONDA-36 RESSURREIÇÃO: auditoria a fundo disparada por uso real (o app fechava sozinho, footer sem percentual, autocomplete vazio, tempo de resposta sumido, lentidão). Diagnóstico lido em código/logs/ADRs, sem suposição. A régua, agora escrita em ADR: a infra carrega o modelo nas costas -- nunca se troca de modelo nem de placa para resolver um problema de infra. Invariantes 14/14, validado por Textual Pilot + captura visual real + boot de integração end-to-end (a Nyx respondeu em português em 2s).
+
+### Corrigido
+
+- **A cadeia nunca quebra** (`TUI-WORKER-CRASH-GUARD-01`) -- o turno rodava em `run_worker` com o default `exit_on_error=True` do Textual: qualquer exceção derrubava a TUI (o "terminal fechando do nada"), e o traceback ia para o stderr e sumia quando o terminal fechava. Agora `exit_on_error=False` + um `except` que absorve a falha, persiste o traceback em `~/.nyx/logs/nyx.log` e mostra `[falha absorvida]` no chat -- a sessão continua viva. Defesa em profundidade no `cli.py`.
+
+### Adicionado
+
+- **VRAM com percentual no footer** (`TUI-FOOTER-VRAM-PERCENT-01`) -- `VRAM usado/total MiB (P%)`; o percentual baixo sinaliza honestamente quando o modelo caiu para CPU.
+- **Tempo de resposta de volta** (`TUI-TURN-ELAPSED-01`) -- a duração do turno aparece no balão do NyxCode (ex.: 3.2s; 2m04s para turnos longos em CPU). Tinha sumido na migração para Textual.
+- **Painel de sugestões de comandos** (`TUI-SLASH-SUGGEST-PANEL-01`) -- ao digitar `/`, um painel de pelo menos 3 linhas lista os comandos prováveis com descrição, filtrando por prefixo. Reergue a descoberta de comandos perdida com o completer antigo.
+- **Reanimação de GPU pós-OOM** (`INFRA-OOM-ADAPTIVE-GPU-01`, opt-in `NYX_GPU_ADAPTIVE=1`) -- quando a sessão cai para CPU e a VRAM libera depois (você fecha o Chrome), o Nyx volta para a GPU sem reiniciar, com cooldown anti-loop. Default desligado preserva o comportamento estável. Não sobe o cap de camadas: a fragmentação de VRAM do CUDA o limita (empírico, 85 OOMs analisados).
+
+### Performance
+
+- **KV cache quantizado** (`INFRA-KVCACHE-QUANT-01`) -- `OLLAMA_KV_CACHE_TYPE=q8_0` corta cerca de metade da VRAM do cache (medido: 2625 para 2499 MiB), ajudando o modelo a caber em 4GB com o desktop cheio.
+- **Um projeto por vez na GPU** (`INFRA-OLLAMA-RUNNER-ORPHAN-CLEANUP-01`) -- o boot mata qualquer `ollama serve`/`runner` de qualquer projeto (e reapa órfãos que seguravam VRAM), reivindicando a GPU inteira para o Nyx.
+
+### Documentação
+
+- ADR-032 (A infra carrega o modelo nas costas), ADR-033 (A cadeia nunca quebra na mão do usuário) e ADR-034 (Feito para quem não tem A100) -- a filosofia do projeto cristalizada como padrão inviolável.
+
 ## [1.3.1] - 2026-05-31
 
 ONDA-35: correções de UX da TUI descobertas ao USAR a interface de verdade (digitando), que a validação por injeção (`/control/repl/send`) havia mascarado. Todas validadas digitando de verdade (Textual Pilot + `--web` via playwright `page.keyboard`). Invariantes 14/14, gauntlet `--only rapido` APROVADO por sprint.

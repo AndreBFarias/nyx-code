@@ -305,7 +305,7 @@ Uso:
 /aesthetic set cyberpunk:mars      # mudar
 ```
 
-## ADRs (31)
+## ADRs (34)
 
 | # | Título | Status |
 |---|---|---|
@@ -340,8 +340,11 @@ Uso:
 | 029 | Layout Parity com Claude Code | ACEITO | <!-- noqa-anonimato -->
 | 030 | MCP cliente stdio | ACEITO |
 | 031 | Modelo padrão qwen2.5-coder:3b | ACEITO |
+| 032 | A infra carrega o modelo nas costas (nunca trocar modelo/placa) | ACEITO |
+| 033 | A cadeia nunca quebra na mão do usuário (zero crash repassado) | ACEITO |
+| 034 | Feito para quem não tem A100 (acessibilidade radical) | ACEITO |
 
-## Status atual (2026-05-26, v1.3.0 ONDA-31)
+## Status atual (2026-06-01, v1.3.x ONDA-36)
 
 Para estado autoritativo consultar `dev-journey/08-templates/PROJECT_SNAPSHOT.md`.
 
