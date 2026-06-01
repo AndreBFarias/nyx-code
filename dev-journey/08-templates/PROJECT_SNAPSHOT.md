@@ -64,9 +64,9 @@ consome e o que o LLM recebe em `tool_defs`.
 | Tools no registry (runtime) | 35 | `python -c "from nyx.agent.tools.registry import ToolRegistry; print(ToolRegistry('.').tool_count)"` |
 | Commands únicos (sem aliases) | 67 | runtime via `list_commands()` |
 | Services | 15 | `find nyx/agent/services -maxdepth 1 -name '*.py' ! -name '__init__.py' \| wc -l` |
-| ADRs vigentes | 31 | `ls dev-journey/03-decisions/ADR_*.md \| wc -l` |
+| ADRs vigentes | 34 | `ls dev-journey/03-decisions/ADR_*.md \| wc -l` |
 | Testes no Gauntlet | 320 (catalogados) | `./run.sh --gauntlet` |
-| Sprints concluídas | 455 | `ls dev-journey/06-sprints/concluidos/*.md \| wc -l` |
+| Sprints concluídas | 487 | `ls dev-journey/06-sprints/concluidos/*.md \| wc -l` |
 | Sprints pendentes | APENAS RELEASE-V1.0-CUT-01 (humano corta tag) — backlog técnico ZERADO | `ls dev-journey/06-sprints/producao/*.md \| wc -l` |
 
 ---
