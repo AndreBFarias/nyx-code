@@ -36,10 +36,17 @@ from textual.binding import Binding
 from textual.containers import Vertical, VerticalScroll
 from textual.widgets import Collapsible, Static
 
+from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tui.widgets.banner import BannerWidget
 from nyx.agent.tui.widgets.chat_message import ChatMessage
 from nyx.agent.tui.widgets.input import InputWidget
 from nyx.agent.tui.widgets.toolbar import Toolbar
+
+# TUI-WORKER-CRASH-GUARD-01 (ADR-033): logger que escreve em ~/.nyx/logs/nyx.log
+# via logging_service. Usado para PERSISTIR o traceback de turnos que falham --
+# antes a exceção subia pelo worker e o traceback ia para stderr, sumindo quando
+# o terminal fechava (crash invisível).
+logger = get_logger(__name__)
 
 # TUI-THINKING-EXPAND-01: glifo via chr() (anti-sanitizer, padrão do BRIEF) para
 # o título do bloco de raciocínio recolhível. U+25D0 = circle half black (in-progress).
@@ -316,7 +323,13 @@ class NyxTUI(App):
         # client vive no mesmo loop o tempo todo. A tool execution bloqueante
         # sai do loop via asyncio.to_thread dentro do AgentLoop.
         # exclusive=True mantem 1 turno por vez (fila implicita).
-        self.run_worker(self._process_turn(text), exclusive=True)
+        # TUI-WORKER-CRASH-GUARD-01 (ADR-033): exit_on_error=False -- a infra
+        # absorve a exceção dentro de _process_turn (except abaixo) em vez de deixar
+        # o Textual chamar _handle_exception e DERRUBAR a TUI (default é True).
+        # exclusive=True mantem 1 turno por vez (fila implicita).
+        self.run_worker(
+            self._process_turn(text), exclusive=True, exit_on_error=False
+        )
 
     def _dispatch_slash(self, text: str) -> None:
         """Roteia slash command via handle_command e trata sentinels.
@@ -391,9 +404,14 @@ class NyxTUI(App):
         argumento posicional para `scroll_end`, que só aceita `animate` por
         keyword -- TypeError a cada turno (TUI-FIX-SCROLL-END-KWARG-01).
 
-        Try/finally garante toolbar.inflight = False em qualquer caminho.
-        Exceções do agent sobem para o handler global do Textual (loga e
-        mostra; não crasha a TUI).
+        Try/except/finally: o finally garante toolbar.inflight = False em qualquer
+        caminho; o except (TUI-WORKER-CRASH-GUARD-01, ADR-033) ABSORVE qualquer
+        exceção do turno -- loga o traceback completo em ~/.nyx/logs/nyx.log e
+        mostra um ChatMessage("system") no chat, mantendo a TUI viva. Combinado
+        com exit_on_error=False no run_worker, a cadeia nunca quebra na mão do
+        usuário (antes a exceção subia pelo worker e derrubava o app via
+        _handle_exception do Textual, com o traceback indo para stderr/devtools
+        e sumindo quando o terminal fechava -- o "crash invisível").
         """
         try:
             status = await self._agent.run(text)
@@ -407,6 +425,21 @@ class NyxTUI(App):
                 summary = (getattr(status, "summary", "") or "").strip()
                 if summary and "done(" in self._current_assistant.content:
                     self._current_assistant.set_content(summary)
+        except Exception as exc:  # noqa: BLE001 -- rede de seguranca deliberada
+            # TUI-WORKER-CRASH-GUARD-01 (ADR-033): a infra absorve QUALQUER exceção
+            # do turno (execução de tool, parsing, callback de UI, recovery) em vez
+            # de repassar erro ao usuário. PERSISTE o traceback em
+            # ~/.nyx/logs/nyx.log (antes ia para stderr e sumia com o terminal) e
+            # mostra uma mensagem honesta no chat. A TUI segue viva.
+            logger.exception("[turno] exceção absorvida durante agent.run: %s", exc)
+            chat = self.query_one("#chat", VerticalScroll)
+            chat.mount(
+                ChatMessage(
+                    "system",
+                    f"[falha absorvida] {type(exc).__name__}: {exc}. "
+                    "Detalhes em ~/.nyx/logs/nyx.log -- a sessão continua.",
+                )
+            )
         finally:
             self.query_one("#toolbar", Toolbar).inflight = False
             self._follow_end(self.query_one("#chat", VerticalScroll))

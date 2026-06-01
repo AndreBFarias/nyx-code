@@ -544,7 +544,24 @@ async def run_repl(
             agent=agent,
             user_display_name=app_state.get("user_display_name", ""),
         )
-        tui_result = await nyx_tui_app.run_async()
+        # TUI-WORKER-CRASH-GUARD-01 (ADR-033): defesa em profundidade. O crash
+        # guard em NyxTUI._process_turn já absorve exceções de turno; este
+        # try/except é a última rede para falhas FORA do turno (mount inicial,
+        # layout, driver do Textual). Persiste o traceback em ~/.nyx/logs/nyx.log
+        # e mostra uma mensagem legível em vez de despejar stderr cru enquanto o
+        # terminal fecha -- acaba com o "crash invisível" (a cadeia nunca quebra
+        # na mão do usuário sem deixar rastro).
+        try:
+            tui_result = await nyx_tui_app.run_async()
+        except Exception:
+            logger.exception("NyxTUI run_async falhou (exceção fora do turno)")
+            print(
+                "\nNyx encontrou uma falha inesperada na interface e encerrou. "
+                "O traceback completo foi salvo em ~/.nyx/logs/nyx.log.",
+                file=sys.stderr,
+            )
+            await run_quit_shutdown(proxy_url, logger)
+            return 0
         total_iterations += nonlocal_total["iterations"]
         if tui_result == "__quit__":
             render_quit_card(agent, app_state, PROJECT_ROOT)
