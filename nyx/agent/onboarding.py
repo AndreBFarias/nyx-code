@@ -41,6 +41,23 @@ def _read_persisted_user_name() -> str | None:
     return None
 
 
+def read_persisted_config() -> dict:
+    """Lê ~/.nyx/config.toml e retorna o dict completo (ONBOARDING-REPLAY-FLAG-01).
+
+    Retorna {} se o arquivo não existir ou o parse falhar. Usado pelo modo
+    replay (--onboarding) para ecoar o estado persistido ao fim do wizard.
+    """
+    if not CONFIG_PATH.is_file():
+        return {}
+    try:
+        import tomllib
+        with CONFIG_PATH.open("rb") as f:
+            return tomllib.load(f)
+    except Exception as exc:  # noqa: BLE001 -- parse silencioso
+        logger.debug("config.toml parse falhou (read_persisted_config): %s", exc)
+        return {}
+
+
 def _persist_user_name(name: str) -> None:
     """Persiste user_display_name em ~/.nyx/config.toml (TUI-REDESIGN-26-05).
 
@@ -171,7 +188,7 @@ def mark_done() -> None:
         logger.warning("não foi possível marcar first_run_done: %s", exc)
 
 
-def run_first_run_wizard() -> None:
+def run_first_run_wizard(force: bool = False) -> None:
     """First-run completo (TUI-REDESIGN-28-05): nome + 6 passos do menu_wizard.
 
     Sequência integrada de 7 passos:
@@ -194,13 +211,13 @@ def run_first_run_wizard() -> None:
         mark_done()
         return
 
-    # Passo 01/07 -- nome do usuário
+    # Passo 01/07 -- nome do usuário (force=True re-pergunta mesmo com nome persistido)
     persisted = _read_persisted_user_name()
-    if persisted:
+    if persisted and not force:
         user_name = persisted
     else:
         git_hint = _git_user_name()
-        default = git_hint or "visitante"
+        default = persisted or git_hint or "visitante"
         sys.stdout.write("\n")
         sys.stdout.write("  ── Configuração inicial — Nyx-Code ──\n\n")
         sys.stdout.write(f"  01/07 · Como devo te chamar? [Enter = '{default}']: ")

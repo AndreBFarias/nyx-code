@@ -149,6 +149,10 @@ while [[ $# -gt 0 ]]; do
             # Smoke check: prova que imports resolvem sem subir Ollama/proxy.
             exec "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/nyx/cli.py" --smoke
             ;;
+        --onboarding)
+            # Replay do wizard de primeiro uso (ONBOARDING-REPLAY-FLAG-01).
+            exec "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/nyx/cli.py" --onboarding
+            ;;
         --3b)
             MODEL="qwen2.5-coder:3b"
             shift ;;

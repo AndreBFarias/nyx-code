@@ -652,10 +652,29 @@ def main() -> None:
         action="store_true",
         help="Pula tutorial de primeiro uso (ONBOARDING-01).",
     )
+    parser.add_argument(
+        "--onboarding",
+        action="store_true",
+        help="Re-roda o wizard de primeiro uso (replay) e imprime o config persistido.",
+    )
     args = parser.parse_args()
 
     if args.smoke:
         print("boot ok")
+        sys.exit(0)
+
+    if args.onboarding:
+        # ONBOARDING-REPLAY-FLAG-01: replay explícito do wizard + eco do config.
+        from nyx.agent.onboarding import read_persisted_config, run_first_run_wizard
+
+        run_first_run_wizard(force=True)
+        cfg = read_persisted_config()
+        print("\n  Config persistido (~/.nyx/config.toml):")
+        if cfg:
+            for _k, _v in cfg.items():
+                print(f"  {_k} = {_v}")
+        else:
+            print("  (vazio)")
         sys.exit(0)
 
     if args.headless:
