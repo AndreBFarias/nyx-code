@@ -38,8 +38,9 @@ sprint:
 
 ---
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA
 **Data criação:** 2026-05-31
+**Data conclusão:** 2026-05-31
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
 
 ---
@@ -90,6 +91,25 @@ bash scripts/sprint_invariants.sh   # 14/14
 - [ ] Console limpo (sem o TypeError) após resize + clique no `--web` real.
 - [ ] Resize sem tiling preservado.
 - [ ] Smoke + invariantes 14/14.
+
+---
+
+## CONCLUSÃO 2026-05-31 — NÃO reproduz com uso normal (era resíduo do experimento da 247)
+
+**FASE 0 (playwright):** subido o `--web`, feitos **4 resizes** (4 `recreateTerminal`) intercalados com **cliques** no `#terminal` (mouseups). Console final: **só `favicon.ico 404`** — zero `TypeError`. O erro **não reproduz** com o `recreateTerminal` debounced (1 por resize).
+
+**Causa do erro visto pelo usuário:** resíduo do experimento revertido da SPRINT 247 — o `ResizeObserver` em loop disparou ~25 `recreateTerminal` em **rajada contínua** (sem o navegador processar o `dispose` entre eles), vazando listeners de `mouseup` no `document`. Removido o ResizeObserver, a condição não existe mais.
+
+**Entrega:** comentário de proteção no `recreateTerminal` (`terminal.html`) alertando para NUNCA chamá-lo em rajada/loop — evita reintroduzir o vazamento. Nenhuma mudança de comportamento (o código já estava correto sob uso debounced); por isso o gauntlet (que não exercita o estático `terminal.html`) não foi re-rodado — gate por smoke + invariantes.
+
+**Proof-of-work:** `./run.sh --smoke` = boot ok; `bash scripts/sprint_invariants.sh` = 14/14 FAIL=0; acentuação `terminal.html` rc=0; FASE 0 console limpo (4 recreates + cliques).
+
+## Critério de aceite (final)
+
+- [x] FASE 0: repro documentada — NÃO reproduz com 1..4 recreates + cliques (era resíduo do loop do experimento da 247).
+- [x] Console limpo (sem TypeError) após resize + clique.
+- [x] Resize sem tiling preservado (recreateTerminal intacto; só comentário adicionado).
+- [x] Smoke + invariantes 14/14.
 
 ---
 

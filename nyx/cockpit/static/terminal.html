@@ -367,6 +367,12 @@
     // ?1049h fora do boot -> reentramos no alt-screen manualmente; o frame full
     // do Textual (pós-SIGWINCH do sendResize) preenche o terminal fresco.
     function recreateTerminal() {
+      // TUI-WEB-MOUSEUP-DISPOSE-LEAK-01: NAO chamar em rajada/loop (ex.: de um
+      // ResizeObserver que reaja ao proprio recreate). term.dispose() em rajada
+      // continua deixa listeners de mouseup orfaos no document (xterm.js), que
+      // estouram "reading 'dimensions'" no proximo mouseup. O uso debounced
+      // (1 recreate por resize, 80ms) NAO vaza -- verificado: 4 resizes + cliques,
+      // console limpo (so favicon 404).
       // Computa cols/rows ANTES de dispose (mede a célula com o term atual) e
       // cria o terminal novo JÁ no tamanho alvo -- sem term.resize() depois,
       // que reintroduziria o bug de resize do alt-buffer no próprio fresco.
