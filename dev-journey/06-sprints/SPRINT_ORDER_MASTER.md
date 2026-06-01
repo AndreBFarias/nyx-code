@@ -897,6 +897,29 @@ Diagnósticos antigos em /tmp/{pyte_repro,pty_resize_bytes,pilot_input_probe}.py
 
 <!-- MANUAL_OVERRIDE_ONDA_37_END -->
 
+<!-- MANUAL_OVERRIDE_ONDA_38_START -->
+
+### Bloco ONDA-38: UX/TUI do dono + higiene de infra (2026-06-01)
+
+**Origem:** onda compartilhada. O dono seguiu a ONDA-37 com sprints de UX/TUI (tema, onboarding, card de saída, glifos v2 anti-sanitizer); em paralelo, a sessão de orquestração materializou 2 sprints de infra (cobertura do sync de docs + refactor do proxy) e levantou 1 débito de reconciliação. Registro das sprints do dono derivado dos commits (corpo de cada commit tem o detalhe e o proof-of-work). Sem push (decisão do dono); commits locais isolados por stash para não tocar a working tree em andamento.
+
+| ID | Sprint | Status |
+|----|--------|--------|
+| 325 | **UI-V2-GLYPH-MIGRATE-01** | CONCLUIDA (2026-06-01, commit 84c4135; mockups v2 do novo_layout imunes ao sanitizer) |
+| 326 | **UX-QUIT-CARD-POLISH-01** | CONCLUIDA (2026-06-01, commit fd36e57; polir o card de saída da TUI) |
+| 327 | **ONBOARDING-REPLAY-FLAG-01** | CONCLUIDA (2026-06-01, commit 27a7e70; run.sh --onboarding re-roda o wizard mesmo com .first_run_done; read_persisted_config ecoa config.toml) |
+| 328 | **ONBOARDING-IMPROVE-02** | CONCLUIDA (2026-06-01, commit 8f9eab8; sincroniza a docstring de run_first_run_wizard com o modo replay; tutorial de 5 steps marcado legado removível) |
+| 329 | **THEME-TEXTUAL-WIRE-01** | CONCLUIDA (2026-06-01, commit 91a3cdb; modal de tema com opções reais via list_aesthetics/list_schemas, seta NYX_AESTHETIC/NYX_SCHEMA + clear_cache; ressalva: repaint runtime vira a 332) |
+| 330 | **INFRA-DOC-SYNC-COVERAGE-01** | CONCLUIDA (2026-06-01, commit d5fc40e; update_docs.py ganha _read_max_iterations, _count_gauntlet_phases (AST de PHASE_TIMEOUTS=60) e _coverage_meta_check anti-débito; README 30->50 iterações e 225/53->320/60 testes/fases; regressão "até 99" prova --check exit 1->0) |
+| 331 | **PROXY-HANDLE-CHAT-REFACTOR-01** | CONCLUIDA (2026-06-01, commit 113e578; handle_chat 251->53L via _retry_with_hint/_post_chat_with_oom_recovery/_apply_output_guardrails; _OOM_DEGRADED migrado para state nos 5 sites; gauntlet --only proxy 7/7 idêntico antes/depois, 9 testes de lógica dos helpers) |
+| 332 | **THEME-TEXTUAL-RUNTIME-REPAINT-01** | PENDENTE (spec criado em 91a3cdb; aplicar+persistir o repaint visual em runtime -- design_tokens.py é estático e nenhum widget Textual lê resolve_palette) |
+| 333 | **VISION-RUNTIME-REVALIDATE-01** | PENDENTE (spec do dono untracked; revalidar moondream/visão describe end-to-end + delta VRAM 0, sem reimplementar) |
+| 334 | **INFRA-SPRINT-SOURCES-RECONCILE-01** | PENDENTE (débito da auditoria 2026-06-01: arquivar DESIGN_TUI_TEXTUAL_MIGRATION obsoleto, reconciliar README/STATE/MASTER, corrigir _get_next_sprint que retorna sprint CONCLUIDA, revisar backlog Luna delegado) |
+
+**ONDA-38 em curso -- 7 CONCLUIDAS (325-331), 3 PENDENTES (332-334).** UX/TUI do dono (tema/onboarding/saída/glifos v2) + infra (cobertura do sync de docs, refactor do proxy). Débito de reconciliação 334 materializado para ataque imediato.
+
+<!-- MANUAL_OVERRIDE_ONDA_38_END -->
+
 <!-- MANUAL_OVERRIDE_ONDA_28_START -->
 
 ### Bloco ONDA-28: TUI paridade Claude Code (boot silencioso + banner block + input fixo + wizard completo) (2026-05-18) <!-- noqa-anonimato -->
