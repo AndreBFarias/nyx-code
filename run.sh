@@ -244,6 +244,12 @@ export OLLAMA_MODELS="$SCRIPT_DIR/models"
 export OLLAMA_NUM_PARALLEL=1
 export OLLAMA_MAX_LOADED_MODELS=1
 export OLLAMA_FLASH_ATTENTION=1
+# INFRA-KVCACHE-QUANT-01 (ADR-032): quantiza o KV cache de f16 para 8 bits.
+# Com flash attention (acima) ligado, corta ~metade da VRAM do cache, perda de
+# qualidade negligenciavel -- faz o qwen2.5-coder:3b caber com mais folga na RTX
+# 3050 4GB mesmo com Chrome/Spotify/Discord abertos. A infra carrega o modelo nas
+# costas; a solucao nunca e trocar modelo/placa (ADR-031/ADR-034).
+export OLLAMA_KV_CACHE_TYPE="${NYX_KV_CACHE_TYPE:-q8_0}"
 
 # Priorizar Ollama do sistema (tem runners CUDA/GPU)
 # Fallback para binário local se não houver instalação global
