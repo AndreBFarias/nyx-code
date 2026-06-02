@@ -5,6 +5,36 @@ Todas as mudanças notáveis neste projeto serão documentadas neste arquivo.
 O formato é baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
 e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.3.4] - 2026-06-01
+
+ONDA-38: lote UX/TUI do dono recuperado de input perdido (card de saída, onboarding, temas no Textual, glifos v2 anti-sanitizer) + revalidação da visão.
+
+### Adicionado
+
+- **Replay do onboarding** (`ONBOARDING-REPLAY-FLAG-01`) -- `run.sh --onboarding` re-roda o wizard de primeiro uso mesmo com `.first_run_done` presente (`run_first_run_wizard(force=True)` re-pergunta o nome) e ecoa o `~/.nyx/config.toml` ao fim.
+- **Seletor de tema com opções reais** (`THEME-TEXTUAL-WIRE-01`) -- o modal de aesthetic/schema no Textual saiu do stub `opt1/opt2`: popula de `list_aesthetics()`/`list_schemas()` e seta `NYX_AESTHETIC`/`NYX_SCHEMA` + `clear_cache` na escolha.
+
+### Corrigido
+
+- **Card de saída polido** (`UX-QUIT-CARD-POLISH-01`) -- "até." vira "Até breve."; "Sessão salva:" com dois-pontos; path e dica prefixados por barra vertical, dica capitalizada com ponto final.
+- **Mockups v2 imunes ao sanitizer** (`UI-V2-GLYPH-MIGRATE-01`) -- os dingbats (U+276F/U+2726/U+2713/U+2715) dos 3 .jsx de referência viram geométricos U+25xx da allowlist; o santuario para de estripá-los.
+- **Docstring do onboarding** (`ONBOARDING-IMPROVE-02`) -- sincronizada com o replay (default do nome: persistido -> git -> visitante; nota de `force`).
+
+### Confirmado
+
+- **Visão moondream** (`VISION-RUNTIME-REVALIDATE-01`) -- port intacto (gauntlet vision 3/3); describe-real end-to-end provado (transcrição coerente em 19.7s, VRAM delta 0 MiB, CPU puro ADR-022); moondream instalado em `models/` do projeto via `install.sh`.
+
+### Interno
+
+- **Cobertura do sync de docs** (`INFRA-DOC-SYNC-COVERAGE-01`) -- `update_docs.py` ganha leitores para MAX_ITERATIONS, fases do gauntlet (AST de `PHASE_TIMEOUTS`) e ADRs, mais um meta-check anti-débito; o README deixa de divergir ("até 30 iterações" -> 50, "225 testes em 53 fases" -> 322 testes em 61 fases).
+- **Refactor do proxy** (`PROXY-HANDLE-CHAT-REFACTOR-01`) -- `handle_chat` 251 -> 53 linhas via 3 helpers async (`_retry_with_hint`, `_post_chat_with_oom_recovery`, `_apply_output_guardrails`); `_OOM_DEGRADED` migra de global para `state`; gauntlet `--only proxy` 7/7 idêntico antes/depois.
+- **Reconciliação de fontes de sprint** (`INFRA-SPRINT-SOURCES-RECONCILE-01`) -- arquiva o design já executado, move specs concluídos para `concluidos/`, e corrige `_get_next_sprint` (que retornava sprint concluída com "PENDENTE" na descrição).
+- **Cobertura dos guardrails do proxy** (`GAUNTLET-PROXY-GUARDRAILS-TESTS-01`) -- nova fase `guardrails` no gauntlet exercita LANG-ENFORCE e IDENTITY-ENFORCE em runtime real (sem mocks), fechando a validação do refactor.
+
+### Notas
+
+- Pendente: repaint de tema em runtime (`THEME-TEXTUAL-RUNTIME-REPAINT-01`) -- `design_tokens` é estático e os widgets Textual não leem `resolve_palette`; aplicar + persistir vira sprint dedicada.
+
 ## [1.3.3] - 2026-06-01
 
 ONDA-37: refino após o dono usar a Nyx de verdade. Modelo de permissões estilo CLI de código moderno: acesso de leitura livre a qualquer pasta por default; escrita controlada pelo modo (Normal pergunta, Plan planeja, Bypass altera livre).
