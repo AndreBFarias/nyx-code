@@ -44,7 +44,7 @@ sprint:
 
 ---
 
-**Status:** PENDENTE (materializada -- aguarda autorização do dono para o touch externo)
+**Status:** CONCLUIDA (2026-06-02; decisão **A** -- preserva o glifo nos docs. `emoji_guardian.py` externo editado com OK do dono: `IGNORE_DIRS += 'dev-journey'` (análogo a vendor) + guarda `if 'dev-journey' in Path(filepath).parts` no `clean_file` (defesa em profundidade). Proof: probe RED->GREEN -- doc de dev-journey preservado (U+26A1 fica), `code.py` fora de dev-journey segue stripado; `clean_file` direto num doc real retorna (0,0); AST OK, acento rc=0. Arquivo externo ao repo, não commitável aqui)
 **Data criação:** 2026-06-02
 **Origem:** durante a ONDA-40 o `emoji_guardian.py` corrompeu 7 docs (24 U+26A1 stripados). A 345 (`INFRA-SANITIZER-DOC-GUARD-EXTEND-01`) foi a rede defensiva no commit; a fonte (o guardian escaneando .md de dev-journey) continua aberta. A 257 (`SANITIZER-VENDOR-EXCLUDE-HARDEN-01`) já adicionou vendor/third_party ao IGNORE_DIRS, mas isso protege código vendored, não docs.
 **Modelo obrigatório:** claude-opus (sem subagentes)

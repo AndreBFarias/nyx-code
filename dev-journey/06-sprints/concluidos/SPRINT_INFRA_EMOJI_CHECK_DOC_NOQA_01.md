@@ -39,7 +39,7 @@ sprint:
 
 ---
 
-**Status:** PENDENTE (materializada -- só se concretiza no cenário A da 346)
+**Status:** CONCLUIDA (2026-06-02; cenário **A** da 346. Exceção de path `case "$file" in dev-journey/*) continue` no bloco emoji do pre-commit (L242-248). Proof: `bash -n` OK; replica fiel da lógica -- dev-journey SKIP, `nyx/code.py` com emoji BLOQUEIA, limpo passa; teste REAL -- doc de dev-journey com U+26A1 literal staged passa o pre-commit (`Zero emojis [OK]`), emoji em código segue absoluto; acento rc=0)
 **Data criação:** 2026-06-02
 **Origem:** ao documentar a corrupção do sanitizer no Checkpoint, o próprio emoji-check do pre-commit bloqueou a escrita do glifo literal. Os docs em HEAD têm U+26A1 grandfathered, mas o emoji-check (absoluto, sem path-exception) impediria recommitá-los após qualquer edição -- forçando `--no-verify`, que também pularia o guard anti-sanitizer.
 **Modelo obrigatório:** claude-opus (sem subagentes)

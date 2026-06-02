@@ -242,6 +242,13 @@ fi
 EMOJI_ERRORS=0
 if [ -n "$STAGED_ALL" ]; then
     for file in $STAGED_ALL; do
+        # INFRA-EMOJI-CHECK-DOC-NOQA-01: docs de dev-journey citam glifos (ex.:
+        # U+26A1) como registro historico -- excecao de path consciente. Emoji
+        # segue REGRA ABSOLUTA em codigo/output (nyx/, etc.). Par da 346, que
+        # exclui dev-journey do emoji_guardian externo.
+        case "$file" in
+            dev-journey/*) continue ;;
+        esac
         if [ -f "$PROJECT_ROOT/$file" ]; then
             CONTENT=$(git show ":$file" 2>/dev/null || true)
             if echo "$CONTENT" | grep -qP '[\x{1F600}-\x{1F64F}\x{1F300}-\x{1F5FF}\x{1F680}-\x{1F6FF}\x{2600}-\x{26FF}\x{2700}-\x{27BF}]' 2>/dev/null; then
