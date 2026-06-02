@@ -38,6 +38,15 @@ from nyx.providers.base import ProviderError
 logger = get_logger("nyx.agent")
 
 
+# TUI-AGENT-LOOP-CONVERGE-01: sentinel retornado por _check_repetition no caso
+# SkipStrategy.SKIP. O caller PULA a execução e continua o loop (return None)
+# SEM passar pelo reset de _consecutive_skips -- a pressão para FORCE_DONE
+# acumula. Antes o SKIP retornava None e, como o caller só age em valor truthy,
+# a tool executava mesmo (skip morto desde o port) e o reset pós-execução zerava
+# o contador, impedindo a convergência (loop até MAX_ITERATIONS).
+_SKIP_ACTION = object()
+
+
 # NYX-OUTPUT-LIMITS-01: heuristica de truncate em resposta de chat.
 # Disparada por terminacoes abruptas (virgula, hifen aberto, parenteses aberto)
 # em respostas com ao menos 100 caracteres; ignora outputs curtos onde a
@@ -135,6 +144,8 @@ class _IterationMixin:
                 params=args,
             )
             skip = self._check_repetition(action)
+            if skip is _SKIP_ACTION:
+                return None
             if skip:
                 return skip
 
@@ -262,6 +273,8 @@ class _IterationMixin:
                     self._permissions.mark_confirmed(tool_name)
 
         skip = self._check_repetition(action)
+        if skip is _SKIP_ACTION:
+            return None
         if skip:
             return skip
 
@@ -335,7 +348,7 @@ class _IterationMixin:
                 action.params,
                 f"Ação repetida ignorada ({self._consecutive_skips}x)",
             )
-            return None
+            return _SKIP_ACTION
 
         return None
 
