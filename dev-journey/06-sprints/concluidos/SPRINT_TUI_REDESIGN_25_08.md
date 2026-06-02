@@ -40,7 +40,7 @@ sprint:
 
 # Sprint TUI-REDESIGN-25-08
 
-**Status:** CONCLUIDA_PARCIAL
+**Status:** CONCLUIDA (reconciliada em AUDIT-SPRINT-STATUS-RECONCILE-01 2026-06-02; faixa lateral fechada em STREAMING-SIDE-RULE-01)
 **Data criação:** 2026-05-18
 **Data conclusão:** 2026-05-18 (parcial)
 **Modelo obrigatório:** claude-opus-4-7

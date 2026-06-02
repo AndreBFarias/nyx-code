@@ -40,7 +40,7 @@ sprint:
 
 # Sprint TUI-REDESIGN-25-09-PARTE-2
 
-**Status:** CONCLUIDA_PARCIAL
+**Status:** CONCLUIDA (reconciliada em AUDIT-SPRINT-STATUS-RECONCILE-01 2026-06-02; captura real do thinking fechada em PARTE-3 commit b8516ab)
 **Data criação:** 2026-05-18 (achado durante TUI-REDESIGN-25-09)
 **Data conclusão:** 2026-05-18 (Tab keybinding feito; captura real do thinking extraída para PARTE-3 DEFERIDA — sincronizado em SPRINT_ORDER-REFRESH-01 2026-05-19)
 **Modelo obrigatório:** claude-opus-4-7

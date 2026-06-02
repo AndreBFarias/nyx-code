@@ -44,7 +44,7 @@ sprint:
 
 # Sprint TUI-REDESIGN-25-09
 
-**Status:** CONCLUIDA_PARCIAL
+**Status:** CONCLUIDA (reconciliada em AUDIT-SPRINT-STATUS-RECONCILE-01 2026-06-02; captura+Tab fechados pela cadeia PARTE-2 -> PARTE-3)
 **Data criação:** 2026-05-18
 **Data conclusão:** 2026-05-18 (parcial -- helper render_thinking_block)
 **Modelo obrigatório:** claude-opus-4-7

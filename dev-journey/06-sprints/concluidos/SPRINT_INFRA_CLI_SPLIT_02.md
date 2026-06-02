@@ -28,7 +28,7 @@ sprint:
 
 ---
 
-**Status:** CONCLUIDA_PARCIAL
+**Status:** CONCLUIDA (reconciliada em AUDIT-SPRINT-STATUS-RECONCILE-01 2026-06-02; meta 800L fechada pela cadeia CLI-SPLIT-03, cli.py=713L)
 **Data:** 2026-05-17 (criada) / 2026-05-19 (executada)
 **Origem:** anti-débito de INFRA-CLI-SPLIT-01 (corte parcial; chegamos a 1361L; meta 800L)
 **Modelo obrigatório:** claude-opus-4-7 (sem subagentes)
