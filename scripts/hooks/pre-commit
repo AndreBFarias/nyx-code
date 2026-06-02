@@ -266,7 +266,11 @@ if "$PYTHON" "$PROJECT_ROOT/scripts/update_docs.py" --check >/dev/null 2>&1; the
     _ok "Docs atualizados"
 else
     "$PYTHON" "$PROJECT_ROOT/scripts/update_docs.py" 2>/dev/null
-    for doc in GUIDE.md README.md dev-journey/PORT_STATUS.md; do
+    for doc in GUIDE.md README.md dev-journey/PORT_STATUS.md \
+               dev-journey/02-architecture/ARCHITECTURE.md \
+               dev-journey/08-templates/PROJECT_SNAPSHOT.md \
+               dev-journey/08-templates/SPRINT_TEMPLATE_V2.md \
+               dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md; do
         if [ -f "$PROJECT_ROOT/$doc" ]; then
             git add "$PROJECT_ROOT/$doc" 2>/dev/null || true
         fi

@@ -434,7 +434,7 @@ def update_port_status(tools: int, commands: int, services: int, check: bool) ->
     return changed
 
 
-def update_architecture(tools: int, commands: int, services: int, check: bool) -> bool:
+def update_architecture(tools: int, commands: int, services: int, default_model: str, check: bool) -> bool:
     """Atualiza ARCHITECTURE.md diagrama ASCII com contagens reais.
 
     Cuidado: preserva alinhamento das linhas verticais do diagrama
@@ -455,6 +455,22 @@ def update_architecture(tools: int, commands: int, services: int, check: bool) -
 
     for pattern, replacement in replacements:
         content = re.sub(pattern, replacement, content)
+
+    # Modelo no box Ollama do diagrama: a linha logo após "Ollama (:11435)".
+    # Preserva a largura interna da célula (medida na própria linha do Ollama)
+    # e o recuo -- só reescreve o miolo com o modelo padrão real (default_model).
+    arch_lines = content.split("\n")
+    for _i, _line in enumerate(arch_lines[:-1]):
+        if "Ollama (:11435)" in _line and "│" in _line:
+            _ref = _line[_line.index("│") + 1 : _line.rindex("│")]
+            _cell_w = len(_ref)
+            _tgt = arch_lines[_i + 1]
+            if _tgt.lstrip().startswith("│") and _tgt.rstrip().endswith("│"):
+                _indent = _tgt[: len(_tgt) - len(_tgt.lstrip())]
+                _novo = f"   {default_model}".ljust(_cell_w)[:_cell_w]
+                arch_lines[_i + 1] = f"{_indent}│{_novo}│"
+            break
+    content = "\n".join(arch_lines)
 
     changed = content != original
     if changed and not check:
@@ -550,6 +566,21 @@ def update_project_snapshot(
         (
             r"(\*\*Versão do projeto:\*\* \*\*v)[0-9]+\.[0-9]+\.[0-9]+(?:-rc\d+)?(\s)",
             rf"\g<1>{version}\g<2>",
+        ),
+        # Stack -- TUI migrada de prompt_toolkit para Textual na ONDA-32.
+        (
+            r"(\| TUI \| )prompt_toolkit[^|]*?( \|)",
+            r"\g<1>Textual >= 0.76\g<2>",
+        ),
+        # Stack -- modelo quente em runtime (deriva do default real).
+        (
+            r"(\| Modelos em runtime \| 1 único momento: )qwen3( quente)",
+            rf"\g<1>{default_model}\g<2>",
+        ),
+        # Header da seção "Estado" -- sincroniza só o número de versão.
+        (
+            r"(## Estado v)[0-9]+\.[0-9]+\.[0-9]+(?:-rc\d+)?",
+            rf"\g<1>{version}",
         ),
     ]
 
@@ -710,7 +741,7 @@ def main() -> None:
         changes.append("README.md")
     if update_port_status(tools, commands, services, args.check):
         changes.append("PORT_STATUS.md")
-    if update_architecture(tools, commands, services, args.check):
+    if update_architecture(tools, commands, services, default_model, args.check):
         changes.append("ARCHITECTURE.md")
     if update_sprint_template(tools, commands, services, cli_lines, args.check):
         changes.append("SPRINT_TEMPLATE_V2.md")
