@@ -209,11 +209,11 @@ def _build_wide(
     Layout (cols >= 80, largura interna total fixa = 70):
 
         ╭──────────────────┬───────────────────────────────────────────────────╮
-        │                  │  v1.3.0      ●  100% offline                      │
+        │                  │  vX.Y.Z      ●  100% offline                      │
         │                  ├───────────────────────────────────────────────────┤
-        │   $ nyx.code▌    │  MODELO qwen2.5-coder:3b │ PROJETO Nyx-Code        │
+        │   $ nyx.code▌    │  MODELO <modelo-default> │ PROJETO Nyx-Code        │
         │                  ├───────────────────────────────────────────────────┤
-        │                  │  TOOLS 35 │ COMANDOS 67 │ MEMÓRIA ativa            │
+        │                  │  TOOLS NN │ COMANDOS MM │ MEMÓRIA ativa            │
         ╰──────────────────┴───────────────────────────────────────────────────╯
 
     Cores:
@@ -286,7 +286,7 @@ def _build_wide(
     else:
         gpu_plain = "CPU"
         gpu_colored = f"{warning}CPU{nc}"
-    # plain visible: "  v1.3.0  ●  100% offline  ·  GPU: N layers" within right_w
+    # plain visible: "  vX.Y.Z  ●  100% offline  ·  GPU: N layers" within right_w
     plain_r1 = f"  v{NYX_VERSION}  ●  100% offline  ·  {gpu_plain}"
     pad_r1 = max(1, right_w - len(plain_r1))
     row1_right = (
