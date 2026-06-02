@@ -52,9 +52,11 @@ def compute_prompt_str(
     placeholders {user_name}/{schema}/{model}; rejeita template com escape
     ANSI inline (anti-injection).
     """
+    from nyx.config.defaults import DEFAULT_MODEL
+
     _u_name = str(app_state.get("user_display_name") or "visitante")
     _schema_now = os.environ.get("NYX_SCHEMA", "hybrid")
-    _model_now = os.environ.get("NYX_MODEL", "qwen2.5-coder:3b")
+    _model_now = os.environ.get("NYX_MODEL", DEFAULT_MODEL)
     _tpl = os.environ.get("NYX_PROMPT_TEMPLATE", "").strip()
     if _tpl and "\033" not in _tpl and "\\033" not in _tpl:
         try:

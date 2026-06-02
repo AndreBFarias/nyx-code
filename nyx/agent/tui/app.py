@@ -44,6 +44,7 @@ from nyx.agent.tui.widgets.chat_message import ChatMessage
 from nyx.agent.tui.widgets.input import InputWidget
 from nyx.agent.tui.widgets.suggestions import SuggestionPanel
 from nyx.agent.tui.widgets.toolbar import Toolbar
+from nyx.config.defaults import DEFAULT_MODEL
 from nyx.themes.design_tokens import NYX_MUTED, NYX_PURPLE
 
 # TUI-WORKER-CRASH-GUARD-01 (ADR-033): logger que escreve em ~/.nyx/logs/nyx.log
@@ -162,7 +163,7 @@ class NyxTUI(App):
     def __init__(
         self,
         *,
-        model: str = "qwen2.5-coder:3b",
+        model: str = DEFAULT_MODEL,
         tools_count: int = 35,
         project_name: str = "Nyx-Code",
         slash_completer: list[str] | None = None,

@@ -22,6 +22,7 @@ from textual.app import RenderResult
 from textual.reactive import reactive
 from textual.widgets import Static
 
+from nyx.config.defaults import DEFAULT_MODEL
 from nyx.themes.design_tokens import (
     NYX_ACCENT,
     NYX_ERROR,
@@ -82,7 +83,7 @@ class Toolbar(Static):
     # quando não há GPU/nvidia-smi -- render omite o campo (degradação graciosa).
     vram: reactive[str] = reactive("")
 
-    def __init__(self, *, model: str = "qwen2.5-coder:3b") -> None:
+    def __init__(self, *, model: str = DEFAULT_MODEL) -> None:
         super().__init__()
         self._model = model
 
