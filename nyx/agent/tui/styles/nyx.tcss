@@ -11,15 +11,12 @@
  *   - TUI-DEFAULT-FLIP-LEGACY-RM-01 -> deletou OutputWidget legacy
  */
 
-/* ---------- Tokens canonicos (paridade ADR-023 / design_tokens.py) ---------- */
-
-$accent: #00D4AA;        /* turquesa NYX_ACCENT  -- accent principal */
-$primary: #9D4EDD;       /* roxo NYX_PURPLE      -- assistente, bypass, memoria */
-$success: #4ADE80;       /* verde NYX_SUCCESS    -- tool ok */
-$error: #EF4444;         /* vermelho NYX_ERROR   -- tool fail */
-$muted: #6B7280;         /* cinza NYX_MUTED      -- toolbar, system, tool */
-$surface: #0A0E14;       /* fundo escuro         -- base do tema */
-$foreground: #E6E4D9;    /* texto claro          -- corpo de mensagens */
+/* ---------- Tokens canonicos (ADR-023) ---------- */
+/* THEME-TEXTUAL-RUNTIME-REPAINT-01: $accent $primary $success $error $muted     */
+/* $surface $foreground sao injetados em RUNTIME por NyxTUI.get_css_variables a  */
+/* partir da paleta dinamica (theme_manager.resolve_palette). Uma definicao      */
+/* estatica aqui sobrescreveria a injecao (precedencia CSS > get_css_variables), */
+/* logo foi removida -- trocar aesthetic + refresh_css() repinta sem restart.    */
 
 /* ---------- Telas raiz ---------- */
 

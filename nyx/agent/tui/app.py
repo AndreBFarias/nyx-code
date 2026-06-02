@@ -73,6 +73,51 @@ class NyxTUI(App):
 
     CSS_PATH = Path(__file__).parent / "styles" / "nyx.tcss"
 
+    def get_css_variables(self) -> dict[str, str]:
+        """THEME-TEXTUAL-RUNTIME-REPAINT-01: injeta a paleta dinâmica do
+        theme_manager nas variáveis CSS do Textual, no lugar dos hex estáticos
+        que viviam no nyx.tcss. Trocar aesthetic + refresh_css() repinta a TUI
+        em runtime: o aesthetic muda surface/foreground (bg/ink), a entity muda
+        accent. Fallback para as constantes canônicas de design_tokens (ADR-023)
+        se resolve_palette falhar -- a TUI nunca fica sem cor.
+        """
+        from nyx.themes.design_tokens import (
+            NYX_ACCENT,
+            NYX_BG,
+            NYX_ERROR,
+            NYX_MUTED,
+            NYX_PRIMARY,
+            NYX_SUCCESS,
+        )
+
+        variables = super().get_css_variables()
+        palette_vars = {
+            "accent": NYX_ACCENT,
+            "primary": NYX_PURPLE,
+            "success": NYX_SUCCESS,
+            "error": NYX_ERROR,
+            "muted": NYX_MUTED,
+            "surface": NYX_BG,
+            "foreground": NYX_PRIMARY,
+        }
+        try:
+            from nyx.themes.theme_manager import resolve_palette
+
+            pal = resolve_palette()["palette"]
+            palette_vars = {
+                "accent": pal["accent"],
+                "primary": pal["ember"],
+                "success": pal["success"],
+                "error": pal["error"],
+                "muted": pal["ink_muted"],
+                "surface": pal["bg"],
+                "foreground": pal["ink"],
+            }
+        except Exception as exc:  # noqa: BLE001 -- cor nunca derruba o boot da TUI
+            logger.warning("get_css_variables: paleta dinâmica falhou (%s); fallback design_tokens", exc)
+        variables.update(palette_vars)
+        return variables
+
     # priority=True garante que o App captura o key event antes do widget
     # focado (InputWidget consome shift+tab/ctrl+v/ctrl+o por padrão). Sem
     # priority, atalhos globais ficam refens do focus -- comportamento
@@ -447,16 +492,18 @@ class NyxTUI(App):
         )
 
     async def _open_select_modal(self, kind: str) -> None:
-        """Push SelectScreen com opções reais e registra a seleção (THEME-TEXTUAL-WIRE-01).
+        """Push SelectScreen com opções reais, aplica e persiste a seleção.
 
-        Ao escolher, seta a env var (NYX_AESTHETIC/NYX_SCHEMA) e limpa o cache do
-        theme_manager. ACHADO (THEME-TEXTUAL-RUNTIME-REPAINT-01): os widgets
-        Textual consomem CONSTANTES estáticas de design_tokens, não a paleta
-        dinâmica de resolve_palette(); logo o repaint visual em runtime exige
-        sprint dedicada. ESC/cancelar não toca env nem cache.
+        THEME-TEXTUAL-WIRE-01 populou as opções; THEME-TEXTUAL-RUNTIME-REPAINT-01
+        fecha o ciclo: ao escolher, seta a env var (NYX_AESTHETIC/NYX_SCHEMA),
+        limpa o cache do theme_manager, chama refresh_css() -- que re-avalia
+        get_css_variables() com a paleta nova e REPINTA os widgets em runtime, sem
+        restart -- e persiste a escolha em ~/.nyx/config.toml. ESC/cancelar não
+        toca env, cache, CSS nem disco.
         """
         import os
 
+        from nyx.agent.onboarding import persist_config_key
         from nyx.agent.tui.screens.select_screen import SelectScreen
         from nyx.themes.theme_manager import clear_cache
 
@@ -466,12 +513,10 @@ class NyxTUI(App):
         if selected:
             os.environ[env_key] = selected
             clear_cache()
-            chat.mount(
-                ChatMessage(
-                    "tool",
-                    f"{title}: {selected} registrado (repaint em sprint dedicada)",
-                )
-            )
+            self.refresh_css()
+            cfg_key = {"NYX_AESTHETIC": "aesthetic", "NYX_SCHEMA": "schema"}.get(env_key, env_key.lower())
+            persist_config_key(cfg_key, selected)
+            chat.mount(ChatMessage("tool", f"{title}: {selected} aplicado e salvo"))
         else:
             chat.mount(ChatMessage("tool", f"{title}: seleção cancelada"))
         chat.scroll_end(animate=False)

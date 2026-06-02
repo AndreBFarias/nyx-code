@@ -90,6 +90,41 @@ def _persist_user_name(name: str) -> None:
         logger.warning("não foi possível persistir user_display_name: %s", exc)
 
 
+def persist_config_key(key: str, value) -> None:
+    """Persiste uma chave qualquer em ~/.nyx/config.toml (merge não-destrutivo).
+
+    Generaliza o padrão de _persist_user_name (THEME-TEXTUAL-RUNTIME-REPAINT-01):
+    lê o config existente, atualiza só `key`, reescreve TOML simples preservando
+    as demais chaves. Escrita manual porque a stdlib não tem tomli-w. Falha de
+    I/O loga warning e não propaga (best-effort -- não derruba a TUI).
+    """
+    try:
+        NYX_HOME.mkdir(parents=True, exist_ok=True)
+        existing: dict = {}
+        if CONFIG_PATH.is_file():
+            try:
+                import tomllib
+
+                with CONFIG_PATH.open("rb") as f:
+                    existing = tomllib.load(f)
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("config.toml read p/ merge falhou: %s", exc)
+                existing = {}
+        existing[key] = value
+        lines = ["# ~/.nyx/config.toml (gerado por nyx)", ""]
+        for k, v in existing.items():
+            if isinstance(v, bool):
+                v_s = "true" if v else "false"
+            elif isinstance(v, (int, float)):
+                v_s = str(v)
+            else:
+                v_s = f'"{v}"'
+            lines.append(f"{k} = {v_s}")
+        CONFIG_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    except OSError as exc:
+        logger.warning("não foi possível persistir %s: %s", key, exc)
+
+
 def _git_user_name() -> str:
     """Helper isolado: git config user.name (timeout 2s, fallback ''')."""
     try:
