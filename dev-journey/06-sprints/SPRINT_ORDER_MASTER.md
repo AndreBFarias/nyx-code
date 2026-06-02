@@ -957,16 +957,16 @@ Diagnósticos antigos em /tmp/{pyte_repro,pty_resize_bytes,pilot_input_probe}.py
 
 <!-- MANUAL_OVERRIDE_ONDA_41_START -->
 
-### Bloco ONDA-41: sanitizer na fonte -- ABERTA (specs materializadas, aguarda execução) (2026-06-02)
+### Bloco ONDA-41: sanitizer na fonte -- CONCLUIDA (2026-06-02)
 
-**Origem:** a 345 (ONDA-40) foi a rede defensiva contra o sanitizer no commit; falta fechar a FONTE. O `emoji_guardian.py` (externo ao repo, `~/.config/zsh/scripts/`) escaneia `.md` e tira U+26A1 -- foi ele que corrompeu 7 docs durante a ONDA-40. Especificada a pedido do dono; **NÃO executada** (346 mexe em arquivo externo, exige OK explícito). Decisão de design A/B (preservar glifo vs de-emojificar docs) pendente na execução.
+**Origem:** a 345 (ONDA-40) foi a rede defensiva contra o sanitizer no commit; faltava fechar a FONTE. O `emoji_guardian.py` (externo ao repo, `~/.config/zsh/scripts/`) escaneia `.md` e tira U+26A1 -- foi ele que corrompeu 7 docs durante a ONDA-40. Executada com OK do dono para o touch externo; **decisão A** (preservar o glifo citado nos docs como registro histórico, em vez de de-emojificar).
 
 | # | Sprint | Bloco | Prio | Status | Deps |
 |---|--------|-------|------|--------|------|
-| 346 | **SANITIZER-GUARDIAN-DOC-PRESERVE-01** | 41 fonte | MEDIA | PENDENTE (materializada em producao/; o guardian externo deixa de stripar `dev-journey/*.md`; touch EXTERNO exige OK do dono; decisão A preserva glifo / B de-emojifica) | 345 |
-| 347 | **INFRA-EMOJI-CHECK-DOC-NOQA-01** | 41 fonte | BAIXA | PENDENTE (materializada em producao/; o emoji-check do pre-commit ganha exceção de path para docs -- só existe no cenário A da 346; emoji segue REGRA ABSOLUTA no código) | 346 |
+| 346 | **SANITIZER-GUARDIAN-DOC-PRESERVE-01** | 41 fonte | MEDIA | CONCLUIDA (2026-06-02; arquivo EXTERNO `~/.config/zsh/scripts/emoji_guardian.py` editado com OK do dono -- `IGNORE_DIRS += 'dev-journey'` (análogo a vendor) + guarda `'dev-journey' in Path(filepath).parts` no `clean_file`. Proof: probe RED->GREEN, doc de dev-journey preservado / `code.py` stripado, `clean_file` direto retorna (0,0), AST/acento OK. Fora do repo, não commitável aqui) | 345 |
+| 347 | **INFRA-EMOJI-CHECK-DOC-NOQA-01** | 41 fonte | BAIXA | CONCLUIDA (2026-06-02, commit c65691d; exceção de path `case "$file" in dev-journey/*) continue` no bloco emoji do pre-commit; emoji segue REGRA ABSOLUTA no código. Proof: bash -n OK; teste real -- doc com U+26A1 literal staged passa o pre-commit `Zero emojis [OK]`, emoji em nyx/*.py segue bloqueado) | 346 |
 
-**ONDA-41 ABERTA -- 2 sprints materializadas (346-347), 0 executadas.** Fecha a fonte do sanitizer que a 345 só defendia no commit. Bloqueada na execução: 346 toca o `emoji_guardian.py` externo ao repo (precisa de OK do dono) e carrega a decisão de design A/B. Specs em producao/.
+**ONDA-41 CONCLUIDA -- 2 sprints (346-347).** Fecha a FONTE do sanitizer que a 345 só defendia no commit: o `emoji_guardian.py` (externo) e o emoji-check do pre-commit agora excluem `dev-journey` (decisão A -- o glifo citado vira registro histórico preservado). Proof: invariantes 14/14, smoke boot ok; 346 via probe RED->GREEN, 347 via teste real no pre-commit. 346 fora do repo (autorizado pelo dono); 347 commit c65691d. Specs em concluidos/.
 
 **Backlog aposentado (2026-06-02):** os 5 fósseis de `backlog/` foram movidos para `09-legacy/` -- `SPRINT_BACKLOG_PORT_PYTHON/INTERFACE/INTEGRACAO_LUNA` (roadmap original do port TS->Python, há muito concluído) + `I-02`/`I-03` (DELEGADA ao repo Luna, INFRA-50..53). `backlog/` zerado; o count de backlog cai de 5 para 0.
 
