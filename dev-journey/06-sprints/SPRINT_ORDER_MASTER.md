@@ -939,6 +939,21 @@ Diagnósticos antigos em /tmp/{pyte_repro,pty_resize_bytes,pilot_input_probe}.py
 **ONDA-39 CONCLUIDA -- 7 sprints (336-342).** Anti-hardcode (modelo via DEFAULT_MODEL, banner em placeholders), prevenção durável (update_docs cobre modelo/stack/versão + pre-commit re-staga os 7 docs), docs reconciliados ao estado real (1.3.4/ONDA-38), release alinhada à v1.3.4 (aposenta a narrativa v1.0) e dois achados colaterais de higiene drenados. RELEASE-V1.3.4-CUT-01 aguarda o humano cortar a tag. Proof por sprint: invariantes 14/14, smoke boot ok, update_docs --check exit 0.
 <!-- MANUAL_OVERRIDE_ONDA_39_END -->
 
+<!-- MANUAL_OVERRIDE_ONDA_40_START -->
+
+### Bloco ONDA-40: bugs de runtime achados na auditoria de uso real (2026-06-02)
+
+**Origem:** continuação da auditoria a pedido do dono ("investigue as sprints abertas; veja qual feature implementada não funciona"). A validação foi feita **usando a Nyx de verdade** no `--web` (prompt real `leia o arquivo nyx/__version__.py e me diga qual a versao`, julgando a resposta). A infra fez o modelo fraco usar a tool (o 3b não emite tool_call nativo, o proxy extrai do content -- ADR-032), mas dois bugs de runtime apareceram. A sessão que os atacou caiu no meio da validação do BUG C; a sessão seguinte recuperou o estado pelo Checkpoint + transcript, validou por prova determinística e fechou a onda.
+
+| # | Sprint | Bloco | Prio | Status | Deps |
+|---|--------|-------|------|--------|------|
+| 343 | **TUI-COMMAND-ERROR-SENTINEL-RENDER-01** | 40 bug runtime | ALTA | CONCLUIDA (2026-06-02, commit 0fb0b96; erro de comando deixa de vazar os marcadores crus `__error__...||...` na TUI. O tratamento do ERROR_SENTINEL existia em `cli_handlers.py` (REPL legado) e `cli_headless.py` mas não foi portado para `app.py` na migração Textual; afeta todo comando que dá erro) | -- |
+| 344 | **TUI-AGENT-LOOP-CONVERGE-01** | 40 bug runtime | ALTA | CONCLUIDA (2026-06-02, commit f7e01cc; `SkipStrategy.SKIP` voltou a pular de verdade via sentinel `_SKIP_ACTION`. Antes retornava None, os callers só agem em truthy -> a tool executava mesmo (skip morto desde o port) e o reset pós-execução zerava `_consecutive_skips`, impedindo o FORCE_DONE de acumular -> loop até MAX_ITERATIONS=50. Fix de 4 pontos sem tocar no reset/heurística. Proof: invariantes 14/14, gauntlet rápido 19/19 APROVADO, acento rc=0; probe determinístico com `get_skip_strategy` real (com fix SEQ A/B/C convergem, sem fix B/C rodam até MAX); run real GSD terminou `done iter=7` << 50) | -- |
+
+**ONDA-40 CONCLUIDA -- 2 sprints (343-344).** Dois bugs de runtime que só aparecem usando a Nyx de verdade: comando com erro vazava marcadores crus na TUI Textual (sentinel não portado para `app.py`) e o agent loop não convergia (SKIP funcionalmente morto desde o port -> loop até o teto, dono nunca recebia a resposta). O 344 foi validado por prova determinística (funções reais de `repetition.py`) após o crash da sessão anterior interromper a validação `--web` no meio. Proof por sprint: invariantes 14/14, smoke boot ok, gauntlet rápido APROVADO.
+
+<!-- MANUAL_OVERRIDE_ONDA_40_END -->
+
 <!-- MANUAL_OVERRIDE_ONDA_28_START -->
 
 ### Bloco ONDA-28: TUI paridade Claude Code (boot silencioso + banner block + input fixo + wizard completo) (2026-05-18) <!-- noqa-anonimato -->
