@@ -30,6 +30,7 @@ ONDA-38: lote UX/TUI do dono recuperado de input perdido (card de saída, onboar
 - **Refactor do proxy** (`PROXY-HANDLE-CHAT-REFACTOR-01`) -- `handle_chat` 251 -> 53 linhas via 3 helpers async (`_retry_with_hint`, `_post_chat_with_oom_recovery`, `_apply_output_guardrails`); `_OOM_DEGRADED` migra de global para `state`; gauntlet `--only proxy` 7/7 idêntico antes/depois.
 - **Reconciliação de fontes de sprint** (`INFRA-SPRINT-SOURCES-RECONCILE-01`) -- arquiva o design já executado, move specs concluídos para `concluidos/`, e corrige `_get_next_sprint` (que retornava sprint concluída com "PENDENTE" na descrição).
 - **Cobertura dos guardrails do proxy** (`GAUNTLET-PROXY-GUARDRAILS-TESTS-01`) -- nova fase `guardrails` no gauntlet exercita LANG-ENFORCE e IDENTITY-ENFORCE em runtime real (sem mocks), fechando a validação do refactor.
+- **Reconciliação documental + anti-hardcode** (ONDA-39, sprints 336-342) -- o modelo padrão passa a vir de `DEFAULT_MODEL` (fim do literal duplicado em `cli_boot`/`toolbar`/`app`); o exemplo de layout do banner vira placeholder genérico; `update_docs.py` ganha cobertura para o modelo no ARCHITECTURE e a stack/versão no PROJECT_SNAPSHOT, e o pre-commit passa a re-stagear os 7 docs derivados (antes só 3); os docs de estado são reconciliados ao runtime (qwen2.5-coder:3b, Textual, v1.3.4). A narrativa de release migra de v1.0 para **v1.3.4** (alinhada à versão real; `RELEASE-V1.3.4-CUT-01` aguarda o humano cortar a tag).
 
 ### Notas
 

@@ -921,6 +921,24 @@ Diagnósticos antigos em /tmp/{pyte_repro,pty_resize_bytes,pilot_input_probe}.py
 
 <!-- MANUAL_OVERRIDE_ONDA_38_END -->
 
+<!-- MANUAL_OVERRIDE_ONDA_39_START -->
+### Bloco ONDA-39: reconciliação documental + anti-hardcode (2026-06-02)
+
+**Origem:** auditoria do estado completo do projeto a pedido do dono. Achado central: o código está íntegro (invariantes 14/14, smoke ok, inventário 35/67/15/34 consistente) mas os docs de estado congelaram em pontos temporais distintos (README em ONDA-36, STATE/SNAPSHOT pré-Textual, ARCHITECTURE com o modelo errado) e o `__version__` (1.3.0 commitado) ficou atrás do CHANGELOG (1.3.4). Causa-raiz: o `update_docs.py` não tinha regra para esses campos e o pre-commit só re-stageava 3 dos 7 docs reescritos. Sprints derivadas dos commits (mesmo modelo da ONDA-38).
+
+| # | Sprint | Bloco | Prio | Status | Deps |
+|---|--------|-------|------|--------|------|
+| 336 | **INFRA-MODEL-DEFAULT-SINGLE-SOURCE-01** | 39 anti-hardcode | MEDIA | CONCLUIDA (2026-06-02, commit 9f5c07c; cli_boot/toolbar/app liam o literal do modelo padrão -> agora importam DEFAULT_MODEL de config/defaults.py; render inalterado; ruff ok, invariantes 14/14, smoke ok) | -- |
+| 337 | **INFRA-BANNER-DOCSTRING-PLACEHOLDER-01** | 39 anti-hardcode | BAIXA | CONCLUIDA (2026-06-02, commit 1562386; exemplo de layout na docstring do banner vira placeholder genérico de mesmo comprimento, alinhamento e glifos do check #14 preservados; render real já era dinâmico via NYX_VERSION) | -- |
+| 338 | **INFRA-DOC-SYNC-COVERAGE-02** | 39 prevenção | ALTA | CONCLUIDA (2026-06-02, commit 6fa20ef; update_architecture sincroniza o modelo no diagrama de forma padding-aware; update_project_snapshot cobre a stack TUI, o modelo quente e o header da seção Estado; pre-commit re-staga os 7 docs derivados; o --check deixou de ser cego) | 336 |
+| 339 | **DOC-RECONCILE-ONDA38-STATE-01** | 39 reconciliação | ALTA | CONCLUIDA (2026-06-02, commit 929288e; rodou update_docs + ajustes manuais: ARCHITECTURE loop/, SNAPSHOT corrige afirmação falsa sobre Checkpoint.md, README ONDA-38, STATE/Checkpoint com entry da retomada; --check exit 0) | 338 |
+| 340 | **RELEASE-RECONCILE-V134-01** | 39 release | ALTA | CONCLUIDA (2026-06-02; __version__ commitado em 1.3.4; RELEASE-V1.0-CUT-01 -> RELEASE-V1.3.4-CUT-01 em producao/, comando de tag pronto; README e docs aposentam a narrativa v1.0; corte da tag delegado ao humano) | 339 |
+| 341 | **INFRA-TOOLBAR-ACENTO-FIX-01** | 39 higiene (achado da 336) | BAIXA | CONCLUIDA (2026-06-02, commit 4964dd8; acento pré-existente no toolbar.py -- comentário corrigido + falso-positivo do validador na docstring reformulado para "redraw global"; validar-acentuacao rc=0) | 336 |
+| 342 | **INFRA-ARCH-PORT-NOQA-01** | 39 higiene (achado da 339) | BAIXA | CONCLUIDA (2026-06-02, commit 929288e; a seção "Origem do código" do ARCHITECTURE mencionava o port sem marcador -> noqa-anonimato + noqa-cli-externo, convenção do projeto; débito pré-existente no HEAD) | 339 |
+
+**ONDA-39 CONCLUIDA -- 7 sprints (336-342).** Anti-hardcode (modelo via DEFAULT_MODEL, banner em placeholders), prevenção durável (update_docs cobre modelo/stack/versão + pre-commit re-staga os 7 docs), docs reconciliados ao estado real (1.3.4/ONDA-38), release alinhada à v1.3.4 (aposenta a narrativa v1.0) e dois achados colaterais de higiene drenados. RELEASE-V1.3.4-CUT-01 aguarda o humano cortar a tag. Proof por sprint: invariantes 14/14, smoke boot ok, update_docs --check exit 0.
+<!-- MANUAL_OVERRIDE_ONDA_39_END -->
+
 <!-- MANUAL_OVERRIDE_ONDA_28_START -->
 
 ### Bloco ONDA-28: TUI paridade Claude Code (boot silencioso + banner block + input fixo + wizard completo) (2026-05-18) <!-- noqa-anonimato -->
