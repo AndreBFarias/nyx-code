@@ -461,7 +461,22 @@ class NyxTUI(App):
                 self._open_select_modal(result), exclusive=False
             )
             return
-        # Outros retornos (texto, sentinels de erro, etc.) viram ChatMessage tool.
+        # TUI-COMMAND-ERROR-SENTINEL-RENDER-01: comandos retornam o sentinel
+        # "__error__<msg>||<hint>" (ERROR_SENTINEL, _dispatcher.py). O REPL legado
+        # convertia em cli_handlers._handle_error; na TUI Textual esse tratamento
+        # faltava e os marcadores vazavam crus no chat. Converte para mensagem
+        # limpa (msg + hint em nova linha), espelhando o handler legado.
+        if isinstance(result, str) and result.startswith("__error__"):
+            payload = result[len("__error__"):]
+            if "||" in payload:
+                msg, hint = payload.split("||", 1)
+            else:
+                msg, hint = payload, None
+            err_text = msg if hint is None else f"{msg}\n{hint}"
+            chat.mount(ChatMessage("system", err_text))
+            chat.scroll_end(animate=False)
+            return
+        # Outros retornos (texto comum) viram ChatMessage tool.
         chat.mount(ChatMessage("tool", str(result)))
         chat.scroll_end(animate=False)
 
