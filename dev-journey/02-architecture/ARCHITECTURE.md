@@ -18,7 +18,7 @@
               │                         │                         │
      ┌────────┴────────┐    ┌───────────┴──────────┐   ┌─────────┴────────┐
      │   Commands (67)  │    │   AgentLoop          │   │  Services (15)   │
-     │  /help /commit   │    │  nyx/agent/loop.py   │   │  tokens, hooks   │
+     │  /help /commit   │    │  nyx/agent/loop/     │   │  tokens, hooks   │
      │  /diff /doctor   │    │  plan-execute-observe │   │  memory, compact │
      └─────────────────┘    └───────────┬──────────┘   └──────────────────┘
                                         │
@@ -45,7 +45,7 @@
                                         │
                              ┌──────────┴───────────┐
                              │   Ollama (:11435)     │
-                             │   qwen3:4b            │
+                             │   qwen2.5-coder:3b    │
                              │   GPU num_gpu=12      │
                              └──────────────────────┘
 ```
@@ -107,7 +107,7 @@
 
 | Origem | O que veio | Adaptações |
 |--------|-----------|-----------|
-| OpenClaude TS (`openclaud/src/`) | 40 tools, 98 commands, 35 services | Port 1:1 para Python |
+| OpenClaude TS (`openclaud/src/`) | 40 tools, 98 commands, 35 services | Port 1:1 para Python | <!-- noqa-anonimato --> <!-- noqa-cli-externo -->
 | Luna (`Luna/src/skills/code_agent/`) | Parser, loop, session, permissions, etc. | Ajuste de imports, cores, paths |
 | Nyx original | Proxy, themes, config, install | Código próprio do projeto |
 

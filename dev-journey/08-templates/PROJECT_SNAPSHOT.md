@@ -1,14 +1,14 @@
 # Project Snapshot — Nyx-Code
 
 **Atualizado em:** 2026-05-21 (retomada da sessão pós-rc1 — backlog zerado)
-**Versão do projeto:** **v1.3.0 ready** (Ondas 22-28 concluídas + 5 anti-débitos drenados)
+**Versão do projeto:** **v1.3.4 ready** (Ondas 22-28 concluídas + 5 anti-débitos drenados)
 **Tag v1.0 status:** NÃO cortada (decisão delegada ao humano — sprint `RELEASE-V1.0-CUT-01` PENDENTE)
 
 **Este arquivo é referenciável por qualquer sprint** em vez de copiar o estado inline. Atualizar com regularidade (após fim de bloco, ou quando contagens mudarem).
 
 ---
 
-## Estado v1.3.0-rc2 (2026-05-21 — retomada pós-rc1)
+## Estado v1.3.4 (2026-06-02 — reconciliação ONDA-39)
 
 | Critério gate v1.0 (16 itens) | Status |
 |---|---|
@@ -27,7 +27,7 @@
 | `CHANGELOG.md` cobre Ondas 22-28 | OK [1.3.0-rc1] + [1.3.0-rc2] backlog drenado |
 | `PROJECT_SNAPSHOT.md` atualizado | OK (este) |
 | `README.md` contagens corretas | OK via update_docs.py (35 tools, 67 commands) |
-| `git status` clean | OK (Checkpoint.md untracked por design) |
+| `git status` clean | OK (STATE.md e VALIDATOR_BRIEF.md gitignored por design; Checkpoint.md é tracked) |
 
 ---
 
@@ -40,9 +40,9 @@
 | LLM visão | `moondream` via Ollama CPU (num_gpu=0, pendente VISION-01) |
 | Proxy | porta 11436 (think adaptativo, ADR-002) |
 | Ollama | porta 11435 |
-| TUI | prompt_toolkit ≥ 3 |
+| TUI | Textual >= 0.76 |
 | Testes | Gauntlet (ADR-014, sem pytest solto) |
-| Modelos em runtime | 1 único momento: qwen3 quente; moondream CPU é on-demand |
+| Modelos em runtime | 1 único momento: qwen2.5-coder:3b quente; moondream CPU é on-demand |
 
 Fonte única de portas/URLs: `nyx/config/defaults.py` (ADR-AUDIT-FIX-03).
 

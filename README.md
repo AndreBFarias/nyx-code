@@ -344,7 +344,7 @@ Uso:
 | 033 | A cadeia nunca quebra na mão do usuário (zero crash repassado) | ACEITO |
 | 034 | Feito para quem não tem A100 (acessibilidade radical) | ACEITO |
 
-## Status atual (2026-06-01, v1.3.x ONDA-36)
+## Status atual (2026-06-02, v1.3.4 ONDA-38)
 
 Para estado autoritativo consultar `dev-journey/08-templates/PROJECT_SNAPSHOT.md`.
 
