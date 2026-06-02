@@ -9,7 +9,7 @@ callable do prompt_toolkit -- quando o state muda, o widget re-renderiza
 LOCALMENTE (via `self.refresh()`), sem race com `app.invalidate()` global.
 
 Padrão referenciado: BannerWidget (sub-sprint 205) -- refresh por-widget,
-sem invalidação global. Tokens de cor consumidos via design_tokens.
+sem redraw global. Tokens de cor consumidos via design_tokens.
 """
 
 from __future__ import annotations
@@ -192,7 +192,7 @@ class Toolbar(Static):
             msg.append("  |  ", style=NYX_MUTED)
             msg.append(self.vram, style=NYX_ACCENT)
         # TUI-AGENT-BRIDGE-01: indicador de turno em execução com hint
-        # de cancelamento via Ctrl+C. Inserido antes da secao do modo
+        # de cancelamento via Ctrl+C. Inserido antes da seção do modo
         # para preservar legibilidade da extrema direita (modo) intacta.
         if self.inflight:
             msg.append("  |  ", style=NYX_MUTED)
