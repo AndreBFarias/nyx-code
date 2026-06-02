@@ -348,12 +348,12 @@ Uso:
 
 Para estado autoritativo consultar `dev-journey/08-templates/PROJECT_SNAPSHOT.md`.
 
-- **Gauntlet**: 320 testes em 60 fases; `--only rapido` 18/18 (1ª execução fresca); `--only proxy` 7/7 + `--only qualidade` 5/5 estáveis
+- **Gauntlet**: 322 testes em 61 fases; `--only rapido` 18/18 (1ª execução fresca); `--only proxy` 7/7 + `--only qualidade` 5/5 estáveis
 - **Smoke**: `boot ok` em ~0.14s (10x abaixo do critério v1.0 de 1.5s)
 - **Invariantes**: 14/14 PASS
 - **Cockpit**: operacional em `127.0.0.1:11437` com 19 endpoints HTTP + 2 WS
 - **Tag v1.0**: `VALIDATE-FINAL-01-PARTE-2` CONCLUIDA (2026-05-19); tag aguarda apenas comando humano (`git tag -a v1.0`) — sprint `RELEASE-V1.0-CUT-01` em `producao/`
-- **Backlog técnico**: ZERADO — 494 sprints concluídas, 1 em produção (RELEASE delegada ao humano)
+- **Backlog técnico**: ZERADO — 495 sprints concluídas, 1 em produção (RELEASE delegada ao humano)
 
 ## Requisitos
 

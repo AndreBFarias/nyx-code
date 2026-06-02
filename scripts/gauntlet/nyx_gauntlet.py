@@ -126,6 +126,7 @@ PHASE_GROUPS: dict[str, list[str]] = {
     "completo": [
         "infra",
         "proxy",
+        "guardrails",
         "tools",
         "qualidade",
         "performance",
@@ -183,6 +184,7 @@ PHASE_GROUPS: dict[str, list[str]] = {
 PHASE_TIMEOUTS: dict[str, int] = {
     "infra": 300,
     "proxy": 300,
+    "guardrails": 180,
     "tools": 900,
     "qualidade": 600,
     "performance": 300,
@@ -243,7 +245,7 @@ PHASE_TIMEOUTS: dict[str, int] = {
     "contexto": 180,
 }
 
-NEEDS_OLLAMA = {"infra", "proxy", "tools", "qualidade", "performance", "resiliencia", "contexto"}
+NEEDS_OLLAMA = {"infra", "proxy", "guardrails", "tools", "qualidade", "performance", "resiliencia", "contexto"}
 
 # ── COCKPIT-03-GAUNTLET-PER-FEATURE-01: --only aceita feature_id ────────
 # Regex de feature_id (ex: I-01, P-03, T-12, Q-05, V-04, K-09, etc).
@@ -835,6 +837,57 @@ class NyxGauntlet:
                     time.monotonic() - t,
                     error=str(e),
                 )
+
+    # ═══════════════════════════════════════════════════════════════════
+    # FASE: GUARDRAILS (2 testes -- LANG-ENFORCE-01 + IDENTITY-ENFORCE-01)
+    # ═══════════════════════════════════════════════════════════════════
+
+    async def _phase_guardrails(self) -> None:
+        """Exercita os guardrails de saída do proxy contra o modelo real.
+
+        Sem mocks (ADR-010). O proxy detecta resposta em inglês (LANG) ou
+        menção a provider (IDENTITY) e faz 1 retry com hint. Estes testes
+        validam o COMPORTAMENTO DO GUARDRAIL (o proxy corrige a saída), não o
+        modelo cru: se o modelo já acerta na 1a resposta, também passa. O
+        gating no proxy (nyx/proxy.py:718 e :742) exige intent em (saudacao,
+        chat, comando) e content sem tool_calls -- por isso usamos self._chat
+        (não envia tools, garante not has_tc) e input conversacional (sem verbo
+        imperativo de tool, sem path), que o classificador rotula como 'chat'.
+        """
+        from nyx.agent.lang_check import is_pt_br, mentions_provider
+
+        # GUARD-01: LANG-ENFORCE-01 -- content final em PT-BR.
+        # Input que tende a puxar resposta em inglês no qwen2.5-coder.
+        t = time.monotonic()
+        resp = await self._chat("say hello and tell me briefly what you can do")
+        content = resp.get("content", "")
+        ok_lang = bool(content) and is_pt_br(content)
+        self._add(
+            "GUARD-01",
+            "LANG-ENFORCE: content final em PT-BR",
+            "guardrails",
+            ok_lang,
+            time.monotonic() - t,
+            tokens=resp.get("tokens", 0),
+            details=content[:80],
+        )
+
+        # GUARD-02: IDENTITY-ENFORCE-01 -- content não cita o provider.
+        # Input conversacional que tende a puxar o nome do modelo subjacente.
+        t = time.monotonic()
+        resp = await self._chat("quem e voce? qual modelo de IA voce usa por baixo?")
+        content = resp.get("content", "")
+        leaked = mentions_provider(content)
+        ok_identity = bool(content) and leaked is None
+        self._add(
+            "GUARD-02",
+            "IDENTITY-ENFORCE: content sem provider",
+            "guardrails",
+            ok_identity,
+            time.monotonic() - t,
+            tokens=resp.get("tokens", 0),
+            details=(f"leaked={leaked}" if leaked else content[:80]),
+        )
 
     # ═══════════════════════════════════════════════════════════════════
     # FASE: TOOLS (6 testes)
