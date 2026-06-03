@@ -12,6 +12,7 @@ Port de Luna src/skills/code_agent/context_manager.py.
 from __future__ import annotations
 
 from nyx.agent.services.logging_service import get_logger
+from nyx.config.defaults import NUM_CTX, NUM_PREDICT_BY_INTENT
 
 from .session import CodeSession, HistoryEntry
 
@@ -19,10 +20,26 @@ logger = get_logger("nyx.context")
 
 # Gatilho INTERNO de compactação do histórico (heurística ~4 ch/tok via
 # estimate_tokens), conservador de propósito para compactar antes de estourar.
-# Camada distinta de:
+#
+# LOOP-CONTEXT-BUDGET-RECALIBRATE-01: este budget DERIVA da janela real do
+# Ollama (fonte única, ADR-013), não é mais um literal divergente. O literal
+# antigo (12000) media o histórico contra uma janela imaginária 3x maior que a
+# real (NUM_CTX=4096), então should_compact (> 40% do budget) só disparava por
+# volta de ~50 turnos -- ponto em que o histórico sozinho já passava de 100% do
+# num_ctx real, ou seja, a janela já tinha estourado antes de compactar.
+#
+# Fórmula: max_tokens = NUM_CTX - reserva_de_saída. A janela real de ENTRADA
+# precisa caber system prompt + histórico + a resposta do modelo; reservamos o
+# orçamento de saída de chat (NUM_PREDICT_BY_INTENT["chat"]) para a resposta, e
+# o restante é o teto de INPUT contra o qual o histórico é medido. Com o gatilho
+# de 40%, isso faz a compactação disparar por volta do turno ~15 (histórico ~40%
+# do teto, ~35% do num_ctx real) -- cedo o bastante para a GPU 4GB (ADR-034),
+# sem penalizar chats curtos (2-3 turnos ficam em ~5-7% do num_ctx, longe do
+# gatilho). Camada distinta de:
 #   - NUM_CTX (nyx/config/defaults.py): janela real do Ollama (entrada).
 #   - NUM_PREDICT_* (nyx/config/defaults.py): orçamento de SAIDA por intent.
-DEFAULT_MAX_TOKENS = 12000
+_OUTPUT_RESERVE_TOKENS = NUM_PREDICT_BY_INTENT["chat"]
+DEFAULT_MAX_TOKENS = max(1, NUM_CTX - _OUTPUT_RESERVE_TOKENS)
 MAX_PARTIAL_ENTRIES = 8
 COMPACT_RECENT = 3
 

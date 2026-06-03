@@ -73,9 +73,11 @@ MAX_ITERATIONS: int = 50
 TEMPERATURE: float = 0.3
 MAX_TOKENS: int = 2048
 # Janela de ENTRADA do Ollama (num_ctx enviado ao modelo). E uma das tres
-# camadas independentes de "contexto"; não confundir com:
+# camadas de "contexto"; não confundir com:
 #   - ContextBudget.DEFAULT_MAX_TOKENS (nyx/agent/context.py): gatilho de
-#     compactação INTERNO do histórico, deliberadamente conservador.
+#     compactação INTERNO do histórico, deliberadamente conservador. DERIVA
+#     deste NUM_CTX (fonte única, ADR-013) desde
+#     LOOP-CONTEXT-BUDGET-RECALIBRATE-01: max_tokens = NUM_CTX - reserva_saida.
 #   - NUM_PREDICT_BY_INTENT / num_predict_for (abaixo): orçamento de SAIDA.
 NUM_CTX: int = 4096
 CURL_TIMEOUT: int = 10
