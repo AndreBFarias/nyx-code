@@ -12,16 +12,18 @@
 #
 # ADR-001 Local First: roda em userspace, sem alterar config global do kernel.
 
-# 16GB virt mem. SPRINT 234 INFRA-OOM-ULIMIT-EXPAND-01 (2026-05-25): elevado
-# de 8GB para 16GB porque CUDA UVA mappa toda VRAM (4GB) no virtual address
-# space + libcuda + buffer pools fazem virt cresce MUITO alem do RSS.
-# 8GB original (INFRA-OOM-01) gerava 46 OOMs/3h apos sprint 222 reduzir cap.
-# Logs mostravam "failed to allocate CPU buffer of size 276MB" com RSS=2.3GiB
-# e Max address space=8GiB. RAM fisica = 14GiB; 16GB virt fica seguro.
-ulimit -v 16000000 2>/dev/null || true
-
-# Memoria fisica preferida (kernel ignora em alguns sistemas, ok)
-ulimit -m 16000000 2>/dev/null || true
+# GPU-FULL-OR-CPU-01 (2026-06-03): ulimit -v/-m REMOVIDOS -- eram a CAUSA RAIZ do
+# "GPU OOM com VRAM livre" que a 356 e ondas anteriores nunca acharam (sempre
+# testaram via run.sh, que aplicava o ulimit; testes diretos/Luna não têm ulimit).
+# O CUDA UVA + pool VMM (cuMemAddressReserve) reservam um espaço de endereço
+# VIRTUAL muito maior que qualquer ulimit -v razoável (dezenas/centenas de GB),
+# SEM consumir RAM/VRAM física. Com ulimit -v limitado (era 16GB), o cudaMalloc
+# falha com "CUDA error: out of memory" MESMO com 3.7 GiB de VRAM livre, e o
+# Ollama degrada para CPU. Comprovado por teste A/B: a MESMA inferência (full GPU
+# + KV f16) roda na GPU SEM ulimit e OOMa COM o `ulimit -v 16000000`. A sprint 234
+# (8->16GB) tentou aliviar mas 16GB ainda é insuficiente; o limite é incompatível
+# com CUDA e foi eliminado. O OOM-killer é tratado pelo oom_score_adj abaixo (a
+# alavanca correta, que não interfere no espaço de endereço do CUDA).
 
 # oom_score_adj negativo (-1000 a 0) = menos likely matar
 # Sem sudo: só funciona pra processos do própria usuário, best-effort.

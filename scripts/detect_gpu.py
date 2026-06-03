@@ -51,15 +51,26 @@ logger = logging.getLogger("nyx.gpu_tune")
 
 RESERVED_MB = 1024
 
+# FULL-GPU-OR-CPU (paridade Luna, 2026-06-03): nesta classe de GPU (RTX 3050
+# 4GB / driver 580 / CUDA 13), o offload PARCIAL dispara o bug do pool VMM do
+# CUDA (`ggml_cuda_pool_vmm::alloc`) e OOMa no compute MESMO com VRAM livre.
+# Full GPU (todas as layers) + KV cache f16 funciona (comprovado vs Luna, que
+# usa num_gpu=-1 + KV f16). Logo a escolha é binária: se o modelo cabe inteiro,
+# full GPU; senão, a heurística parcial (que degrada para CPU via proxy se OOM).
+# 999 = sentinela "todas as layers" (o run.sh valida ^[0-9]+$, então -1 não serve).
+FULL_GPU_LAYERS = 999
+
 # Threshold (MiB) abaixo do qual a pré-carga é considerada arriscada.
 # Em low-VRAM, calc_num_gpu_strict retorna 0 sinalizando skip da pré-carga.
 # Fonte única do threshold; run.sh consulta este script, não duplica.
 LOW_VRAM_THRESHOLD_MB = 1536  # 1.5 GiB
 
 MODEL_TABLE: dict[str, dict[str, int]] = {
-    "qwen3:4b": {"total_layers": 40, "mb_per_layer": 115},
-    "qwen2.5-coder:3b": {"total_layers": 36, "mb_per_layer": 85},
-    "qwen2.5-coder:7b": {"total_layers": 28, "mb_per_layer": 230},
+    # full_mb: VRAM livre (MiB) necessária para carregar o modelo INTEIRO na GPU
+    # (pesos + KV f16 + compute graph, com margem). Acima disso -> full GPU.
+    "qwen3:4b": {"total_layers": 40, "mb_per_layer": 115, "full_mb": 3600},
+    "qwen2.5-coder:3b": {"total_layers": 36, "mb_per_layer": 85, "full_mb": 2900},
+    "qwen2.5-coder:7b": {"total_layers": 28, "mb_per_layer": 230, "full_mb": 5500},
 }
 
 DEFAULT_MODEL = "qwen2.5-coder:3b"
@@ -159,6 +170,11 @@ def _resolve_entry(model: str) -> dict[str, int]:
 def calc_num_gpu(model: str, vram_free_mb: int, vram_total_mb: int = 0) -> int:
     entry = _resolve_entry(model)
 
+    # FULL-GPU-OR-CPU: modelo cabe inteiro -> full GPU (evita offload parcial
+    # que dispara o pool VMM do CUDA e OOMa mesmo com VRAM livre).
+    if vram_free_mb >= entry.get("full_mb", 1 << 30):
+        return FULL_GPU_LAYERS
+
     usable = vram_free_mb - RESERVED_MB
     if usable <= 0:
         return 0
@@ -183,6 +199,9 @@ def calc_num_gpu_strict(model: str, vram_free_mb: int, vram_total_mb: int = 0) -
     if vram_free_mb < LOW_VRAM_THRESHOLD_MB:
         return 0
     entry = _resolve_entry(model)
+    # FULL-GPU-OR-CPU: modelo cabe inteiro -> full GPU (idem calc_num_gpu).
+    if vram_free_mb >= entry.get("full_mb", 1 << 30):
+        return FULL_GPU_LAYERS
     reserved = max(RESERVED_MB, int(vram_free_mb * 0.33))
     usable = vram_free_mb - reserved
     if usable <= 0:

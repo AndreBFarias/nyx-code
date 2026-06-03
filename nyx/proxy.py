@@ -1126,7 +1126,10 @@ def main():
     parser.add_argument("--port", type=int, default=_DEFAULT_PROXY_PORT)
     parser.add_argument("--ollama-port", type=int, default=_DEFAULT_OLLAMA_PORT)
     parser.add_argument("--num-gpu", type=int, default=15)
-    parser.add_argument("--num-ctx", type=int, default=8192)
+    # GPU-FULL-OR-CPU-01: alinhado ao NUM_CTX da fonte única (defaults.py, ADR-013).
+    # O literal 8192 anterior dobrava o KV cache (288 vs 144 MiB) vs o num_ctx real
+    # de 4096, reduzindo a margem de VRAM e contribuindo para o OOM no warmup.
+    parser.add_argument("--num-ctx", type=int, default=_DEFAULT_NUM_CTX)
     args = parser.parse_args()
 
     global OLLAMA_URL, NUM_CTX
