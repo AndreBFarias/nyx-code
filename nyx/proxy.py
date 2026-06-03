@@ -286,7 +286,13 @@ def openai_to_ollama(body: dict, num_gpu: int) -> tuple[dict, str]:
     # Mapeia o intent canônico para a chave do dict: quando ha tools no payload
     # final, usa orcamento de 'tool' (resposta tipicamente envolve tool_call +
     # resumo); senao usa o intent classificado pelo input do usuário.
-    intent_for_budget = "tool" if has_tools else intent
+    # PROXY-INTENT-CODE-BUDGET-01 (#352a): escrita de código ('code') PRESERVA o
+    # budget maior (4096) mesmo com tools -- o tool_call de write_file carrega o
+    # arquivo inteiro e truncava em 2048 ('tool'), invalidando o JSON.
+    if has_tools:
+        intent_for_budget = "code" if intent == "code" else "tool"
+    else:
+        intent_for_budget = intent
     max_tok_override = body.get("max_tokens") or body.get("max_completion_tokens")
     # Orçamento de SAIDA por intent (camada própria): independente da janela de
     # ENTRADA NUM_CTX (options abaixo) e do budget de compactação interno

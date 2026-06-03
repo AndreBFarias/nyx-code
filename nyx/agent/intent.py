@@ -58,6 +58,34 @@ PATH_HINTS = re.compile(
     re.IGNORECASE,
 )
 
+# PROXY-INTENT-CODE-BUDGET-01 (#352a): verbos que PRODUZEM/ALTERAM código ou
+# arquivo. A saída é longa (um write_file/edit_file com o conteúdo inteiro), logo
+# precisa do budget 'code' (4096), não 'tool' (2048) que trunca o JSON do tool_call.
+INTENT_CODE_KEYWORDS = re.compile(
+    r"\b("
+    r"escreva|escrever|escreve|"
+    r"edite|editar|edita|"
+    r"crie|criar|cria|"
+    r"reescreva|reescrever|reescreve|"
+    r"gere|gerar|gera|"
+    r"implemente|implementar|implementa|"
+    r"adicione|adicionar|adiciona|"
+    r"refatore|refatorar|refatora|"
+    r"corrija|corrigir|corrige|"
+    r"modifique|modificar|modifica"
+    r")\b",
+    re.IGNORECASE,
+)
+
+# Contexto que confirma alvo de código/arquivo (evita classificar "crie uma
+# lista" como code). Complementa PATH_HINTS com termos de programação.
+_CODE_CONTEXT = re.compile(
+    r"\b(c[oó]digo|fun[cç][aã]o|m[eé]todo|classe|script|"
+    r"def|class|import|argparse|README|"
+    r"arquivo|m[oó]dulo)\b|\.\w{1,6}\b",
+    re.IGNORECASE,
+)
+
 
 # MEMORY-INTENT-ENFORCE-01: padrões linguísticos PT-BR que sinalizam intent
 # de "salvar memória persistente" (deve disparar tool write_memory).
@@ -103,8 +131,9 @@ def classify(user_input: str) -> str:
     1. vazio -> 'chat'
     2. slash command -> 'comando'
     3. saudacao curta (<40 chars, casa regex no inicio) -> 'saudacao'
-    4. verbo imperativo OU referencia a arquivo -> 'tool-needed'
-    5. default -> 'chat'
+    4. escrita/geracao de codigo (verbo de escrita + alvo de arquivo/codigo) -> 'code'
+    5. verbo imperativo OU referencia a arquivo -> 'tool-needed'
+    6. default -> 'chat'
     """
     if not user_input:
         return "chat"
@@ -120,6 +149,12 @@ def classify(user_input: str) -> str:
     # Saudação: precisa ser curta E casar do início até próximo a fim.
     if len(s) < 40 and SAUDACOES.match(s):
         return "saudacao"
+
+    # PROXY-INTENT-CODE-BUDGET-01 (#352a): escrita/geração de código ou arquivo
+    # -> 'code' (budget 4096). Exige verbo de escrita E alvo de arquivo/código
+    # (PATH_HINTS ou _CODE_CONTEXT), para não inflar o budget de pedidos genéricos.
+    if INTENT_CODE_KEYWORDS.search(s) and (PATH_HINTS.search(s) or _CODE_CONTEXT.search(s)):
+        return "code"
 
     # Verbo imperativo de tool.
     if INTENT_TOOL_KEYWORDS.search(s):
