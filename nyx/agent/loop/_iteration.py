@@ -482,10 +482,21 @@ class _IterationMixin:
     async def _call_llm(self) -> dict[str, Any]:
         """Envia request ao proxy com histórico e tools.
 
-        Estratégia de contexto para GPU limitada:
-        - Iteração 1: histórico completo (só tem user msg)
-        - Iteração 2+: apenas últimas 4 mensagens (user + tool_call + result + resposta)
-        - Compactação se budget > 40%
+        Estratégia de contexto para GPU limitada (num_ctx=4096, RTX 3050 4GB):
+        - Histórico curto (<= 4 msgs): envia tudo.
+        - Histórico longo (> 4 msgs): envia só as últimas 4 (user + tool_call +
+          result + resposta). É uma escolha deliberada de sobrevivência em janela
+          apertada; a memória de longo prazo é reinjetada de forma barata pelo
+          <system-reminder> (repo_map + session_summary + pedido original) via
+          _maybe_inject_reminder, não por este ponto.
+
+        Trade-off assumido (LOOP-CONTEXT-WINDOW-AUDIT-01): a janela de 4 pode
+        omitir citações antigas (ex.: arquivo mencionado muitos turnos atrás),
+        sintoma mitigado por prompt nas sprints 354/355. A compactação progressiva
+        do ContextBudget roda em _run_iterations (não aqui); medição registrada em
+        dev-journey/07-reports/RELATORIO_LOOP_CONTEXT_WINDOW_AUDIT_01.md mostrou
+        que anexar o resumo aqui (opção b) custaria até ~84% do num_ctx em
+        conversas médias sem comprimir, por isso foi descartada.
         """
         # NYX-PROMPT-REINJECT-01: reinjeta <system-reminder> antes da request,
         # com base em contagem de tool calls ou drift detectado no turno anterior.
@@ -527,15 +538,13 @@ class _IterationMixin:
 
         messages = [{"role": "system", "content": system_content}]
 
+        # Janela fixa de 4 quando o histórico é longo. O ramo de compactação
+        # local foi removido por ser inalcançável (LOOP-CONTEXT-WINDOW-AUDIT-01):
+        # should_compact só vira True por volta de ~50 turnos, ponto em que este
+        # `if len > 4` já captura; a compactação efetiva mora em _run_iterations.
         if len(history_msgs) > 4:
             messages.extend(history_msgs[-4:])
             logger.info("[loop] contexto reduzido: %d/%d msgs", 4, len(history_msgs))
-        elif self._budget.should_compact(self._session):
-            compacted = self._budget.compact_history(self._session)
-            if compacted:
-                messages.append({"role": "user", "content": f"[contexto compactado]\n{compacted}"})
-            recent_msgs = history_msgs[-4:]
-            messages.extend(recent_msgs)
         else:
             messages.extend(history_msgs)
 
