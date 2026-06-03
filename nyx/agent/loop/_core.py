@@ -103,6 +103,9 @@ class AgentLoop(_IterationMixin):
         self._budget = ContextBudget()
         self._permissions = PermissionChecker()
         self._last_action: AgentAction | None = None
+        # LOOP-ACTIONTYPE-FALLBACK-DONE-01: nome real da última tool (last_key
+        # do detector de repetição p/ tools fora do enum ActionType).
+        self._last_action_name: str | None = None
         self._consecutive_skips: int = 0
         self._has_results: bool = False
         # NYX-PROMPT-REINJECT-01: estado da reinjeção de system-reminders.
@@ -478,6 +481,7 @@ class AgentLoop(_IterationMixin):
         self._parser.reset_stats()
         self._permissions.reset_session()
         self._last_action = None
+        self._last_action_name = None
         self._consecutive_skips = 0
         self._has_results = False
         # NYX-PROMPT-REINJECT-01: reset zera contadores da sessão.

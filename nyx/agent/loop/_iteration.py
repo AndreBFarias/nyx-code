@@ -167,11 +167,22 @@ class _IterationMixin:
                     if perm == PermissionLevel.CONFIRM_ONCE:
                         self._permissions.mark_confirmed(name)
 
+            # LOOP-ACTIONTYPE-FALLBACK-DONE-01: tools fora do enum ActionType
+            # (multi_edit, skill, task_*, agent, ask_user, ...) NÃO viram mais
+            # ActionType.DONE. Colapsar em DONE quebrava o detector de repetição:
+            # is_in_recent/is_semantic chaveiam por action_type.value e o
+            # histórico guarda o tool_name real -- "done" nunca casava com
+            # "multi_edit", então repetição real passava batido; e tools
+            # distintas colapsadas em DONE colidiam falso em is_exact_repeat.
+            # Rótulo opaco MCP_TOOL (não-terminal) + o `name` real passado como
+            # chave de identidade ao detector. O done que conclui o turno vem SÓ
+            # de is_done (tratado acima, ~L129), nunca deste fallback.
+            is_canon = name in [a.value for a in ActionType]
             action = AgentAction(
-                action_type=ActionType(name) if name in [a.value for a in ActionType] else ActionType.DONE,
+                action_type=ActionType(name) if is_canon else ActionType.MCP_TOOL,
                 params=args,
             )
-            skip = self._check_repetition(action)
+            skip = self._check_repetition(action, tool_name=name)
             if skip is _SKIP_ACTION:
                 return None
             if skip:
@@ -254,6 +265,9 @@ class _IterationMixin:
             self._tool_calls_count = getattr(self, "_tool_calls_count", 0) + 1
             self._tool_calls_this_turn = getattr(self, "_tool_calls_this_turn", 0) + 1
             self._last_action = action
+            # LOOP-ACTIONTYPE-FALLBACK-DONE-01: nome real da última ação, usado
+            # como `last_key` em is_exact_repeat (distingue tools fora do enum).
+            self._last_action_name = name
             self._consecutive_skips = 0
             if result.success:
                 self._has_results = True
@@ -355,14 +369,27 @@ class _IterationMixin:
         self._tool_calls_count = getattr(self, "_tool_calls_count", 0) + 1
         self._tool_calls_this_turn = getattr(self, "_tool_calls_this_turn", 0) + 1
         self._last_action = action
+        # LOOP-ACTIONTYPE-FALLBACK-DONE-01: no parser fallback o action_type é
+        # canônico, então tool_name == action_type.value; mantém last_key coerente.
+        self._last_action_name = tool_name
         self._consecutive_skips = 0
         if result.success:
             self._has_results = True
 
         return None
 
-    def _check_repetition(self, action: AgentAction) -> SessionStatus | None:
-        """Verifica repetição e retorna FORCE_DONE se necessário."""
+    def _check_repetition(
+        self, action: AgentAction, tool_name: str | None = None
+    ) -> SessionStatus | None:
+        """Verifica repetição e retorna FORCE_DONE se necessário.
+
+        LOOP-ACTIONTYPE-FALLBACK-DONE-01: `tool_name` é o nome real da tool. Para
+        tools fora do enum ActionType (action_type opaco MCP_TOOL) ele é a chave
+        de identidade no detector -- sem isso, repetição real escapava e tools
+        distintas colidiam. None (ou caminho do parser, onde tool_name ==
+        action_type.value) preserva o comportamento canônico da 344.
+        """
+        key = tool_name if tool_name is not None else action.action_type.value
         strategy = get_skip_strategy(
             action=action,
             last_action=self._last_action,
@@ -370,6 +397,8 @@ class _IterationMixin:
             files_modified=self._session._files_modified,
             consecutive_skips=self._consecutive_skips,
             has_results=self._has_results,
+            key=key,
+            last_key=getattr(self, "_last_action_name", None),
         )
 
         if strategy == SkipStrategy.FORCE_DONE:
@@ -384,8 +413,11 @@ class _IterationMixin:
         if strategy == SkipStrategy.SKIP:
             self._consecutive_skips += 1
             logger.info("[loop] SKIP repetição (%d consecutivos)", self._consecutive_skips)
+            # Loga o nome real da tool (não action_type.value, que para tools
+            # fora do enum seria o rótulo opaco) -- histórico fiel e is_in_recent
+            # subsequente continua casando.
             self._session.add_tool_call(
-                action.action_type.value,
+                key,
                 action.params,
                 f"Ação repetida ignorada ({self._consecutive_skips}x)",
             )

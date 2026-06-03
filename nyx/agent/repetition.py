@@ -26,19 +26,43 @@ class SkipStrategy(Enum):
     FORCE_DONE = "force_done"
 
 
-def is_exact_repeat(action: AgentAction, last_action: AgentAction | None) -> bool:
-    """Mesma ação com mesmos parâmetros."""
+def is_exact_repeat(
+    action: AgentAction,
+    last_action: AgentAction | None,
+    key: str | None = None,
+    last_key: str | None = None,
+) -> bool:
+    """Mesma ação com mesmos parâmetros.
+
+    LOOP-ACTIONTYPE-FALLBACK-DONE-01: tools fora do enum ActionType (multi_edit,
+    skill, task_*, ...) não têm valor canônico; o loop as identifica pelo `name`
+    real (`key`/`last_key`). Sem isso, duas tools distintas colapsadas no mesmo
+    rótulo opaco (ex.: MCP_TOOL) seriam confundidas como repetição exata. Quando
+    `key` é None usa-se `action_type.value` (caminho canônico, comportamento da
+    344 intocado: valor == identidade do enum).
+    """
     if last_action is None:
         return False
-    return last_action.action_type == action.action_type and last_action.params == action.params
+    cur = key if key is not None else action.action_type.value
+    prev = last_key if last_key is not None else last_action.action_type.value
+    return prev == cur and last_action.params == action.params
 
 
 def is_semantic_repeat(
     action: AgentAction,
     history: list[HistoryEntry],
     files_modified: set[str],
+    key: str | None = None,
 ) -> bool:
-    """Mesma ação no mesmo path (params podem diferir)."""
+    """Mesma ação no mesmo path (params podem diferir).
+
+    `key` (LOOP-ACTIONTYPE-FALLBACK-DONE-01): nome real da tool para casar com
+    `entry.tool_name` do histórico. Os casos especiais (CREATE/WRITE/READ/
+    ANALYZE/SEARCH) seguem gateados pelo `action_type` canônico; tools fora do
+    enum não têm path no topo (multi_edit usa `edits=[{file_path}]`) e caem no
+    detector `is_in_recent`.
+    """
+    cur = key if key is not None else action.action_type.value
     if action.action_type in (ActionType.CREATE_FILE, ActionType.WRITE_FILE) and action.path:
         if action.path in files_modified:
             return True
@@ -51,7 +75,7 @@ def is_semantic_repeat(
         if not entry.tool_name:
             continue
         entry_path = entry.tool_args.get("path", entry.tool_args.get("file_path", ""))
-        if entry.tool_name != action.action_type.value:
+        if entry.tool_name != cur:
             continue
         if entry_path == action.path:
             if action.action_type in (ActionType.READ_FILE, ActionType.ANALYZE):
@@ -67,12 +91,20 @@ def is_in_recent(
     action: AgentAction,
     history: list[HistoryEntry],
     window: int = 3,
+    key: str | None = None,
 ) -> bool:
-    """Verifica se ação idêntica ocorreu nas últimas N entradas."""
+    """Verifica se ação idêntica ocorreu nas últimas N entradas.
+
+    `key` (LOOP-ACTIONTYPE-FALLBACK-DONE-01): nome real da tool. O histórico
+    guarda `tool_name` real (ex.: "multi_edit"); chavear por `action_type.value`
+    (que para tools fora do enum era "done") nunca casava -- repetição real
+    passava batido. Com `key` o nome real é comparado ao do histórico.
+    """
     if len(history) < window:
         return False
 
-    new_key = (action.action_type.value, tuple(sorted(action.params.items())))
+    cur = key if key is not None else action.action_type.value
+    new_key = (cur, tuple(sorted(action.params.items())))
     for entry in history[-window:]:
         if not entry.tool_name:
             continue
@@ -111,8 +143,16 @@ def get_skip_strategy(
     consecutive_skips: int,
     has_results: bool = False,
     force_done_threshold: int = 1,
+    key: str | None = None,
+    last_key: str | None = None,
 ) -> SkipStrategy:
-    """Decide estratégia: continuar, pular ou forçar done."""
+    """Decide estratégia: continuar, pular ou forçar done.
+
+    `key`/`last_key` (LOOP-ACTIONTYPE-FALLBACK-DONE-01): nome real da tool atual
+    e da anterior, usados como chave de identidade para tools fora do enum
+    ActionType. None => caminho canônico (chave = action_type.value), idêntico
+    à 344.
+    """
     if consecutive_skips >= 3:
         return SkipStrategy.FORCE_DONE
 
@@ -122,13 +162,13 @@ def get_skip_strategy(
     if is_cycle(history):
         return SkipStrategy.FORCE_DONE
 
-    if is_exact_repeat(action, last_action):
+    if is_exact_repeat(action, last_action, key=key, last_key=last_key):
         return SkipStrategy.SKIP
 
-    if is_semantic_repeat(action, history, files_modified):
+    if is_semantic_repeat(action, history, files_modified, key=key):
         return SkipStrategy.SKIP
 
-    if is_in_recent(action, history):
+    if is_in_recent(action, history, key=key):
         return SkipStrategy.SKIP
 
     return SkipStrategy.CONTINUE
@@ -139,12 +179,14 @@ def detect_repetition(
     last_action: AgentAction | None,
     history: list[HistoryEntry],
     files_modified: set[str],
+    key: str | None = None,
+    last_key: str | None = None,
 ) -> bool:
     """Atalho: retorna True se ação é repetida de qualquer forma."""
     return (
-        is_exact_repeat(action, last_action)
-        or is_semantic_repeat(action, history, files_modified)
-        or is_in_recent(action, history)
+        is_exact_repeat(action, last_action, key=key, last_key=last_key)
+        or is_semantic_repeat(action, history, files_modified, key=key)
+        or is_in_recent(action, history, key=key)
     )
 
 
