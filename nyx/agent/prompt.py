@@ -103,7 +103,7 @@ Regras de estilo:
 - Projeto: {project_name}
 {dynamic_block}
 USE tools ({tools_str}) APENAS quando a tarefa exigir:
-- Ler/listar/buscar arquivo real (read_file, list_files, grep_files)
+- Ler/listar/buscar arquivo real (read_file, list_files, search)
 - Escrever/editar arquivo (write_file, edit_file)
 - Executar comando (run_command)
 - Buscar externo (web_fetch, web_search)
