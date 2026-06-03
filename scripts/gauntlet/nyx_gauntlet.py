@@ -5057,6 +5057,12 @@ class NyxGauntlet:
         vram = self._kpis.get("vram_mib", 0)
         hw = self._hardware
 
+        # DOC-RECONCILE-ONDA43-STATE-01: quando só um subconjunto de fases roda
+        # (ex.: --only rapido = infra+proxy+visual+config), o report NÃO equivale
+        # ao Gauntlet completo. Rotula explicitamente para não iludir o leitor.
+        _ran_phases = sorted(set(self._phases))
+        _parcial = len(_ran_phases) < len(PHASE_TIMEOUTS)
+
         lines = [
             "# Gauntlet Report -- Nyx-Code",
             "",
@@ -5064,10 +5070,17 @@ class NyxGauntlet:
             f"**Modelo:** {self._model}",
             f"**Duração:** {elapsed:.0f}s ({elapsed / 60:.1f}min)",
             f"**Resultado:** {ok}/{total} ({score:.0f}%)",
+            f"**Cobertura:** {len(_ran_phases)}/{len(PHASE_TIMEOUTS)} fases"
+            + (f" ({', '.join(_ran_phases)}) -- PARCIAL" if _parcial else " -- COMPLETO"),
             "",
-            f"## Gate de Produção: {gate}",
+            f"## Gate de Produção: {gate}" + ("  (PARCIAL)" if _parcial else ""),
             "",
-            "100% obrigatório para push na main." if gate == "REPROVADO" else "Pronto para push na main.",
+            (
+                f"Cobertura parcial ({len(_ran_phases)}/{len(PHASE_TIMEOUTS)} fases): NÃO equivale ao "
+                "Gauntlet completo -- não usar como gate de push isolado."
+                if _parcial
+                else ("100% obrigatório para push na main." if gate == "REPROVADO" else "Pronto para push na main.")
+            ),
             "",
         ]
 
