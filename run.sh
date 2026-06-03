@@ -874,7 +874,17 @@ if [ "$COCKPIT_BG" -eq 1 ]; then
     while true; do sleep 60; done
 fi
 
-"$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/nyx/cli.py"
+# INFRA-HEADLESS-FLAG-ROUTE-01 (#350): propaga --headless ao cli.py quando o
+# usuario pediu modo headless, para honrar o protocolo JSON stdin/stdout
+# (cli_headless.run_headless). Antes o exec ia sem a flag e caia no loop input()
+# nao-TTY, contrariando o comentario "preserva JSON stdout" e o help do --headless.
+# Gauntlet sai antes (linha ~834) e --web fica no while sleep (linha ~874): so o
+# headless puro chega aqui com HEADLESS=1; o REPL default segue sem a flag.
+if [ "$HEADLESS" -eq 1 ]; then
+    "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/nyx/cli.py" --headless
+else
+    "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/nyx/cli.py"
+fi
 EXIT_CODE=$?
 
 exit "$EXIT_CODE"

@@ -476,6 +476,47 @@ class NyxTUI(App):
             chat.mount(ChatMessage("system", err_text))
             chat.scroll_end(animate=False)
             return
+        # TUI-SANDBOX-SENTINEL-01 (#349): /sandbox devolve __sandbox_list/add/remove__.
+        # No REPL/headless eram tratados; na TUI faltava -- vazavam crus no chat e o
+        # /sandbox não funcionava. Espelha a lógica do cli_headless.
+        if isinstance(result, str) and result.startswith("__sandbox_"):
+            from pathlib import Path as _Path
+
+            from nyx.agent.tools.base import (
+                add_extra_root,
+                get_active_project_root,
+                list_extra_roots,
+                remove_extra_root,
+            )
+
+            active = get_active_project_root() or project_root
+            if result == "__sandbox_list__":
+                extras = list_extra_roots()
+                linhas = ["Roots autorizados:", f"  [ativo] {active}"]
+                if extras:
+                    linhas += [f"  [extra] {r}" for r in extras]
+                else:
+                    linhas.append("  (nenhum extra; use /sandbox add <path>)")
+                texto = "\n".join(linhas)
+            elif result.startswith("__sandbox_add__"):
+                raw = result[len("__sandbox_add__"):]
+                cand = _Path(raw).expanduser()
+                if not cand.exists() or not cand.is_dir():
+                    texto = f"erro: '{raw}' não é diretório válido"
+                else:
+                    texto = f"ok: root autorizado {add_extra_root(cand)}"
+            else:  # __sandbox_remove__
+                raw = result[len("__sandbox_remove__"):]
+                cand = _Path(raw).expanduser().resolve()
+                if cand == _Path(active).resolve():
+                    texto = f"erro: project_root ativo {active} não pode ser removido"
+                elif remove_extra_root(cand):
+                    texto = f"ok: root removido {cand}"
+                else:
+                    texto = f"erro: root {cand} não estava na lista"
+            chat.mount(ChatMessage("system", texto))
+            chat.scroll_end(animate=False)
+            return
         # TUI-CD-SANDBOX-SENTINEL-01: /cd devolve o sentinel "__cd__<path>". No REPL
         # cli_handlers._handle_cd trocava o root; na TUI Textual faltava -- o sentinel
         # vazava cru no chat e o /cd não trocava nada (o modelo seguia no root antigo).
