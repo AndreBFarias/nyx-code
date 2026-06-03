@@ -12,6 +12,7 @@ Fluxo integrado:
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
@@ -47,6 +48,13 @@ if TYPE_CHECKING:
     from nyx.config.settings import NyxSettings
 
 logger = get_logger("nyx.agent")
+
+# LOOP-FORCE-DONE-HARDENING-01 (A8): hint imperativo de done() anexado por
+# write_file/edit_file/run_command ("Se a tarefa está completa, chame done().").
+# Regex tolerante: corta de "Se a tarefa" até o "done(...)" final, com pontuação
+# opcional anterior. Substitui o split('. Se a tarefa') literal que devolvia o
+# texto inteiro em silêncio quando a frase do tool mudasse.
+_DONE_HINT_RE = re.compile(r"\s*\.?\s*Se a tarefa.*?done\s*\([^)]*\)\.?", re.IGNORECASE | re.DOTALL)
 
 
 class AgentLoop(_IterationMixin):
@@ -431,12 +439,31 @@ class AgentLoop(_IterationMixin):
         )
         self._gsd.session(msg)
 
-    def _build_force_done_summary(self) -> str:
-        """Gera resumo real do que foi feito ao forçar done."""
+    def _build_force_done_summary(
+        self,
+        create_unmet: bool = False,
+        repeated_action: str | None = None,
+    ) -> str:
+        """Gera resumo real do que foi feito ao forçar done.
+
+        LOOP-FORCE-DONE-HARDENING-01 (A7): quando `create_unmet` é True o turno
+        pediu criar/escrever e nada efetivou -- o summary é HONESTO (não afirma
+        artefato inexistente). `repeated_action` nomeia a tool que loopou.
+        """
+        if create_unmet:
+            n = self._count_action_in_history(repeated_action) if repeated_action else 0
+            alvo = f" '{repeated_action}'" if repeated_action else ""
+            vezes = f" {n}x" if n else ""
+            return (
+                f"Não consegui completar a criação/edição pedida: repeti a ação{alvo}{vezes} "
+                "sem escrever nenhum arquivo. Reformule o pedido ou peça para eu tentar "
+                "novamente com mais detalhes."
+            )
+
         parts: list[str] = []
         for entry in reversed(self._session.history):
             if entry.tool_name and entry.tool_result and "OK:" in entry.tool_result:
-                parts.append(entry.tool_result.split(". Se a tarefa")[0])
+                parts.append(self._strip_done_hint(entry.tool_result))
                 break
             if entry.tool_name and entry.tool_result and entry.is_key_decision:
                 parts.append(entry.tool_result[:200])
@@ -447,6 +474,30 @@ class AgentLoop(_IterationMixin):
         if not parts:
             parts.append("Tarefa processada")
         return ". ".join(parts)
+
+    @staticmethod
+    def _strip_done_hint(tool_result: str) -> str:
+        """LOOP-FORCE-DONE-HARDENING-01 (A8): remove o hint imperativo de done()
+        de um tool_result sem depender da substring literal '. Se a tarefa'.
+
+        write_file/edit_file anexam 'Se a tarefa está completa, chame done().' à
+        mensagem de sucesso. O split literal antigo devolvia o texto inteiro em
+        silêncio se a frase mudasse. Aqui um regex tolerante (qualquer 'Se a
+        tarefa ... done()') corta o hint; se o padrão não casar, devolve a 1ª
+        sentença ou o texto cru limitado -- nunca a string crua inteira sem teto.
+        """
+        m = _DONE_HINT_RE.search(tool_result)
+        if m:
+            cut = tool_result[: m.start()].rstrip(" .")
+            if cut:
+                return cut
+        head = tool_result.split(". ", 1)[0].rstrip(" .")
+        return (head or tool_result)[:200]
+
+    def _count_action_in_history(self, tool_name: str) -> int:
+        """Conta ocorrências da tool no histórico (inclui execuções e os SKIPs
+        registrados pelo detector de repetição)."""
+        return sum(1 for e in self._session.history if e.tool_name == tool_name)
 
     @property
     def tools_count(self) -> int:

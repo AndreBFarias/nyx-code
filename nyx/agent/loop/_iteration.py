@@ -101,14 +101,26 @@ class _IterationMixin:
         self._turn_wants_create = _classify_intent(user_input) == "code"
         self._done_rejected = False
 
-    def _should_reject_done(self) -> bool:
-        """Rejeita o done UMA vez se o turno pediu criar/escrever e nenhum write
-        efetivou. Rejeita no máximo 1x/turno; MAX_ITERATIONS é a rede final."""
-        if getattr(self, "_done_rejected", False) or not getattr(self, "_turn_wants_create", False):
+    def _turn_create_unmet(self) -> bool:
+        """True se o turno pediu criar/escrever (intent 'code') e nenhum write
+        efetivou em relação ao baseline do início do turno.
+
+        Predicado puro de observação -- NÃO consome o gate _done_rejected (que é
+        do mecanismo de rejeição-1x do done explícito, 351). Reusado pelo
+        FORCE_DONE (344) para tornar o summary honesto sem bloquear o fim do turno
+        (ADR-033: forçar o fim é aceitável; mentir sobre o fim, não)."""
+        if not getattr(self, "_turn_wants_create", False):
             return False
         baseline = getattr(self, "_turn_writes_baseline", 0)
         wrote = self._session.files_modified_count > baseline
         return not wrote
+
+    def _should_reject_done(self) -> bool:
+        """Rejeita o done UMA vez se o turno pediu criar/escrever e nenhum write
+        efetivou. Rejeita no máximo 1x/turno; MAX_ITERATIONS é a rede final."""
+        if getattr(self, "_done_rejected", False):
+            return False
+        return self._turn_create_unmet()
 
     async def _execute_tool_calls(self, tool_calls: list[dict], iteration: int) -> SessionStatus | None:
         """Executa tool calls do LLM. Retorna SessionStatus se done/force_done.
@@ -402,7 +414,18 @@ class _IterationMixin:
         )
 
         if strategy == SkipStrategy.FORCE_DONE:
-            summary = self._build_force_done_summary()
+            # LOOP-FORCE-DONE-HARDENING-01 (A7): o FORCE_DONE fecha o turno mesmo
+            # (rede anti-MAX_ITERATIONS, não-bloqueante por design). Mas se o turno
+            # pediu criar/escrever e nenhum write efetivou, o summary deve ser
+            # HONESTO -- repetir read_file/list_files até o teto e anunciar sucesso
+            # é o "done alucinado" que a 351 corta no done explícito, voltando por
+            # esta porta. _turn_create_unmet() é o mesmo predicado do guard, sem o
+            # gate de rejeição-1x (aqui não rejeitamos nada; ADR-033).
+            repeated = key if key is not None else action.action_type.value
+            summary = self._build_force_done_summary(
+                create_unmet=self._turn_create_unmet(),
+                repeated_action=repeated,
+            )
             logger.info("[loop] FORCE_DONE por repetição: %s", summary[:80])
             return SessionStatus(
                 state=SessionState.DONE,
