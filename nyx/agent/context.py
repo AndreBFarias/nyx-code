@@ -45,10 +45,36 @@ COMPACT_RECENT = 3
 
 LEVEL_THRESHOLDS = (0.4, 0.6, 0.85)
 
+# LOOP-COMPACTION-SUMMARY-WIRING-01: teto do bloco de resumo reinjetado no
+# payload do modelo (_call_llm). O resumo de compact_history precisa CABER junto
+# do system prompt + janela de 4 dentro do num_ctx real (ADR-034: RTX 3050 4GB).
+# Com DEFAULT_MAX_TOKENS=3584 e system compacto ~106 tok, 320 tokens (~1280 ch)
+# de resumo deixam folga ampla para as 4 recentes sem arriscar estouro de VRAM.
+# É um TETO defensivo: o resumo só é injetado quando a compactação de fato
+# disparou (nível >= 1); no nível 0 compact_history devolve o histórico inteiro
+# re-serializado (armadilha medida em RELATORIO_LOOP_CONTEXT_WINDOW_AUDIT_01),
+# por isso a injeção é capada por este limite e gated pelo nível.
+SUMMARY_REINJECT_MAX_TOKENS = 320
+SUMMARY_REINJECT_PREFIX = "[resumo da conversa anterior]"
+
 
 def estimate_tokens(text: str) -> int:
     """Heurística: ~4 chars por token (rápido, sem dependência)."""
     return len(text) // 4
+
+
+def cap_summary(summary: str, max_tokens: int = SUMMARY_REINJECT_MAX_TOKENS) -> str:
+    """Capa o resumo reinjetado a max_tokens (heurística ~4 ch/tok), cortando
+    pela borda de char com marcador explícito. Garante que o bloco de contexto
+    de longo prazo nunca estoure o num_ctx real (ADR-034). String vazia entra,
+    string vazia sai."""
+    text = (summary or "").strip()
+    if not text:
+        return ""
+    max_chars = max(0, max_tokens) * 4
+    if max_chars and len(text) > max_chars:
+        text = text[:max_chars].rstrip() + "\n[... resumo truncado por orçamento]"
+    return text
 
 
 class ContextBudget:

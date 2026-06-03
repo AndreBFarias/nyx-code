@@ -348,7 +348,7 @@ Uso:
 
 Para estado autoritativo consultar `dev-journey/08-templates/PROJECT_SNAPSHOT.md`.
 
-- **Gauntlet**: 322 testes em 61 fases; `--only rapido` 18/18 (1ª execução fresca); `--only proxy` 7/7 + `--only qualidade` 5/5 estáveis
+- **Gauntlet**: 324 testes em 61 fases; `--only rapido` 18/18 (1ª execução fresca); `--only proxy` 7/7 + `--only qualidade` 5/5 estáveis
 - **Smoke**: `boot ok` em ~0.14s (10x abaixo do critério v1.0 de 1.5s)
 - **Invariantes**: 14/14 PASS
 - **Cockpit**: operacional em `127.0.0.1:11437` com 19 endpoints HTTP + 2 WS

@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import httpx
 
-from nyx.agent.context import ContextBudget
+from nyx.agent.context import ContextBudget, cap_summary
 from nyx.agent.loop._iteration import _IterationMixin, _reminder_every
 from nyx.agent.loop._types import PermissionCallback
 from nyx.agent.memory import NyxMemory
@@ -126,6 +126,11 @@ class AgentLoop(_IterationMixin):
         self._force_reminder: bool = False
         self._reminder_extra: str | None = None
         self._original_input: str | None = None
+        # LOOP-COMPACTION-SUMMARY-WIRING-01: resumo compactado mais recente
+        # (capado). Preenchido em _run_iterations quando a compactação dispara;
+        # reinjetado por _call_llm como memória de longo prazo barata. Vazio
+        # enquanto a conversa for curta o bastante para caber na janela.
+        self._compacted_summary: str = ""
 
         self._collector = StreamingCollector(on_token=on_token) if streaming and on_token else None
         self._http_client: httpx.AsyncClient | None = None
@@ -316,7 +321,15 @@ class AgentLoop(_IterationMixin):
                 pct_before = self._budget._history_pct(self._session)
                 tokens_before = int(pct_before * self._budget.max_tokens)
                 logger.info("[loop] compactação nível %d", level)
-                self._budget.compact_history(self._session)
+                # LOOP-COMPACTION-SUMMARY-WIRING-01: o retorno de compact_history
+                # deixa de ser descartado. Guardamos o resumo (capado) para o
+                # _call_llm reinjetar como memória de longo prazo. Só guardamos
+                # quando a compactação de fato comprimiu (nível >= 1); no nível 0
+                # compact_history devolve o histórico inteiro re-serializado, que
+                # não deve ser reinjetado (armadilha medida no audit da 360).
+                summary = self._budget.compact_history(self._session)
+                if level >= 1:
+                    self._compacted_summary = cap_summary(summary)
                 pct_after = self._budget._history_pct(self._session)
                 tokens_after = int(pct_after * self._budget.max_tokens)
                 tokens_removed = max(0, tokens_before - tokens_after)

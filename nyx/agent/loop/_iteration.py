@@ -16,6 +16,7 @@ from typing import Any
 
 import httpx
 
+from nyx.agent.context import SUMMARY_REINJECT_PREFIX, cap_summary
 from nyx.agent.intent import classify as _classify_intent
 from nyx.agent.lang_check import is_pt_br
 from nyx.agent.loop._constants import ACTION_TO_TOOL, CORE_TOOLS, LLM_TIMEOUT, TOOL_KEYWORDS, _remap_params
@@ -539,19 +540,21 @@ class _IterationMixin:
 
         Estratégia de contexto para GPU limitada (num_ctx=4096, RTX 3050 4GB):
         - Histórico curto (<= 4 msgs): envia tudo.
-        - Histórico longo (> 4 msgs): envia só as últimas 4 (user + tool_call +
-          result + resposta). É uma escolha deliberada de sobrevivência em janela
-          apertada; a memória de longo prazo é reinjetada de forma barata pelo
-          <system-reminder> (repo_map + session_summary + pedido original) via
-          _maybe_inject_reminder, não por este ponto.
+        - Histórico longo (> 4 msgs): envia o resumo compactado (se houver) +
+          as últimas 4 (user + tool_call + result + resposta). A janela de 4 é
+          uma escolha deliberada de sobrevivência em janela apertada; o resumo
+          dá memória de longo prazo barata, capada por SUMMARY_REINJECT_MAX_TOKENS.
 
-        Trade-off assumido (LOOP-CONTEXT-WINDOW-AUDIT-01): a janela de 4 pode
-        omitir citações antigas (ex.: arquivo mencionado muitos turnos atrás),
-        sintoma mitigado por prompt nas sprints 354/355. A compactação progressiva
-        do ContextBudget roda em _run_iterations (não aqui); medição registrada em
-        dev-journey/07-reports/RELATORIO_LOOP_CONTEXT_WINDOW_AUDIT_01.md mostrou
-        que anexar o resumo aqui (opção b) custaria até ~84% do num_ctx em
-        conversas médias sem comprimir, por isso foi descartada.
+        LOOP-COMPACTION-SUMMARY-WIRING-01: o resumo de compact_history (calculado
+        em _run_iterations) deixou de ser descartado. Quando a compactação dispara
+        (nível >= 1), _run_iterations guarda o resumo capado em self._compacted_summary
+        e este ponto o reinjeta como UMA mensagem curta antes das 4 recentes. Sem
+        isso, em conversa longa o modelo só via 4 mensagens e a 1ª citação (ex.:
+        arquivo mencionado cedo) sumia -- raiz da alucinação que 354/355 mitigam
+        por prompt. A armadilha da opção (b) ingênua (anexar o histórico inteiro
+        re-serializado, ~84% do num_ctx, medida em RELATORIO_LOOP_CONTEXT_WINDOW_AUDIT_01)
+        é evitada por dois guards: só injeta quando há resumo de compactação real
+        (nível >= 1) e o bloco é capado por cap_summary (ADR-034, RTX 3050 4GB).
         """
         # NYX-PROMPT-REINJECT-01: reinjeta <system-reminder> antes da request,
         # com base em contagem de tool calls ou drift detectado no turno anterior.
@@ -593,13 +596,28 @@ class _IterationMixin:
 
         messages = [{"role": "system", "content": system_content}]
 
-        # Janela fixa de 4 quando o histórico é longo. O ramo de compactação
-        # local foi removido por ser inalcançável (LOOP-CONTEXT-WINDOW-AUDIT-01):
-        # should_compact só vira True por volta de ~50 turnos, ponto em que este
-        # `if len > 4` já captura; a compactação efetiva mora em _run_iterations.
+        # Janela fixa de 4 quando o histórico é longo, PRECEDIDA do resumo
+        # compactado (LOOP-COMPACTION-SUMMARY-WIRING-01). A compactação efetiva
+        # mora em _run_iterations, que guarda o resumo capado em
+        # self._compacted_summary quando dispara (nível >= 1). Aqui ele entra como
+        # UMA mensagem curta role=user (compatível com o formato de chat) com
+        # prefixo canônico, dando memória de longo prazo sem estourar o num_ctx.
         if len(history_msgs) > 4:
+            summary = cap_summary(getattr(self, "_compacted_summary", "") or "")
+            if summary:
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": f"{SUMMARY_REINJECT_PREFIX}\n{summary}",
+                    }
+                )
             messages.extend(history_msgs[-4:])
-            logger.info("[loop] contexto reduzido: %d/%d msgs", 4, len(history_msgs))
+            logger.info(
+                "[loop] contexto reduzido: %d/%d msgs (resumo=%s)",
+                4,
+                len(history_msgs),
+                "sim" if summary else "não",
+            )
         else:
             messages.extend(history_msgs)
 

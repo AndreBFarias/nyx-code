@@ -2270,11 +2270,11 @@ class NyxGauntlet:
             self._add(fid, f"slash bypass {cmd}", "slash_bypass", ok, dt, details=details)
 
     # ═══════════════════════════════════════════════════════════════════
-    # FASE: ROBUSTEZ (6 testes -- P1-B)
+    # FASE: ROBUSTEZ (7 testes -- P1-B; RB-07 add LOOP-COMPACTION-SUMMARY-WIRING-01)
     # ═══════════════════════════════════════════════════════════════════
 
     async def _phase_robustez(self) -> None:
-        from nyx.agent.context import ContextBudget
+        from nyx.agent.context import ContextBudget, cap_summary
         from nyx.agent.model_tier import get_model_tier
         from nyx.agent.models import ActionType, AgentAction
         from nyx.agent.repetition import detect_repetition, is_cycle
@@ -2323,6 +2323,80 @@ class NyxGauntlet:
             0,
             details=f"{tier.hardware_profile.value}: {tier.gpu_name} ({tier.vram_total_mib}MiB)",
         )
+
+        # RB-07: Resumo compactado chega ao payload de _call_llm
+        # (LOOP-COMPACTION-SUMMARY-WIRING-01). Determinístico, sem Ollama:
+        # mocka httpx, monta uma conversa longa (dispara compactação nível >= 1),
+        # replica o wiring de _run_iterations e exercita o _call_llm REAL. Prova
+        # que o resumo está no payload E que o payload respeita o num_ctx real.
+        import nyx.agent.loop._iteration as _itmod
+        from nyx.agent.loop import AgentLoop
+        from nyx.config.defaults import NUM_CTX
+
+        def _estimate(text: str) -> int:
+            return len(text) // 4
+
+        # 32 turnos cruzam should_compact com margem (pct ~0.46 do budget=3584);
+        # ~16-38 é a banda do gatilho pós-367 (LOOP-CONTEXT-BUDGET-RECALIBRATE-01).
+        sess = CodeSession()
+        sess.add_user("Leia nyx/agent/context.py e explique a compactacao.")
+        sess.add_tool_call(
+            "read_file", {"file_path": "nyx/agent/context.py"}, "ContextBudget com 4 niveis. " * 8, is_key=True
+        )
+        sess.add_assistant("O arquivo define ContextBudget com 4 niveis.")
+        for i in range(32):
+            sess.add_user(f"Pergunta de acompanhamento {i}.")
+            sess.add_tool_call("run_command", {"command": f"echo {i}"}, f"Saida do passo {i}. " * 6)
+            sess.add_assistant(f"Resposta {i} registrando progresso.")
+
+        _captured: dict = {}
+
+        class _FakeResp:
+            def json(self_inner):
+                return {"choices": [{"message": {"content": "ok", "role": "assistant"}, "finish_reason": "stop"}]}
+
+        class _FakeClient:
+            def __init__(self_inner, *a, **k):
+                pass
+
+            async def post(self_inner, url, json=None, **k):
+                _captured["payload"] = json
+                return _FakeResp()
+
+        _real_client = _itmod.httpx.AsyncClient
+        rb7_summary_in = False
+        rb7_teto_ok = False
+        rb7_tok = 0
+        try:
+            _itmod.httpx.AsyncClient = _FakeClient
+            loop = AgentLoop(project_root=str(PROJECT_ROOT), streaming=False)
+            loop._session = sess
+            loop._vram_checked = True
+            if loop._budget.should_compact(sess):
+                lvl = loop._budget.get_compaction_level(sess)
+                summ = loop._budget.compact_history(sess)
+                if lvl >= 1:
+                    loop._compacted_summary = cap_summary(summ)
+            await loop._call_llm()
+            payload_msgs = _captured.get("payload", {}).get("messages", [])
+            from nyx.agent.context import SUMMARY_REINJECT_PREFIX
+
+            rb7_summary_in = any(SUMMARY_REINJECT_PREFIX in m.get("content", "") for m in payload_msgs)
+            rb7_tok = sum(_estimate(m.get("content", "")) for m in payload_msgs)
+            rb7_teto_ok = rb7_tok <= NUM_CTX
+        except Exception as e:  # noqa: BLE001 -- teste não derruba a fase
+            self._add("RB-07", "Resumo compactado no payload", "robustez", False, 0, error=str(e)[:120])
+        finally:
+            _itmod.httpx.AsyncClient = _real_client
+        if "RB-07" not in {r.feature_id for r in self._results}:
+            self._add(
+                "RB-07",
+                "Resumo compactado no payload",
+                "robustez",
+                rb7_summary_in and rb7_teto_ok,
+                0,
+                details=f"resumo_no_payload={rb7_summary_in} tok={rb7_tok}<=num_ctx={NUM_CTX}:{rb7_teto_ok}",
+            )
 
     # ═══════════════════════════════════════════════════════════════════
     # FASE: E2E (12 testes -- P1-F)
