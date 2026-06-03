@@ -181,6 +181,13 @@ def build_reminder(
         "- Sem emoji em código/output user-facing.",
         "- Use tools (write_file/edit_file/run_command) -- NUNCA afirme sucesso sem tool call real.",
         f"- Sandbox: pode tocar apenas {project_root} (e roots extra opt-in).",
+        # LOOP-PRESENT-TOOL-RESULT-01 (#353): o 3b executa a tool de leitura mas
+        # responde "done/concluído" escondendo o dado, e alucina tools que não
+        # chamou. Estas duas linhas atacam a raiz no ponto de reinjeção.
+        "- Após ler/listar/buscar: APRESENTE na resposta o conteúdo que a tool "
+        "retornou; nunca responda só 'concluído'/'done' sem mostrar o resultado.",
+        "- Buscar texto = tool search; lembrar um fato = tool write_memory. NÃO "
+        "invente o resultado de uma tool que você não chamou de verdade.",
     ]
     if extra:
         lines.append(extra)
