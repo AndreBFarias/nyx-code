@@ -86,6 +86,30 @@ def _reminder_every() -> int:
 class _IterationMixin:
     """Métodos de iteração/LLM extraídos de AgentLoop."""
 
+    # LOOP-DONE-VERIFY-ARTIFACTS-01 (#351): combate o "done alucinado" -- o 3b
+    # declara um arquivo criado sem criar (ex.: README anunciado mas ausente).
+    _DONE_REJECT_HINT = (
+        "Você ainda NÃO criou nem alterou nenhum arquivo neste turno. NÃO chame "
+        "done. Chame a tool write_file (ou edit_file) com o conteúdo de verdade "
+        "primeiro; só chame done depois que o arquivo existir."
+    )
+
+    def _init_done_guard(self, user_input: str) -> None:
+        """Arma o guard de done no início do turno: baseline de writes + se o
+        pedido é de criar/escrever arquivo (intent 'code')."""
+        self._turn_writes_baseline = self._session.files_modified_count
+        self._turn_wants_create = _classify_intent(user_input) == "code"
+        self._done_rejected = False
+
+    def _should_reject_done(self) -> bool:
+        """Rejeita o done UMA vez se o turno pediu criar/escrever e nenhum write
+        efetivou. Rejeita no máximo 1x/turno; MAX_ITERATIONS é a rede final."""
+        if getattr(self, "_done_rejected", False) or not getattr(self, "_turn_wants_create", False):
+            return False
+        baseline = getattr(self, "_turn_writes_baseline", 0)
+        wrote = self._session.files_modified_count > baseline
+        return not wrote
+
     async def _execute_tool_calls(self, tool_calls: list[dict], iteration: int) -> SessionStatus | None:
         """Executa tool calls do LLM. Retorna SessionStatus se done/force_done.
 
@@ -103,6 +127,10 @@ class _IterationMixin:
                 self._on_tool(name, args)
 
             if self._tools.is_done(name):
+                if self._should_reject_done():
+                    self._done_rejected = True
+                    self._session.add_tool_call(name, args, self._DONE_REJECT_HINT)
+                    continue
                 summary = args.get("summary", "Tarefa concluída.")
                 self._session.add_tool_call(name, args, summary, is_key=True)
                 return SessionStatus(
@@ -239,6 +267,10 @@ class _IterationMixin:
         `_execute_tool_calls` -- `self._tools.execute` vai para `to_thread`.
         """
         if action.action_type == ActionType.DONE:
+            if self._should_reject_done():
+                self._done_rejected = True
+                self._session.add_tool_call("done", action.params, self._DONE_REJECT_HINT)
+                return None  # continua o loop -- força o write_file antes do done
             summary = action.params.get("summary", "Tarefa concluída.")
             self._session.add_tool_call("done", action.params, summary, is_key=True)
             return SessionStatus(

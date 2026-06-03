@@ -250,6 +250,8 @@ class AgentLoop(_IterationMixin):
         self._lang_drift_streak = 0
         self._force_reminder = False
         self._reminder_extra = None
+        # LOOP-DONE-VERIFY-ARTIFACTS-01 (#351): arma o guard de done alucinado.
+        self._init_done_guard(user_input)
 
         # NYX-GSD-CHECKPOINTS-01: registra pedido inicial em progress.md.
         self._gsd.user_input(user_input)
