@@ -1042,6 +1042,27 @@ capacidade do modelo, mitigáveis pela cadeia (354/355) -- não bugs de infra.
 
 <!-- MANUAL_OVERRIDE_ONDA_43_END -->
 
+<!-- MANUAL_OVERRIDE_ONDA_44_START -->
+
+### Bloco ONDA-44: auditoria das ondas 36-43 (erros e problemas não observados) -- 2026-06-03
+
+**Origem:** auditoria a pedido do dono ("audita o que foi feito a procura de erros e problemas não observados", após ler todos os ADRs). Varredura do código tocado nas ondas 36-43 (RESSURREIÇÃO + E2E + estresse) cruzado com os ADRs 032/033/034 (a alma). Saúde de base verde no início (invariantes 14/14, ruff limpo). 8 achados materializados como sprints 357-364 (protocolo anti-débito; nenhum absorvido implicitamente). GPU 356 confirmada como ambiente (flags `OLLAMA_FLASH_ATTENTION`/`GGML_CUDA_NO_VMM` corretamente exportadas antes do `ollama serve`; diagnóstico do dono validado, reboot é o caminho) -- sem sprint de código.
+
+| # | Sprint | Prio | Status |
+|---|--------|------|--------|
+| 357 | **TUI-SENTINEL-DISPATCH-UNIFY-01** | ALTA | PENDENTE (~10+ comandos slash vazam o sentinel cru na TUI Textual padrão -- provado em runtime: /usage->`__usage__`, /status, /trace, /context, /files, /export, /rewind, /schema, /aesthetic, /output-style; `app.py:_dispatch_slash` trata só 9 sentinels, o resto cai no fallback `ChatMessage("tool", str(result))` da linha 559-561. As sprints 343/348/349 corrigiram só os 3 do E2E -- o problema é sistêmico (migração Textual ONDA-32 portou subconjunto). Fix: despachador de sentinel compartilhado entre cli.py/app.py/cli_headless. Viola ADR-026) | -- |
+| 358 | **CD-REPOMAP-REPOINT-01** | MÉDIA | PENDENTE (fix 348 incompleto: `set_project_root` re-aponta prompt e tools mas NÃO o `self._repomap` -- após `/cd` o "Mapa do repositório" do system prompt segue indexando o dir ANTIGO, reintroduzindo o bug de caminho errado que a 348 quis matar. `_core.py:228-238` + `_repomap` do `__init__` linha 134) | 348 |
+| 359 | **LOOP-TOOL-ROUTING-CONSISTENCY-01** | MÉDIA | PENDENTE (3 tabelas divergem: `write_memory` sem alias no parser -> `return _fail`; `analyze`/`patch`/`repl` no enum ActionType mas sem rota em ACTION_TO_TOOL -> `_execute_parsed_action` aborta silencioso. O caminho do parser fallback é o PRIMÁRIO do 3b (31 usos/dia nos logs). write_memory só funciona pelo remendo do proxy (MEMORY-INTENT-ENFORCE) -- o sintoma #353 foi atribuído só ao modelo. Unificar ActionType/_ACTION_ALIASES/ACTION_TO_TOOL + tornar descarte visível) | 353 |
+| 360 | **LOOP-CONTEXT-WINDOW-AUDIT-01** | MÉDIA | PENDENTE (janela fixa de 4 mensagens em `_call_llm:521` corta o histórico em conversa longa -- provável causa-raiz da alucinação de localização que 354/355 tratam por prompt; branch `elif should_compact` inalcançável quando >4 msgs, docstring promete compactação que não roda aqui. Investigar + decidir janela adaptativa / resumo anexado / assumir trade-off) | 354, 355 |
+| 361 | **PROMPT-TOOLNAME-SEARCH-FIX-01** | BAIXA | PENDENTE (trivial: `prompt.py:106` cita `grep_files`, tool inexistente -- real é `search`; o reminder 354 já usa `search`, o próprio prompt se contradiz. Veneno para o 3b) | -- |
+| 362 | **LOOP-ACTIONTYPE-FALLBACK-DONE-01** | BAIXA | PENDENTE (`_iteration.py:171`: tool fora do enum ActionType vira `ActionType.DONE` no detector de repetição -- multi_edit/skill/task_*/agent colapsam em DONE, semântica errada. Execução está correta; só a detecção de repetição é afetada) | -- |
+| 363 | **LOOP-FORCE-DONE-HARDENING-01** | BAIXA | PENDENTE (A7: FORCE_DONE por repetição (344) conclui sem passar pelo guard de artefato (351) -- done alucinado volta por outra porta em turno code sem write. A8: `_build_force_done_summary` `split(". Se a tarefa")[0]` depende de string literal frágil. Agrupadas por coesão) | 344, 351 |
+| 364 | **DOC-RECONCILE-ONDA43-STATE-01** | BAIXA | PENDENTE (STATE.md 4 ondas atrás -- topo diz "ONDA-39", real ONDA-43; contagem de commands divergente 67/70/71 em 3 docs; GAUNTLET_REPORT.md mostra 19/19 fase rápida com "Gate APROVADO" que pode iludir -- completo 220 não roda desde cdcee20) | -- |
+
+**ONDA-44 MATERIALIZADA -- 8 sprints PENDENTE em producao/ (357-364).** Auditoria read-only, zero código tocado. Ordem sugerida de execução: 357 (ALTA, maior impacto de UX) -> 358/359/360 (MÉDIA) -> 361/362/363/364 (BAIXA). Cada uma com proof-of-work runtime-real no spec (BRIEF §Contratos). Specs em `dev-journey/06-sprints/producao/SPRINT_<ID>.md`.
+
+<!-- MANUAL_OVERRIDE_ONDA_44_END -->
+
 <!-- MANUAL_OVERRIDE_ONDA_28_START -->
 
 ### Bloco ONDA-28: TUI paridade Claude Code (boot silencioso + banner block + input fixo + wizard completo) (2026-05-18) <!-- noqa-anonimato -->
