@@ -235,6 +235,16 @@ class AgentLoop(_IterationMixin):
         """
         self._project_root = str(new_root)
         self._tools.project_root = str(new_root)
+        # CD-REPOMAP-REPOINT-01: re-apontar e re-indexar o RepoMap antes de
+        # reconstruir o prompt. Sem isto o bloco "Mapa do repositório" segue
+        # servindo os símbolos do diretório anterior (fix 348 ficou incompleto).
+        # RepoMap não expõe troca de root; re-instanciar é o caminho disponível.
+        # build() falho não derruba o /cd (espelha o tratamento do __init__).
+        self._repomap = RepoMap(str(new_root))
+        try:
+            self._repomap.build()
+        except Exception as e:  # noqa: BLE001 -- indexação não deve derrubar o /cd
+            logger.warning("repomap: falha no build pós-/cd: %s", e)
         self._rebuild_system_prompt()
 
     async def run(self, user_input: str) -> SessionStatus:

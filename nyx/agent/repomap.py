@@ -42,6 +42,16 @@ EXCLUDE_DIRS = {
 }
 
 
+def _looks_like_flat_entry(value: dict) -> bool:
+    """True se `value` é uma entrada de arquivo (formato de cache antigo, flat).
+
+    No formato antigo o top-level era {rel_path: {mtime, symbols}}; no novo é
+    {root_abs: {rel_path: {mtime, symbols}}}. Uma entrada flat tem `mtime` direto;
+    um bucket de root não. Usado para descartar o cache legado na primeira gravação.
+    """
+    return "mtime" in value or "symbols" in value
+
+
 def _is_excluded(path: Path, root: Path) -> bool:
     try:
         rel = path.relative_to(root)
@@ -105,21 +115,45 @@ class RepoMap:
         return CACHE_FILE
 
     def _load_cache(self) -> None:
+        # CD-REPOMAP-REPOINT-01: o cache em disco é namespiado pelo root absoluto
+        # ({root: {rel: {mtime, symbols}}}). Sem isto, dois projetos com arquivos
+        # de mesmo path relativo (ex.: ambos com "modulo.py") colidem: a chave
+        # relativa é a mesma e, no mesmo segundo de mtime, o build de um serve os
+        # símbolos do outro. Em memória, self._cache continua {rel: {...}} do root
+        # atual (contrato preservado para invalidate/render).
         if not CACHE_FILE.exists():
             return
         try:
             data = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
-            if isinstance(data, dict):
-                self._cache = {k: v for k, v in data.items() if isinstance(v, dict)}
         except (OSError, json.JSONDecodeError) as e:
             logger.warning("Cache de repomap corrompido (%s), reiniciando", e)
             self._cache = {}
+            return
+        if not isinstance(data, dict):
+            return
+        bucket = data.get(str(self._root))
+        if isinstance(bucket, dict):
+            self._cache = {k: v for k, v in bucket.items() if isinstance(v, dict)}
 
     def save_cache(self) -> None:
+        # Mescla preservando os buckets de outros roots já persistidos.
         try:
             CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+            store: dict[str, dict] = {}
+            if CACHE_FILE.exists():
+                try:
+                    existing = json.loads(CACHE_FILE.read_text(encoding="utf-8"))
+                    if isinstance(existing, dict):
+                        store = {
+                            k: v
+                            for k, v in existing.items()
+                            if isinstance(v, dict) and not _looks_like_flat_entry(v)
+                        }
+                except (OSError, json.JSONDecodeError):
+                    store = {}
+            store[str(self._root)] = self._cache
             CACHE_FILE.write_text(
-                json.dumps(self._cache, ensure_ascii=False, indent=2),
+                json.dumps(store, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
         except OSError as e:
