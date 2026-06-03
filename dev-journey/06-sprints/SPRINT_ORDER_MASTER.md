@@ -1059,7 +1059,17 @@ capacidade do modelo, mitigáveis pela cadeia (354/355) -- não bugs de infra.
 | 363 | **LOOP-FORCE-DONE-HARDENING-01** | BAIXA | PENDENTE (A7: FORCE_DONE por repetição (344) conclui sem passar pelo guard de artefato (351) -- done alucinado volta por outra porta em turno code sem write. A8: `_build_force_done_summary` `split(". Se a tarefa")[0]` depende de string literal frágil. Agrupadas por coesão) | 344, 351 |
 | 364 | **DOC-RECONCILE-ONDA43-STATE-01** | BAIXA | PENDENTE (STATE.md 4 ondas atrás -- topo diz "ONDA-39", real ONDA-43; contagem de commands divergente 67/70/71 em 3 docs; GAUNTLET_REPORT.md mostra 19/19 fase rápida com "Gate APROVADO" que pode iludir -- completo 220 não roda desde cdcee20) | -- |
 
-**ONDA-44 MATERIALIZADA -- 8 sprints PENDENTE em producao/ (357-364).** Auditoria read-only, zero código tocado. Ordem sugerida de execução: 357 (ALTA, maior impacto de UX) -> 358/359/360 (MÉDIA) -> 361/362/363/364 (BAIXA). Cada uma com proof-of-work runtime-real no spec (BRIEF §Contratos). Specs em `dev-journey/06-sprints/producao/SPRINT_<ID>.md`.
+**ONDA-44 EM EXECUÇÃO (2026-06-03) -- 357-363 IMPLEMENTADAS e commitadas; aguardam estresse final do dono para virar CONCLUIDA; 364 + colaterais pendentes.** 7 sprints de código aplicadas e verificadas independentemente (invariantes 14/14 em cada): 357 (`a4a70fd`), 361 (`7a696f1`), 358 (`944384d`), 359 (`503aed7`), 360 (`6986d9e`), 362 (`0cc6210`), 363 (`f784438`). A classificação CONCLUIDA fica para depois do estresse da Nyx como usuário-final (pedido do dono). 364 (doc reconcile) roda por último para capturar o estado final.
+
+### Follow-ups da ONDA-44 (achados colaterais dos executores -- anti-débito, NÃO absorvidos)
+
+| # | Sprint | Prio | Origem | Status |
+|---|--------|------|--------|--------|
+| 365 | **CLI-REPL-REPLAY-ERROR-SENTINEL-LEAK-01** | BAIXA | exec 357 | PENDENTE (o REPL legado imprime `__error__` cru em `_handle_replay`/`debug`/`progress` -- mesmo bug da 357 no host REPL) |
+| 366 | **LOOP-COMPACTION-SUMMARY-WIRING-01** | MÉDIA | exec 360 | PENDENTE (`compact_history` descarta o retorno e não muta a sessão -- o resumo NUNCA chega ao modelo; somado à janela de 4, o histórico longo não chega de forma nenhuma. Raiz de fundo da alucinação de contexto longo) |
+| 367 | **LOOP-CONTEXT-BUDGET-RECALIBRATE-01** | MÉDIA | exec 360 | PENDENTE (`max_tokens=12000` vs `num_ctx=4096` real; `should_compact` dispara ~50 turnos, tarde demais para GPU 4GB) |
+
+Nota menor (não-sprint): `parser.py:186-187` tem regex `_CONTINUATION_PATTERNS` com palavras sem acento (intencional, casa a saída do 3b); o `validar-acentuacao` standalone reclama mas o hook do projeto não valida `.py` -- não-bloqueante, deixado como está.
 
 <!-- MANUAL_OVERRIDE_ONDA_44_END -->
 
