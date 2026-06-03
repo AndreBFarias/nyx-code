@@ -972,6 +972,31 @@ Diagnósticos antigos em /tmp/{pyte_repro,pty_resize_bytes,pilot_input_probe}.py
 
 <!-- MANUAL_OVERRIDE_ONDA_41_END -->
 
+<!-- MANUAL_OVERRIDE_ONDA_42_START -->
+
+### Bloco ONDA-42: bugs achados no E2E real (criar projeto do zero) -- 2026-06-02
+
+**Origem:** run E2E como usuário, do zero. O dono pediu um ambiente de teste real (repo
+`~/Desenvolvimento/VOID-QRcode-Nyx`) e que a Nyx construísse o núcleo CLI de um projeto dele
+(VOID | QRcode). Usando a Nyx de verdade via `--headless`, dois bugs de runtime apareceram --
+o central poluiu o próprio repo Nyx (a Nyx reescreveu `requirements.txt` e criou `core/` lá
+dentro, revertido via `git checkout`/`rm`). Achados registrados em `/tmp/nyx_e2e_achados.md`.
+
+| # | Sprint | Bloco | Prio | Status | Deps |
+|---|--------|-------|------|--------|------|
+| 348 | **CD-CONTEXT-REBUILD-01** | 42 bug runtime | ALTA | CONCLUIDA (2026-06-02; `/cd` trocava o `_ACTIVE_ROOT` mas NÃO reconstruía o system prompt -- o bloco "Diretório:" mantinha o root antigo (prompt.py:28/102/183) e o 3b gerava caminhos ABSOLUTOS no root anterior, que o /cd preserva como extra -> escrita silenciosa no lugar errado (poluiu o repo Nyx). Pior na TUI Textual: `app.py:_dispatch_slash` nem tratava o sentinel `__cd__` -> vazava cru e o /cd não trocava nada. Fix: novo `AgentLoop.set_project_root()` (re-aponta `_project_root` + `_tools.project_root` + `_rebuild_system_prompt`) usado nos 3 caminhos (cli_handlers REPL, cli_headless, app.py TUI que passou a tratar `__cd__`). Proof: teste determinístico red->green (system prompt reflete root novo + tools re-apontadas), smoke ok, invariantes 14/14, ruff limpo, acento rc=0, e build runtime real pós-fix no repo de teste) | -- |
+| 349 | **TUI-SANDBOX-SENTINEL-01** | 42 débito (achado da 348) | BAIXA | PENDENTE (a TUI Textual `_dispatch_slash` só trata `__cd__` agora; os sentinels `__sandbox_list__`/`__sandbox_add__`/`__sandbox_remove__` ainda vazam crus no chat e os comandos `/sandbox` não funcionam na TUI -- só no REPL/headless. Replicar o tratamento análogo ao `__cd__`) | 348 |
+| 350 | **INFRA-HEADLESS-FLAG-ROUTE-01** | 42 débito | BAIXA | PENDENTE (`run.sh --headless` promete "JSON stdout" -- comentário run.sh:843 + help do arg cli.py:633 -- mas o exec final run.sh:877 chama `cli.py` SEM `--headless` (HEADLESS=1 é só shell var); cai no loop input() não-TTY (cli.py:573), não no protocolo `run_headless` (cli.py:681). Gauntlet não depende (fluxo próprio). Vítima: scripts/CI. Fix: propagar `--headless` ao exec quando HEADLESS=1 e não-gauntlet) | -- |
+| 351 | **LOOP-DONE-VERIFY-ARTIFACTS-01** | 42 cadeia | MEDIA | PENDENTE (prompt multi-arquivo sobrecarrega o 3b: o loop aceita `done()` sem verificar que os artefatos prometidos existem -> README.md declarado "criado" mas ausente (done alucinado); e o parser de tool_call corrompeu nomes de arquivo, vazando fragmentos de código no campo `path` (`_qr(parser.parse_args`, `{args.saida`). Mitigação de uso comprovada: prompts atômicos 1-arquivo/turno. Fix candidato: guard no loop que rejeita `done` se a intenção declarada não bate com os write_file efetivados; + endurecer extração de `path` no parser de fallback) | -- |
+
+**ONDA-42 EM CURSO -- 348 CONCLUIDA, 349/350/351 PENDENTE.** O bug central (`/cd` não reconstruía
+o contexto -> escrita no root errado, poluindo o próprio repo) foi consertado na cadeia (ADR-032):
+um setter canônico reconstrói o system prompt e re-aponta as tools nos 3 caminhos (REPL, headless,
+TUI). Três follow-ups registrados (anti-débito): sandbox na TUI, flag headless enganosa, e o guard
+de `done` vs artefatos + endurecimento do parser de `path`.
+
+<!-- MANUAL_OVERRIDE_ONDA_42_END -->
+
 <!-- MANUAL_OVERRIDE_ONDA_28_START -->
 
 ### Bloco ONDA-28: TUI paridade Claude Code (boot silencioso + banner block + input fixo + wizard completo) (2026-05-18) <!-- noqa-anonimato -->

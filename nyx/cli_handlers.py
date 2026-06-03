@@ -263,11 +263,12 @@ def _handle_cd(ctx: HandlerCtx) -> bool:
     # impede a preservação.
     new_root = set_active_project_root(cand)
     add_extra_root(old_root)
-    # Reconfigura agent + ToolRegistry para usar novo root nas
-    # tools (cwd em run_command, validate_path em file ops, etc).
+    # Reconfigura agent + ToolRegistry para usar novo root nas tools (cwd em
+    # run_command, validate_path em file ops) E reconstrói o system prompt --
+    # sem isso o bloco "Diretório:" mantém o root antigo e o modelo escreve no
+    # diretório anterior (TUI-CD-CONTEXT-REBUILD-01).
     project_root_str = str(new_root)
-    ctx.agent._project_root = project_root_str
-    ctx.agent._tools.project_root = project_root_str
+    ctx.agent.set_project_root(project_root_str)
     ctx.app_state["__cd_new_root__"] = project_root_str
     print(
         f"  {ctx.success} project_root trocado para{ctx.nc} {new_root}\n"

@@ -176,8 +176,9 @@ async def run_headless(project_root: Path, logger: Logger) -> int:
                     new_root = set_active_project_root(cand)
                     add_extra_root(old_root)
                     project_root_str = str(new_root)
-                    agent._project_root = project_root_str
-                    agent._tools.project_root = project_root_str
+                    # Reconstrói o system prompt junto (TUI-CD-CONTEXT-REBUILD-01):
+                    # sem isso o modelo gera caminhos no root antigo.
+                    agent.set_project_root(project_root_str)
                     sys.stdout.write(f"ok: project_root agora {new_root}\n")
                 sys.stdout.flush()
                 continue

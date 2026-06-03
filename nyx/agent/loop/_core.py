@@ -225,6 +225,18 @@ class AgentLoop(_IterationMixin):
         self._system_prompt = prompt
         self._system_prompt_compact = build_system_prompt_compact(self._project_root)
 
+    def set_project_root(self, new_root: str) -> None:
+        """Re-aponta o agente para `new_root` e reconstrói o system prompt (/cd).
+
+        Sem reconstruir o prompt, o bloco "Diretório:" mantém o root anterior e o
+        modelo gera caminhos no diretório errado -- poluindo o root antigo, que o
+        /cd preserva como extra. Re-aponta o ToolRegistry (validate_path e cwd de
+        run_command) e regenera as duas variantes do system prompt.
+        """
+        self._project_root = str(new_root)
+        self._tools.project_root = str(new_root)
+        self._rebuild_system_prompt()
+
     async def run(self, user_input: str) -> SessionStatus:
         """Executa o ciclo completo para um input do usuário."""
         self._session.add_user(user_input)

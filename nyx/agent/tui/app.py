@@ -476,6 +476,45 @@ class NyxTUI(App):
             chat.mount(ChatMessage("system", err_text))
             chat.scroll_end(animate=False)
             return
+        # TUI-CD-SANDBOX-SENTINEL-01: /cd devolve o sentinel "__cd__<path>". No REPL
+        # cli_handlers._handle_cd trocava o root; na TUI Textual faltava -- o sentinel
+        # vazava cru no chat e o /cd não trocava nada (o modelo seguia no root antigo).
+        # Troca o root ativo, preserva o anterior como extra e reconstrói o system
+        # prompt via agent.set_project_root (senão o modelo escreve no root errado).
+        if isinstance(result, str) and result.startswith("__cd__"):
+            from pathlib import Path as _Path
+
+            from nyx.agent.tools.base import (
+                add_extra_root,
+                get_active_project_root,
+                set_active_project_root,
+            )
+
+            raw_path = result[len("__cd__"):]
+            cand = _Path(raw_path).expanduser()
+            if not cand.exists() or not cand.is_dir():
+                chat.mount(
+                    ChatMessage(
+                        "system",
+                        f"Caminho '{raw_path}' inválido para /cd.\nO diretório precisa existir.",
+                    )
+                )
+                chat.scroll_end(animate=False)
+                return
+            old_root = get_active_project_root() or project_root
+            new_root = set_active_project_root(cand)
+            add_extra_root(old_root)
+            if self._agent is not None:
+                self._agent.set_project_root(str(new_root))
+            chat.mount(
+                ChatMessage(
+                    "system",
+                    f"project_root trocado para {new_root}\n"
+                    f"(root anterior {old_root} preservado como extra)",
+                )
+            )
+            chat.scroll_end(animate=False)
+            return
         # Outros retornos (texto comum) viram ChatMessage tool.
         chat.mount(ChatMessage("tool", str(result)))
         chat.scroll_end(animate=False)
