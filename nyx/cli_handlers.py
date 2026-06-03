@@ -763,7 +763,11 @@ def _handle_replay(ctx: HandlerCtx) -> bool:
     if not (isinstance(ctx.result, str) and ctx.result.startswith("__replay__")):
         return False
     from nyx.agent.commands._observability import render_replay
-    print(render_replay(Path(ctx.agent._project_root), ctx.result.replace("__replay__", "")))
+    rendered = render_replay(Path(ctx.agent._project_root), ctx.result.replace("__replay__", ""))
+    if isinstance(rendered, str) and rendered.startswith("__error__"):
+        _print_sentinel_error(ctx, rendered)
+    else:
+        print(rendered)
     return True
 
 
@@ -863,15 +867,36 @@ def _handle_copy(ctx: HandlerCtx) -> bool:
     return True
 
 
+def _split_error_sentinel(value: str) -> tuple[str, str | None]:
+    """Normaliza o sentinel `__error__<msg>||<hint>` em `(msg, hint)`.
+
+    Espelha `_split_error_sentinel` da TUI Textual (sprint 357,
+    nyx/agent/tui/app.py): remove o prefixo `__error__` e quebra em `||`.
+    Sem `||`, devolve a mensagem inteira e `hint=None`.
+    """
+    payload = value[len("__error__"):]
+    if "||" in payload:
+        msg, hint = payload.split("||", 1)
+        return msg, hint
+    return payload, None
+
+
+def _print_sentinel_error(ctx: HandlerCtx, value: str) -> None:
+    """Imprime via print_error um retorno de helper que veio como sentinel.
+
+    CLI-REPL-REPLAY-ERROR-SENTINEL-LEAK-01: handlers que imprimem o retorno
+    de render_* (ex.: render_replay) podem receber `__error__<msg>||<hint>`
+    quando o helper falha. Em vez de `print()` cru do marcador, normaliza
+    pela mesma rota do _handle_error legado.
+    """
+    msg, hint = _split_error_sentinel(value)
+    ctx.print_error(msg, hint=hint)
+
+
 def _handle_error(ctx: HandlerCtx) -> bool:
     if not (isinstance(ctx.result, str) and ctx.result.startswith("__error__")):
         return False
-    payload = ctx.result[len("__error__"):]
-    if "||" in payload:
-        msg, hint = payload.split("||", 1)
-    else:
-        msg, hint = payload, None
-    ctx.print_error(msg, hint=hint)
+    _print_sentinel_error(ctx, ctx.result)
     return True
 
 
