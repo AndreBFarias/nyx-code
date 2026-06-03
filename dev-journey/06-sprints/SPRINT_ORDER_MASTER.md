@@ -1006,6 +1006,40 @@ conduzido pela infra) construiu o NÚCLEO FUNCIONAL do VOID|QRcode (requirements
 
 <!-- MANUAL_OVERRIDE_ONDA_42_END -->
 
+<!-- MANUAL_OVERRIDE_ONDA_43_START -->
+
+### Bloco ONDA-43: achados do E2E de estresse (conversa longa + GPU) -- 2026-06-03
+
+**Origem:** teste de estresse pedido pelo dono -- conversa longa (15 turnos numa única sessão)
+construindo um projeto novo (TaskFlow CLI), medindo utilidade real + comportamento da GPU.
+Validou os fixes da ONDA-42 SOB CARGA: 353 (apresenta listas/conteúdo/resumos), 352a
+(`intent=code num_predict=4096` ativo nos turnos de escrita), 348 (o /cd protegeu o repo Nyx
+durante TODA a conversa -- zero poluição), 350 (headless JSON processou os 15 turnos com ZERO
+erro de protocolo).
+
+**GPU (a questão do dono):** 1 OOM real (oom_recovery 230->231; `OOM degradation step: 4 -> 2`),
+a sessão rodou degradada (num_gpu menor; VRAM ~idle nas amostras) mas COMPLETOU em ~9min20s
+(~37s/turno) -- a cadeia de degradação OOM->fallback funcionou (ADR-032), não quebrou na mão do
+usuário. Reanimação de GPU é opt-in OFF (316), então uma vez degradado ficou degradado, sem
+segunda OOM (estabilizou). Lição: para conversa longa em RTX 3050 4GB, considerar o opt-in
+`NYX_GPU_ADAPTIVE=1` ou aceitar a degradação como fail-safe estável.
+
+**Utilidade:** a Nyx FOI útil na maioria -- apresentou resultados (353), respondeu pergunta
+conceitual (Click), construiu 4 arquivos. Limites do 3b (ADR-034) viraram achados:
+
+| # | Sprint | Prio | Status |
+|---|--------|------|--------|
+| 354 | **CONV-CONTEXT-LOCATION-HALLUCINATION-01** | MEDIA | PENDENTE (em conversa longa, ao perguntar "em qual arquivo está a função listar?" o 3b ALUCINOU `nyx/agent/banner.py` -- arquivo do próprio Nyx, não do projeto TaskFlow -- em vez de responder `tasks.py`. Invenção pura (só 1 ocorrência, não é o repomap). Fix candidato: ao detectar pergunta de localização ("onde/em qual arquivo está X"), forçar list_files/search antes de responder, em vez de deixar o modelo inventar um caminho. Extensão do #353) | 353 |
+| 355 | **EDIT-SEQUENTIAL-OVERWRITE-LOSS-01** | MEDIA | PENDENTE (edits sequenciais no mesmo arquivo PERDEM conteúdo: "adicione a função adicionar()" seguido de "adicione a função listar()" deixou tasks.py só com listar() -- o write_file do 2o edit sobrescreveu o 1o. O 3b reescreve o arquivo inteiro de memória (incompleta) em vez de usar edit_file incremental ou ler-antes-de-escrever. Fix candidato: para "adicione/edite em arquivo existente", forçar read_file antes do write, ou preferir edit_file) | -- |
+
+**ONDA-43 EM CURSO -- 354/355 registradas (achados do estresse).** O teste confirmou que os
+fixes da ONDA-42 melhoraram a utilidade real (a Nyx apresenta resultados e mantém o protocolo
+JSON sob carga) e que a GPU OOMa mas degrada graciosamente sem quebrar. Os limites residuais
+(código do 3b com bugs de lógica, alucinação de localização, edit que sobrescreve) são
+capacidade do modelo, mitigáveis pela cadeia (354/355) -- não bugs de infra.
+
+<!-- MANUAL_OVERRIDE_ONDA_43_END -->
+
 <!-- MANUAL_OVERRIDE_ONDA_28_START -->
 
 ### Bloco ONDA-28: TUI paridade Claude Code (boot silencioso + banner block + input fixo + wizard completo) (2026-05-18) <!-- noqa-anonimato -->
