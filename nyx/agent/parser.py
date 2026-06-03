@@ -79,6 +79,12 @@ _ACTION_ALIASES: dict[str, ActionType] = {
     "web_search": ActionType.WEB_SEARCH,
     "pesquisar": ActionType.WEB_SEARCH,
     "buscar_web": ActionType.WEB_SEARCH,
+    "write_memory": ActionType.WRITE_MEMORY,
+    "memoria": ActionType.WRITE_MEMORY,
+    "memorizar": ActionType.WRITE_MEMORY,
+    "lembrar": ActionType.WRITE_MEMORY,
+    "repl": ActionType.REPL,
+    "python_repl": ActionType.REPL,
 }
 
 _EXACT_BLOCK = re.compile(

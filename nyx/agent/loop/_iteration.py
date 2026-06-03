@@ -281,7 +281,16 @@ class _IterationMixin:
 
         tool_name = ACTION_TO_TOOL.get(action.action_type)
         if not tool_name:
-            logger.warning("[loop] sem tool para %s", action.action_type.value)
+            unrouted = action.action_type.value
+            logger.warning("[loop] sem tool para %s", unrouted)
+            # ADR-026: nada silencioso. O descarte vira evento visível no chat
+            # para que qualquer lacuna futura (enum sem rota) apareça ao
+            # usuário/validador, em vez de sumir só no log.
+            self._session.add_tool_call(
+                unrouted,
+                action.params,
+                f"ação não roteável: {unrouted} (sem entrada em ACTION_TO_TOOL)",
+            )
             return None
 
         remapped = _remap_params(tool_name, action.params)

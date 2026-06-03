@@ -15,9 +15,13 @@ ACTION_TO_TOOL: dict[ActionType, str] = {
     ActionType.GLOB: "glob",
     ActionType.SEARCH: "search",
     ActionType.LIST_FILES: "list_files",
+    ActionType.ANALYZE: "analyze",
+    ActionType.PATCH: "patch",
+    ActionType.REPL: "repl",
     ActionType.TODO_WRITE: "todo_write",
     ActionType.WEB_FETCH: "web_fetch",
     ActionType.WEB_SEARCH: "web_search",
+    ActionType.WRITE_MEMORY: "write_memory",
     ActionType.DONE: "done",
 }
 
