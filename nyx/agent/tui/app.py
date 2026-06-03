@@ -39,6 +39,11 @@ from textual.containers import Vertical, VerticalScroll
 from textual.widgets import Collapsible, Static
 
 from nyx.agent.services.logging_service import get_logger
+from nyx.agent.tui.sentinel_dispatch import (
+    command_label,
+    render_mcp_async,
+    render_sync,
+)
 from nyx.agent.tui.widgets.banner import BannerWidget
 from nyx.agent.tui.widgets.chat_message import ChatMessage
 from nyx.agent.tui.widgets.input import InputWidget
@@ -425,11 +430,19 @@ class NyxTUI(App):
     def _dispatch_slash(self, text: str) -> None:
         """Roteia slash command via handle_command e trata sentinels.
 
-        Sentinels reconhecidos:
+        Sentinels com efeito de estado próprio da TUI (tratados inline):
           - `__quit__`           -> self.exit(result="__quit__")
-          - `__aesthetic_select__`/`__theme_select__`/`__schema_select__`
-                                -> run_worker(_open_select_modal(kind))
-          - outros               -> mountados como ChatMessage("tool", result)
+          - `__error__<...>`     -> ChatMessage("system", msg + hint)
+          - `__sandbox_*__`      -> add/remove/list de roots autorizados
+          - `__cd__<path>`       -> troca o project_root ativo
+          - `__*_select__`       -> run_worker(_open_select_modal(kind))
+          - `__cancel_inflight__`-> cancela o worker do turno em curso
+
+        Demais sentinels (render puro/efeito-leve) vão para
+        `sentinel_dispatch.render_sync` (espelha cli_handlers.py); os MCP
+        vão para `_dispatch_mcp` (worker async). TUI-SENTINEL-DISPATCH-UNIFY-01:
+        o fallback final é FAIL-SAFE -- sentinel cru remanescente vira aviso
+        nomeado, NUNCA vaza o marcador na tela (ADR-026).
 
         Exceções do handler viram ChatMessage("tool", "[erro] ...") -- não
         crasham a TUI. handle_command devolve None apenas quando o input não
@@ -556,8 +569,81 @@ class NyxTUI(App):
             )
             chat.scroll_end(animate=False)
             return
-        # Outros retornos (texto comum) viram ChatMessage tool.
+        # TUI-SENTINEL-DISPATCH-UNIFY-01: /cancel cancela o turno em curso.
+        # No REPL era app_state["inflight_task"].cancel(); na TUI o turno roda
+        # como worker (run_worker exclusive=True), então cancelamos o(s)
+        # worker(s) ativo(s). Sem isso o marcador vazava cru e o /cancel era
+        # no-op na TUI.
+        if result == "__cancel_inflight__":
+            ativos = [w for w in self.workers if w.is_running]
+            if ativos:
+                self.workers.cancel_all()
+                texto = "cancel sinalizado (turno em curso interrompido)"
+            else:
+                texto = (
+                    "/cancel: nenhum turno em curso. "
+                    "Use Ctrl+C durante a execução para interromper."
+                )
+            chat.mount(ChatMessage("system", texto))
+            chat.scroll_end(animate=False)
+            return
+        # TUI-SENTINEL-DISPATCH-UNIFY-01: render unificado dos demais sentinels
+        # (status/usage/trace/context/files/schema/aesthetic/output-style/
+        # plugin/session/model/rewind/btw/export/copy/debug/replay/...). Espelha
+        # cli_handlers.py sem print() nem ANSI. Antes vazavam crus no fallback.
+        rendered = render_sync(result, self._agent, project_root)
+        if rendered is not None:
+            role, texto = rendered
+            chat.mount(ChatMessage(role, texto))
+            chat.scroll_end(animate=False)
+            return
+        # Sentinels MCP exigem await de rede -- despacha via worker e monta o
+        # resultado quando a coroutine resolve (mesmo padrão de _open_select_modal).
+        if isinstance(result, str) and result.startswith("__mcp_"):
+            self.run_worker(self._dispatch_mcp(result), exclusive=False)
+            return
+        # FAIL-SAFE (TUI-SENTINEL-DISPATCH-UNIFY-01): qualquer sentinel cru
+        # remanescente NUNCA vaza na tela. Sentinel não reconhecido vira aviso
+        # nomeado (ADR-026); retorno de texto comum (ex.: /help, /model legível,
+        # /stats offline) segue como ChatMessage("tool").
+        if isinstance(result, str) and result.startswith("__"):
+            chat.mount(
+                ChatMessage(
+                    "system",
+                    f"[comando não disponível nesta interface: {command_label(result)}]",
+                )
+            )
+            chat.scroll_end(animate=False)
+            return
+        # Retornos de texto comum viram ChatMessage tool.
         chat.mount(ChatMessage("tool", str(result)))
+        chat.scroll_end(animate=False)
+
+    async def _dispatch_mcp(self, result: str) -> None:
+        """Worker async (loop principal): renderiza sentinel MCP e monta no chat.
+
+        TUI-SENTINEL-DISPATCH-UNIFY-01: __mcp_list/reload/test__ precisam de
+        await (conexão de rede). render_mcp_async espelha cli_handlers._handle_mcp_*
+        sem print/ANSI. Falha de rede vira ChatMessage("system") -- nunca crasha
+        a TUI nem vaza o marcador.
+        """
+        chat = self.query_one("#chat", VerticalScroll)
+        try:
+            rendered = await render_mcp_async(result)
+        except Exception as exc:  # noqa: BLE001 -- rede MCP nunca derruba a TUI
+            chat.mount(ChatMessage("system", f"[erro MCP] {exc}"))
+            chat.scroll_end(animate=False)
+            return
+        if rendered is None:
+            chat.mount(
+                ChatMessage(
+                    "system",
+                    f"[comando não disponível nesta interface: {command_label(result)}]",
+                )
+            )
+        else:
+            role, texto = rendered
+            chat.mount(ChatMessage(role, texto))
         chat.scroll_end(animate=False)
 
     @staticmethod
