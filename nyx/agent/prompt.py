@@ -188,6 +188,15 @@ def build_reminder(
         "retornou; nunca responda só 'concluído'/'done' sem mostrar o resultado.",
         "- Buscar texto = tool search; lembrar um fato = tool write_memory. NÃO "
         "invente o resultado de uma tool que você não chamou de verdade.",
+        # CONV-CONTEXT-LOCATION-HALLUCINATION-01 (#354): o 3b inventa caminhos
+        # ao responder "em qual arquivo está X" em conversa longa.
+        "- Para dizer ONDE está algo (qual arquivo tem a função/classe/variável X), "
+        "use search ou list_files ANTES de responder -- nunca invente um caminho.",
+        # EDIT-SEQUENTIAL-OVERWRITE-LOSS-01 (#355): edits sequenciais com write_file
+        # sobrescrevem o conteúdo anterior.
+        "- Para ADICIONAR ou alterar algo num arquivo que JÁ existe, use edit_file; "
+        "se usar write_file, leia o arquivo antes (read_file) e inclua TODO o "
+        "conteúdo anterior -- write_file SOBRESCREVE o arquivo inteiro.",
     ]
     if extra:
         lines.append(extra)
