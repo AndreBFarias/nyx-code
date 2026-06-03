@@ -782,9 +782,22 @@ class _IterationMixin:
         # Cap em 5 tools por turno: VRAM-limitada, schemas inflam input.
         # Prioridade: CORE primeiro (preserva read/write/edit/run/etc).
         if len(selected) > 5:
-            core_ordered = [td for td in selected if td["function"]["name"] in CORE_TOOLS]
-            extras = [td for td in selected if td["function"]["name"] not in CORE_TOOLS]
-            selected = (core_ordered + extras)[:5]
+            # MEMORY-INTENT-CLASSIFY-01: write_memory é essencial para o pedido de
+            # memória ("lembra que X"); sem prioridade o cap a corta (CORE tem 8 > 5)
+            # e a memória nunca grava (achado do estresse ONDA-44).
+            from nyx.agent.intent import wants_save_memory as _wsm
+
+            must = {"write_memory"} if _wsm(last_user) else set()
+            must_defs = [td for td in selected if td["function"]["name"] in must]
+            core_ordered = [
+                td for td in selected
+                if td["function"]["name"] in CORE_TOOLS and td["function"]["name"] not in must
+            ]
+            extras = [
+                td for td in selected
+                if td["function"]["name"] not in CORE_TOOLS and td["function"]["name"] not in must
+            ]
+            selected = (must_defs + core_ordered + extras)[:5]
 
         logger.info("[loop] tools selecionadas: %d/%d (intent=%s)", len(selected), len(all_defs), intent)
         return selected

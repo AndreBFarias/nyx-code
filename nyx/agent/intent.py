@@ -164,6 +164,13 @@ def classify(user_input: str) -> str:
     if PATH_HINTS.search(s):
         return "tool-needed"
 
+    # MEMORY-INTENT-CLASSIFY-01: pedido de salvar memória ("lembra que X",
+    # "guarda essa info") precisa da tool write_memory. Sem isto, cai em 'chat'
+    # (tools=[]) e o modelo alucina "lembrado" sem gravar -- achado do estresse
+    # da ONDA-44. wants_save_memory já existe e é a fonte única do padrão.
+    if wants_save_memory(s):
+        return "tool-needed"
+
     return "chat"
 
 

@@ -1068,6 +1068,7 @@ capacidade do modelo, mitigáveis pela cadeia (354/355) -- não bugs de infra.
 | 365 | **CLI-REPL-REPLAY-ERROR-SENTINEL-LEAK-01** | BAIXA | exec 357 | PENDENTE (o REPL legado imprime `__error__` cru em `_handle_replay`/`debug`/`progress` -- mesmo bug da 357 no host REPL) |
 | 366 | **LOOP-COMPACTION-SUMMARY-WIRING-01** | MÉDIA | exec 360 | PENDENTE (`compact_history` descarta o retorno e não muta a sessão -- o resumo NUNCA chega ao modelo; somado à janela de 4, o histórico longo não chega de forma nenhuma. Raiz de fundo da alucinação de contexto longo) |
 | 367 | **LOOP-CONTEXT-BUDGET-RECALIBRATE-01** | MÉDIA | exec 360 | PENDENTE (`max_tokens=12000` vs `num_ctx=4096` real; `should_compact` dispara ~50 turnos, tarde demais para GPU 4GB) |
+| 368 | **MEMORY-INTENT-CLASSIFY-01** | ALTA | estresse final | IMPLEMENTADA (achado do estresse: "lembra que X" classificava como `chat` -> `tools=[]` -> memória NUNCA gravava, alucinava "lembrado". Fix 3 camadas: `classify` reconhece intent de memória via `wants_save_memory`, `TOOL_KEYWORDS`+cap priorizam `write_memory`. Provado antes/depois no estresse real: `files_modified` 0->1, `banco_de_dados.md` gravado. Aguarda CONCLUIDA com os demais) |
 
 Nota menor (não-sprint): `parser.py:186-187` tem regex `_CONTINUATION_PATTERNS` com palavras sem acento (intencional, casa a saída do 3b); o `validar-acentuacao` standalone reclama mas o hook do projeto não valida `.py` -- não-bloqueante, deixado como está.
 

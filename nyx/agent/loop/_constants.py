@@ -60,6 +60,12 @@ CORE_TOOLS = {
 
 # Keywords que ativam tools condicionais
 TOOL_KEYWORDS: dict[str, set[str]] = {
+    # MEMORY-INTENT-CLASSIFY-01: sem write_memory aqui, intent=tool-needed de
+    # memória ("lembra que X") não disponibiliza a tool ao modelo e a memória
+    # nunca grava (achado do estresse ONDA-44).
+    "write_memory": {"lembra", "lembre", "anota", "anote", "guarda", "guarde",
+                     "memoriza", "memorize", "registra", "registre",
+                     "memória", "memoria", "não esquece", "nao esquece"},  # noqa-acento
     "notebook_edit": {"notebook", "ipynb", "jupyter"},
     "web_fetch": {"url", "http", "fetch", "download", "site", "web"},
     "web_search": {"pesquis", "web", "google", "search"},
