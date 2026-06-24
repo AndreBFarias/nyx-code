@@ -1094,7 +1094,7 @@ Nota menor (não-sprint): `parser.py:186-187` tem regex `_CONTINUATION_PATTERNS`
 | # | Sprint | Bloco | Prio | Deps | Status |
 |---|--------|-------|------|------|--------|
 | 370 | **FS-DISCOVERY-FREE-01** | 45 Acesso Universal | ALTA | -- | CONCLUIDA (2026-06-24, commit 4be0431; extraido `display_path(resolved, base)` em base.py como fonte unica; removido filtro `is_relative_to(project)` do glob e `f.relative_to(root)` cru do search `_search_walk`; probe: glob/search/list em /tmp fora da raiz retornam conteudo real (antes "Nenhum arquivo encontrado"/`success=False` por ValueError), dentro do projeto display relativo inalterado, `~/.ssh` segue bloqueado nas 3 tools; invariantes 14/14 PASS antes e depois, gauntlet `--only rapido` APROVADO 12/12, ruff + acento OK) |
-| 371 | **FS-TOOLDESC-PROMPT-01** | 45 Acesso Universal | MEDIA | 370 | PENDENTE |
+| 371 | **FS-TOOLDESC-PROMPT-01** | 45 Acesso Universal | MEDIA | 370 | CONCLUIDA (2026-06-24, commit f3c7756; descricoes de path de glob/list_files/search/read_file passam a citar "qualquer caminho absoluto do disco (ex.: /etc)" + diretiva concisa de ACESSO UNIVERSAL (ADR-009) no prompt FULL apenas; prompt COMPACTO inalterado 473 chars/12 linhas antes==depois (PERF-INFERENCE-01); so nomes reais de tool, zero grep_files; invariantes 14/14 PASS antes e depois, gauntlet --only rapido 19/19 APROVADO + --only proxy 7/7 APROVADO, ruff + acento OK; probe runtime: a Nyx chamou `list_files path=/etc` por conta propria e devolveu a listagem real, sem pedir /sandbox add) |
 | 372 | **GAUNTLET-FS-ARBITRARY-01** | 45 Acesso Universal | ALTA | 370 | PENDENTE |
 
 > Status em celula limpa (`PENDENTE`) para o `update_next_sprint.py` (ROW_PATTERN exige `| PENDENTE |`). Resumo por sprint:
