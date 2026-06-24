@@ -1111,6 +1111,22 @@ Nota menor (não-sprint): `parser.py:186-187` tem regex `_CONTINUATION_PATTERNS`
 
 > **Release:** a `producao/SPRINT_RELEASE_V1_3_4_CUT_01.md` (entry 340, ONDA-39) esta defasada frente a este escopo. Recomendacao do Opus: superseder por **v1.4.0** (release funcional pos-ondas 45-47); empacotamento (ONDA-49) fecha v1.4.0 ou abre v1.5.0. Corte de tag continua decisao humana.
 
+### Follow-ups da ONDA-45 (Onda de Validacao 1 -- 2026-06-24, achados as-user) <!-- noqa-acento -->
+
+A Onda de Validacao 1 (full gauntlet 231/235 + bateria as-user) provou que o ENFORCEMENT do bug #1 morreu (fs_arbitrary 7/7, secret bloqueado, ler/escrever fora da raiz OK) MAS o COMPORTAMENTO do agente ainda nao usava o acesso de forma confiavel. Achados -> sprints (anti-debito): <!-- noqa-acento -->
+
+| # | Sprint | Prio | Deps | Status |
+|---|--------|------|------|--------|
+| 373 | **FS-REMINDER-SYNC-01** | ALTA | 371 | CONCLUIDA (2026-06-24, commit 0a77bf6; `build_reminder` (prompt.py:186) reescrito: "Sandbox: pode tocar apenas {project_root}" -> "Acesso: pode ler/listar/buscar em QUALQUER caminho absoluto do disco (ADR-009), nao so {project_root}. Segredos (.ssh/.gnupg/.aws) bloqueados; escrita pede confirmacao." -- 1 bullet (concat implicita p/ caber em 120c), coerente com 131-134 e validate_path; grep "pode tocar apenas" vazio; invariantes 14/14 antes e depois, ruff + acento OK; gauntlet --only fs_arbitrary 7/7 PASS (enforcement intacto: secret bloqueado, ler/glob/search/list fora da raiz OK), --only rapido APROVADO 19/19; probe runtime multi-turn headless (3 turnos -> history=6 -> 4o turno "liste /etc e quantos sao") a Nyx LISTOU /etc (105 arquivos) sem se recusar nem pedir /sandbox add -> contradicao do reminder eliminada na pratica. FECHA bug #1 da Onda de Validação 1) |
+
+> - **373 FS-REMINDER-SYNC-01** (BLOCKER da onda; CONCLUIDA commit 0a77bf6, spec em concluidos/): `build_reminder` (prompt.py:186) reinjetava "pode tocar apenas {project_root}", contradizendo o acesso universal (131-134); a linha reinjetada vencia e o 3b voltava a se limitar a raiz. Reescrita para refletir o acesso universal real; probe multi-turn confirmou a Nyx listando /etc apos varios turnos. COMPLETA o bug #1.
+> - **374 LOOP-REMINDER-LEAK-SUMMARY-01** (BUG, a specar -> ONDA-46): o bloco `<system-reminder>` vazou cru no `summary` da resposta (probe c2) em vez dos resultados da busca. Roteamento de output, nao conteudo do reminder.
+> - **375 LOOP-TOOL-RESULT-FIDELITY-01** (BUG, capacidade do 3b/ADR-034, a specar -> ONDA-46/autonomia): apos chamar a tool, o 3b alucina o resultado (contagem de /etc 2845/128 errada e inconsistente; resumo.txt fabricado). Mitigado parcialmente na 353; reincide via FS. Teto de capacidade -- tratavel so por prompt/guard mais forte.
+> - **GAUNTLET-RB03-OOM-FLAG-FIX-01** (GAP, a specar -> ONDA-46): RB-03 testa `hasattr(mod, "_OOM_DEGRADED")` (nyx_gauntlet.py:4790) mas o flag migrou para `app["state"]["oom_degraded"]` (commit 113e578); falso-negativo permanente no gate. RB-05 (~4892) tem o mesmo idiom fragil.
+> - **GAUNTLET-REPORT-COUNT-FIX-01** (INFO -> ONDA-46): header do GAUNTLET_REPORT soma o SKIP como pass (232/235 vs 231 pass/3 fail/1 skip).
+> - **CI-NEXTSPRINT-ANONYMITY-01** (achado da exec 370 -> ONDA-46): `update_next_sprint.py:267,277` gera nome de modelo proprietario no EXECUTAR_SPRINT.md, que o hook anti-IA bloqueia -> arquivo nao commitavel. Usar texto neutro. <!-- noqa-anonimato -->
+> - **Cobertura pendente:** a confirmacao de escrita do modo Normal nao foi validada (a onda rodou com --auto-approve). As 3 falhas do gauntlet completo -- GUARD-02 (vazou "alibaba") e T-09 (3b nao emitiu Grep) -- sao flakiness/capacidade do 3b, NAO regressao de FS; RB-03 e a GAP acima. Monitorar.
+
 ### Candidatos pendentes de evidencia de onda (anti-debito, NAO absorvidos)
 
 Achados da dimensao "autonomia de tools" (D3 do AUDIT) que NAO viram spec especulativa -- so entram quando a Onda de Validação 1 (pos-370/371) reproduzir o agente falhando. Ficam listados aqui para nao se perderem (regra "nenhum debito para tras"):
