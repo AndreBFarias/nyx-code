@@ -75,6 +75,7 @@ PHASE_GROUPS: dict[str, list[str]] = {
     "p3_headless": ["p3_headless"],
     "p3": ["p3_tools", "p3_commands", "p3_robustez", "p3_headless"],
     "e2e_real": ["e2e_real"],
+    "fs_arbitrary": ["fs_arbitrary"],
     "headless_protocol": ["headless_protocol"],
     "p4_utility": ["p4_utility"],
     "p4_worktree": ["p4_worktree"],
@@ -149,6 +150,7 @@ PHASE_GROUPS: dict[str, list[str]] = {
         "p3_robustez",
         "p3_headless",
         "e2e_real",
+        "fs_arbitrary",
         "headless_protocol",
         "p4_utility",
         "p4_worktree",
@@ -207,6 +209,7 @@ PHASE_TIMEOUTS: dict[str, int] = {
     "p3_robustez": 30,
     "p3_headless": 30,
     "e2e_real": 60,
+    "fs_arbitrary": 30,
     "headless_protocol": 30,
     "p4_utility": 30,
     "p4_worktree": 30,
@@ -3050,6 +3053,136 @@ class NyxGauntlet:
         # Cleanup
         tmp_path.unlink(missing_ok=True)
         pipeline_path.unlink(missing_ok=True)
+
+    # ═══════════════════════════════════════════════════════════════════
+    # FASE: FS_ARBITRARY (6 testes -- FS-ARB-01..06)
+    # GAUNTLET-FS-ARBITRARY-01: rede de regressão permanente do bug #1
+    # (acesso a path fora da raiz). A fase e2e_real só exercita paths
+    # legítimos do projeto; aqui o fixture é criado FORA de project_root e
+    # de ~/.nyx (via tempfile.mkdtemp), exercendo o caminho de acesso livre
+    # (NYX-FS-ACCESS-FREE-01). Zero mocks (ADR-010), asserts de conteúdo
+    # (ADR-011). Cobre tambem o contrato de segurança (secret bloqueado) e a
+    # regressão dentro do projeto (paths relativos à raiz, formato inalterado).
+    # ═══════════════════════════════════════════════════════════════════
+
+    async def _phase_fs_arbitrary(self) -> None:
+        import shutil
+        import tempfile
+
+        from nyx.agent.tools.registry import ToolRegistry
+
+        # ToolRegistry com a raiz do projeto: _ACTIVE_ROOT vira PROJECT_ROOT,
+        # logo FS-ARB-06 (regressão) exibe paths relativos à raiz e o fixture
+        # em /tmp cai no caminho de acesso livre (fora de toda raiz permitida).
+        reg = ToolRegistry(str(PROJECT_ROOT))
+
+        # setup: fixture REAL fora de project_root e de ~/.nyx. mkdtemp respeita
+        # TMPDIR; o prefixo permite rastrear lixo via `ls /tmp/nyx_fs_arbitrary_*`.
+        tmpdir = Path(tempfile.mkdtemp(prefix="nyx_fs_arbitrary_"))
+        try:
+            sub = tmpdir / "sub"
+            sub.mkdir()
+            (sub / "a.py").write_text('print("oi")\n', encoding="utf-8")
+            (tmpdir / "b.txt").write_text("alvo-de-busca\n", encoding="utf-8")
+
+            # Pré-condição do teste: o fixture precisa estar FORA de todas as
+            # raízes permitidas, senão não exerce o caminho de acesso livre.
+            resolved = tmpdir.resolve()
+            nyx_home = (Path.home() / ".nyx").resolve()
+            fora_das_raizes = not resolved.is_relative_to(PROJECT_ROOT) and not resolved.is_relative_to(nyx_home)
+            self._add(
+                "FS-ARB-00",
+                "Fixture fora de todas as raízes permitidas",
+                "fs_arbitrary",
+                fora_das_raizes,
+                0,
+                details=f"dir={resolved} fora_root_e_nyx={fora_das_raizes}",
+            )
+
+            # FS-ARB-01: read_file fora da raiz -> conteúdo correto.
+            r = reg.execute("read_file", {"file_path": str(tmpdir / "b.txt")})
+            ok = r.success and "alvo-de-busca" in r.output
+            self._add(
+                "FS-ARB-01",
+                "read_file fora da raiz lê conteúdo",
+                "fs_arbitrary",
+                ok,
+                0,
+                details=f"success={r.success} has_token={'alvo-de-busca' in r.output}",
+            )
+
+            # FS-ARB-02: glob fora da raiz -> acha o .py (não "Nenhum arquivo").
+            r = reg.execute("glob", {"pattern": "**/*.py", "path": str(tmpdir)})
+            ok = r.success and "a.py" in r.output and "Nenhum arquivo" not in r.output
+            self._add(
+                "FS-ARB-02",
+                "glob fora da raiz encontra .py",
+                "fs_arbitrary",
+                ok,
+                0,
+                details=f"success={r.success} has_a_py={'a.py' in r.output}",
+            )
+
+            # FS-ARB-03: search fora da raiz -> acha o token escrito.
+            r = reg.execute("search", {"pattern": "alvo-de-busca", "path": str(tmpdir)})
+            ok = r.success and "alvo-de-busca" in r.output
+            self._add(
+                "FS-ARB-03",
+                "search fora da raiz encontra token",
+                "fs_arbitrary",
+                ok,
+                0,
+                details=f"success={r.success} has_token={'alvo-de-busca' in r.output}",
+            )
+
+            # FS-ARB-04: list_files fora da raiz -> lista os itens criados.
+            r = reg.execute("list_files", {"path": str(tmpdir)})
+            ok = r.success and "sub" in r.output and "b.txt" in r.output
+            self._add(
+                "FS-ARB-04",
+                "list_files fora da raiz lista os itens",
+                "fs_arbitrary",
+                ok,
+                0,
+                details=f"success={r.success} has_sub={'sub' in r.output} has_btxt={'b.txt' in r.output}",
+            )
+
+            # FS-ARB-05: secret BLOQUEADO mesmo no acesso livre. Usar path
+            # ABSOLUTO expandido (~ não é expandido por validate_path; um '~/...'
+            # cru vira relativo à raiz e falha por "não encontrado", o que
+            # passaria o teste pelo MOTIVO ERRADO). Assertar que o bloqueio é o
+            # da camada de segurança (_is_secret_path), não um erro genérico.
+            secret_path = str(Path.home() / ".ssh" / "id_rsa")
+            r = reg.execute("read_file", {"file_path": secret_path})
+            err = (r.error or "").lower()
+            bloqueio_seguranca = ("segur" in err) and (".ssh" in err or "chaves" in err or "credenciais" in err)
+            ok = (not r.success) and bloqueio_seguranca
+            self._add(
+                "FS-ARB-05",
+                "secret (.ssh/id_rsa) bloqueado por segurança",
+                "fs_arbitrary",
+                ok,
+                0,
+                details=f"success={r.success} bloqueio_seguranca={bloqueio_seguranca} err={(r.error or '')[:80]}",
+            )
+
+            # FS-ARB-06: regressão DENTRO do projeto. glob relativo deve retornar
+            # arquivos do projeto com paths RELATIVOS à raiz (formato inalterado;
+            # sem vazar o prefixo absoluto da raiz).
+            r = reg.execute("glob", {"pattern": "*.py", "path": "nyx/agent"})
+            sem_vazamento_abs = str(PROJECT_ROOT) not in r.output
+            ok = r.success and "parser.py" in r.output and sem_vazamento_abs
+            self._add(
+                "FS-ARB-06",
+                "regressão: glob relativo no projeto mantém formato",
+                "fs_arbitrary",
+                ok,
+                0,
+                details=f"success={r.success} has_parser={'parser.py' in r.output} rel_paths={sem_vazamento_abs}",
+            )
+        finally:
+            # teardown: remover o fixture (sem lixo no FS) mesmo se abortar.
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
     # ═══════════════════════════════════════════════════════════════════
     # FASE: HEADLESS_PROTOCOL (4 testes -- I-01)
