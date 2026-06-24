@@ -121,6 +121,25 @@ def get_active_project_root() -> Path | None:
     return _ACTIVE_ROOT
 
 
+def display_path(resolved: Path, base: Path | None = None) -> str:
+    """Caminho amigável para exibir um path JÁ validado por validate_path.
+
+    FS-DISCOVERY-FREE-01: fonte única usada por glob/search/list. Dentro da
+    base de display, mostra o caminho relativo (saída idêntica à de hoje
+    dentro do projeto); fora dela, mostra o caminho absoluto -- nunca
+    descarta o que o validate_path já liberou (fim do segundo gate
+    pré-ONDA-37 que contradizia o ADR-009).
+
+    Base de display: o argumento `base` quando fornecido, senão a raiz ativa
+    (get_active_project_root, que segue o /cd). Se não houver base ou o path
+    estiver fora dela, retorna o caminho absoluto.
+    """
+    ref = base if base is not None else _ACTIVE_ROOT
+    if ref is not None and resolved.is_relative_to(ref):
+        return str(resolved.relative_to(ref))
+    return str(resolved)
+
+
 def _get_allowed_roots(project_root: str) -> list[Path]:
     """Retorna raízes permitidas para acesso a arquivos.
 

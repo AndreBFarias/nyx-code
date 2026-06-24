@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
 from nyx.agent.services.logging_service import get_logger
-from nyx.agent.tools.base import RegisteredTool, ToolDef, validate_path
+from nyx.agent.tools.base import (
+    RegisteredTool,
+    ToolDef,
+    display_path,
+    get_active_project_root,
+    validate_path,
+)
 
 logger = get_logger("nyx.tools.list_files")
 
@@ -34,14 +39,17 @@ class ListFilesTool(RegisteredTool):
         if not target.exists():
             return ActionResult(success=False, error=f"Diretório não encontrado: {target}")
 
-        root = Path(project_root).resolve()
+        # FS-DISCOVERY-FREE-01: base de display = raiz ativa (segue /cd), via
+        # display_path (fonte única com glob/search). Dentro dela mostra
+        # relativo (idêntico ao comportamento anterior); fora, absoluto.
+        base = get_active_project_root()
 
         try:
             entries = sorted(target.iterdir(), key=lambda p: (not p.is_dir(), p.name))
             lines = []
             for e in entries[:200]:
                 prefix = "d " if e.is_dir() else "f "
-                rel = str(e.relative_to(root)) if e.is_relative_to(root) else str(e)
+                rel = display_path(e.resolve(), base)
                 lines.append(f"{prefix}{rel}")
             result = "\n".join(lines)
             if len(entries) > 200:

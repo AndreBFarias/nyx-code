@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
 from nyx.agent.services.logging_service import get_logger
-from nyx.agent.tools.base import RegisteredTool, ToolDef, validate_path
+from nyx.agent.tools.base import (
+    RegisteredTool,
+    ToolDef,
+    display_path,
+    get_active_project_root,
+    validate_path,
+)
 
 logger = get_logger("nyx.tools.glob")
 
@@ -33,13 +38,16 @@ class GlobTool(RegisteredTool):
         except ValueError as e:
             return ActionResult(success=False, error=str(e))
 
-        project = Path(project_root).resolve()
+        # FS-DISCOVERY-FREE-01: o gate de acesso é o validate_path; não filtrar
+        # o que ele já liberou. Exibir relativo à raiz ativa (segue /cd) quando
+        # dentro dela, absoluto fora -- via display_path (fonte única).
+        base = get_active_project_root()
 
         try:
             matches = sorted(
-                str(p.relative_to(project))
+                display_path(p.resolve(), base)
                 for p in root.glob(pattern)
-                if p.is_file() and p.resolve().is_relative_to(project)
+                if p.is_file()
             )
             if not matches:
                 return ActionResult(success=True, output=f"Nenhum arquivo encontrado para: {pattern}")

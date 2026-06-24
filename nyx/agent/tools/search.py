@@ -10,7 +10,13 @@ from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
 from nyx.agent.services.logging_service import get_logger
-from nyx.agent.tools.base import RegisteredTool, ToolDef, validate_path
+from nyx.agent.tools.base import (
+    RegisteredTool,
+    ToolDef,
+    display_path,
+    get_active_project_root,
+    validate_path,
+)
 
 logger = get_logger("nyx.tools.search")
 
@@ -49,7 +55,7 @@ class SearchTool(RegisteredTool):
         if fast is not None:
             return fast
 
-        return self._search_walk(regex, target, root)
+        return self._search_walk(regex, target)
 
     def _search_fast(self, pattern: str, target: Path, root: Path) -> ActionResult | None:
         """Busca rápida via rg ou grep. Retorna None se indisponível."""
@@ -91,15 +97,21 @@ class SearchTool(RegisteredTool):
 
         return None
 
-    def _search_walk(self, regex: re.Pattern, target: Path, root: Path) -> ActionResult:
+    def _search_walk(self, regex: re.Pattern, target: Path) -> ActionResult:
         """Busca lenta via walk Python (fallback)."""
         matches: list[str] = []
+        # FS-DISCOVERY-FREE-01: display relativo à raiz ativa (segue /cd) com
+        # fallback absoluto fora dela. Antes usava f.relative_to(root) cru, que
+        # levantava ValueError para arquivos fora da raiz do boot -- o que
+        # zerava o fallback Python (success=False) mesmo após validate_path
+        # liberar o acesso.
+        base = get_active_project_root()
         try:
             files = [target] if target.is_file() else sorted(target.rglob("*"))
             for f in files:
                 if not f.is_file():
                     continue
-                rel = str(f.relative_to(root))
+                rel = display_path(f.resolve(), base)
                 if any(exc in rel.split("/") for exc in EXCLUDE_DIRS):
                     continue
                 if f.suffix not in {
