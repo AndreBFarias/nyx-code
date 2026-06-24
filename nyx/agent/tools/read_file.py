@@ -17,7 +17,13 @@ class ReadFileTool(RegisteredTool):
         name="read_file",
         description="Lê o conteúdo de um arquivo",
         parameters={
-            "file_path": {"type": "string", "description": "Caminho do arquivo"},
+            "file_path": {
+                "type": "string",
+                "description": (
+                    "Caminho do arquivo. Aceita caminho relativo (raiz do projeto) OU "
+                    "qualquer caminho absoluto do disco (ex.: /etc/hosts, /home/user/outro-projeto/x.py)."
+                ),
+            },
         },
         required=["file_path"],
     )

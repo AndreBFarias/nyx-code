@@ -23,7 +23,13 @@ class ListFilesTool(RegisteredTool):
         name="list_files",
         description="Lista arquivos e diretórios de um caminho",
         parameters={
-            "path": {"type": "string", "description": "Diretório a listar (padrão: raiz)"},
+            "path": {
+                "type": "string",
+                "description": (
+                    "Diretório a listar. Aceita caminho relativo (raiz do projeto) OU "
+                    "qualquer caminho absoluto do disco (ex.: /etc, /home/user/outro-projeto)."
+                ),
+            },
         },
         required=[],
     )

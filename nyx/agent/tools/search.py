@@ -31,7 +31,13 @@ class SearchTool(RegisteredTool):
         description="Busca texto (regex) em arquivos do projeto (grep)",
         parameters={
             "pattern": {"type": "string", "description": "Regex para buscar"},
-            "path": {"type": "string", "description": "Diretório ou arquivo (padrão: raiz)"},
+            "path": {
+                "type": "string",
+                "description": (
+                    "Diretório ou arquivo. Aceita caminho relativo (raiz do projeto) OU "
+                    "qualquer caminho absoluto do disco (ex.: /etc, /home/user/outro-projeto)."
+                ),
+            },
         },
         required=["pattern"],
     )

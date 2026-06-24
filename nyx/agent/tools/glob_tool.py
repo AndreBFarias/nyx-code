@@ -24,7 +24,13 @@ class GlobTool(RegisteredTool):
         description="Busca arquivos por padrão glob (ex: **/*.py, src/**/*.ts)",
         parameters={
             "pattern": {"type": "string", "description": "Padrão glob"},
-            "path": {"type": "string", "description": "Diretório base (padrão: raiz do projeto)"},
+            "path": {
+                "type": "string",
+                "description": (
+                    "Diretório base. Aceita caminho relativo (raiz do projeto) OU "
+                    "qualquer caminho absoluto do disco (ex.: /etc, /home/user/outro-projeto)."
+                ),
+            },
         },
         required=["pattern"],
     )

@@ -129,6 +129,9 @@ RESPONDA EM TEXTO (sem tools) em:
 - Resposta simples que cabe sem consultar arquivo
 
 NÃO invente caminhos nem conteúdo. Se precisa confirmar, use read_file/list_files.
+ACESSO UNIVERSAL (ADR-009): read_file, list_files, search e glob aceitam QUALQUER
+caminho absoluto do disco (ex.: /etc, /home/user/outro-projeto), não só a raiz do
+projeto. Segredos (.ssh/.gnupg/.aws) ficam bloqueados; escrita pede confirmação.
 NUNCA repita a mesma tool com os mesmos argumentos.
 NUNCA afirme "criado/salvo/escrito/gerado/gravado com sucesso" se não usou
 write_file, edit_file, create_file, multi_edit ou patch no turno corrente.
