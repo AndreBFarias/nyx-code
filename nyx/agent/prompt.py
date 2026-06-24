@@ -183,7 +183,9 @@ def build_reminder(
         "- Responda em PT-BR acentuado.",
         "- Sem emoji em código/output user-facing.",
         "- Use tools (write_file/edit_file/run_command) -- NUNCA afirme sucesso sem tool call real.",
-        f"- Sandbox: pode tocar apenas {project_root} (e roots extra opt-in).",
+        f"- Acesso: pode ler/listar/buscar em QUALQUER caminho absoluto do disco "
+        f"(ADR-009), não só {project_root}. Segredos (.ssh/.gnupg/.aws) "
+        "bloqueados; escrita pede confirmação.",
         # LOOP-PRESENT-TOOL-RESULT-01 (#353): o 3b executa a tool de leitura mas
         # responde "done/concluído" escondendo o dado, e alucina tools que não
         # chamou. Estas duas linhas atacam a raiz no ponto de reinjeção.
