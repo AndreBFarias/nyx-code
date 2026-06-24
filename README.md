@@ -348,12 +348,12 @@ Uso:
 
 Para estado autoritativo consultar `dev-journey/08-templates/PROJECT_SNAPSHOT.md`.
 
-- **Gauntlet**: 324 testes em 61 fases; `--only rapido` 18/18 (1ª execução fresca); `--only proxy` 7/7 + `--only qualidade` 5/5 estáveis
+- **Gauntlet**: 331 testes em 62 fases; `--only rapido` 18/18 (1ª execução fresca); `--only proxy` 7/7 + `--only qualidade` 5/5 estáveis
 - **Smoke**: `boot ok` em ~0.14s (10x abaixo do critério v1.0 de 1.5s)
 - **Invariantes**: 14/14 PASS
 - **Cockpit**: operacional em `127.0.0.1:11437` com 19 endpoints HTTP + 2 WS
 - **Tag v1.3.4**: aguarda apenas comando humano (`git tag -a v1.3.4`) — sprint `RELEASE-V1.3.4-CUT-01` em `producao/`. A `RELEASE-V1.0-CUT-01` foi superada: o projeto evoluiu de 1.0 para 1.3.4 antes de a tag ser cortada (as tags v1.0.0/v1.1.x do repositório são do port histórico de 2025)
-- **Backlog técnico**: ZERADO — 516 sprints concluídas, 1 em produção (RELEASE da tag delegada ao humano)
+- **Backlog técnico**: ZERADO — 517 sprints concluídas, 1 em produção (RELEASE da tag delegada ao humano)
 
 ## Requisitos
 
