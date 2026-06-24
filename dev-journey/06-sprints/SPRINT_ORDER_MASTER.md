@@ -1083,6 +1083,45 @@ Nota menor (não-sprint): `parser.py:186-187` tem regex `_CONTINUATION_PATTERNS`
 
 <!-- MANUAL_OVERRIDE_ONDA_44_END -->
 
+<!-- MANUAL_OVERRIDE_ONDA_45_START -->
+
+### Bloco ONDA-45: Acesso Universal & Autonomia + roadmap ate producao v1.4.0 (Wave 0 -- 2026-06-24)
+
+**Origem:** auditoria de prontidao para producao a pedido do dono ("estude o projeto, audite de verdade ... a ideia e termos o produto pronto"), conduzida pelo Opus como cerebro. 6 dimensoes auditadas em paralelo + verificacao manual no codigo. Relatorio: `dev-journey/07-reports/AUDIT_2026_06_24.md`. Metodo das ondas: `dev-journey/08-templates/ONDA_PROTOCOL.md`. Decisoes do dono via AskUserQuestion: (1) Opus so escreve specs, dono executa codigo; (2) leitura livre no FS + write-confirm + secrets bloqueados (restaura ADR-009); (3) release = tag + GitHub Release + wheel/sdist + AppImage + Flatpak + deb; (4) troca de model = gerenciador completo.
+
+**Achado central (CONFIRMADO no codigo):** o bug #1 ("limitado a pasta padrao") NAO e permissao -- o acesso ja e livre (`base.py:182-193`). O `glob` (`glob_tool.py:42`) filtra o resultado com `is_relative_to(project_root_do_boot)` -> fora da raiz retorna vazio; `search` quebra no fallback Python (`search.py:102`); `list_files` se salva por fallback. Viola ADR-009. Fix em 2 metades: codigo (370) + descricoes/prompt (371) + rede de regressao (372).
+
+| # | Sprint | Bloco | Prio | Deps | Status |
+|---|--------|-------|------|------|--------|
+| 370 | **FS-DISCOVERY-FREE-01** | 45 Acesso Universal | ALTA | -- | CONCLUIDA (2026-06-24, commit 4be0431; extraido `display_path(resolved, base)` em base.py como fonte unica; removido filtro `is_relative_to(project)` do glob e `f.relative_to(root)` cru do search `_search_walk`; probe: glob/search/list em /tmp fora da raiz retornam conteudo real (antes "Nenhum arquivo encontrado"/`success=False` por ValueError), dentro do projeto display relativo inalterado, `~/.ssh` segue bloqueado nas 3 tools; invariantes 14/14 PASS antes e depois, gauntlet `--only rapido` APROVADO 12/12, ruff + acento OK) |
+| 371 | **FS-TOOLDESC-PROMPT-01** | 45 Acesso Universal | MEDIA | 370 | PENDENTE |
+| 372 | **GAUNTLET-FS-ARBITRARY-01** | 45 Acesso Universal | ALTA | 370 | PENDENTE |
+
+> Status em celula limpa (`PENDENTE`) para o `update_next_sprint.py` (ROW_PATTERN exige `| PENDENTE |`). Resumo por sprint:
+> - **370 FS-DISCOVERY-FREE-01:** glob/search/list honram a raiz ativa `_ACTIVE_ROOT` e o acesso livre; remover filtro `is_relative_to(boot_root)`; display relativo a base validada com fallback absoluto; preservar formato dentro do projeto. Restaura ADR-009.
+> - **371 FS-TOOLDESC-PROMPT-01:** descricoes de glob/list/search/read esclarecem "qualquer caminho absoluto" + diretiva concisa de acesso universal no prompt FULL; NAO inchar o prompt compacto; nao reintroduzir `grep_files`.
+> - **372 GAUNTLET-FS-ARBITRARY-01:** fase de gauntlet fora de toda raiz permitida (read/glob/search/list assertando conteudo + secret bloqueado + regressao no projeto). Zero mocks (ADR-010). Rede de regressao permanente do bug #1.
+
+**Roadmap ate v1.4.0 (ONDA-46..49 -- specs detalhadas APOS a onda de validação que precede cada uma; modelo iterativo pedido pelo dono):**
+
+- **ONDA-46 Saneamento de CI & Working Tree:** `CI-ANONYMITY-FIX-01` (BLOCKER -- `fi` orfao em `.github/workflows/anonymity-check.yml:66-75`, erro de sintaxe bash que trava push se for required check), `CI-MODEL-ASSERT-FIX-01` (smoke do `ci.yml` x `DEFAULT_MODEL` real `qwen2.5-coder:3b`), `CI-GAUNTLET-JOB-01` (job CPU-friendly + nightly/dispatch), `VERSION-DISCIPLINE-01` (pre-commit reinstalado + `.pre-commit-config.yaml`; tags pulam v1.1.1->v1.3.4), `WORKTREE-BASELINES-01` (gitignore dos `*.json` de baseline vs commitar + limpeza).
+- **ONDA-47 Gerenciador de Models:** `MODEL-MANAGER-CORE-01` (`nyx models list/swap`), `MODEL-THINK-AUTODETECT-01` (via Ollama `/api/show`, fim do hardcode qwen3 em `defaults.py:61`), `MODEL-FALLBACK-CHAIN-01` (boot nao-fatal: requested->DEFAULT->menor->CPU), `MODEL-BENCHMARK-01` (`nyx models benchmark` com subset do gauntlet -- prova empirica do "infra faz model ruim ficar bom"), `ADR-035` (swap como cidadao de 1a classe, reconciliando ADR-031).
+- **ONDA-48 Cobertura de Teste Ampliada:** `GAUNTLET-MODEL-SWAP-E2E-01`, `GAUNTLET-TOOLCHAIN-01` (T-10 multi-turn), `GAUNTLET-EDGECASES-01`, `GAUNTLET-REGRESSION-GUARD-01` (limites enforced de TTFR/VRAM + historico rolling).
+- **ONDA-49 Distribuicao & Release:** `RELEASE-PIPELINE-01` (on-tag -> wheel/sdist + GitHub Release), `PKG-APPIMAGE-01`, `PKG-FLATPAK-01`, `PKG-DEB-01` (cada um documenta como o Ollama e distribuido: pre-requisito vs bundle), `RELEASE-V1.4.0-CUT-01`.
+
+> **Release:** a `producao/SPRINT_RELEASE_V1_3_4_CUT_01.md` (entry 340, ONDA-39) esta defasada frente a este escopo. Recomendacao do Opus: superseder por **v1.4.0** (release funcional pos-ondas 45-47); empacotamento (ONDA-49) fecha v1.4.0 ou abre v1.5.0. Corte de tag continua decisao humana.
+
+### Candidatos pendentes de evidencia de onda (anti-debito, NAO absorvidos)
+
+Achados da dimensao "autonomia de tools" (D3 do AUDIT) que NAO viram spec especulativa -- so entram quando a Onda de Validação 1 (pos-370/371) reproduzir o agente falhando. Ficam listados aqui para nao se perderem (regra "nenhum debito para tras"):
+
+- **TOOL-RESULT-CACHE-01** (candidato): sem cache de resultado de tool entre iteracoes -> re-le o mesmo arquivo, infla historico/VRAM.
+- **TOOL-CIRCUIT-BREAKER-01** (candidato): sem circuit-breaker para tool que falha repetido (so a deteccao de repeticao para o loop).
+- **TOOL-SELECTION-CAP-01** (candidato): cap de 5 tools por VRAM pode esconder a tool necessaria em suites grandes (MCP).
+- **PARSER-MULTISTEP-CONTEXT-01** (candidato): parser fallback extrai so a 1a acao de intent multi-step.
+
+<!-- MANUAL_OVERRIDE_ONDA_45_END -->
+
 <!-- MANUAL_OVERRIDE_ONDA_28_START -->
 
 ### Bloco ONDA-28: TUI paridade Claude Code (boot silencioso + banner block + input fixo + wizard completo) (2026-05-18) <!-- noqa-anonimato -->
