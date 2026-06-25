@@ -28,7 +28,13 @@ from nyx.agent.commands import (  # noqa: F401  -- side-effect: registra @nyx_co
     sudo_mode,
     system,
 )
-from nyx.agent.commands._dispatcher import handle_command
+from nyx.agent.commands._dispatcher import (
+    SLASH_CHAT,
+    SLASH_COMMAND,
+    SLASH_UNKNOWN,
+    classify_slash_input,
+    handle_command,
+)
 from nyx.agent.commands._registry import (
     CommandDef,
     format_help,
@@ -44,6 +50,10 @@ __all__ = [
     "list_commands",
     "format_help",
     "handle_command",
+    "classify_slash_input",
+    "SLASH_COMMAND",
+    "SLASH_CHAT",
+    "SLASH_UNKNOWN",
 ]
 
 

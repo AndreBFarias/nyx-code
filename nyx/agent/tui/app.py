@@ -380,7 +380,23 @@ class NyxTUI(App):
         # do agent. handle_command devolve None se não for comando, string
         # se for, ou um sentinel específico ("__quit__", "__aesthetic_select__",
         # etc.) -- _dispatch_slash isola toda essa lógica.
-        if text.lstrip().startswith("/"):
+        # INPUT-SLASH-PATH-DISAMBIG-01: entrada iniciada por `/` so vai ao
+        # _dispatch_slash se casar comando registrado OU for token-unico com
+        # cara de comando (-> aviso 'Comando desconhecido'). Caminho absoluto
+        # (`/home/...`) e frase com `/` inicial caem como chat: seguem pro LLM
+        # com a barra preservada. Fonte unica de decisao compartilhada com o
+        # REPL (classify_slash_input em _dispatcher.py).
+        from nyx.agent.commands import (
+            SLASH_COMMAND,
+            SLASH_UNKNOWN,
+            classify_slash_input,
+        )
+
+        stripped = text.lstrip()
+        if stripped.startswith("/") and classify_slash_input(stripped) in (
+            SLASH_COMMAND,
+            SLASH_UNKNOWN,
+        ):
             self._dispatch_slash(text)
             return
         self._last_input = text

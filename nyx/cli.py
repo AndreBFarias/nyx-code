@@ -102,7 +102,13 @@ async def run_repl(
     resume_id: str | None = None,
     no_resume_prompt: bool = False,
 ) -> int:
-    from nyx.agent.commands import handle_command, list_commands
+    from nyx.agent.commands import (
+        SLASH_COMMAND,
+        SLASH_UNKNOWN,
+        classify_slash_input,
+        handle_command,
+        list_commands,
+    )
     from nyx.agent.loop import AgentLoop
     from nyx.config.settings import load_settings
 
@@ -306,7 +312,17 @@ async def run_repl(
         if user_input == "__quit__":
             return "__quit__"
 
-        if not user_input.startswith("/"):
+        # INPUT-SLASH-PATH-DISAMBIG-01: entrada iniciada por `/` so e tratada como
+        # slash-command se o 1o token casar um comando registrado, OU se for um
+        # token-unico com cara de comando (-> aviso 'Comando desconhecido'). Caminho
+        # absoluto (`/home/...`) e frase iniciada por `/` caem como chat: renderizam
+        # e seguem pro LLM com a barra preservada no texto. Fonte unica de decisao
+        # compartilhada com a TUI (classify_slash_input em _dispatcher.py).
+        treat_as_command = user_input.startswith("/") and classify_slash_input(
+            user_input
+        ) in (SLASH_COMMAND, SLASH_UNKNOWN)
+
+        if not treat_as_command:
             # VISION-02: expande [Image #N] pela descrição da imagem antes do
             # render e do envio ao agent.run (ambos veem o texto já enriquecido).
             if image_map and "[Image #" in user_input:
@@ -322,7 +338,7 @@ async def run_repl(
                 user_name=str(app_state.get("user_display_name", "você")),
             )
 
-        if user_input.startswith("/"):
+        if treat_as_command:
             result = handle_command(user_input, pr_ref[0])
             if result is None:
                 return ""
