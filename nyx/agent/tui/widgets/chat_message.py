@@ -8,24 +8,33 @@ de classes CSS em nyx/agent/tui/styles/nyx.tcss -- widget apenas
 seta classes e renderiza texto com prefixo.
 
 Glifo do cabecalho do assistant usa chr(0x25C6) (BLACK DIAMOND)
-para imunidade ao sanitizer histórico (ver BRIEF secao Defesa
+para imunidade ao sanitizer histórico (ver BRIEF seção Defesa
 anti-sanitizer).
 """
 
 from __future__ import annotations
 
+import re
+
 from rich.console import Group
 from rich.markdown import Markdown
 from rich.text import Text
 from textual.app import RenderResult
+from textual.selection import Selection
 from textual.widgets import Static
 
 from nyx.themes.design_tokens import NYX_ACCENT, NYX_MUTED, NYX_PURPLE
 
 _VALID_ROLES = ("user", "assistant", "tool", "system")
 
-# Glifo via chr() -- defesa anti-sanitizer (padrao do BRIEF).
+# Glifo via chr() -- defesa anti-sanitizer (padrão do BRIEF).
 _DIAMOND = chr(0x25C6)
+
+# TUI-COPY-ASSISTANT-MARKDOWN-01: captura o conteudo INTERNO de cada bloco ``` da
+# fonte (raw markdown), byte-fiel. A 1a linha da fence pode trazer a linguagem
+# (ex.: ```python); o grupo (.*?) so pega o corpo, sem as cercas. Mesmo idioma do
+# _CODE_FENCE_RE do app.py (Ctrl+Y) -- drag-select e Ctrl+Y devolvem o MESMO codigo.
+_CODE_FENCE_RE = re.compile(r"```[^\n]*\n(.*?)```", re.DOTALL)
 
 # TUI-CONVERSATION-SCROLL-TEXTUAL-01 (SPRINT 309): intervalo de coalescing dos
 # refreshes durante o streaming. render() reconstroi Markdown(self._content)
@@ -204,6 +213,40 @@ class ChatMessage(Static):
         if self._role == "tool":
             return Text(f"  {self._content}")
         return Text(self._content)  # system: sem prefixo
+
+    def _copyable_source(self) -> str:
+        """Texto-fonte BYTE-FIEL desta mensagem para copia.
+
+        TUI-COPY-ASSISTANT-MARKDOWN-01: quando ha bloco(s) de codigo, devolve o
+        corpo dos fences concatenado (sem as cercas ```), igual ao que o Ctrl+Y
+        copia -- e exatamente "o codigo que a Nyx escreveu". Sem fence, devolve o
+        _content cru (prosa byte-fiel). O resultado vem da FONTE, nunca do render
+        Markdown -- por isso e imune ao desalinhamento de offset (as linhas
+        renderizadas do Markdown ganham padding de caixa e as cercas viram linhas
+        em branco; mapear offset renderizado -> fonte copiaria o trecho ERRADO).
+        """
+        blocks = _CODE_FENCE_RE.findall(self._content)
+        if blocks:
+            return "\n".join(b.rstrip("\n") for b in blocks)
+        return self._content
+
+    def get_selection(self, selection: Selection) -> tuple[str, str] | None:
+        """Sobrescreve a extração de seleção para o balão Markdown do assistant.
+
+        TUI-COPY-ASSISTANT-MARKDOWN-01. O Widget.get_selection base so extrai
+        renders Text/Content; o assistant renderiza Group(label, Markdown(...)),
+        entao a base retorna None e o drag-select volta VAZIO -- era justamente
+        "copiar o codigo" que o dono queria. Aqui devolvemos a FONTE byte-fiel
+        (_copyable_source) em vez de tentar mapear o offset renderizado de volta
+        a fonte (mapeamento que desalinha e copia o trecho errado -- ver
+        _copyable_source). A `selection` (offsets em coords renderizadas) e
+        deliberadamente ignorada: não da pra confiar nela contra a fonte do
+        Markdown. Demais roles (user/tool/system) renderizam Text puro -> caem na
+        implementacao base do Textual, preservando o copy-on-select da 390.
+        """
+        if self._role == "assistant" and self._content:
+            return self._copyable_source(), "\n"
+        return super().get_selection(selection)
 
 
 __all__ = ["ChatMessage"]
