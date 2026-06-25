@@ -4787,7 +4787,19 @@ class NyxGauntlet:
 
             mod = _imp.import_module("nyx.proxy")
             is_oom = getattr(mod, "_is_oom_error", None)
-            has_flag = hasattr(mod, "_OOM_DEGRADED")
+            src = proxy_py.read_text(encoding="utf-8")
+            # GAUNTLET-RB03-OOM-FLAG-FIX-01: o flag de módulo `_OOM_DEGRADED`
+            # foi removido no refactor PROXY-HANDLE-CHAT-REFACTOR-01 (commit
+            # 113e578); o estado de degradação migrou para `state["oom_degraded"]`
+            # no dict de app (proxy.py:1105/1149). `hasattr(mod,"_OOM_DEGRADED")`
+            # virava sempre False -> falso-negativo permanente. A detecção agora
+            # mira o contrato atual: a função da cascata de recuperação OOM existe
+            # E o source de fato seta/inicializa o estado de degradação. Falharia
+            # de verdade se a feature fosse removida.
+            tem_recovery_fn = hasattr(mod, "_post_chat_with_oom_recovery")
+            tem_degrade_set = 'state["oom_degraded"] = True' in src
+            tem_degrade_init = 'state.setdefault("oom_degraded", False)' in src
+            tem_degrade = tem_recovery_fn and tem_degrade_set and tem_degrade_init
             padroes = [
                 "CUDA out of memory",
                 "cudaMalloc failed",
@@ -4798,11 +4810,10 @@ class NyxGauntlet:
             ]
             detecta = is_oom is not None and all(is_oom(p) for p in padroes)
             nao_falso_positivo = is_oom is not None and not is_oom("resposta normal sem erro")
-            src = proxy_py.read_text(encoding="utf-8")
             tem_retry = "OOM recovery OK" in src and 'num_gpu"] = 0' in src
             # INFRA-OOM-PATTERNS-KV-CACHE-01: 9 patterns lowercase em _OOM_PATTERNS
             tem_patterns_kv = '"kv cache"' in src and '"ggml_assert"' in src
-            ok = bool(has_flag and detecta and nao_falso_positivo and tem_retry and tem_patterns_kv)
+            ok = bool(tem_degrade and detecta and nao_falso_positivo and tem_retry and tem_patterns_kv)
             self._add(
                 "RB-03",
                 "Proxy detecta OOM e degrada num_gpu=0 (R-04)",
@@ -4810,8 +4821,9 @@ class NyxGauntlet:
                 ok,
                 time.monotonic() - t,
                 details=(
-                    f"has_flag={has_flag} detecta={detecta} sem_fp={nao_falso_positivo} "
-                    f"retry={tem_retry} patterns_kv={tem_patterns_kv}"
+                    f"degrade={tem_degrade} (recovery_fn={tem_recovery_fn} "
+                    f"set={tem_degrade_set} init={tem_degrade_init}) detecta={detecta} "
+                    f"sem_fp={nao_falso_positivo} retry={tem_retry} patterns_kv={tem_patterns_kv}"
                 ),
             )
         except Exception as e:
@@ -4878,29 +4890,40 @@ class NyxGauntlet:
             src = proxy_py.read_text(encoding="utf-8")
             tem_log_step = "OOM degradation step" in src
             tem_chain = "GPU parcial" in src and "Degradando num_gpu=0" in src
-            # Cap 2 retries: contar session.post chamadas dentro do branch OOM
-            # (linha "if _is_oom_error(text) and not _OOM_DEGRADED:" até próximo "else:"
-            # do MESMO nível de indentação do if que abriu o branch).
-            # GAUNTLET-RB05-CAP-FIX-01: heurística robusta de indentação
-            # (BRIEF §[CORE] Padrão para cap-counter em RB-* heurístico):
-            # else: interno do branch (ex.: dentro de if status == 200:) não fecha
-            # o branch externo; só fecha quando indent do else: <= indent do if.
-            posts_no_branch_oom = 0
-            in_branch = False
-            indent_branch_if = 0
+            # Cap 2 retries: contar session.post de RETRY dentro da cascata OOM.
+            # GAUNTLET-RB03-OOM-FLAG-FIX-01: o branch OOM virou a função
+            # `_post_chat_with_oom_recovery` (refactor PROXY-HANDLE-CHAT-REFACTOR-01,
+            # commit 113e578) e a antiga linha "if _is_oom_error(text) and not
+            # _OOM_DEGRADED:" virou um early-return invertido sobre
+            # state["oom_degraded"]. O idiom antigo (string `_OOM_DEGRADED`) nunca
+            # abria o branch -> contava 0 -> cap_ok passava por acaso. Idiom novo:
+            # percorrer o corpo da função (indentação) e, após cruzar o guard OOM
+            # invertido, contar os session.post de retry (o post inicial vem ANTES
+            # do guard e não conta). Falha de verdade se a cascata exceder 2 retries.
+            posts_retry_oom = 0
+            in_func = False
+            apos_guard_oom = False
             for line in src.splitlines():
-                if "if _is_oom_error(text)" in line and "_OOM_DEGRADED" in line:
-                    in_branch = True
-                    indent_branch_if = len(line) - len(line.lstrip())
+                if line.startswith("async def _post_chat_with_oom_recovery"):
+                    in_func = True
+                    apos_guard_oom = False
                     continue
-                if in_branch and line.lstrip().startswith("else:") and "if _is_oom_error" not in line:
-                    cur_indent = len(line) - len(line.lstrip())
-                    if cur_indent <= indent_branch_if:
-                        in_branch = False
+                if in_func:
+                    # fim da função: começo de um novo bloco de topo (def/class/
+                    # decorator em col 0). A assinatura multi-linha desta função
+                    # tem a linha de fecho ") -> ...:" começando em col 0 -- por
+                    # isso NÃO se pode usar "qualquer linha em col 0" como fim.
+                    if line.startswith(("def ", "async def ", "class ", "@")):
+                        in_func = False
                         continue
-                if in_branch and "session.post" in line:
-                    posts_no_branch_oom += 1
-            cap_ok = posts_no_branch_oom <= 2
+                    # guard OOM invertido (early-return p/ não-OOM ou já degradado):
+                    # tudo depois dele é a cascata de retries
+                    if "if not (_is_oom_error(text)" in line and 'state["oom_degraded"]' in line:
+                        apos_guard_oom = True
+                        continue
+                    if apos_guard_oom and "session.post" in line:
+                        posts_retry_oom += 1
+            cap_ok = posts_retry_oom <= 2
             ok = bool(tem_helper and helper_ok and tem_log_step and tem_chain and cap_ok)
             self._add(
                 "RB-05",
@@ -4910,7 +4933,7 @@ class NyxGauntlet:
                 time.monotonic() - t,
                 details=(
                     f"helper={tem_helper} helper_ok={helper_ok} log_step={tem_log_step} "
-                    f"chain={tem_chain} posts_oom={posts_no_branch_oom} cap_ok={cap_ok}"
+                    f"chain={tem_chain} posts_oom={posts_retry_oom} cap_ok={cap_ok}"
                 ),
             )
         except Exception as e:
