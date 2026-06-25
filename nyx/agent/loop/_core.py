@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 import httpx
 
 from nyx.agent.context import ContextBudget, cap_summary
-from nyx.agent.loop._iteration import _IterationMixin, _reminder_every
+from nyx.agent.loop._iteration import _IterationMixin, _reminder_every, strip_system_reminder
 from nyx.agent.loop._types import PermissionCallback
 from nyx.agent.memory import NyxMemory
 from nyx.agent.models import (
@@ -297,6 +297,13 @@ class AgentLoop(_IterationMixin):
         status: SessionStatus | None = None
         try:
             status = await self._run_iterations(user_input)
+            # LOOP-REMINDER-LEAK-SUMMARY-01 (#381): guard de SAIDA único. Cobre
+            # todos os caminhos que montam o summary (content do LLM ecoando o
+            # reminder, force_done derivado do history, recovery, parser fallback)
+            # antes de chegar ao usuário E ao hook Stop no finally. Idempotente:
+            # se a fonte ja saneou (done em _iteration), aqui é no-op. A reinjeção
+            # no contexto (_maybe_inject_reminder) NÃO é tocada.
+            status.summary = strip_system_reminder(status.summary)
             return status
         finally:
             if self._hooks is not None:

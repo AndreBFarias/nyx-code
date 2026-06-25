@@ -12,6 +12,7 @@ import asyncio
 import inspect
 import json
 import os
+import re
 from typing import Any
 
 import httpx
@@ -62,6 +63,37 @@ def _detect_truncate(text: str) -> bool:
     if len(stripped) < 100:
         return False
     return stripped.endswith(_TRUNCATE_SUFFIXES)
+
+
+# LOOP-REMINDER-LEAK-SUMMARY-01 (#381): guard de SAIDA contra vazamento do bloco
+# <system-reminder>...</system-reminder> reinjetado por NYX-PROMPT-REINJECT-01.
+# A reinjeção no CONTEXTO é necessária (contra drift do 3b); o que NÃO pode é o
+# bloco interno chegar ao texto user-facing (summary/resposta). Quando o modelo
+# ecoa o reminder no content, ou o summary é derivado do history bruto, o usuário
+# via instruções internas em vez do resultado (achado: Onda de Validação 1, probe c2).
+# Regex ancorado nas TAGS EXATAS, não-guloso (cada bloco isolado), DOTALL (o bloco
+# é multilinha). Não toca conteudo que apenas contenha '<'/'>' soltos.
+_SYSTEM_REMINDER_BLOCK = re.compile(
+    r"<system-reminder>.*?</system-reminder>",
+    re.DOTALL,
+)
+
+
+def strip_system_reminder(text: str) -> str:
+    """Remove qualquer bloco <system-reminder>...</system-reminder> do texto.
+
+    Defesa em profundidade do guard de saida user-facing. Pura e deterministica:
+    - input com bloco -> bloco removido, resto preservado (whitespace orfa colapsado);
+    - input sem bloco -> retorna identico (mesma string).
+    Não desativa a reinjeção no contexto (isso vive em _maybe_inject_reminder).
+    """
+    if not text or "<system-reminder>" not in text:
+        return text
+    cleaned = _SYSTEM_REMINDER_BLOCK.sub("", text)
+    # Colapsa quebras de linha orfãs deixadas pela remoção do bloco, sem mexer
+    # no espacamento interno do texto util restante.
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
 
 
 # NYX-PROMPT-REINJECT-01: cadência default de reinjeção de system-reminder
@@ -144,7 +176,7 @@ class _IterationMixin:
                     self._done_rejected = True
                     self._session.add_tool_call(name, args, self._DONE_REJECT_HINT)
                     continue
-                summary = args.get("summary", "Tarefa concluída.")
+                summary = strip_system_reminder(args.get("summary", "Tarefa concluída."))
                 self._session.add_tool_call(name, args, summary, is_key=True)
                 return SessionStatus(
                     state=SessionState.DONE,
@@ -298,7 +330,7 @@ class _IterationMixin:
                 self._done_rejected = True
                 self._session.add_tool_call("done", action.params, self._DONE_REJECT_HINT)
                 return None  # continua o loop -- força o write_file antes do done
-            summary = action.params.get("summary", "Tarefa concluída.")
+            summary = strip_system_reminder(action.params.get("summary", "Tarefa concluída."))
             self._session.add_tool_call("done", action.params, summary, is_key=True)
             return SessionStatus(
                 state=SessionState.DONE,
