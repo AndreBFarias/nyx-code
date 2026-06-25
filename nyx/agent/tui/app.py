@@ -33,6 +33,7 @@ from typing import Any
 
 from rich.markdown import Markdown
 from rich.text import Text
+from textual import events
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical, VerticalScroll
@@ -1163,6 +1164,43 @@ class NyxTUI(App):
         self.notify(
             "Nenhum bloco de código para copiar.", severity="warning"
         )
+
+    def on_text_selected(self, event: events.TextSelected) -> None:
+        """Copy-on-select: ao soltar a seleção no chat, copia pro clipboard.
+
+        TUI-COPY-SELECTION-01. O Textual 8.2.7 suporta seleção de texto por
+        drag de mouse (ALLOW_SELECT herdado True nos ChatMessage/Static) e
+        posta events.TextSelected no mouse-up (Screen._forward_event). Aqui
+        capturamos esse evento e copiamos o texto selecionado pro clipboard
+        do SISTEMA via xclip (clipboard.write_text); se o xclip estiver
+        ausente ou falhar (sem sessão X / remoto), caímos para o fallback
+        OSC52 nativo do Textual (copy_to_clipboard, sequência `\\x1b]52`).
+
+        Não tocamos a captura de mouse: a seleção nativa já preserva o
+        scroll/clique (a scrollbar `-textual-system` não inicia seleção,
+        Screen._forward_event), então copy-on-select não quebra a interação.
+
+        Falha de clipboard é best-effort: não pode crashar o turno (mesmo
+        contrato do action_paste).
+        """
+        try:
+            text = self.screen.get_selected_text()
+        except Exception:
+            text = None
+        if not text:
+            return
+        copied_via = "OSC52"
+        try:
+            from nyx.agent.clipboard import write_text
+
+            if write_text(text):
+                copied_via = "xclip"
+            else:
+                self.copy_to_clipboard(text)
+        except Exception:
+            # Fallback final: OSC52 nativo do Textual (não levanta).
+            self.copy_to_clipboard(text)
+        logger.debug("copy-on-select: %d chars via %s", len(text), copied_via)
 
     def action_scroll_chat_up(self) -> None:
         """PgUp: rola a conversa (#chat) uma página para cima.

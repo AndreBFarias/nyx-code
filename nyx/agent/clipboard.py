@@ -34,7 +34,7 @@ def _run_xclip(args: list[str], *, binary: bool) -> subprocess.CompletedProcess 
         )
     except FileNotFoundError:
         _xclip_missing = True
-        logger.warning("xclip não instalado -- paste de imagem desativado")
+        logger.warning("xclip não instalado -- clipboard via xclip desativado")
         return None
     except subprocess.TimeoutExpired:
         logger.debug("xclip timeout")
@@ -71,6 +71,48 @@ def capture_text() -> str | None:
     if r is None or r.returncode != 0:
         return None
     return r.stdout if r.stdout else None
+
+
+def write_text(text: str) -> bool:
+    """Escreve texto no clipboard do sistema via xclip -selection clipboard.
+
+    TUI-COPY-SELECTION-01: usado pelo copy-on-select da TUI. Retorna True
+    quando o xclip gravou de fato (sessão X disponível); False quando o
+    xclip está ausente ou falhou -- o caller cai para o fallback OSC52
+    (sequência de terminal `\\x1b]52`, portátil e funciona remoto/sem X)
+    via App.copy_to_clipboard do Textual. Texto vazio é no-op (retorna
+    False, nada a copiar).
+
+    Não usa subprocess.run: ao ESCREVER, o xclip faz fork e mantém um
+    daemon vivo segurando a seleção do X (ele é o owner do PRIMARY/CLIPBOARD).
+    Com capture_output=True o run() espera o pipe do daemon fechar e bate
+    TimeoutExpired mesmo após gravar. Usamos Popen detachado: escrevemos no
+    stdin, fechamos, e deixamos o daemon servir a seleção (stdout/stderr para
+    DEVNULL para não herdar o pipe do processo da TUI). O write em si é
+    síncrono; o daemon persiste sozinho.
+    """
+    global _xclip_missing
+    if not text or _xclip_missing:
+        return False
+    try:
+        proc = subprocess.Popen(
+            ["xclip", "-selection", "clipboard"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except FileNotFoundError:
+        _xclip_missing = True
+        logger.warning("xclip não instalado -- clipboard via xclip desativado")
+        return False
+    try:
+        assert proc.stdin is not None
+        proc.stdin.write(text.encode("utf-8"))
+        proc.stdin.close()
+    except OSError as e:
+        logger.debug("xclip write falhou: %s", e)
+        return False
+    return True
 
 
 def is_available() -> bool:
