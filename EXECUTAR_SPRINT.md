@@ -2,7 +2,7 @@
 
 > **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
 > Copie o bloco abaixo e cole em uma sessão nova do modelo principal (sem subagentes).
-> Restam **6** sprints PENDENTE(S) na fila.
+> Restam **5** sprints PENDENTE(S) na fila.
 
 ---
 
