@@ -19,7 +19,12 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 import httpx
 
 from nyx.agent.context import ContextBudget, cap_summary
-from nyx.agent.loop._iteration import _IterationMixin, _reminder_every, strip_system_reminder
+from nyx.agent.loop._iteration import (
+    _IterationMixin,
+    _reminder_every,
+    strip_done_summary_artifact,
+    strip_system_reminder,
+)
 from nyx.agent.loop._types import PermissionCallback
 from nyx.agent.memory import NyxMemory
 from nyx.agent.models import (
@@ -303,7 +308,15 @@ class AgentLoop(_IterationMixin):
             # antes de chegar ao usuário E ao hook Stop no finally. Idempotente:
             # se a fonte ja saneou (done em _iteration), aqui é no-op. A reinjeção
             # no contexto (_maybe_inject_reminder) NÃO é tocada.
-            status.summary = strip_system_reminder(status.summary)
+            # OUTPUT-DONE-SUMMARY-RENDER-01 (#388): guard de SAIDA único, mesmo
+            # ponto da 381. Cobre o caminho do done() MALFORMADO (`done(summary="X`
+            # sem fechar paren/aspa) que o parser NÃO casa e cai cru como
+            # final_content/summary. strip_done_summary_artifact extrai so o valor.
+            # Idempotente: se a fonte (done em _iteration) ja saneou, aqui e no-op;
+            # se o texto e uma resposta normal sem artefato, retorna identico.
+            status.summary = strip_done_summary_artifact(
+                strip_system_reminder(status.summary)
+            )
             return status
         finally:
             if self._hooks is not None:

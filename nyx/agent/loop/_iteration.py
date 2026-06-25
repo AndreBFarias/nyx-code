@@ -96,6 +96,44 @@ def strip_system_reminder(text: str) -> str:
     return cleaned.strip()
 
 
+# OUTPUT-DONE-SUMMARY-RENDER-01 (#388): guard de SAIDA contra o artefato cru do
+# done() vazando user-facing. O 3b as vezes emite `done(summary="Lista vazia` sem
+# fechar a aspa nem o parêntese; o parser NÃO casa esse malformado e o texto cru
+# (`summary="Lista vazia` ou `done(summary="Lista vazia`) cai como content/summary
+# final, mostrando o formato interno ao usuário (achado: Onda de Validação 2, img 1).
+# Este regex é ANCORADO em ^ -- só dispara quando o texto INTEIRO começa com o
+# artefato (`done(`/keyword opcional + `summary=`). Um `summary=` legítimo no MEIO
+# de uma resposta natural NÃO casa (^ + ausência de prefixo done/abertura).
+# Tolera aspa simples/dupla E aspa não-fechada (pega até o fim via \Z).
+_DONE_SUMMARY_ARTIFACT = re.compile(
+    r"^\s*(?:done|pronto|feito|concluido|concluído)?\s*\(?\s*"
+    r"summary\s*=\s*([\"'])?(.*?)(?:\1|\)|\Z)\s*\)?\s*$",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def strip_done_summary_artifact(text: str) -> str:
+    """Extrai o VALOR do summary quando o texto inteiro e um artefato cru do done().
+
+    Defesa em profundidade, sibling de strip_system_reminder. Pura e deterministica:
+    - `summary="Lista vazia`         -> `Lista vazia`   (prefixo + aspa aberta removidos)
+    - `done(summary="Lista vazia")`  -> `Lista vazia`
+    - `done(summary="X`              -> `X`             (aspa/paren não-fechados)
+    - texto normal sem o artefato    -> retorna idêntico (^ não casa)
+    - `summary=` vazio               -> retorna idêntico (não apaga o texto)
+    Ancorado em ^/$ para nunca tocar um `summary=` legitimo no meio de um texto.
+    """
+    if not text or "summary" not in text.lower():
+        return text
+    match = _DONE_SUMMARY_ARTIFACT.match(text)
+    if not match:
+        return text
+    value = (match.group(2) or "").strip().strip("\"'").strip()
+    # Valor vazio (ex.: `summary=`) não deve aniquilar a resposta -- preserva o
+    # texto original em vez de devolver string vazia.
+    return value or text
+
+
 # NYX-PROMPT-REINJECT-01: cadência default de reinjeção de system-reminder
 # canônico no histórico. Sobrescrita via env NYX_REMINDER_EVERY (int > 0).
 # Cadência 3 escolhida empiricamente: turnos típicos de qwen2.5-coder:3b com
@@ -176,7 +214,9 @@ class _IterationMixin:
                     self._done_rejected = True
                     self._session.add_tool_call(name, args, self._DONE_REJECT_HINT)
                     continue
-                summary = strip_system_reminder(args.get("summary", "Tarefa concluída."))
+                summary = strip_done_summary_artifact(
+                    strip_system_reminder(args.get("summary", "Tarefa concluída."))
+                )
                 self._session.add_tool_call(name, args, summary, is_key=True)
                 return SessionStatus(
                     state=SessionState.DONE,
@@ -330,7 +370,9 @@ class _IterationMixin:
                 self._done_rejected = True
                 self._session.add_tool_call("done", action.params, self._DONE_REJECT_HINT)
                 return None  # continua o loop -- força o write_file antes do done
-            summary = strip_system_reminder(action.params.get("summary", "Tarefa concluída."))
+            summary = strip_done_summary_artifact(
+                strip_system_reminder(action.params.get("summary", "Tarefa concluída."))
+            )
             self._session.add_tool_call("done", action.params, summary, is_key=True)
             return SessionStatus(
                 state=SessionState.DONE,

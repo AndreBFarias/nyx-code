@@ -123,6 +123,15 @@ _FUNCTION_CALL_DONE = re.compile(
     re.IGNORECASE,
 )
 
+# OUTPUT-DONE-SUMMARY-RENDER-01 (#388): quando o 3b emite `done(summary="texto")`,
+# o grupo 2 de _FUNCTION_CALL_DONE captura o NAMED-ARG cru `summary="texto` (com o
+# prefixo `summary=` e a aspa de abertura), porque o regex casa de dentro do `(`
+# ate o `)`. Sem limpar, o valor `summary="Lista vazia` vazava cru no balao do
+# usuário. Este regex remove SÓ o prefixo `summary=` + aspa de abertura opcional
+# no INÍCIO do valor capturado; ancorado em `^` para não tocar um `summary=` que
+# por acaso apareca no meio de um summary posicional legitimo.
+_DONE_SUMMARY_KWARG_PREFIX = re.compile(r'^\s*summary\s*=\s*["\']?', re.IGNORECASE)
+
 _BARE_TOOL_NAMES = (
     "read_file|read|ler|search|grep|buscar|list_files|list|ls|listar|"
     "edit_file|edit|create_file|create|write_file|write|"
@@ -356,6 +365,12 @@ class ActionParser:
             if not action_type:
                 continue
             value = match.group(2).strip().strip("\"'")
+            # OUTPUT-DONE-SUMMARY-RENDER-01 (#388): no caso `done(summary="...")` o
+            # valor capturado vem como `summary="..."` (named-arg cru). Remove o
+            # prefixo `summary=` + aspa pendurada antes de virar o summary
+            # user-facing. Só afeta done; nas demais tools o prefixo não existe.
+            if param_key == "summary":
+                value = _DONE_SUMMARY_KWARG_PREFIX.sub("", value, count=1).strip().strip("\"'")
             params = {param_key: value}
             logger.info("Function-call parse: %s(%s)", tool_name, value[:60])
             return ParseResult(
