@@ -1148,7 +1148,7 @@ Achados da dimensao "autonomia de tools" (D3 do AUDIT) que NAO viram spec especu
 |---|--------|------|------|--------|
 | 376 | **CI-ANONYMITY-FIX-01** | ALTA | -- | CONCLUIDA (cff053e) |
 | 377 | **CI-NEXTSPRINT-ANONYMITY-01** | MEDIA | -- | CONCLUIDA (f63f7ce) |
-| 378 | **CI-MODEL-ASSERT-FIX-01** | MEDIA | -- | PENDENTE |
+| 378 | **CI-MODEL-ASSERT-FIX-01** | MEDIA | -- | CONCLUIDA (cc695de) |
 | 379 | **GAUNTLET-RB03-OOM-FLAG-FIX-01** | MEDIA | -- | PENDENTE |
 | 380 | **GAUNTLET-REPORT-COUNT-FIX-01** | BAIXA | -- | PENDENTE |
 | 381 | **LOOP-REMINDER-LEAK-SUMMARY-01** | MEDIA | -- | PENDENTE |
@@ -1160,7 +1160,7 @@ Achados da dimensao "autonomia de tools" (D3 do AUDIT) que NAO viram spec especu
 > Resumos (uma spec por vez em producao/; no momento so a 376 tem spec):
 > - **376 CI-ANONYMITY-FIX-01** (BLOCKER) CONCLUIDA (cff053e): restaurado o `if` ausente em anonymity-check.yml:73 que detecta trailer de coautoria na MSG, reusando TOOL_RE + NOREPLY_RE (que estava morto). `bash -n` do script extraido passou de exit 2 (syntax error near unexpected token `fi`) para exit 0; teste funcional confirmou os dois caminhos (trailer com nome/email IA dispara FAIL=1; commits limpos 4be0431/e295c29 da ONDA-45 passam; coautoria humana neutra passa); invariantes 14/14 inalterados. O regex usa classes `[cC]o-[aA]uthored-[bB]y` para sobreviver ao auto-fix de coautoria do pre-commit (que deletava a linha com a string literal). Spec em concluidos/.
 > - **377 CI-NEXTSPRINT-ANONYMITY-01** CONCLUIDA (f63f7ce): build_prompt() em update_next_sprint.py:267,277 cravava nome+versao de modelo no template; trocado por texto neutro ("modelo principal local, sem subagentes") preservando os 10 passos/gambiarras-inject/ID/contagem. grep de marca passou de 2 matches para 0; EXECUTAR_SPRINT.md regenerado nao casa mais o regex anti-IA (commitavel); invariantes 14/14 inalterados (FAIL 0->0); ruff/acento OK. Spec em concluidos/.
-> - **378 CI-MODEL-ASSERT-FIX-01**: smoke do ci.yml verifica o modelo default; alinhar ao DEFAULT_MODEL real (qwen2.5-coder:3b) de config/defaults.py (fonte unica).
+> - **378 CI-MODEL-ASSERT-FIX-01** CONCLUIDA (cc695de): step "Testar config" do ci.yml cravava `assert DEFAULT_MODEL == 'qwen3:4b'` mas o real e 'qwen2.5-coder:3b' (defaults.py:55) -> job smoke-tests FALHA sempre + acopla o CI a um model especifico (contra ONDA-47). Trocado por checagem de sanidade/formato (`isinstance(str) and DEFAULT_MODEL`; `':' in DEFAULT_MODEL`) decouplando do nome do model; OLLAMA_PORT==11435 mantido; demais steps intactos. Snippet ANTES: AssertionError (exit 1); DEPOIS: passa com 'qwen2.5-coder:3b' (exit 0) e com swap simulado 'llama3.2:3b' (exit 0); model inválido sem ':' ainda FALHA (exit 1, não é checagem fraca). YAML valido (yaml.safe_load OK); invariantes 14/14 (FAIL 0->0); acento OK; sem mencao a provedor no diff. Spec em concluidos/.
 > - **379 GAUNTLET-RB03-OOM-FLAG-FIX-01**: RB-03 (nyx_gauntlet.py:4790) testa `hasattr(mod,"_OOM_DEGRADED")` mas o flag migrou para `app["state"]["oom_degraded"]` (commit 113e578); RB-05 (~4892) mesmo idiom fragil. Falso-negativo no gate.
 > - **380 GAUNTLET-REPORT-COUNT-FIX-01**: header do GAUNTLET_REPORT soma SKIP como pass (232/235 vs 231/3/1).
 > - **381 LOOP-REMINDER-LEAK-SUMMARY-01**: bloco <system-reminder> vazou cru no summary da resposta (Onda Val 1, probe c2).
