@@ -175,7 +175,13 @@ def validate_path(file_path: str, project_root: str) -> Path:
     if not file_path or not file_path.strip():
         raise ValueError("Path vazio")
 
-    raw = Path(file_path.strip())
+    # FS-TILDE-EXPAND-01: expanduser() ANTES do is_absolute(). Sem isso,
+    # Path("~/.bashrc").is_absolute() é False (Path não expande `~`), o path cai
+    # no ramo relativo e vira `<raiz>/~/.bashrc`. Após expandir, `~/...` vira
+    # absoluto e segue o caminho correto (free access + secret-block). Paths sem
+    # `~` e relativos legítimos não mudam (expanduser é no-op neles). Mesma
+    # convenção já usada por _resolve().
+    raw = Path(file_path.strip()).expanduser()
     if raw.is_absolute():
         resolved = raw.resolve()
     else:
