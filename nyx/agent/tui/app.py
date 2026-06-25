@@ -38,6 +38,7 @@ from textual.binding import Binding
 from textual.containers import Vertical, VerticalScroll
 from textual.widgets import Collapsible, Static
 
+from nyx.agent.services.input_history import InputHistory
 from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tui.sentinel_dispatch import (
     command_label,
@@ -196,17 +197,24 @@ class NyxTUI(App):
         # (auto-scroll). True = novos tokens/tools rolam ao fim; PgUp desliga
         # (usuário lendo histórico), PgDn-até-o-fim e o submit do usuário religam.
         self._follow_output: bool = True
-        # TUI-INPUT-HISTORY-NAV-01: store de histórico navegável (Ctrl+Up/Down).
-        # `_input_history` guarda as submissões NÃO-slash em ordem cronológica
-        # (mais antigo primeiro, mais recente no fim) -- paridade de semântica
-        # com `_last_input`, que só é setado no ramo não-slash de
+        # TUI-INPUT-HISTORY-NAV-01 / INPUT-HISTORY-RECALL-01: store de histórico
+        # navegável. `_input_history` guarda as submissões NÃO-slash em ordem
+        # cronológica (mais antigo primeiro, mais recente no fim) -- paridade de
+        # semântica com `_last_input`, que só é setado no ramo não-slash de
         # `_on_input_submit`. `_history_idx` é o cursor de navegação: a
         # convenção `idx == len(_input_history)` significa "fora do histórico"
         # (mostrando o rascunho do usuário); após cada submit volta a esse
         # valor. `_history_draft` preserva o buffer que estava sendo digitado
         # quando a navegação começou, para restaurá-lo ao sair pelo lado
-        # recente (Ctrl+Down além do mais recente).
-        self._input_history: list[str] = []
+        # recente (Down além do mais recente).
+        #
+        # INPUT-HISTORY-RECALL-01: o service `InputHistory` persiste essas
+        # submissões em ~/.nyx/input_history e as recarrega aqui no boot, para
+        # que Up traga a última mensagem mesmo após reiniciar a Nyx. O store em
+        # memória parte das entradas carregadas; cada submit faz append no
+        # service (que dedup-a o consecutivo e aplica o cap de 500).
+        self._input_history_service = InputHistory()
+        self._input_history: list[str] = self._input_history_service.entries
         self._history_idx: int = len(self._input_history)
         self._history_draft: str = ""
         # TUI-NYXCODE-GHOST-LAZY-MOUNT-01: ref ao ChatMessage("assistant")
@@ -307,6 +315,13 @@ class NyxTUI(App):
                 slash_commands=self._slash_commands or None,
                 on_submit=self._on_input_submit,
                 on_suggestions=self._update_suggestions_panel,
+                # INPUT-HISTORY-RECALL-01: Up/Down nus recall do histórico (o
+                # widget só os chama com o cursor na 1a/última linha; os métodos
+                # retornam True quando de fato fizeram recall, para o widget
+                # decidir consumir a tecla ou deixar o cursor mover).
+                on_history_prev=self._history_recall_prev,
+                on_history_next=self._history_recall_next,
+                on_history_reset=self._history_recall_reset,
             )
 
             toolbar = Toolbar(model=self._model)
@@ -409,6 +424,10 @@ class NyxTUI(App):
         # o rascunho preservado.
         if not self._input_history or self._input_history[-1] != text:
             self._input_history.append(text)
+        # INPUT-HISTORY-RECALL-01: persiste a submissão em ~/.nyx/input_history
+        # (o service dedup-a o consecutivo e aplica o cap de 500), para que o
+        # recall por Up sobreviva ao reinício da Nyx.
+        self._input_history_service.append(text)
         self._history_idx = len(self._input_history)
         self._history_draft = ""
         chat = self.query_one("#chat", VerticalScroll)
@@ -1069,6 +1088,58 @@ class NyxTUI(App):
         else:
             input_widget.text = self._input_history[self._history_idx]
         input_widget.move_cursor(input_widget.document.end)
+
+    def _history_recall_prev(self) -> bool:
+        """Up (cursor na 1a linha): recall da submissão anterior. Retorna se houve recall.
+
+        INPUT-HISTORY-RECALL-01. Chamado pelo InputWidget quando Up é
+        pressionado com o cursor na primeira linha (cobre o input vazio). Recua
+        o cursor de navegação em direção às mensagens mais antigas; no topo
+        (índice 0) é no-op. Ao entrar na navegação (vindo de "fora do
+        histórico") salva o rascunho corrente em `_history_draft` para Down
+        restaurá-lo. Retorna True quando reescreve o buffer (o widget então
+        consome a tecla); False quando não há histórico (o widget deixa o Up
+        mover o cursor).
+        """
+        if not self._input_history:
+            return False
+        input_widget = self.query_one("#input", InputWidget)
+        if self._history_idx == len(self._input_history):
+            self._history_draft = input_widget.text
+        if self._history_idx > 0:
+            self._history_idx -= 1
+        input_widget.text = self._input_history[self._history_idx]
+        input_widget.move_cursor(input_widget.document.end)
+        return True
+
+    def _history_recall_next(self) -> bool:
+        """Down (cursor na última linha): avança o recall / volta ao rascunho. Retorna se houve recall.
+
+        INPUT-HISTORY-RECALL-01. Só age quando ESTÁ navegando o histórico
+        (`_history_idx < len`); fora do histórico retorna False para que o Down
+        mova o cursor normalmente (não engole a tecla na edição livre). Ao
+        avançar além do mais recente, restaura `_history_draft` (rascunho vazio
+        por padrão) e o cursor de navegação volta a "fora do histórico".
+        """
+        if self._history_idx >= len(self._input_history):
+            return False
+        input_widget = self.query_one("#input", InputWidget)
+        self._history_idx += 1
+        if self._history_idx == len(self._input_history):
+            input_widget.text = self._history_draft
+        else:
+            input_widget.text = self._input_history[self._history_idx]
+        input_widget.move_cursor(input_widget.document.end)
+        return True
+
+    def _history_recall_reset(self) -> None:
+        """Esc: o buffer já foi limpo pelo widget; reseta o cursor de navegação.
+
+        INPUT-HISTORY-RECALL-01. Volta o estado para "fora do histórico" e
+        descarta o rascunho preservado -- o próximo Up recomeça do mais recente.
+        """
+        self._history_idx = len(self._input_history)
+        self._history_draft = ""
 
     def action_copy_last_code(self) -> None:
         """Copia o último bloco de código (```) da última mensagem do NyxCode.

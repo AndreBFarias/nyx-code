@@ -71,6 +71,9 @@ class InputWidget(TextArea):
         slash_commands: list[tuple[str, str]] | None = None,
         on_submit: Callable[[str], None] | None = None,
         on_suggestions: Callable[[list[tuple[str, str]]], None] | None = None,
+        on_history_prev: Callable[[], bool] | None = None,
+        on_history_next: Callable[[], bool] | None = None,
+        on_history_reset: Callable[[], None] | None = None,
         placeholder: str = "Digite uma mensagem ou /comando",
         id: str | None = None,
     ) -> None:
@@ -97,6 +100,15 @@ class InputWidget(TextArea):
             tab_behavior="focus",
         )
         self._on_submit = on_submit
+        # INPUT-HISTORY-RECALL-01: callbacks de recall do histórico, decididos
+        # AQUI (o widget é quem conhece a posição do cursor). Up só faz recall
+        # com o cursor na primeira linha (cobre o input vazio); no meio de um
+        # texto multilinha o Up move o cursor normalmente, preservando a edição.
+        # Down só recua o recall com o cursor na última linha. Esc limpa o
+        # buffer e avisa o app para resetar o cursor de navegação.
+        self._on_history_prev = on_history_prev
+        self._on_history_next = on_history_next
+        self._on_history_reset = on_history_reset
 
         # Contador monotônico de imagens coladas na sessão; vira [Image #N] em
         # paste_text. Acumulativo enquanto a instância viver (sem reset por turno).
@@ -140,7 +152,7 @@ class InputWidget(TextArea):
             self._on_suggestions(matches)
 
     async def _on_key(self, event: events.Key) -> None:
-        """Inverte a semântica de Enter/Ctrl+J e aceita o ghost com Tab.
+        """Inverte a semântica de Enter/Ctrl+J, aceita o ghost com Tab e faz recall do histórico.
 
         - Enter (`enter`): SUBMETE -- consome o evento, chama on_submit com o
           texto atual e limpa o buffer. Diferente do TextArea padrão, que
@@ -148,6 +160,17 @@ class InputWidget(TextArea):
         - Ctrl+J (`ctrl+j`): insere nova linha -- consome o evento e insere
           `\\n` no cursor (multiline). O byte LF (0x0a) chega como `ctrl+j`.
         - Tab (`tab`) com sugestão ativa: aceita o ghost (insere o sufixo).
+        - Up (`up`) com o cursor na PRIMEIRA linha: recall da mensagem anterior
+          do histórico (INPUT-HISTORY-RECALL-01). No meio de um texto multilinha
+          (cursor fora da 1a linha) o Up move o cursor normalmente -- a edição
+          multilinha é preservada. O callback `_on_history_prev` retorna True se
+          de fato fez recall; só então consumimos o evento.
+        - Down (`down`) com o cursor na ÚLTIMA linha: avança o recall para a
+          mensagem mais recente / volta ao rascunho. Idem: só consome se o
+          callback `_on_history_next` retornar True (i.e. estava navegando);
+          caso contrário o Down move o cursor.
+        - Escape (`escape`): limpa o buffer e reseta o cursor de navegação do
+          histórico (volta o estado para "fora do histórico").
         - Demais teclas: delega ao TextArea para preservar a edição normal.
         """
         if event.key == "enter":
@@ -167,6 +190,31 @@ class InputWidget(TextArea):
             event.stop()
             event.prevent_default()
             self.insert(self.suggestion)
+            return
+        if (
+            event.key == "up"
+            and self._on_history_prev is not None
+            and self.cursor_at_first_line
+        ):
+            if self._on_history_prev():
+                event.stop()
+                event.prevent_default()
+                return
+        if (
+            event.key == "down"
+            and self._on_history_next is not None
+            and self.cursor_at_last_line
+        ):
+            if self._on_history_next():
+                event.stop()
+                event.prevent_default()
+                return
+        if event.key == "escape":
+            event.stop()
+            event.prevent_default()
+            self.clear()
+            if self._on_history_reset is not None:
+                self._on_history_reset()
             return
         await super()._on_key(event)
 
