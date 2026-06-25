@@ -1155,7 +1155,7 @@ Achados da dimensao "autonomia de tools" (D3 do AUDIT) que NAO viram spec especu
 | 382 | **LOOP-TOOL-RESULT-FIDELITY-01** | MEDIA | -- | PENDENTE |
 | 383 | **CI-GAUNTLET-JOB-01** | MEDIA | -- | PENDENTE |
 | 384 | **VERSION-DISCIPLINE-01** | ALTA | -- | PENDENTE |
-| 385 | **WORKTREE-BASELINES-01** | MEDIA | -- | PENDENTE |
+| 385 | **WORKTREE-BASELINES-01** | MEDIA | -- | CONCLUIDA (51791b1) |
 
 > Resumos (uma spec por vez em producao/; no momento so a 376 tem spec):
 > - **376 CI-ANONYMITY-FIX-01** (BLOCKER) CONCLUIDA (cff053e): restaurado o `if` ausente em anonymity-check.yml:73 que detecta trailer de coautoria na MSG, reusando TOOL_RE + NOREPLY_RE (que estava morto). `bash -n` do script extraido passou de exit 2 (syntax error near unexpected token `fi`) para exit 0; teste funcional confirmou os dois caminhos (trailer com nome/email IA dispara FAIL=1; commits limpos 4be0431/e295c29 da ONDA-45 passam; coautoria humana neutra passa); invariantes 14/14 inalterados. O regex usa classes `[cC]o-[aA]uthored-[bB]y` para sobreviver ao auto-fix de coautoria do pre-commit (que deletava a linha com a string literal). Spec em concluidos/.
@@ -1167,7 +1167,7 @@ Achados da dimensao "autonomia de tools" (D3 do AUDIT) que NAO viram spec especu
 > - **382 LOOP-TOOL-RESULT-FIDELITY-01**: 3b alucina o resultado da tool depois de chama-la (contagem/conteudo). Capacidade do modelo (ADR-034); tratavel so por guard/prompt -- meta realista, nao 100%.
 > - **383 CI-GAUNTLET-JOB-01**: job de CI CPU-friendly (smoke + invariantes + gauntlet rapido) on PR + nightly/dispatch.
 > - **384 VERSION-DISCIPLINE-01**: pre-commit reinstalado + .pre-commit-config.yaml; reconciliar tags (param em v1.1.1) com __version__/CHANGELOG.
-> - **385 WORKTREE-BASELINES-01**: decidir baselines .json do gauntlet (gitignore vs commitar) + limpar working tree.
+> - **385 WORKTREE-BASELINES-01** CONCLUIDA (51791b1): o .gitignore cobria so dev-journey/07-reports/gauntlet/*.md; os baselines/*.json e checkpoint.json (regenerados a cada run) ficavam M/?? eternos no working tree. Adicionadas as regras `baselines/*.json` + `checkpoint.json` ao .gitignore e destrackeados os 21 artefatos do indice via `git rm --cached` (seguem no disco; pasta inteira preservada -- 0 doc *.md histórico tocado, nenhum não-json era tracked). PROVA: check-ignore passou de exit 1 para exit 0 nos dois artefatos; apos `./run.sh --gauntlet --only rapido` (exit 0, checkpoint.json regenerado mtime 1782407821->1782408827 e sha 7c19776->ff58579, 26 baselines seguem no disco) o `git status` da pasta mostra 0 linhas M/?? (so os 21 D do destrackeamento). Invariantes 14/14 (FAIL 0->0), acento OK no .gitignore. Commit atomico (.gitignore +2 / -498 dos 21 destrackeados); spec em concluidos/.
 
 <!-- MANUAL_OVERRIDE_ONDA_46_END -->
 
