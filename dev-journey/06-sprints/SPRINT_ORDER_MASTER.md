@@ -1138,6 +1138,39 @@ Achados da dimensao "autonomia de tools" (D3 do AUDIT) que NAO viram spec especu
 
 <!-- MANUAL_OVERRIDE_ONDA_45_END -->
 
+<!-- MANUAL_OVERRIDE_ONDA_46_START -->
+
+### Bloco ONDA-46: Saneamento de CI & Working Tree + achados da Onda de Validação 1 (2026-06-24)
+
+**Origem:** Wave 0 (dimensao 6: CI/build/versao/working-tree) + Onda de Validacao 1 (pos-ONDA-45). Saneia o CI (um BLOCKER real), versionamento e working tree, e fecha os bugs de comportamento/teste achados na validacao as-user. Specs detalhadas escritas sob demanda (modelo iterativo do dono). Commit na main sem push.
+
+| # | Sprint | Prio | Deps | Status |
+|---|--------|------|------|--------|
+| 376 | **CI-ANONYMITY-FIX-01** | ALTA | -- | CONCLUIDA (cff053e) |
+| 377 | **CI-NEXTSPRINT-ANONYMITY-01** | MEDIA | -- | PENDENTE |
+| 378 | **CI-MODEL-ASSERT-FIX-01** | MEDIA | -- | PENDENTE |
+| 379 | **GAUNTLET-RB03-OOM-FLAG-FIX-01** | MEDIA | -- | PENDENTE |
+| 380 | **GAUNTLET-REPORT-COUNT-FIX-01** | BAIXA | -- | PENDENTE |
+| 381 | **LOOP-REMINDER-LEAK-SUMMARY-01** | MEDIA | -- | PENDENTE |
+| 382 | **LOOP-TOOL-RESULT-FIDELITY-01** | MEDIA | -- | PENDENTE |
+| 383 | **CI-GAUNTLET-JOB-01** | MEDIA | -- | PENDENTE |
+| 384 | **VERSION-DISCIPLINE-01** | ALTA | -- | PENDENTE |
+| 385 | **WORKTREE-BASELINES-01** | MEDIA | -- | PENDENTE |
+
+> Resumos (uma spec por vez em producao/; no momento so a 376 tem spec):
+> - **376 CI-ANONYMITY-FIX-01** (BLOCKER) CONCLUIDA (cff053e): restaurado o `if` ausente em anonymity-check.yml:73 que detecta trailer de coautoria na MSG, reusando TOOL_RE + NOREPLY_RE (que estava morto). `bash -n` do script extraido passou de exit 2 (syntax error near unexpected token `fi`) para exit 0; teste funcional confirmou os dois caminhos (trailer com nome/email IA dispara FAIL=1; commits limpos 4be0431/e295c29 da ONDA-45 passam; coautoria humana neutra passa); invariantes 14/14 inalterados. O regex usa classes `[cC]o-[aA]uthored-[bB]y` para sobreviver ao auto-fix de coautoria do pre-commit (que deletava a linha com a string literal). Spec em concluidos/.
+> - **377 CI-NEXTSPRINT-ANONYMITY-01**: update_next_sprint.py:267,277 gera nome de modelo proprietario no EXECUTAR_SPRINT.md -> hook anti-IA bloqueia o commit do arquivo. Texto neutro.
+> - **378 CI-MODEL-ASSERT-FIX-01**: smoke do ci.yml verifica o modelo default; alinhar ao DEFAULT_MODEL real (qwen2.5-coder:3b) de config/defaults.py (fonte unica).
+> - **379 GAUNTLET-RB03-OOM-FLAG-FIX-01**: RB-03 (nyx_gauntlet.py:4790) testa `hasattr(mod,"_OOM_DEGRADED")` mas o flag migrou para `app["state"]["oom_degraded"]` (commit 113e578); RB-05 (~4892) mesmo idiom fragil. Falso-negativo no gate.
+> - **380 GAUNTLET-REPORT-COUNT-FIX-01**: header do GAUNTLET_REPORT soma SKIP como pass (232/235 vs 231/3/1).
+> - **381 LOOP-REMINDER-LEAK-SUMMARY-01**: bloco <system-reminder> vazou cru no summary da resposta (Onda Val 1, probe c2).
+> - **382 LOOP-TOOL-RESULT-FIDELITY-01**: 3b alucina o resultado da tool depois de chama-la (contagem/conteudo). Capacidade do modelo (ADR-034); tratavel so por guard/prompt -- meta realista, nao 100%.
+> - **383 CI-GAUNTLET-JOB-01**: job de CI CPU-friendly (smoke + invariantes + gauntlet rapido) on PR + nightly/dispatch.
+> - **384 VERSION-DISCIPLINE-01**: pre-commit reinstalado + .pre-commit-config.yaml; reconciliar tags (param em v1.1.1) com __version__/CHANGELOG.
+> - **385 WORKTREE-BASELINES-01**: decidir baselines .json do gauntlet (gitignore vs commitar) + limpar working tree.
+
+<!-- MANUAL_OVERRIDE_ONDA_46_END -->
+
 <!-- MANUAL_OVERRIDE_ONDA_28_START -->
 
 ### Bloco ONDA-28: TUI paridade Claude Code (boot silencioso + banner block + input fixo + wizard completo) (2026-05-18) <!-- noqa-anonimato -->
