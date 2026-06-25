@@ -439,8 +439,14 @@ class NyxGauntlet:
             self._write_report()
             self._save_baseline()
 
-        ok = sum(1 for r in self._results if r.passed)
+        # GAUNTLET-REPORT-COUNT-FIX-01: SKIP tem passed=True para não derrubar
+        # o gate, mas NÃO é um acerto. Separa as 3 categorias para exibição;
+        # gate continua exigindo zero FAIL (skip não conta como pass nem fail).
         total = len(self._results)
+        skipped = sum(1 for r in self._results if r.skipped)
+        fail = sum(1 for r in self._results if not r.passed)
+        ok = total - fail - skipped
+        non_skip = total - skipped
         # COCKPIT-03-GAUNTLET-PER-FEATURE-01: filtro alvo sem captura == falha.
         if self._target_feature_id and total == 0:
             logger.error(
@@ -450,13 +456,15 @@ class NyxGauntlet:
             )
             return 1
         logger.info(
-            "Resultado: %d/%d (%.0f%%) em %.0fs",
+            "Resultado: %d pass / %d fail / %d skip de %d (%.0f%% dos não-skip) em %.0fs",
             ok,
+            fail,
+            skipped,
             total,
-            ok / total * 100 if total else 0,
+            ok / non_skip * 100 if non_skip else 0,
             self._kpis["gauntlet_total_s"],
         )
-        return 0 if ok == total else 1
+        return 0 if fail == 0 else 1
 
     async def _dispatch(self, phase: str) -> None:
         fn = getattr(self, f"_phase_{phase}", None)
@@ -5130,7 +5138,11 @@ class NyxGauntlet:
                 ).strip()
             except Exception:
                 pass
-            ok = sum(1 for r in self._results if r.passed)
+            # GAUNTLET-REPORT-COUNT-FIX-01: SKIP tem passed=True mas não é acerto.
+            total = len(self._results)
+            skipped = sum(1 for r in self._results if r.skipped)
+            failed = sum(1 for r in self._results if not r.passed)
+            ok = total - failed - skipped
             baseline = {
                 "date": datetime.now().strftime("%Y-%m-%d"),
                 "commit": commit,
@@ -5138,9 +5150,10 @@ class NyxGauntlet:
                 "hardware": self._hardware,
                 "kpis": self._kpis,
                 "results": {
-                    "total": len(self._results),
+                    "total": total,
                     "passed": ok,
-                    "failed": len(self._results) - ok,
+                    "failed": failed,
+                    "skipped": skipped,
                 },
             }
             path = BASELINES_DIR / f"baseline_{datetime.now().strftime('%Y-%m-%d')}.json"
@@ -5180,10 +5193,17 @@ class NyxGauntlet:
                 f"TTFR chat regrediu: {ttfr_prev}s -> {ttfr_curr}s (+{((ttfr_curr / ttfr_prev) - 1) * 100:.0f}%)"
             )
 
+        # GAUNTLET-REPORT-COUNT-FIX-01: pass rate sobre os não-skip (denominador
+        # justo). Baselines antigos sem campo skipped tratam skipped=0.
         prev_results = prev.get("results", {})
-        prev_rate = prev_results.get("passed", 0) / max(prev_results.get("total", 1), 1) * 100
-        curr_ok = sum(1 for r in self._results if r.passed)
-        curr_rate = curr_ok / max(len(self._results), 1) * 100
+        prev_skipped = prev_results.get("skipped", 0)
+        prev_non_skip = max(prev_results.get("total", 1) - prev_skipped, 1)
+        prev_rate = prev_results.get("passed", 0) / prev_non_skip * 100
+        curr_skipped = sum(1 for r in self._results if r.skipped)
+        curr_fail = sum(1 for r in self._results if not r.passed)
+        curr_ok = len(self._results) - curr_fail - curr_skipped
+        curr_non_skip = max(len(self._results) - curr_skipped, 1)
+        curr_rate = curr_ok / curr_non_skip * 100
         if curr_rate < prev_rate:
             regressions.append(f"Pass rate caiu: {prev_rate:.0f}% -> {curr_rate:.0f}%")
 
@@ -5277,13 +5297,17 @@ class NyxGauntlet:
 
     def _write_report(self) -> None:
         total = len(self._results)
-        ok = sum(1 for r in self._results if r.passed)
         # K08-VRAM-RUNNER-ISOLATION-01: SKIP não conta como FAIL no gate.
         skipped = sum(1 for r in self._results if r.skipped)
-        fail = total - ok
+        # GAUNTLET-REPORT-COUNT-FIX-01: SKIP tem passed=True mas não é acerto.
+        # Conta as 3 categorias separadas; pass NÃO inclui skip. O score é
+        # sobre os não-skip (denominador justo). Gate exige zero FAIL.
+        fail = sum(1 for r in self._results if not r.passed)
+        ok = total - fail - skipped
+        non_skip = total - skipped
         elapsed = self._kpis.get("gauntlet_total_s", 0)
-        score = ok / total * 100 if total else 0
-        gate = "APROVADO" if ok == total else "REPROVADO"
+        score = ok / non_skip * 100 if non_skip else 0
+        gate = "APROVADO" if fail == 0 else "REPROVADO"
         vram = self._kpis.get("vram_mib", 0)
         hw = self._hardware
 
@@ -5299,7 +5323,12 @@ class NyxGauntlet:
             f"**Data:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
             f"**Modelo:** {self._model}",
             f"**Duração:** {elapsed:.0f}s ({elapsed / 60:.1f}min)",
-            f"**Resultado:** {ok}/{total} ({score:.0f}%)",
+            (
+                f"**Resultado:** {ok} pass / {fail} fail / {skipped} skip de {total} "
+                f"({score:.0f}% dos não-skip)"
+                if skipped
+                else f"**Resultado:** {ok}/{total} ({score:.0f}%)"
+            ),
             f"**Cobertura:** {len(_ran_phases)}/{len(PHASE_TIMEOUTS)} fases"
             + (f" ({', '.join(_ran_phases)}) -- PARCIAL" if _parcial else " -- COMPLETO"),
             "",
@@ -5335,19 +5364,26 @@ class NyxGauntlet:
             [
                 "## Resumo por Fase",
                 "",
-                "| Fase | Total | OK | Falhas | Tempo |",
-                "|------|-------|-----|--------|-------|",
+                "| Fase | Total | OK | Falhas | Skips | Tempo |",
+                "|------|-------|-----|--------|-------|-------|",
             ]
         )
         by_phase: dict[str, dict] = {}
         for r in self._results:
-            p = by_phase.setdefault(r.phase, {"total": 0, "ok": 0, "time": 0.0})
+            p = by_phase.setdefault(r.phase, {"total": 0, "ok": 0, "skip": 0, "fail": 0, "time": 0.0})
             p["total"] += 1
-            if r.passed:
+            # GAUNTLET-REPORT-COUNT-FIX-01: SKIP separado de OK (skip tem passed=True).
+            if r.skipped:
+                p["skip"] += 1
+            elif r.passed:
                 p["ok"] += 1
+            else:
+                p["fail"] += 1
             p["time"] += r.elapsed_s
         for ph, s in by_phase.items():
-            lines.append(f"| {ph} | {s['total']} | {s['ok']} | {s['total'] - s['ok']} | {s['time']:.1f}s |")
+            lines.append(
+                f"| {ph} | {s['total']} | {s['ok']} | {s['fail']} | {s['skip']} | {s['time']:.1f}s |"
+            )
 
         # KPIs
         if self._kpis:
