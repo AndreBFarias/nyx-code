@@ -1171,6 +1171,32 @@ Achados da dimensao "autonomia de tools" (D3 do AUDIT) que NAO viram spec especu
 
 <!-- MANUAL_OVERRIDE_ONDA_46_END -->
 
+<!-- MANUAL_OVERRIDE_ONDA_47_START -->
+
+### Bloco ONDA-47: UX/Input/FS-polish (Onda de Validação 2 -- 2026-06-25)
+
+**Origem:** teste as-user do dono na TUI real (imagens). Achados de UX/input/FS + alinhamento de design fechado via AskUserQuestion: (1) barra `/` inicial -> cai pra chat se nao casar comando + heuristica de caminho; (2) historico de input navegavel + persistente; (3) copiar = copy-on-select; (4) expandir `~` + tools espertas arquivo/pasta. Specs detalhadas em producao/. Commit na main sem push.
+
+| # | Sprint | Prio | Deps | Status |
+|---|--------|------|------|--------|
+| 386 | **FS-TILDE-EXPAND-01** | ALTA | -- | CONCLUIDA (2026-06-25, commit df94163; `validate_path` ganha `.expanduser()` no raw antes do `is_absolute()` -> `~/.bashrc` resolve `/home/andrefarias/.bashrc` (era `.../Nyx-Code/~/.bashrc`); probe ANTES erro path-colado, DEPOIS read_file/list_files no home real OK, secret `~/.ssh/id_rsa` segue BLOQUEADO apos expandir; gauntlet fs_arbitrary 7/7 + rapido 19/19 verdes; invariantes 14/14 FAIL 0->0; ruff OK; acento rc=0; diff 1 linha +comentario; spec->concluidos/) |
+| 387 | **INPUT-SLASH-PATH-DISAMBIG-01** | ALTA | -- | CONCLUIDA (2026-06-25, commit 3fb3f0a; entrada iniciada por `/` so vira slash-command se o 1o token casar comando registrado OU for token-unico com cara de comando -> mantem aviso 'Comando desconhecido'; caminho absoluto (`/home/...`) e frase com `/` inicial caem como chat e seguem pro LLM com a barra preservada no texto; funcao de decisao compartilhada `classify_slash_input` em `_dispatcher.py` (fonte unica REPL+TUI, sem divergencia) consultada por `cli.py` e `tui/app.py` antes de despachar; `handle_command` intacto, comandos reais 100% preservados; probes deterministicos: `/home/.../zsh quantos arquivos`->CHAT, `/help`+`/commit`->COMMAND, `/comandoinexistente`->UNKNOWN(aviso), `/etc/hostname`->CHAT (10/10 incl. `/cd /home`->COMMAND, `/h`->COMMAND alias, `/foo bar`->CHAT); gauntlet slash_bypass 5/5 (comandos reais intactos) + rapido 19/19 verdes; invariantes 14/14 FAIL 0->0 (diff before/after vazio); smoke boot ok; ruff All checks passed; acento rc=0; diff +92/-5L em 4 arquivos; spec->concluidos/) |
+| 388 | **OUTPUT-DONE-SUMMARY-RENDER-01** | MEDIA | -- | PENDENTE |
+| 389 | **INPUT-HISTORY-RECALL-01** | MEDIA | -- | PENDENTE |
+| 390 | **TUI-COPY-SELECTION-01** | MEDIA | -- | PENDENTE |
+| 391 | **TOOL-SELECT-FILE-VS-DIR-01** | MEDIA | 386 | PENDENTE |
+
+> - **386 FS-TILDE-EXPAND-01** (bug, completa o bug #1): `validate_path` nao expande `~` -> `read_file ~/.bashrc` resolveu `.../Nyx-Code/~/.bashrc`. Fix: expanduser no raw. Secret sob ~ segue bloqueado.
+> - **387 INPUT-SLASH-PATH-DISAMBIG-01** (bug): `/home/.../zsh ...` virou "Comando desconhecido". So e comando se casar comando registrado; caminho/frase -> chat (barra preservada no texto). REPL + TUI.
+> - **388 OUTPUT-DONE-SUMMARY-RENDER-01** (bug): resposta apareceu como `summary="Lista vazia` cru; extrair so o valor do done(), tolerando aspa nao-fechada do 3b.
+> - **389 INPUT-HISTORY-RECALL-01** (feature): Up/Down navegam historico de input, persistido em ~/.nyx/input_history; Down volta ao rascunho; Esc limpa.
+> - **390 TUI-COPY-SELECTION-01** (feature): copy-on-select (selecionou->copiou) via xclip + fallback OSC52. Toca TUI -> validacao-visual obrigatoria; ponto mais sensivel da leva. <!-- noqa-acento -->
+> - **391 TOOL-SELECT-FILE-VS-DIR-01** (bug/ergonomia, mitiga ADR-034): glob/list num arquivo -> mensagem clara/le; read numa pasta -> mensagem clara. Depende da 386 (expansao de ~).
+
+**Nota de roadmap:** esta Onda de Validação 2 toma o numero ONDA-47; o gerenciador de model, a cobertura de teste e a distribuicao seguem como ondas posteriores (48/49/50, numeros a confirmar). Os deferidos da ONDA-46 (382 fidelidade=ADR-034/lever e troca de model; 383 CI gauntlet job; 384 version-discipline=corte v1.4.0) seguem pendentes nos seus blocos.
+
+<!-- MANUAL_OVERRIDE_ONDA_47_END -->
+
 <!-- MANUAL_OVERRIDE_ONDA_28_START -->
 
 ### Bloco ONDA-28: TUI paridade Claude Code (boot silencioso + banner block + input fixo + wizard completo) (2026-05-18) <!-- noqa-anonimato -->
