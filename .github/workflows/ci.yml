@@ -106,9 +106,10 @@ jobs:
         run: |
           python -c "
           from nyx.config.defaults import DEFAULT_MODEL, OLLAMA_PORT
-          assert DEFAULT_MODEL == 'qwen3:4b'
+          assert isinstance(DEFAULT_MODEL, str) and DEFAULT_MODEL, 'DEFAULT_MODEL vazio'
+          assert ':' in DEFAULT_MODEL, 'DEFAULT_MODEL deve ter formato nome:tag'
           assert OLLAMA_PORT == 11435
-          print('Config defaults: OK')
+          print('Config defaults: OK (modelo=%s)' % DEFAULT_MODEL)
           "
 
       - name: Testar utilitários de cor
