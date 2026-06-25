@@ -264,7 +264,7 @@ def build_prompt(sprint_id: str, remaining: int) -> str:
     return f"""# Executar próxima sprint — {sprint_id}
 
 > **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
-> Copie o bloco abaixo e cole em uma session nova de Claude Opus 4.7.
+> Copie o bloco abaixo e cole em uma sessão nova do modelo principal (sem subagentes).
 > Restam **{remaining}** sprints PENDENTE(S) na fila.{sprint_exists_note}
 
 ---
@@ -274,7 +274,7 @@ def build_prompt(sprint_id: str, remaining: int) -> str:
 ```
 Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/{fname}.
 
-Modelo obrigatório: claude-opus-4-7 (sem subagentes).
+Modelo obrigatório: modelo principal local, sem subagentes.
 Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambiarra):
 
 1. Leia o arquivo da sprint inteiro.
