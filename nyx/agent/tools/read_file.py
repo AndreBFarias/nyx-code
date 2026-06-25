@@ -38,6 +38,14 @@ class ReadFileTool(RegisteredTool):
 
         if not path.exists():
             return ActionResult(success=False, error=f"Arquivo não encontrado: {path}")
+        # TOOL-SELECT-FILE-VS-DIR-01: o 3b confunde arquivo/pasta (ADR-034). Quando
+        # o alvo resolvido é uma PASTA, em vez de erro cru, devolve mensagem clara
+        # que aponta a tool certa -- o modelo lê e se corrige. Sem fingir sucesso.
+        if path.is_dir():
+            return ActionResult(
+                success=False,
+                error=f"`{path}` é uma pasta, não um arquivo; use list_files para ver o conteúdo.",
+            )
         if not path.is_file():
             return ActionResult(success=False, error=f"Não é um arquivo: {path}")
 

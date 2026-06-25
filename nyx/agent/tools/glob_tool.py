@@ -44,6 +44,16 @@ class GlobTool(RegisteredTool):
         except ValueError as e:
             return ActionResult(success=False, error=str(e))
 
+        # TOOL-SELECT-FILE-VS-DIR-01: o 3b confunde arquivo/pasta (ADR-034). Quando
+        # o `path` base resolvido é um ARQUIVO, root.glob(pattern) cai em vazio e o
+        # "Nenhum arquivo encontrado" mente (o arquivo existe). Devolve mensagem clara
+        # que aponta a tool certa -- o modelo lê e se corrige. Sem fingir sucesso.
+        if root.is_file():
+            return ActionResult(
+                success=False,
+                error=f"`{root}` é um arquivo, não uma pasta; use read_file para ler o conteúdo.",
+            )
+
         # FS-DISCOVERY-FREE-01: o gate de acesso é o validate_path; não filtrar
         # o que ele já liberou. Exibir relativo à raiz ativa (segue /cd) quando
         # dentro dela, absoluto fora -- via display_path (fonte única).

@@ -44,6 +44,15 @@ class ListFilesTool(RegisteredTool):
 
         if not target.exists():
             return ActionResult(success=False, error=f"Diretório não encontrado: {target}")
+        # TOOL-SELECT-FILE-VS-DIR-01: o 3b confunde arquivo/pasta (ADR-034). Quando
+        # o alvo resolvido é um ARQUIVO, em vez do "Diretório não encontrado" enganoso
+        # (o arquivo existe, só não é pasta), devolve mensagem clara que aponta a tool
+        # certa -- o modelo lê e se corrige. Sem fingir sucesso.
+        if target.is_file():
+            return ActionResult(
+                success=False,
+                error=f"`{target}` é um arquivo, não uma pasta; use read_file para ler o conteúdo.",
+            )
 
         # FS-DISCOVERY-FREE-01: base de display = raiz ativa (segue /cd), via
         # display_path (fonte única com glob/search). Dentro dela mostra
