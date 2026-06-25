@@ -40,6 +40,8 @@ sessions/
 # Gauntlet reports (regenerados)
 GAUNTLET_REPORT.md
 dev-journey/07-reports/gauntlet/*.md
+dev-journey/07-reports/gauntlet/baselines/*.json
+dev-journey/07-reports/gauntlet/checkpoint.json
 
 # Cache
 .pytest_cache/
