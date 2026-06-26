@@ -281,8 +281,12 @@ def _build_wide(
     # '·' muted. GPU: N layers em accent (turquesa) se num_gpu > 0; CPU em
     # warning (amarelo-âmbar) caso contrário.
     if num_gpu > 0:
-        gpu_plain = f"GPU: {num_gpu} layers"
-        gpu_colored = f"{accent}GPU:{nc} {primary}{num_gpu} layers{nc}"
+        # BANNER-GPU-LAYERS-DISPLAY-01 (V15): num_gpu >= 100 é o sentinel de
+        # offload total (FULL_GPU_LAYERS=999 em detect_gpu.py); exibir "full"
+        # em vez do número interno cru ("999 layers" confundia o usuário).
+        gpu_label = "full" if num_gpu >= 100 else f"{num_gpu} layers"
+        gpu_plain = f"GPU: {gpu_label}"
+        gpu_colored = f"{accent}GPU:{nc} {primary}{gpu_label}{nc}"
     else:
         gpu_plain = "CPU"
         gpu_colored = f"{warning}CPU{nc}"
