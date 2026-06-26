@@ -123,22 +123,42 @@ _PROVIDER_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+# IDENTITY-GUARD-GENERIC-01 (V12): auto-identificação GENÉRICA como IA. A Nyx
+# nunca pode se descrever como IA/assistente/modelo (ADR-005/027). _PROVIDER_PATTERN
+# pega só NOMES; este pega as frases que vazaram ("como uma inteligência
+# artificial", "meus treinamentos", "fui treinado", "modelo de linguagem").
+# Ancorado em auto-referência para não disparar em discussão abstrata legítima.  # noqa: ai-mention
+_SELF_AI_PATTERN = re.compile(
+    r"(intelig[eê]ncia\s+artificial|"
+    r"(?<![a-zA-Z])IAs?(?![a-zA-Z])|"
+    r"modelo\s+de\s+linguagem|"
+    r"(sou|como)\s+(um|uma)\s+(assistente|intelig[eê]ncia|modelo)|"
+    r"(meus|nos\s+meus)\s+treinamentos|fui\s+treinad[oa]|"
+    r"treinad[oa]\s+(para|por|com|em))",
+    re.IGNORECASE,
+)
+
 
 def mentions_provider(text: str) -> str | None:
     """Retorna o primeiro provedor/modelo mencionado, ou None se nenhum.
 
-    Detecta menções a IA proprietária no content da resposta. ADR-005 e
-    ADR-027 declaram identidade Nyx INVIOLÁVEL — qualquer menção quebra
-    contrato. Proxy usa para disparar retry com hint anti-vazamento de
-    identidade (espelho de LANG-ENFORCE).
+    Detecta menções a IA proprietária no content da resposta — tanto por
+    NOME (_PROVIDER_PATTERN) quanto por auto-identificação GENÉRICA como IA
+    (_SELF_AI_PATTERN: "sou uma IA", "meus treinamentos", "modelo de
+    linguagem"). ADR-005 e ADR-027 declaram identidade Nyx INVIOLÁVEL —
+    qualquer menção quebra contrato. Proxy usa para disparar retry com hint
+    anti-vazamento de identidade (espelho de LANG-ENFORCE).
 
     Returns:
-        Provider name (lower) se detectado, senão None.
+        Trecho casado (lower) se detectado, senão None.
     """
     if not text:
         return None
     m = _PROVIDER_PATTERN.search(text)
-    return m.group(1).lower() if m else None
+    if m:
+        return m.group(1).lower()
+    m2 = _SELF_AI_PATTERN.search(text)
+    return m2.group(0).lower().strip() if m2 else None
 
 
 # "Idioma é a primeira porta de acolhimento; errar dela quebra confiança."
