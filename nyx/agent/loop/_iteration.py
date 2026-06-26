@@ -19,6 +19,7 @@ import httpx
 
 from nyx.agent.context import SUMMARY_REINJECT_PREFIX, cap_summary
 from nyx.agent.intent import classify as _classify_intent
+from nyx.agent.intent import wants_read_only as _wants_read_only
 from nyx.agent.lang_check import is_pt_br
 from nyx.agent.loop._constants import (
     ACTION_TO_TOOL,
@@ -193,6 +194,17 @@ class _IterationMixin:
         "de busca / comando / conteúdo NOVO e real."
     )
 
+    # EXEC-CONTRACT-TOOL-MATCH-01 (V03): tools que MUTAM o FS. Se o pedido é
+    # leitura pura e o modelo chama uma destas, é contradição destrutiva.
+    _MUTATING_TOOLS = frozenset(
+        {"write_file", "create_file", "edit_file", "multi_edit", "patch"}
+    )
+    _TOOL_MATCH_HINT = (
+        "O pedido é de LEITURA/listagem, não de escrita. Não crie nem sobrescreva "
+        "arquivo. Use a ferramenta certa: list_files para listar, read_file para "
+        "ler, search para buscar. Refaça com a ferramenta de leitura."
+    )
+
     def _init_done_guard(self, user_input: str) -> None:
         """Arma o guard de done no início do turno: baseline de writes + se o
         pedido é de criar/escrever (intent 'code') ou de qualquer ação de tool
@@ -208,6 +220,8 @@ class _IterationMixin:
         # de _tool_calls_this_turn que reseta por iteração). 0 ao concluir = alucinou.
         self._turn_tool_count = 0
         self._done_rejected = False
+        # EXEC-CONTRACT-TOOL-MATCH-01: arma o guard de tool-match (rejeição 1x/turno).
+        self._tool_match_rejected = False
 
     def _turn_create_unmet(self) -> bool:
         """True se o turno pediu criar/escrever (intent 'code') e nenhum write
@@ -240,6 +254,18 @@ class _IterationMixin:
             return self._ACTION_REJECT_HINT
         return None
 
+    def _tool_match_reject(self, name: str) -> str | None:
+        """EXEC-CONTRACT-TOOL-MATCH-01: hint a re-emitir quando o modelo chama uma
+        tool MUTANTE mas o pedido era leitura pura. None se não deve rejeitar.
+        Rejeita no máximo 1x/turno (flag _tool_match_rejected)."""
+        if getattr(self, "_tool_match_rejected", False):
+            return None
+        if name not in self._MUTATING_TOOLS:
+            return None
+        if _wants_read_only(getattr(self, "_original_input", "") or ""):
+            return self._TOOL_MATCH_HINT
+        return None
+
     async def _execute_tool_calls(self, tool_calls: list[dict], iteration: int) -> SessionStatus | None:
         """Executa tool calls do LLM. Retorna SessionStatus se done/force_done.
 
@@ -265,6 +291,15 @@ class _IterationMixin:
             if _echo_reject:
                 logger.warning("[loop] arg é puro eco de resultado anterior: %s", name)
                 self._session.add_tool_call(name, args, self._ECHO_REJECT_HINT)
+                continue
+
+            # EXEC-CONTRACT-TOOL-MATCH-01 (V03): pediram leitura, o modelo chama
+            # escrita -> rejeita 1x + re-emite (não cria lixo nem deixa alucinar).
+            tm_hint = self._tool_match_reject(name)
+            if tm_hint:
+                self._tool_match_rejected = True
+                logger.warning("[loop] tool-match: pedido de leitura, tool mutante %s", name)
+                self._session.add_tool_call(name, args, tm_hint)
                 continue
 
             if self._on_tool:
@@ -479,6 +514,14 @@ class _IterationMixin:
         if _echo_reject:
             logger.warning("[loop] arg é puro eco (parser): %s", tool_name)
             self._session.add_tool_call(tool_name, remapped, self._ECHO_REJECT_HINT)
+            return None
+
+        # EXEC-CONTRACT-TOOL-MATCH-01 (V03): idem caminho nativo, no parser fallback.
+        tm_hint = self._tool_match_reject(tool_name)
+        if tm_hint:
+            self._tool_match_rejected = True
+            logger.warning("[loop] tool-match (parser): pedido leitura, tool mutante %s", tool_name)
+            self._session.add_tool_call(tool_name, remapped, tm_hint)
             return None
 
         if self._on_tool:

@@ -124,6 +124,46 @@ def wants_save_memory(user_input: str) -> bool:
     return bool(_SAVE_MEMORY_PATTERN.search(user_input))
 
 
+# EXEC-CONTRACT-TOOL-MATCH-01: verbos de leitura/listagem/busca (não-mutantes).
+_READ_LIST_PATTERN = re.compile(
+    r"\b("
+    r"leia|leu|ler|le\b|"
+    r"liste|listar|lista|"
+    r"mostre|mostrar|mostra|exiba|exibir|exibe|"
+    r"veja|ver|vejo|olhe|olhar|"
+    r"quais|quantos|"
+    r"abra|abrir|abre|cat|ls|"
+    r"busque|buscar|busca|procure|procurar|procura|grep|encontre|encontrar"
+    r")\b",
+    re.IGNORECASE,
+)
+
+# Verbos de remoção (complementam INTENT_CODE_KEYWORDS para "mutação").
+_DELETE_PATTERN = re.compile(
+    r"\b(delete|deletar|delet[ae]|remova|remover|remove|apague|apagar|apaga)\b",
+    re.IGNORECASE,
+)
+
+
+def wants_mutation(user_input: str) -> bool:
+    """True se o pedido tem verbo de escrita/geração/edição/remoção."""
+    if not user_input:
+        return False
+    return bool(INTENT_CODE_KEYWORDS.search(user_input)) or bool(
+        _DELETE_PATTERN.search(user_input)
+    )
+
+
+def wants_read_only(user_input: str) -> bool:
+    """True quando o pedido é claramente de LEITURA/listagem/busca e não pede
+    mutação -- sinal de re-emissão quando o modelo chama uma tool mutante
+    (EXEC-CONTRACT-TOOL-MATCH-01). Alta precisão: leitura presente E mutação
+    ausente. Ambíguo (ambos, ou nenhum) -> False (não re-emite à toa)."""
+    if not user_input:
+        return False
+    return bool(_READ_LIST_PATTERN.search(user_input)) and not wants_mutation(user_input)
+
+
 def classify(user_input: str) -> str:
     """Retorna intent: 'saudacao' | 'comando' | 'tool-needed' | 'chat'.
 
