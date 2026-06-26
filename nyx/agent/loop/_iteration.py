@@ -41,6 +41,7 @@ from nyx.agent.prompt import build_reminder
 from nyx.agent.repetition import SkipStrategy, get_skip_strategy
 from nyx.agent.sanitize import sanitize_tool_args, strip_result_echo
 from nyx.agent.services.logging_service import get_logger
+from nyx.agent.tools.base import validate_path as _validate_path
 from nyx.agent.tools.plan_mode import is_tool_allowed_in_plan_mode
 from nyx.agent.validator import FORGE_PATTERNS
 from nyx.agent.validator import validate as post_validate
@@ -205,6 +206,24 @@ class _IterationMixin:
         "ler, search para buscar. Refaça com a ferramenta de leitura."
     )
 
+    # SEQ-EDIT-ENFORCE-EDITFILE-01 (V05): content que é um comando shell de
+    # redirecionamento (echo '...' >> arquivo) -- o 3b confundiu write_file com
+    # run_command. Ancorado no início da linha; exige o redirecionamento.
+    _SHELL_AS_CONTENT_RE = re.compile(
+        r"^\s*(?:echo|cat|printf|tee|sed|awk)\b.*?(?:>>|>)\s*\S",
+        re.IGNORECASE | re.MULTILINE,
+    )
+    _SEQ_OVERWRITE_HINT = (
+        "Esse arquivo JÁ existe e você não o leu nesta sessão. Não sobrescreva às "
+        "cegas: leia primeiro com read_file e use edit_file para a alteração "
+        "cirúrgica, ou reescreva com o conteúdo COMPLETO (não parcial)."
+    )
+    _SEQ_SHELL_HINT = (
+        "O conteúdo é um comando de shell (redirecionamento), não o conteúdo do "
+        "arquivo. Para executar um comando use run_command; para escrever, forneça "
+        "o texto real que deve ficar no arquivo."
+    )
+
     def _init_done_guard(self, user_input: str) -> None:
         """Arma o guard de done no início do turno: baseline de writes + se o
         pedido é de criar/escrever (intent 'code') ou de qualquer ação de tool
@@ -222,6 +241,8 @@ class _IterationMixin:
         self._done_rejected = False
         # EXEC-CONTRACT-TOOL-MATCH-01: arma o guard de tool-match (rejeição 1x/turno).
         self._tool_match_rejected = False
+        # SEQ-EDIT-ENFORCE-EDITFILE-01: arma o guard de edição sequencial (1x/turno).
+        self._seq_edit_rejected = False
 
     def _turn_create_unmet(self) -> bool:
         """True se o turno pediu criar/escrever (intent 'code') e nenhum write
@@ -266,6 +287,35 @@ class _IterationMixin:
             return self._TOOL_MATCH_HINT
         return None
 
+    def _seq_edit_reject(self, name: str, args: dict) -> str | None:
+        """SEQ-EDIT-ENFORCE-EDITFILE-01: hint a re-emitir numa edição sequencial
+        insegura. None se não deve rejeitar. Rejeita no máximo 1x/turno.
+
+        Dois casos:
+        - shell-como-content: content/new_string é um comando de redirecionamento;
+        - overwrite cego: write_file/create_file num arquivo que JÁ existe e não
+          foi lido nesta sessão.
+        """
+        if getattr(self, "_seq_edit_rejected", False):
+            return None
+        # Shell-como-content (qualquer tool de escrita).
+        if name in ("write_file", "create_file", "edit_file"):
+            text = args.get("content") or args.get("new_string") or ""
+            if isinstance(text, str) and self._SHELL_AS_CONTENT_RE.search(text):
+                return self._SEQ_SHELL_HINT
+        # Overwrite cego (só write_file/create_file -- edit_file já é cirúrgico).
+        if name in ("write_file", "create_file"):
+            file_path = args.get("file_path") or args.get("path") or ""
+            if isinstance(file_path, str) and file_path.strip():
+                try:
+                    resolved = _validate_path(file_path, self._project_root)
+                except Exception:  # noqa: BLE001 -- resolver falho não deve derrubar o guard
+                    return None
+                read_set = getattr(self._session, "_files_read", set())
+                if resolved.exists() and str(resolved) not in read_set:
+                    return self._SEQ_OVERWRITE_HINT
+        return None
+
     async def _execute_tool_calls(self, tool_calls: list[dict], iteration: int) -> SessionStatus | None:
         """Executa tool calls do LLM. Retorna SessionStatus se done/force_done.
 
@@ -300,6 +350,15 @@ class _IterationMixin:
                 self._tool_match_rejected = True
                 logger.warning("[loop] tool-match: pedido de leitura, tool mutante %s", name)
                 self._session.add_tool_call(name, args, tm_hint)
+                continue
+
+            # SEQ-EDIT-ENFORCE-EDITFILE-01 (V05): edição sequencial insegura
+            # (overwrite cego ou shell-como-content) -> rejeita 1x + re-emite.
+            se_hint = self._seq_edit_reject(name, args)
+            if se_hint:
+                self._seq_edit_rejected = True
+                logger.warning("[loop] seq-edit inseguro em %s", name)
+                self._session.add_tool_call(name, args, se_hint)
                 continue
 
             if self._on_tool:
@@ -522,6 +581,14 @@ class _IterationMixin:
             self._tool_match_rejected = True
             logger.warning("[loop] tool-match (parser): pedido leitura, tool mutante %s", tool_name)
             self._session.add_tool_call(tool_name, remapped, tm_hint)
+            return None
+
+        # SEQ-EDIT-ENFORCE-EDITFILE-01 (V05): idem caminho nativo, no parser fallback.
+        se_hint = self._seq_edit_reject(tool_name, remapped)
+        if se_hint:
+            self._seq_edit_rejected = True
+            logger.warning("[loop] seq-edit inseguro (parser) em %s", tool_name)
+            self._session.add_tool_call(tool_name, remapped, se_hint)
             return None
 
         if self._on_tool:
