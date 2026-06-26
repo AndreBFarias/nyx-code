@@ -271,8 +271,9 @@ def openai_to_ollama(body: dict, num_gpu: int) -> tuple[dict, str]:
     intent = _classify_intent(last_user)
 
     has_tools = bool(body.get("tools"))
-    # Suprime tools quando intent não precisa.
-    if intent in ("saudacao", "chat", "comando") and has_tools:
+    # TOOL-GATING-NO-SUPPRESS-01 (V01): 'chat' fora da supressão (par do loop em
+    # _iteration.py). Suprimir tools no chat amarrava o modelo (ADR-032).
+    if intent in ("saudacao", "comando") and has_tools:
         logger.info("intent=%s -> tools suprimidos (%d)", intent, len(body["tools"]))
         has_tools = False
 

@@ -839,7 +839,13 @@ class _IterationMixin:
                 break
         intent = _classify_intent(last_user)
 
-        if intent in ("saudacao", "chat", "comando"):
+        # TOOL-GATING-NO-SUPPRESS-01 (V01): 'chat' NÃO zera mais as tools. O regex
+        # de intent nunca cobre todo o PT-BR ("da um fastfetch" caía em chat e o
+        # modelo perdia run_command -> alucinava). Suprimir tools fere ADR-032 (a
+        # infra deve guiar o modelo a agir, não amarrá-lo). Os intents 'saudacao'
+        # e 'comando' seguem sem tools (saudação genuína não precisa; slash sai
+        # antes do LLM).
+        if intent in ("saudacao", "comando"):
             logger.info("[loop] intent=%s -> tools=[]", intent)
             return []
 
