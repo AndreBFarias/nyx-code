@@ -73,8 +73,11 @@ def _detect_truncate(text: str) -> bool:
 # via instruções internas em vez do resultado (achado: Onda de Validação 1, probe c2).
 # Regex ancorado nas TAGS EXATAS, não-guloso (cada bloco isolado), DOTALL (o bloco
 # é multilinha). Não toca conteudo que apenas contenha '<'/'>' soltos.
+# OUTPUT-LEAK-SANITIZE-01 (V08): casa o bloco fechado OU um <system-reminder>
+# truncado (sem fechamento) até o fim -- o 3b às vezes regurgita o reminder
+# cortado e o `.*?</system-reminder>` antigo não casava (faltava o fecho).
 _SYSTEM_REMINDER_BLOCK = re.compile(
-    r"<system-reminder>.*?</system-reminder>",
+    r"<system-reminder>.*?(?:</system-reminder>|\Z)",
     re.DOTALL,
 )
 

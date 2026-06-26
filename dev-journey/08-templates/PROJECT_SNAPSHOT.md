@@ -63,10 +63,10 @@ consome e o que o LLM recebe em `tool_defs`.
 |----------|------------|----------------|
 | Tools no registry (runtime) | 35 | `python -c "from nyx.agent.tools.registry import ToolRegistry; print(ToolRegistry('.').tool_count)"` |
 | Commands únicos (sem aliases) | 67 | runtime via `list_commands()` |
-| Services | 15 | `find nyx/agent/services -maxdepth 1 -name '*.py' ! -name '__init__.py' \| wc -l` |
+| Services | 16 | `find nyx/agent/services -maxdepth 1 -name '*.py' ! -name '__init__.py' \| wc -l` |
 | ADRs vigentes | 34 | `ls dev-journey/03-decisions/ADR_*.md \| wc -l` |
 | Testes no Gauntlet | 320 (catalogados) | `./run.sh --gauntlet` |
-| Sprints concluídas | 521 | `ls dev-journey/06-sprints/concluidos/*.md \| wc -l` |
+| Sprints concluídas | 536 | `ls dev-journey/06-sprints/concluidos/*.md \| wc -l` |
 | Sprints pendentes | APENAS RELEASE-V1.0-CUT-01 (humano corta tag) — backlog técnico ZERADO | `ls dev-journey/06-sprints/producao/*.md \| wc -l` |
 
 ---
@@ -98,7 +98,7 @@ consome e o que o LLM recebe em `tool_defs`.
 | `nyx/agent/loop/` | AgentLoop, iteração, constantes, tipos. |
 | `nyx/agent/commands/` | 67 commands únicos (sem aliases) split em arquivos por categoria. |
 | `nyx/agent/tools/` | 31 arquivos, 35 tools no registry (runtime). |
-| `nyx/agent/services/` | 15 services (memory, summary, logging, vision, etc). |
+| `nyx/agent/services/` | 16 services (memory, summary, logging, vision, etc). |
 | `nyx/themes/` | ThemeManager + `design_tokens.py` (pós UX-DESIGN-01). |
 | `nyx/providers/` | clientes HTTP (ollama, vision). |
 | `nyx/config/` | defaults, settings (NyxSettings). |

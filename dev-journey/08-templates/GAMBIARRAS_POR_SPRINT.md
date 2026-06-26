@@ -388,6 +388,69 @@ Invariante #5 do `sprint_invariants.sh` vigia regressão futura.
 
 ---
 
+### FS-DISCOVERY-FREE-01 (glob/search/list honram raiz ativa e acesso livre)
+
+**Bypass típicos:**
+
+- **"Consertar" ligando `NYX_SANDBOX_STRICT` ou mexendo em `validate_path`.** Proibido: o gate de acesso já está correto; o bug é só o filtro/display dos discovery tools. Detectar: `git diff nyx/agent/tools/base.py` não deve alterar a lógica de `_sandbox_strict`/secret-block.
+- **Remover o filtro só do glob e esquecer o search (`_search_walk`).** Os dois sofrem do mesmo mal. Detectar: probe de `search` com `path=/tmp/...` sem `rg`/`grep` no PATH deve retornar resultado, não `success=False`.
+- **Trocar `relative_to(project)` por `str(p)` cru** (some o display relativo dentro do projeto -> regressão). Regra: dentro da raiz, exibir relativo; fora, absoluto. Detectar: `./run.sh --gauntlet --only rapido` APROVADO (formato intacto) + fase `fs_arbitrary` PASS.
+- **Afrouxar o bloqueio de secret** para "simplificar". Proibido. Detectar: FS-ARB-05 (`read_file ~/.ssh/id_rsa`) deve dar `success=False`.
+
+**Comandos de detecção:**
+
+- `python3 -c "from nyx.agent.tools.glob_tool import GlobTool; import os; ..."` probe em `/tmp` -> output não-vazio.
+- `grep -n "is_relative_to(project)" nyx/agent/tools/glob_tool.py` deve retornar vazio após a sprint.
+
+**Invariantes fechados:** nenhum novo (restaura conformidade com ADR-009).
+
+### FS-TOOLDESC-PROMPT-01 (descrições + prompt de acesso universal)
+
+**Bypass típicos:**
+
+- **Inchar o prompt compacto** (turnos sem tool) com a diretiva. Proibido (PERF-INFERENCE-01). Detectar: contar tokens/linhas do prompt compacto antes/depois -> igual.
+- **Citar tool inexistente** (ex.: `grep_files`, já removido na 361). Detectar: `grep -rn "grep_files" nyx/agent/` vazio.
+- **Diretiva prometendo escrita livre.** A diretiva é sobre leitura/exploração; escrita segue permissões. Revisar texto.
+- **Description vaga** ("aceita paths") sem exemplo. Obrigatório citar exemplo concreto de caminho absoluto.
+
+**Comandos de detecção:**
+
+- `grep -ni "qualquer caminho absoluto\|/etc" nyx/agent/tools/glob_tool.py nyx/agent/tools/list_files.py nyx/agent/tools/search.py` >= 1 por arquivo.
+- runtime real: prompt "liste /etc" -> a Nyx chama a tool sem pedir `/sandbox add`.
+
+### GAUNTLET-FS-ARBITRARY-01 (fase de acesso a path arbitrário)
+
+**Bypass típicos:**
+
+- **Fixture sob `~/.nyx` ou project_root** (raiz permitida) -> não exerce o caminho de acesso livre. Obrigatório: `tempfile.mkdtemp()` fora de todas as raízes. Detectar: o teste valida que o tmpdir não é `relative_to` nenhuma raiz permitida.
+- **Mock/monkeypatch** das tools (viola ADR-010). Detectar: `grep -n "mock\|monkeypatch\|patch(" scripts/gauntlet/nyx_gauntlet.py` no diff = 0.
+- **PASS sem assert de conteúdo** (ADR-011): comparar retorno com o que foi escrito, não só `success=True`.
+- **Não remover o fixture** (lixo no FS). Detectar: `ls /tmp/nyx_fs_arbitrary_*` vazio pós-run.
+- **Esquecer o caso negativo** (secret bloqueado) ou a regressão dentro do projeto.
+
+**Comandos de detecção:**
+
+- `./run.sh --gauntlet --only fs_arbitrary` -> FS-ARB-01..06 PASS.
+- `ls /tmp/nyx_fs_arbitrary_* 2>/dev/null` vazio (teardown).
+
+**Invariantes fechados:** nenhum (cobertura nova; vira rede de regressão do bug #1).
+
+### FS-REMINDER-SYNC-01 (reminder reinjetado vs acesso universal)
+
+**Bypass típicos:**
+
+- Remover a linha 186 inteira em vez de reescrever -- o reminder DEVE mencionar a política de acesso; o problema é o texto restritivo, não a presença. Detectar: a linha de acesso continua presente no `build_reminder`.
+- Reescrever só o prompt principal de novo (já foi na 371) e esquecer o reminder. O alvo é `build_reminder` (prompt.py:155-207), não `build_system_prompt`.
+- Inchar o reminder (ele reaparece várias vezes no contexto do 3b). Manter 1 linha, substituindo a existente.
+- Mexer em outras linhas do reminder (350/351/353/354/355 são de outras sprints, intactas).
+
+**Comandos de detecção:**
+
+- `grep -n "pode tocar apenas" nyx/agent/prompt.py` -> vazio após a sprint.
+- `grep -niE "acesso|absoluto|ADR-009" nyx/agent/prompt.py` -> mostra a linha nova dentro do `build_reminder`.
+
+---
+
 ## Lições do freelancer
 
 - Toda "implementação em 5 min" que deveria levar 2h provavelmente é gambiarra. Pergunta-se: "que comando provaria que funciona?" Se a IA não sabe responder, não fez.

@@ -61,6 +61,14 @@ logger = get_logger("nyx.agent")
 # texto inteiro em silêncio quando a frase do tool mudasse.
 _DONE_HINT_RE = re.compile(r"\s*\.?\s*Se a tarefa.*?done\s*\([^)]*\)\.?", re.IGNORECASE | re.DOTALL)
 
+# OUTPUT-LEAK-SANITIZE-01 (V10): hints entre colchetes anexados aos outputs de
+# read_file/search/list_files ("[N linhas lidas. Analise e execute a próxima ação.]",
+# "[Analise e execute a próxima ação.]"). Só removidos do summary user-facing.
+_TOOL_HINT_BRACKET_RE = re.compile(
+    r"\s*\[[^\]]*(?:Analise e execute|linhas lidas)[^\]]*\]",
+    re.IGNORECASE | re.DOTALL,
+)
+
 
 class AgentLoop(_IterationMixin):
     def __init__(
@@ -314,9 +322,15 @@ class AgentLoop(_IterationMixin):
             # final_content/summary. strip_done_summary_artifact extrai so o valor.
             # Idempotente: se a fonte (done em _iteration) ja saneou, aqui e no-op;
             # se o texto e uma resposta normal sem artefato, retorna identico.
-            status.summary = strip_done_summary_artifact(
-                strip_system_reminder(status.summary)
-            )
+            # OUTPUT-LEAK-SANITIZE-01 (V10): além do reminder e do artefato de done,
+            # remover do summary user-facing os HINTS DE CONTROLE anexados aos outputs
+            # das tools ("...chame done()", "[Analise e execute a próxima ação.]",
+            # "[N linhas lidas...]"). Os outputs das tools (contexto do modelo) NÃO
+            # mudam -- só o texto que chega ao usuário. _DONE_HINT_RE já existe (L62).
+            _clean = strip_done_summary_artifact(strip_system_reminder(status.summary))
+            _clean = _DONE_HINT_RE.sub("", _clean)
+            _clean = _TOOL_HINT_BRACKET_RE.sub("", _clean)
+            status.summary = _clean.strip()
             return status
         finally:
             if self._hooks is not None:

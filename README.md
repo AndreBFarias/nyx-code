@@ -4,7 +4,7 @@
 
 Agente de código local. 100% offline.
 
-Roda qwen2.5-coder:3b via Ollama com 35 tools, 67 commands, 15 services.
+Roda qwen2.5-coder:3b via Ollama com 35 tools, 67 commands, 16 services.
 Projeto standalone, otimizado para RTX 3050 4GB.
 
 ## Instalação rápida
@@ -250,7 +250,7 @@ sem perguntar, ideal para CI/container.
 | Avançado | /btw, /pr-comments |
 | Root | /advisor, /brief-cmd, /commit-push-pr, /insights, /security-review |
 
-## Services (15)
+## Services (16)
 
 tokens, compact, hooks, memory, summary, suggestions, analytics, diagnostics, logging_service, tool_use_summary, plugin_manager, mcp_client, hook_runtime, lifecycle.
 
@@ -353,7 +353,7 @@ Para estado autoritativo consultar `dev-journey/08-templates/PROJECT_SNAPSHOT.md
 - **Invariantes**: 14/14 PASS
 - **Cockpit**: operacional em `127.0.0.1:11437` com 19 endpoints HTTP + 2 WS
 - **Tag v1.3.4**: aguarda apenas comando humano (`git tag -a v1.3.4`) — sprint `RELEASE-V1.3.4-CUT-01` em `producao/`. A `RELEASE-V1.0-CUT-01` foi superada: o projeto evoluiu de 1.0 para 1.3.4 antes de a tag ser cortada (as tags v1.0.0/v1.1.x do repositório são do port histórico de 2025)
-- **Backlog técnico**: ZERADO — 521 sprints concluídas, 1 em produção (RELEASE da tag delegada ao humano)
+- **Backlog técnico**: ZERADO — 536 sprints concluídas, 1 em produção (RELEASE da tag delegada ao humano)
 
 ## Requisitos
 
@@ -409,7 +409,7 @@ nyx/
     commands/          # 67 slash commands (incl. /aesthetic, /cancel)
     output.py          # Rich + theme_manager
     tools/             # 35 tools registradas
-    services/          # 15 services (incl. hook_runtime, plugin_manager, mcp_client)
+    services/          # 16 services (incl. hook_runtime, plugin_manager, mcp_client)
   cockpit/             # FastAPI server local (COCKPIT-01..05)
     server.py          # 19 endpoints HTTP + 2 WS
     pty_bridge.py      # PTY bridge para terminal embedded
