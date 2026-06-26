@@ -1203,7 +1203,7 @@ Achados da dimensao "autonomia de tools" (D3 do AUDIT) que NAO viram spec especu
 
 <!-- MANUAL_OVERRIDE_ONDA_48_START -->
 
-### Bloco ONDA-48: Validação as-user a-fundo -- a Nyx conversa em vez de agir (2026-06-26) -- EM ANDAMENTO (5/14)
+### Bloco ONDA-48: Validação as-user a-fundo -- a Nyx conversa em vez de agir (2026-06-26) -- EM ANDAMENTO (5/15)
 
 **Origem:** o dono testou a Nyx na TUI real e a viu alucinar em vez de agir (criar arquivo -> tutorial de notepad; fastfetch -> specs de Windows inventadas; ~/Desktop -> lista a raiz do projeto). Onda de validação honesta conduzida pelo Opus rodando a Nyx de verdade (`--headless` + passada visual no Chrome real), 14 probes + 2 turnos ao vivo. Relatório completo: `dev-journey/07-reports/AUDIT_VALIDACAO_2026_06_26.md` (15 achados V01-V15, evidência runtime literal + causa-raiz file:line). Veredito: a ONDA-45 consertou a *tool* isolada e validou a *tool* isolada; o produto colapsa no uso real. Causa do "passou batido": o Gauntlet testa a tool via ToolRegistry direto (pula o modelo), a validação anterior teve viés de confirmação, e o bug central foi deferido como "teto do 3b" (sprint 382) -- ferindo ADR-032/033. Ordem de fix definida pelo dono: quick wins (393-396) -> contrato de execução/raiz (397-403). Specs detalhadas escritas sob demanda ao chegar cada fase (modelo iterativo). NÃO commitar código de produto nesta onda (só docs).
 
@@ -1223,8 +1223,9 @@ Achados da dimensao "autonomia de tools" (D3 do AUDIT) que NAO viram spec especu
 | 403 | **MODEL-SWAP-REAL-OR-HONEST-01** (V13: "trocar de model" -> alucina tool/lista fake; implementar troca real ou resposta honesta -- conecta ao gerenciador de models do roadmap) | MEDIA | -- | PENDENTE (raiz/roadmap) |
 | 406 | **TUI-INTERNALS-LEAK-01** (V09, divisão da 395: na TUI a tela vomita tool_calls crus, resultados de tool e frases do system prompt -- a render-layer da TUI não deve exibir args/internals crus dos eventos tool_use; visto ao vivo no Chrome 2026-06-26) | ALTA | -- | PENDENTE (render TUI) |
 | 407 | **IDENTITY-GUARD-COPULA-01** (follow-up da 394: `_SELF_AI_PATTERN` não pega auto-ID branda com cópula intercalada -- runtime produziu "Sou é um assistente digital programado"; estender p/ casar "assistente digital" em auto-referência sem inflar falso positivo) | MEDIA | 394 | PENDENTE (follow-up) |
+| 408 | **INFRA-PRECOMMIT-NO-OWNER-WIP-01** (achado recorrente dos executores 393-396: `scripts/hooks/pre-commit:272-285` roda update_docs.py e faz `git add` de GAMBIARRAS_POR_SPRINT.md + SPRINT_TEMPLATE_V2.md, que têm prosa MANUAL do dono além de contagens -> arrasta WIP do dono pro commit do executor; opções: update_docs.py parar de tocar esses 2 docs majoritariamente-manuais, OU o hook não força-stageá-los) | MEDIA | -- | PENDENTE (infra/higiene) |
 
-> **Reconciliação pendente (higiene, não-bug):** colisão de numeração de onda (roadmap antigo chamava ONDA-47 de "model manager"/ONDA-48 de "cobertura"; as ondas reais deslizaram -- esta é a ONDA-48 de validação); 2 docs untracked do Opus (`ONDA_PROTOCOL.md` + `AUDIT_2026_06_24.md`); tags git em v1.1.1 vs `__version__` 1.3.4 (sprint 384 deferida).
+> **Reconciliação (parcial, 2026-06-26):** **Numeração de onda canônica:** 45 (Acesso Universal), 46 (Saneamento CI), 47 (Validação 2/UX), 48 (esta -- Validação a-fundo). O roadmap antigo do `AUDIT_2026_06_24.md` (model-manager=ONDA-47, cobertura=48, distribuição=49) **desliza** para: 49 (Gerenciador de Models + ADR-035), 50 (Cobertura de Teste), 51 (Distribuição & Release v1.4.0). **RESOLVIDO:** docs `ONDA_PROTOCOL.md` + `AUDIT_2026_06_24.md` + `AUDIT_VALIDACAO_2026_06_26.md` commitados em `181dc1d`. **Pendente:** hook força-stage (sprint 408); tags git em v1.1.1 vs `__version__` 1.3.4 (sprint 384 deferida).
 
 <!-- MANUAL_OVERRIDE_ONDA_48_END -->
 
