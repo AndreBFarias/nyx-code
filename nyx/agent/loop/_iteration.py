@@ -20,7 +20,14 @@ import httpx
 from nyx.agent.context import SUMMARY_REINJECT_PREFIX, cap_summary
 from nyx.agent.intent import classify as _classify_intent
 from nyx.agent.lang_check import is_pt_br
-from nyx.agent.loop._constants import ACTION_TO_TOOL, CORE_TOOLS, LLM_TIMEOUT, TOOL_KEYWORDS, _remap_params
+from nyx.agent.loop._constants import (
+    ACTION_TO_TOOL,
+    CORE_TOOLS,
+    LLM_TIMEOUT,
+    PRESENTABLE_TOOLS,
+    TOOL_KEYWORDS,
+    _remap_params,
+)
 from nyx.agent.models import (
     ActionType,
     AgentAction,
@@ -168,11 +175,29 @@ class _IterationMixin:
         "primeiro; só chame done depois que o arquivo existir."
     )
 
+    # EXEC-CONTRACT-NO-HALLUCINATED-RESULT-01 (V04/V14): o turno pediu ação e o 3b
+    # tenta concluir sem ter executado NENHUMA tool. Força a execução real.
+    _ACTION_REJECT_HINT = (
+        "Você ainda NÃO executou nenhuma ferramenta neste turno. NÃO afirme nem "
+        "conclua sem agir. Chame a ferramenta apropriada (read_file, list_files, "
+        "run_command ou search) com os parâmetros reais primeiro; só conclua depois "
+        "que a ferramenta retornar o resultado de verdade."
+    )
+
     def _init_done_guard(self, user_input: str) -> None:
         """Arma o guard de done no início do turno: baseline de writes + se o
-        pedido é de criar/escrever arquivo (intent 'code')."""
+        pedido é de criar/escrever (intent 'code') ou de qualquer ação de tool
+        (intent 'tool-needed': ler/listar/rodar/buscar)."""
         self._turn_writes_baseline = self._session.files_modified_count
-        self._turn_wants_create = _classify_intent(user_input) == "code"
+        intent = _classify_intent(user_input)
+        self._turn_wants_create = intent == "code"
+        # EXEC-CONTRACT-NO-HALLUCINATED-RESULT-01 (V04/V14): o turno pediu uma ação
+        # de ferramenta (ler/listar/rodar/buscar/criar). Intenção é só SINAL de
+        # re-emissão (DESENHO §6), nunca gate único -- a rejeição é 1x/turno.
+        self._turn_wants_action = intent in ("code", "tool-needed")
+        # Contador de execuções de tool NO TURNO (persiste entre iterações, diferente
+        # de _tool_calls_this_turn que reseta por iteração). 0 ao concluir = alucinou.
+        self._turn_tool_count = 0
         self._done_rejected = False
 
     def _turn_create_unmet(self) -> bool:
@@ -189,12 +214,22 @@ class _IterationMixin:
         wrote = self._session.files_modified_count > baseline
         return not wrote
 
-    def _should_reject_done(self) -> bool:
-        """Rejeita o done UMA vez se o turno pediu criar/escrever e nenhum write
-        efetivou. Rejeita no máximo 1x/turno; MAX_ITERATIONS é a rede final."""
+    def _should_reject_done(self) -> str | None:
+        """Rejeita o done UMA vez quando o turno pediu ação mas nada executou de
+        verdade. Retorna o HINT a re-emitir, ou None se não deve rejeitar.
+
+        Dois casos (EXEC-CONTRACT-NO-HALLUCINATED-RESULT-01):
+        - criar/escrever pedido + nenhum write efetivou (351, existente);
+        - QUALQUER ação pedida + ZERO tools executadas no turno (V04/V14 novo):
+          ler ~/.bashrc sem read_file, "executado com sucesso" sem run_command.
+        Rejeita no máximo 1x/turno; MAX_ITERATIONS é a rede final."""
         if getattr(self, "_done_rejected", False):
-            return False
-        return self._turn_create_unmet()
+            return None
+        if self._turn_create_unmet():
+            return self._DONE_REJECT_HINT
+        if getattr(self, "_turn_wants_action", False) and getattr(self, "_turn_tool_count", 0) == 0:
+            return self._ACTION_REJECT_HINT
+        return None
 
     async def _execute_tool_calls(self, tool_calls: list[dict], iteration: int) -> SessionStatus | None:
         """Executa tool calls do LLM. Retorna SessionStatus se done/force_done.
@@ -213,9 +248,10 @@ class _IterationMixin:
                 self._on_tool(name, args)
 
             if self._tools.is_done(name):
-                if self._should_reject_done():
+                reject_hint = self._should_reject_done()
+                if reject_hint:
                     self._done_rejected = True
-                    self._session.add_tool_call(name, args, self._DONE_REJECT_HINT)
+                    self._session.add_tool_call(name, args, reject_hint)
                     continue
                 summary = strip_done_summary_artifact(
                     strip_system_reminder(args.get("summary", "Tarefa concluída."))
@@ -357,8 +393,14 @@ class _IterationMixin:
             # como `last_key` em is_exact_repeat (distingue tools fora do enum).
             self._last_action_name = name
             self._consecutive_skips = 0
+            # EXEC-CONTRACT-NO-HALLUCINATED-RESULT-01: contador de execuções do
+            # turno (guard de done V04/V14) -- conta toda tool real executada.
+            self._turn_tool_count = getattr(self, "_turn_tool_count", 0) + 1
             if result.success:
                 self._has_results = True
+                # G3: registra a saída apresentável para o ponto de saída compor.
+                if name in PRESENTABLE_TOOLS:
+                    self._turn_presentables.append((name, result.output or ""))
 
         return None
 
@@ -369,10 +411,11 @@ class _IterationMixin:
         `_execute_tool_calls` -- `self._tools.execute` vai para `to_thread`.
         """
         if action.action_type == ActionType.DONE:
-            if self._should_reject_done():
+            reject_hint = self._should_reject_done()
+            if reject_hint:
                 self._done_rejected = True
-                self._session.add_tool_call("done", action.params, self._DONE_REJECT_HINT)
-                return None  # continua o loop -- força o write_file antes do done
+                self._session.add_tool_call("done", action.params, reject_hint)
+                return None  # continua o loop -- força a execução antes do done
             summary = strip_done_summary_artifact(
                 strip_system_reminder(action.params.get("summary", "Tarefa concluída."))
             )
@@ -463,8 +506,12 @@ class _IterationMixin:
         # canônico, então tool_name == action_type.value; mantém last_key coerente.
         self._last_action_name = tool_name
         self._consecutive_skips = 0
+        # EXEC-CONTRACT-NO-HALLUCINATED-RESULT-01: idem caminho A (parser fallback).
+        self._turn_tool_count = getattr(self, "_turn_tool_count", 0) + 1
         if result.success:
             self._has_results = True
+            if tool_name in PRESENTABLE_TOOLS:
+                self._turn_presentables.append((tool_name, result.output or ""))
 
         return None
 

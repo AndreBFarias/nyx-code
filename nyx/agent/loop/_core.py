@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Any, Callable, Optional
 import httpx
 
 from nyx.agent.context import ContextBudget, cap_summary
+from nyx.agent.loop._constants import PRESENTABLE_TOOLS
 from nyx.agent.loop._iteration import (
     _IterationMixin,
     _reminder_every,
@@ -68,6 +69,25 @@ _TOOL_HINT_BRACKET_RE = re.compile(
     r"\s*\[[^\]]*(?:Analise e execute|linhas lidas)[^\]]*\]",
     re.IGNORECASE | re.DOTALL,
 )
+
+# EXEC-CONTRACT-NO-HALLUCINATED-RESULT-01 (V07): heurística para detectar quando o
+# content é um tool_call CRU que o parser não conseguiu extrair (malformado). Só
+# dispara no ramo parser-fail; ancorada em sinais estruturais fortes, não em prosa.
+_RAW_TOOLCALL_NAMES = (
+    "read_file|write_file|edit_file|run_command|list_files|search|glob|create_file"
+)
+_RAW_TOOLCALL_RE = re.compile(
+    r'(\{\s*["\']?(?:name|tool|function)["\']?\s*:.*?(?:arguments|args|parameters|file_path|command|path)'
+    rf'|\b(?:{_RAW_TOOLCALL_NAMES})\s*\(\s*(?:file_path|path|command|cmd|pattern)?\s*=?)',
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _looks_like_raw_toolcall(text: str) -> bool:
+    """True se o texto é majoritariamente um tool_call cru não-executável."""
+    if not text:
+        return False
+    return bool(_RAW_TOOLCALL_RE.search(text.strip()))
 
 
 class AgentLoop(_IterationMixin):
@@ -291,6 +311,10 @@ class AgentLoop(_IterationMixin):
         self._reminder_extra = None
         # LOOP-DONE-VERIFY-ARTIFACTS-01 (#351): arma o guard de done alucinado.
         self._init_done_guard(user_input)
+        # EXEC-CONTRACT-NO-HALLUCINATED-RESULT-01 (G3): saídas apresentáveis
+        # produzidas neste turno (tool_name, output). Resetado por turno; consumido
+        # por _compose_presentation_summary no único ponto de saída (abaixo).
+        self._turn_presentables = []
 
         # NYX-GSD-CHECKPOINTS-01: registra pedido inicial em progress.md.
         self._gsd.user_input(user_input)
@@ -310,6 +334,13 @@ class AgentLoop(_IterationMixin):
         status: SessionStatus | None = None
         try:
             status = await self._run_iterations(user_input)
+            # EXEC-CONTRACT-NO-HALLUCINATED-RESULT-01 (G3): APRESENTAÇÃO FORTE.
+            # Antes do guard de saída (que só saneia), garantir que a saída real das
+            # tools apresentáveis chegue ao usuário -- mesmo que o 3b tenha divagado.
+            # Decisão do dono: sempre mostra os dados crus. Os hints de controle
+            # eventualmente colados no output (run_command/read_file) são removidos
+            # logo abaixo pelo guard de saída já existente (_DONE_HINT_RE etc).
+            status.summary = self._compose_presentation_summary(status)
             # LOOP-REMINDER-LEAK-SUMMARY-01 (#381): guard de SAIDA único. Cobre
             # todos os caminhos que montam o summary (content do LLM ecoando o
             # reminder, force_done derivado do history, recovery, parser fallback)
@@ -458,7 +489,17 @@ class AgentLoop(_IterationMixin):
 
                 forge = detect_forged_success(content, self._session.history)
                 final_content = content
-                if forge.warnings:
+                # EXEC-CONTRACT-NO-HALLUCINATED-RESULT-01 (V07, G2 ponto D): o parser
+                # falhou em todos os níveis. Se o content é um tool_call cru (JSON
+                # `{"name":...}` ou `tool(args)`), NÃO devolvê-lo como resposta --
+                # vira mensagem honesta. Falhar honesto > vazar formato interno.
+                if _looks_like_raw_toolcall(content):
+                    self._diagnostics.record_warning("parser", "tool_call cru não executável")
+                    final_content = (
+                        "Tentei executar uma ação mas não consegui interpretar o "
+                        "formato da chamada. Pode reformular o pedido?"
+                    )
+                elif forge.warnings:
                     self._diagnostics.record_warning("forge", forge.warnings[0])
                     aviso = "[atenção: resposta não verificada por tool]"
                     final_content = f"{content}\n\n{aviso}"
@@ -521,6 +562,45 @@ class AgentLoop(_IterationMixin):
         if not parts:
             parts.append("Tarefa processada")
         return ". ".join(parts)
+
+    def _compose_presentation_summary(self, status: SessionStatus) -> str:
+        """EXEC-CONTRACT-NO-HALLUCINATED-RESULT-01 (G3): anexa a saída real das
+        tools apresentáveis do turno ao summary.
+
+        Decisão do dono (FORTE): para run_command/list_files/read_file/search/glob,
+        a resposta SEMPRE mostra os dados crus -- a infra não confia que o 3b vai
+        apresentar (ADR-032). Único skip: dedup de substring exata (não re-colar um
+        output já literalmente presente no texto do modelo). Hints de controle no
+        output são limpos pelo guard de saída que roda logo após esta chamada.
+        """
+        presentables = getattr(self, "_turn_presentables", None)
+        if not presentables:
+            return status.summary
+        if status.state not in (SessionState.DONE, SessionState.MAX_ITERATIONS):
+            return status.summary
+
+        base = (status.summary or "").strip()
+        blocks: list[str] = []
+        for name, output in presentables:
+            # Defesa em profundidade: só apresenta tools da lista canônica. O append
+            # em _iteration já filtra por PRESENTABLE_TOOLS; este guard garante que o
+            # único ponto de saída nunca vaze a saída crua de uma tool não-apresentável.
+            if name not in PRESENTABLE_TOOLS:
+                continue
+            out = (output or "").strip()
+            if not out:
+                continue
+            # Dedup exato: se o modelo já colou este output, não duplicar.
+            if out in base:
+                continue
+            blocks.append(out[:8000])
+        if not blocks:
+            return base
+
+        resultado = "\n\n".join(blocks)
+        if base:
+            return f"{base}\n\nResultado:\n{resultado}"
+        return f"Resultado:\n{resultado}"
 
     @staticmethod
     def _strip_done_hint(tool_result: str) -> str:

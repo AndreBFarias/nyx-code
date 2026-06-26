@@ -58,6 +58,16 @@ CORE_TOOLS = {
     "done",
 }
 
+# EXEC-CONTRACT-NO-HALLUCINATED-RESULT-01 (V04/V14, G3 apresentação FORTE): tools
+# cuja SAÍDA o usuário quer ver crua. Decisão do dono: a resposta final SEMPRE
+# inclui o output real destas tools (não a divagação do 3b). write_file/edit_file
+# ficam de fora -- o "OK: criado" delas é status, coberto pelo guard de done (G2).
+# Fonte única aqui (sem ciclo): _constants não importa _core nem _iteration; é
+# importado pelos dois (_core no ponto de saída, _iteration no append por turno).
+PRESENTABLE_TOOLS = frozenset(
+    {"run_command", "list_files", "read_file", "search", "glob"}
+)
+
 # Keywords que ativam tools condicionais
 TOOL_KEYWORDS: dict[str, set[str]] = {
     # MEMORY-INTENT-CLASSIFY-01: sem write_memory aqui, intent=tool-needed de
