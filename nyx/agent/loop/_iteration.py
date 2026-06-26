@@ -38,7 +38,7 @@ from nyx.agent.permissions import PermissionLevel
 from nyx.agent.preflight import check as preflight_check
 from nyx.agent.prompt import build_reminder
 from nyx.agent.repetition import SkipStrategy, get_skip_strategy
-from nyx.agent.sanitize import sanitize_tool_args
+from nyx.agent.sanitize import sanitize_tool_args, strip_result_echo
 from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tools.plan_mode import is_tool_allowed_in_plan_mode
 from nyx.agent.validator import FORGE_PATTERNS
@@ -185,6 +185,14 @@ class _IterationMixin:
         "que a ferramenta retornar o resultado de verdade."
     )
 
+    # LOOP-RESULT-NOT-AS-INPUT-01 (V06/C2): o arg reusou o resultado de uma tool
+    # anterior como entrada (eco recursivo). Força um arg novo, real.
+    _ECHO_REJECT_HINT = (
+        "O parâmetro reusa o resultado de uma ferramenta anterior como entrada "
+        "(eco). Não cole a saída de uma ferramenta na próxima. Forneça um termo "
+        "de busca / comando / conteúdo NOVO e real."
+    )
+
     def _init_done_guard(self, user_input: str) -> None:
         """Arma o guard de done no início do turno: baseline de writes + se o
         pedido é de criar/escrever (intent 'code') ou de qualquer ação de tool
@@ -248,6 +256,16 @@ class _IterationMixin:
             # permission, preflight, execute veem o arg ja limpo). Estrutura, não
             # semantica -- a infra corrige o 3b sem adivinhar intencao (ADR-032).
             args = sanitize_tool_args(name, tc["arguments"])
+            # LOOP-RESULT-NOT-AS-INPUT-01 (G3): corta o eco -- se o arg reusa o
+            # resultado recente de uma tool (V06 write recursivo; C2 pattern=erro),
+            # limpa as linhas ecoadas; se a busca/comando virou puro eco, rejeita.
+            args, _echo_reject = strip_result_echo(
+                name, args, getattr(self, "_recent_tool_outputs", [])
+            )
+            if _echo_reject:
+                logger.warning("[loop] arg é puro eco de resultado anterior: %s", name)
+                self._session.add_tool_call(name, args, self._ECHO_REJECT_HINT)
+                continue
 
             if self._on_tool:
                 self._on_tool(name, args)
@@ -406,6 +424,10 @@ class _IterationMixin:
                 # G3: registra a saída apresentável para o ponto de saída compor.
                 if name in PRESENTABLE_TOOLS:
                     self._turn_presentables.append((name, result.output or ""))
+                # LOOP-RESULT-NOT-AS-INPUT-01: alimenta o rolling de outputs
+                # recentes (cap 3) p/ a detecção de eco no próximo tool_call.
+                self._recent_tool_outputs.append(result.output or "")
+                self._recent_tool_outputs[:] = self._recent_tool_outputs[-3:]
 
         return None
 
@@ -449,6 +471,15 @@ class _IterationMixin:
         # EXEC-CONTRACT-TOOLCALL-SANITIZE-01 (G1): idem caminho nativo, agora no
         # parser fallback (onde o 3b mais cola lixo de markdown no path).
         remapped = sanitize_tool_args(tool_name, remapped)
+        # LOOP-RESULT-NOT-AS-INPUT-01 (G3): idem caminho nativo -- corta o eco no
+        # parser fallback antes de executar.
+        remapped, _echo_reject = strip_result_echo(
+            tool_name, remapped, getattr(self, "_recent_tool_outputs", [])
+        )
+        if _echo_reject:
+            logger.warning("[loop] arg é puro eco (parser): %s", tool_name)
+            self._session.add_tool_call(tool_name, remapped, self._ECHO_REJECT_HINT)
+            return None
 
         if self._on_tool:
             self._on_tool(tool_name, remapped)
@@ -520,6 +551,9 @@ class _IterationMixin:
             self._has_results = True
             if tool_name in PRESENTABLE_TOOLS:
                 self._turn_presentables.append((tool_name, result.output or ""))
+            # LOOP-RESULT-NOT-AS-INPUT-01: idem caminho nativo -- rolling cap 3.
+            self._recent_tool_outputs.append(result.output or "")
+            self._recent_tool_outputs[:] = self._recent_tool_outputs[-3:]
 
         return None
 

@@ -51,4 +51,84 @@ def sanitize_tool_args(name: str, args: Any) -> dict[str, Any]:
     return cleaned
 
 
+# LOOP-RESULT-NOT-AS-INPUT-01 (G3): markers que a própria infra injeta nos
+# resultados de tool. Aparecendo num arg de ENTRADA, são assinatura de eco
+# recursivo (o 3b copiou o resultado anterior). Lista conservadora: só strings
+# que a infra gera, nunca conteúdo de usuário típico.
+_RESULT_MARKERS = (
+    "chame done()",
+    "OK: Arquivo criado",
+    "OK: Editado",
+    "Exit code:",
+    "[stderr]",
+    "[resultado de",
+    "regex invalido",  # noqa-acento -- marker literal: variante sem acento que o 3b ecoa
+    "regex inválido",
+    "Nenhum resultado para",
+    "Bloqueado por",
+    "Permissão negada",
+    "Permissao negada",
+    "Analise e execute",
+    "linhas lidas",
+)
+
+# Args textuais onde o eco pode aparecer. file_path/path não entram (são curtos
+# e já tratados por sanitize_tool_args).
+_ECHOABLE_KEYS = ("content", "new_string", "command", "pattern")
+# Args essenciais: se viram puro eco (vazios após limpar), a tool é inutilizável.
+_ESSENTIAL_KEYS = ("command", "pattern")
+
+
+def _line_is_echo(line: str, recent_lines: set[str], recent_blob: str) -> bool:
+    """True se a linha é eco de um resultado recente -- SEMPRE amarrada ao output.
+
+    Dois casos, ambos exigindo que a evidência tenha vindo de um resultado
+    recente da sessão (zero falso-positivo):
+    - marker: a linha carrega um marker de controle E esse marker também aparece
+      num output recente. Marker-only puro NÃO basta -- senão conteúdo legítimo
+      que cite 'Exit code:' (sem ter vindo de um resultado) viraria falso-positivo.
+    - substancial: linha com >=30 chars idêntica a uma linha de output recente.
+    """
+    stripped = line.strip()
+    if not stripped:
+        return False
+    for marker in _RESULT_MARKERS:
+        if marker in line and marker in recent_blob:
+            return True
+    return len(stripped) >= 30 and stripped in recent_lines
+
+
+def strip_result_echo(
+    name: str, args: Any, recent_outputs: list[str]
+) -> tuple[dict[str, Any], bool]:
+    """Remove de args textuais as linhas que ecoam um resultado recente de tool.
+
+    Retorna (args_limpos, should_reject). should_reject=True quando um arg
+    ESSENCIAL (command/pattern) ficou vazio após remover o eco -- a tool virou
+    puro eco e deve ser rejeitada + re-emitida. Puro/determinístico; só toca
+    _ECHOABLE_KEYS; não muta o input (devolve cópia). Idempotente: re-rodar sobre
+    o resultado não muda mais nada (as linhas de eco já foram removidas).
+    """
+    if not isinstance(args, dict) or not recent_outputs:
+        return (args if isinstance(args, dict) else {}, False)
+    recent_blob = "\n".join(out or "" for out in recent_outputs)
+    recent_lines = {ln.strip() for ln in recent_blob.splitlines() if ln.strip()}
+    cleaned = dict(args)
+    should_reject = False
+    for key in _ECHOABLE_KEYS:
+        v = cleaned.get(key)
+        if not isinstance(v, str) or not v.strip():
+            continue
+        kept = [
+            ln for ln in v.splitlines()
+            if not _line_is_echo(ln, recent_lines, recent_blob)
+        ]
+        new_v = "\n".join(kept).strip()
+        if new_v != v.strip():
+            cleaned[key] = new_v
+            if not new_v and key in _ESSENTIAL_KEYS:
+                should_reject = True
+    return cleaned, should_reject
+
+
 # "Limpar a ferramenta antes de usá-la é metade do trabalho." -- princípio de execução

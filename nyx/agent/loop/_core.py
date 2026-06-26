@@ -315,6 +315,9 @@ class AgentLoop(_IterationMixin):
         # produzidas neste turno (tool_name, output). Resetado por turno; consumido
         # por _compose_presentation_summary no único ponto de saída (abaixo).
         self._turn_presentables = []
+        # LOOP-RESULT-NOT-AS-INPUT-01 (G3): saídas recentes de tool do turno, p/
+        # detectar eco recursivo (resultado virando entrada da próxima). Rolling 3.
+        self._recent_tool_outputs = []
 
         # NYX-GSD-CHECKPOINTS-01: registra pedido inicial em progress.md.
         self._gsd.user_input(user_input)
