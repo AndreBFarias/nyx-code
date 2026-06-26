@@ -38,6 +38,7 @@ from nyx.agent.permissions import PermissionLevel
 from nyx.agent.preflight import check as preflight_check
 from nyx.agent.prompt import build_reminder
 from nyx.agent.repetition import SkipStrategy, get_skip_strategy
+from nyx.agent.sanitize import sanitize_tool_args
 from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tools.plan_mode import is_tool_allowed_in_plan_mode
 from nyx.agent.validator import FORGE_PATTERNS
@@ -242,7 +243,11 @@ class _IterationMixin:
         """
         for tc in tool_calls:
             name = tc["name"]
-            args = tc["arguments"]
+            # EXEC-CONTRACT-TOOLCALL-SANITIZE-01 (G1, V02/C1): limpa lixo de markdown
+            # (crase/aspas/escape `\/`) dos args path-like ANTES de tudo (on_tool,
+            # permission, preflight, execute veem o arg ja limpo). Estrutura, não
+            # semantica -- a infra corrige o 3b sem adivinhar intencao (ADR-032).
+            args = sanitize_tool_args(name, tc["arguments"])
 
             if self._on_tool:
                 self._on_tool(name, args)
@@ -441,6 +446,9 @@ class _IterationMixin:
             return None
 
         remapped = _remap_params(tool_name, action.params)
+        # EXEC-CONTRACT-TOOLCALL-SANITIZE-01 (G1): idem caminho nativo, agora no
+        # parser fallback (onde o 3b mais cola lixo de markdown no path).
+        remapped = sanitize_tool_args(tool_name, remapped)
 
         if self._on_tool:
             self._on_tool(tool_name, remapped)

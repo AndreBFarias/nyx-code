@@ -56,7 +56,15 @@ def check(
         elif path.stat().st_size > 1_000_000:
             result.warnings.append(f"Arquivo grande: {path.stat().st_size / 1024:.0f}KB")
 
-    if tool_name == "write_file" and file_path:
+    if tool_name in ("write_file", "create_file") and file_path:
+        # EXEC-CONTRACT-TOOLCALL-SANITIZE-01 (G1, V02): content vazio/branco vira
+        # ERRO (era so warning no validator pos-execução). O 3b as vezes perde o
+        # codigo gerado e manda content="" -> um arquivo vazio mascara o codigo
+        # perdido. Bloquear forca o re-emit com o conteudo real (ADR-032).
+        if not (args.get("content") or "").strip():
+            result.errors.append(
+                "content vazio: reenvie write_file com o conteudo real do arquivo"
+            )
         path = (
             Path(file_path)
             if file_path.startswith("/")
