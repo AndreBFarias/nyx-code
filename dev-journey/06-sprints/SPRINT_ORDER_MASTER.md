@@ -1277,13 +1277,16 @@ Achados da dimensao "autonomia de tools" (D3 do AUDIT) que NAO viram spec especu
 
 | # | Sprint | Prio | Deps | Status |
 |---|--------|------|------|--------|
-| 442 | **MODEL-BAKEOFF-CANDIDATES-01** (bake-off empírico via `NYX_MODEL=<id> ./run.sh --headless`: qwen2.5-coder:3b baseline vs qwen3:1.7b vs qwen3:4b, 6 probes reais medindo tool_call nativo/sucesso/PT-BR/VRAM; sem tocar DEFAULT_MODEL; confirma ou refuta o piso recomendado; spec em producao/) | ALTA | -- | EM EXECUÇÃO (2026-07-13) |
+| 442 | **MODEL-BAKEOFF-CANDIDATES-01** (bake-off empírico via `NYX_MODEL=<id> ./run.sh --headless`: 5 modelos, 6 probes reais, sem tocar DEFAULT_MODEL; spec em producao/) | ALTA | -- | EXECUTADA (2026-07-13; resultado no relatório §Bake-off. **Surpresa:** 0/81 tool_call nativo DENTRO do Nyx, mas teste direto provou qwen3:1.7b faz nativo no Ollama -> o pipeline do Nyx suprime o nativo. Gera a 446 como pré-requisito. Recomendação revisada: pipeline nativo ANTES de decidir o piso) |
+| 446 | **MODEL-NATIVE-TOOLCALL-PIPELINE-01** (achado central do bake-off: o few-shot de formato JSON-no-content em `prompt.py` empurra modelos capazes de nativo -- qwen3 -- para o formato texto, suprimindo o `tool_calls` nativo do Ollama que o teste direto provou funcionar; condicionar o few-shot ao modelo NÃO suportar nativo, preservando o baseline qwen2.5-coder:3b; spec em producao/) | ALTA | -- | PENDENTE (raiz do ganho: sem ela, trocar de modelo é cosmético) |
 | 443 | **MODEL-MANAGER-CORE-01** (`nyx models list/swap`, troca real de modelo -- absorve a 403 MODEL-SWAP-REAL-OR-HONEST e a deferida LOOP-TOOL-SHORTCIRCUIT; spec sob demanda após o bake-off) | ALTA | 442 | PENDENTE (sem spec ainda) |
 | 444 | **MODEL-THINK-AUTODETECT-01** (fim do hardcode qwen3 no think adaptativo -- `defaults.py`/`proxy.py` detectam a família do modelo; spec sob demanda) | MEDIA | 442 | PENDENTE (sem spec ainda) |
-| 445 | **MODEL-FALLBACK-CHAIN-01** (boot não-fatal: `qwen3:4b` [se VRAM+KV quant] -> `qwen3:1.7b` [piso] -> `qwen3:0.6b` [CPU]; spec sob demanda) | ALTA | 442, 443 | PENDENTE (sem spec ainda) |
-| ADR-036 | **ADR sucessor do ADR-031** (registra o piso escolhido e a cadeia, com a evidência do bake-off; escrito APÓS 442, com decisão do dono) | -- | 442 | PENDENTE (sem arquivo ainda) |
+| 445 | **MODEL-FALLBACK-CHAIN-01** (boot não-fatal: `qwen3:4b` [se VRAM+KV quant] -> `qwen3:1.7b` [piso] -> `qwen3:0.6b` [CPU]; spec sob demanda) | ALTA | 442, 443, 446 | PENDENTE (sem spec ainda) |
+| ADR-036 | **ADR sucessor do ADR-031** (registra o piso escolhido e a cadeia, com a evidência do bake-off + do pipeline nativo; escrito APÓS 446 + bake-off v2, com decisão do dono) | -- | 442, 446 | PENDENTE (sem arquivo ainda) |
 
-> **Nota anti-débito:** a 403 MODEL-SWAP-REAL-OR-HONEST-01 (ONDA-48) e a deferida LOOP-TOOL-SHORTCIRCUIT-01 são ABSORVIDAS pelo gerenciador (443) -- ao materializar a 443, marcar as duas como supersedidas, não duplicar. As specs 443/444/445 e o ADR-036 são escritos SOB DEMANDA quando o bake-off (442) fechar e o dono decidir o piso -- não materializar antes (evita spec especulativa sobre um modelo ainda não confirmado).
+> **Nota anti-débito:** a 403 MODEL-SWAP-REAL-OR-HONEST-01 (ONDA-48) e a deferida LOOP-TOOL-SHORTCIRCUIT-01 são ABSORVIDAS pelo gerenciador (443) -- ao materializar a 443, marcar as duas como supersedidas, não duplicar. As specs 443/444/445 e o ADR-036 são escritos SOB DEMANDA depois da 446 (pipeline nativo) e do bake-off v2 com o pipeline ligado -- não materializar antes (evita spec especulativa sobre um modelo ainda não confirmado).
+>
+> **Ordem revisada pelo bake-off (2026-07-13):** **446 (pipeline nativo) É O GARGALO REAL**, vem ANTES de decidir o piso. O bake-off provou que trocar o modelo sem consertar o pipeline é cosmético (0/81 nativo dentro do Nyx apesar de o qwen3:1.7b fazer nativo no Ollama). Sequência: 446 -> re-run do 442 com nativo ligado -> dono decide o piso -> 443/445 + ADR-036. Reforça a alma do projeto (ADR-032/034): a alavanca é a infra (o pipeline), não o modelo.
 
 <!-- MANUAL_OVERRIDE_ONDA_49_END -->
 

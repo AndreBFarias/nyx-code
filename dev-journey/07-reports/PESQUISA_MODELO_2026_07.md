@@ -103,4 +103,83 @@ exatamente o que faz o piso parecer profissional. A pesquisa não muda a tese do
 
 ## Bake-off (resultados empiricos)
 
-<!-- BAKEOFF_RESULTADOS -->
+Executado 2026-07-13 no ambiente REAL do Nyx (`NYX_MODEL=<id> ./run.sh --headless`, sessão
+acumulada por modelo, 6 probes idênticos, `DEFAULT_MODEL` intocado). 5 modelos, 81
+inferências, full-GPU (num_gpu=999) em todas -- inclusive o qwen3:4b coube na 4GB sem cair
+para CPU. VRAM praticamente idêntica (~2,49 GB) para todos: **o custo de VRAM não diferencia
+os candidatos nesta máquina.**
+
+### Tabela (classificação: SIM=nativo / RESGATE=proxy extraiu do texto / ECO=sem tool · OK/FALHA)
+
+| Modelo | P1 run_command | P2 write_file | P3 list_files | P4 search | P5 edit_file | P6 PT-BR |
+|---|---|---|---|---|---|---|
+| baseline `qwen2.5-coder:3b` | RESGATE OK (+memoria parasita) | RESGATE FALHA (5 writes; drift p/ repo) | ECO FALHA (listagem alucinada) | ECO FALHA (fabricou) | ECO FALHA (sem subtrai) | OK |
+| `qwen3:1.7b` | RESGATE OK (limpo) | RESGATE **OK** (1 write, soma correta) | ECO FALHA (alucinou) | ECO FALHA (fabricou) | RESGATE-errado FALHA (loop; sem drift) | OK (mais rápido, ~1,8s/turno) |
+| `qwen3:4b` | RESGATE OK | RESGATE OK | ECO FALHA | RESGATE **OK** (busca REAL, 16,5s) | RESGATE FALHA **DESTRUTIVA** (sobrescreveu soma) | OK |
+| `hhao/qwen2.5-coder-tools:3b` | RESGATE OK | RESGATE OK | ECO FALHA | ECO FALHA | ECO **FALHA ENGANOSA** (afirmou sucesso sem tool) | OK |
+| `granite3.3:2b` | RESGATE OK | RESGATE OK | ECO FALHA | ECO FALHA | RESGATE **tool-CERTA** (único a escolher edit_file; loop) FALHA | FALHA (fugiu do tema) |
+
+**Contagem de tool_call NATIVO no Nyx: 0 de 81 inferências.** Todo tool executado veio do
+resgate texto->JSON do proxy (`_extract_tool_call_from_content`, `nyx/proxy.py:517-521`).
+
+### A premissa parecia refutada -- mas o teste direto inverteu a conclusão
+
+O resultado acima sugeria que "qwen3 tem tool-calling nativo" seria falso na prática. **Teste
+direto isolado (chamada crua ao Ollama desta máquina, fora do Nyx)** provou o contrário:
+
+```
+POST /api/chat  model=qwen3:1.7b  think=true  tools=[list_files schema]
+-> message.tool_calls = [{"function": {"name": "list_files", "arguments": {"path": "/tmp"}}}]
+   NATIVO: SIM   thinking: SIM
+```
+
+O `qwen3:1.7b` **emite tool_calls nativo perfeitamente** no mesmo Ollama (0.24.0), com o
+mesmo template. O template não está bugado; o modelo funciona.
+
+### Causa-raiz (o achado central desta sessão)
+
+O nativo funciona no Ollama e **é suprimido pelo pipeline do Nyx.** O pipeline foi construído
+em torno da limitação do `qwen2.5-coder:3b` (que de fato não faz nativo, ADR-031):
+- `nyx/agent/prompt.py` descreve as tools em texto e dá **few-shot do formato JSON-no-content**
+  ("Chame write_memory com:", "Chame run_command com:" -- linhas 117/130).
+- `nyx/proxy.py:517` só lê `message.tool_calls`; se vazio, **extrai do content** (o resgate).
+
+Com um modelo capaz de nativo (qwen3), o few-shot do prompt o empurra para o formato texto,
+competindo com e vencendo o mecanismo nativo -- por isso 0/81 nativo dentro do Nyx, apesar de
+o proxy passar `tools` nativas e `think=true` (confirmado pela lógica: o resgate em
+`proxy.py:517` só roda com `has_tools_request=True`, e para qwen3 isso força `think=true` em
+`proxy.py:284`; o confound do think está descartado).
+
+### Veredito empírico revisado
+
+1. **Trocar o modelo SOZINHO não entrega o ganho.** O bake-off prova: com o pipeline atual,
+   nenhum modelo (nem o qwen3, nem o tool-tuned, nem o granite) usa nativo -- todos dependem do
+   resgate, e o gargalo real vira o modelo **parar de chamar tools e alucinar sucesso** (P3/P4/P5
+   falharam em quase todos) e o **overwrite/drift no edit** (P5 = 5/5 falha; o qwen3:4b foi
+   DESTRUTIVO; o baseline vazou para o repo = bug 437).
+2. **O desbloqueio real é usar o tool-calling nativo quando o modelo suporta** -- novo achado,
+   sprint `MODEL-NATIVE-TOOLCALL-PIPELINE-01` (446). Sem ele, a troca de modelo é cosmética.
+3. **Com o pipeline nativo, o `qwen3:1.7b` é o piso certo:** já é o mais limpo e rápido no
+   resgate (um único write correto onde o baseline disparou 5 caóticos; ~1,8s/turno) e o teste
+   direto prova que emite nativo -- o que elimina a maior fonte de erro (o JSON malformado que o
+   resgate tenta consertar). O `qwen3:4b` compra mais disposição para buscar de verdade, mas
+   custa latência e teve o overwrite destrutivo; fica como tier qualidade opt-in.
+4. **A ordem correta muda:** 446 (pipeline nativo) ANTES de decidir o piso. Reavaliar o
+   bake-off com o pipeline nativo ligado -- é aí que a diferença entre os modelos aparece de
+   verdade. O ganho de código puro do baseline (HumanEval 84,1) não se materializou em nenhum
+   probe agêntico; a agência é o que importa aqui.
+
+### A alma do projeto, confirmada pela evidência
+
+O bake-off reforça a tese em vez de contrariá-la: **o gargalo não é o modelo em si, é o
+pipeline (infra).** Um modelo melhor sem o pipeline nativo não muda nada; o mesmo pipeline
+consertado destrava vários modelos de uma vez. A alavanca continua sendo a infra -- exatamente
+o ADR-032/034. A troca de piso é secundária ao conserto do pipeline.
+
+### Custo e limpeza
+
+Disco usado pelos pulls: **+2,71 GiB** (qwen3:1.7b +1,36; granite3.3:2b +1,44;
+hhao/coder-tools:3b +14 KB por dedup; qwen3:4b já existia). Deixados em `models/` para o dono
+decidir remover. `DEFAULT_MODEL` intacto (`qwen2.5-coder:3b`), zero código de produto tocado,
+VRAM liberada (64/3706 MiB), zero órfão. Evidência bruta por modelo em
+`/tmp/claude-1000/.../scratchpad/bakeoff_<slug>.{jsonl,_turns.json,_meta.json}` (efêmera).
