@@ -1,24 +1,60 @@
-# Próxima sprint: INFRA-NEXT-SPRINT-STATUS-SUFFIX-01 (415)
+# Executar próxima sprint — MODEL-NATIVE-TOOLCALL-PIPELINE-01
 
-> **NOTA (definido manualmente na auditoria 2026-07-12):** o gerador `scripts/update_next_sprint.py`
-> está cego para a fila atual — o ROW_PATTERN não casa as linhas da ONDA-48 (status "PENDENTE (raiz)"
-> e nome com sufixo parentetizado). A sprint 415 conserta exatamente isso; ao concluí-la, rode
-> `python scripts/update_next_sprint.py` e este arquivo volta a ser gerado automaticamente.
+> **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
+> Copie o bloco abaixo e cole em uma sessão nova do modelo principal (sem subagentes).
+> Restam **53** sprints PENDENTE(S) na fila.
 
-**Spec:** `dev-journey/06-sprints/producao/SPRINT_INFRA_NEXT_SPRINT_STATUS_SUFFIX_01.md`
+---
 
-**Fila da ONDA-48 após a 415 (ordem sugerida; specs todas em `producao/`):**
-1. 402 MEMORY-RECALL-REFRESH-01 (ALTA — V11 provado vivo na holística de 2026-07-12)
-2. 406 TUI-INTERNALS-LEAK-01 (ALTA — V09)
-3. 409 EXEC-CONTRACT-SEARCH-GLOB-OR-REGEX-01 (ALTA)
-4. 413 EXEC-CONTRACT-PROXY-STATUS-BEFORE-JSON-01 (MEDIA)
-5. 411, 410, 407, 408, 414, 403 (demais colaterais com spec pronta)
-6. Bloco da auditoria 2026-07-12: 416-440 (ver `dev-journey/07-reports/AUDIT_2026_07_12.md` §3 e §5 para prioridade)
+## Prompt para colar na session
 
-## Prompt
+```
+Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_MODEL_NATIVE_TOOLCALL_PIPELINE_01.md.
 
-Sessão executora: siga o fluxo de 10 passos do `GSD.md` §"Fluxo completo de uma sprint" com a spec
-`dev-journey/06-sprints/producao/SPRINT_INFRA_NEXT_SPRINT_STATUS_SUFFIX_01.md`. Leia também
-`dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` (Catálogo Universal) e o `VALIDATOR_BRIEF.md`.
+Modelo obrigatório: modelo principal local, sem subagentes.
+Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambiarra):
 
-Rodar: `bash scripts/sprint_invariants.sh` antes e depois (regra binária FAIL_AFTER <= FAIL_BEFORE).
+1. Leia o arquivo da sprint inteiro.
+2. Leia a seção correspondente em dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md.
+3. Rode `bash scripts/sprint_invariants.sh > /tmp/inv_before.txt 2>&1` e me mostre FAIL_BEFORE.
+4. Apresente plano e me pergunte dúvidas ANTES de mexer em código.
+5. Implemente seguindo literalmente o arquivo da sprint.
+6. Rode `bash scripts/sprint_invariants.sh > /tmp/inv_after.txt 2>&1` e me mostre FAIL_AFTER.
+7. Cole o diff de /tmp/inv_before.txt /tmp/inv_after.txt.
+8. Cole o output bruto dos comandos de verificação da sprint.
+9. Só marque CONCLUIDA se TODOS os critérios binários + invariantes passarem.
+   Regra binária: FAIL_AFTER <= FAIL_BEFORE. Caso contrário, regressão: `git reset --hard HEAD~1` e refazer.
+10. Após CONCLUIDA: commit atômico, move sprint file para concluidos/, roda
+    `python scripts/update_next_sprint.py` para atualizar este arquivo.
+
+Se qualquer passo falhar, reporte:
+    [SPRINT MODEL-NATIVE-TOOLCALL-PIPELINE-01] BLOQUEADA: <motivo objetivo>
+
+ID desta sprint: MODEL-NATIVE-TOOLCALL-PIPELINE-01
+Arquivo: dev-journey/06-sprints/producao/SPRINT_MODEL_NATIVE_TOOLCALL_PIPELINE_01.md
+```
+
+---
+
+<!-- GAMBIARRAS_INJECT -->
+
+## Gambiarras específicas (recorte auto-injetado)
+
+> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §MODEL-NATIVE-TOOLCALL-PIPELINE-01. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
+
+(seção específica para MODEL-NATIVE-TOOLCALL-PIPELINE-01 não encontrada em GAMBIARRAS_POR_SPRINT.md; ler catálogo universal e matriz geral)
+
+<!-- /GAMBIARRAS_INJECT -->
+
+---
+
+## Após concluída esta sprint
+
+```bash
+# Marcar no master como CONCLUIDA, mover arquivo, re-rodar este script
+python scripts/update_next_sprint.py
+git add EXECUTAR_SPRINT.md dev-journey/06-sprints/SPRINT_ORDER_MASTER.md
+# incluir no mesmo commit da sprint ou em commit separado
+```
+
+O arquivo acima será atualizado com o próximo ID automaticamente.

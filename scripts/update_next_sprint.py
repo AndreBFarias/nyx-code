@@ -34,7 +34,7 @@ INJECT_END = "<!-- /GAMBIARRAS_INJECT -->"
 MAX_INJECT_LINES = 50
 
 ROW_PATTERN = re.compile(
-    r"^\|\s*[A-Z]?\d+\s*\|\s*\*\*([A-Z][A-Z0-9_\-]+)\*\*\s*\|.*\|\s*PENDENTE\s*\|",
+    r"^\|\s*[A-Z]?\d+\s*\|\s*\*\*([A-Z][A-Z0-9_\-]+)\*\*[^|]*\|.*\|\s*PENDENTE\b[^|]*\|",
     re.MULTILINE,
 )
 
