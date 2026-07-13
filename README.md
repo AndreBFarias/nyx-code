@@ -305,7 +305,7 @@ Uso:
 /aesthetic set cyberpunk:mars      # mudar
 ```
 
-## ADRs (34)
+## ADRs (35)
 
 | # | Título | Status |
 |---|---|---|
