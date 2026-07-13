@@ -1269,6 +1269,24 @@ Achados da dimensao "autonomia de tools" (D3 do AUDIT) que NAO viram spec especu
 
 <!-- MANUAL_OVERRIDE_ONDA_48_END -->
 
+<!-- MANUAL_OVERRIDE_ONDA_49_START -->
+
+### Bloco ONDA-49: Gerenciador de Models + revisão do piso (2026-07-13) -- EM PREPARAÇÃO
+
+**Origem:** o dono pediu (2026-07-13) uma revisão do modelo-piso à luz do que surgiu desde o início do projeto ("qual o mínimo hoje pra tudo funcionar conforme a infra; se tenho 3,5 de VRAM, algo que use 1,5; não vejo mal um requisito mínimo"). Pesquisa web orquestrada (10 agentes, com verificação adversarial) em `dev-journey/07-reports/PESQUISA_MODELO_2026_07.md`. **Achado central:** o gargalo nº1 do `qwen2.5-coder:3b` é tool-calling prompt-based (alucina `function.name`, ecoa comando como texto). **Recomendação:** trocar o piso para `qwen3:1.7b` (tool-calling nativo via template, ~2,2 GB, cabe folgado, PT-BR nativo), com `qwen3:4b` como tier qualidade opt-in (só com KV quantizado). **A alma preservada:** a troca reduz mas NÃO elimina malformações (<=4B colapsa em multi-turn); a infra de validação/retry continua sendo a alavanca -- não é "trocar o modelo resolve", é "um piso melhor dá menos trabalho pra infra". A decisão de trocar é do dono, APÓS o bake-off. NÃO efetivar troca sem evidência empírica.
+
+| # | Sprint | Prio | Deps | Status |
+|---|--------|------|------|--------|
+| 442 | **MODEL-BAKEOFF-CANDIDATES-01** (bake-off empírico via `NYX_MODEL=<id> ./run.sh --headless`: qwen2.5-coder:3b baseline vs qwen3:1.7b vs qwen3:4b, 6 probes reais medindo tool_call nativo/sucesso/PT-BR/VRAM; sem tocar DEFAULT_MODEL; confirma ou refuta o piso recomendado; spec em producao/) | ALTA | -- | EM EXECUÇÃO (2026-07-13) |
+| 443 | **MODEL-MANAGER-CORE-01** (`nyx models list/swap`, troca real de modelo -- absorve a 403 MODEL-SWAP-REAL-OR-HONEST e a deferida LOOP-TOOL-SHORTCIRCUIT; spec sob demanda após o bake-off) | ALTA | 442 | PENDENTE (sem spec ainda) |
+| 444 | **MODEL-THINK-AUTODETECT-01** (fim do hardcode qwen3 no think adaptativo -- `defaults.py`/`proxy.py` detectam a família do modelo; spec sob demanda) | MEDIA | 442 | PENDENTE (sem spec ainda) |
+| 445 | **MODEL-FALLBACK-CHAIN-01** (boot não-fatal: `qwen3:4b` [se VRAM+KV quant] -> `qwen3:1.7b` [piso] -> `qwen3:0.6b` [CPU]; spec sob demanda) | ALTA | 442, 443 | PENDENTE (sem spec ainda) |
+| ADR-036 | **ADR sucessor do ADR-031** (registra o piso escolhido e a cadeia, com a evidência do bake-off; escrito APÓS 442, com decisão do dono) | -- | 442 | PENDENTE (sem arquivo ainda) |
+
+> **Nota anti-débito:** a 403 MODEL-SWAP-REAL-OR-HONEST-01 (ONDA-48) e a deferida LOOP-TOOL-SHORTCIRCUIT-01 são ABSORVIDAS pelo gerenciador (443) -- ao materializar a 443, marcar as duas como supersedidas, não duplicar. As specs 443/444/445 e o ADR-036 são escritos SOB DEMANDA quando o bake-off (442) fechar e o dono decidir o piso -- não materializar antes (evita spec especulativa sobre um modelo ainda não confirmado).
+
+<!-- MANUAL_OVERRIDE_ONDA_49_END -->
+
 <!-- MANUAL_OVERRIDE_ONDA_28_START -->
 
 ### Bloco ONDA-28: TUI paridade Claude Code (boot silencioso + banner block + input fixo + wizard completo) (2026-05-18) <!-- noqa-anonimato -->
