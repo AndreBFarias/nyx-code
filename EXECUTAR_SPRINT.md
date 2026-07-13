@@ -1,15 +1,15 @@
-# Executar próxima sprint — MODEL-NATIVE-TOOLCALL-PIPELINE-01
+# Executar próxima sprint — MEMORY-RECALL-REFRESH-01
 
 > **Este arquivo é auto-atualizado por `scripts/update_next_sprint.py` após cada sprint concluída.**
 > Copie o bloco abaixo e cole em uma sessão nova do modelo principal (sem subagentes).
-> Restam **53** sprints PENDENTE(S) na fila.
+> Restam **52** sprints PENDENTE(S) na fila.
 
 ---
 
 ## Prompt para colar na session
 
 ```
-Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_MODEL_NATIVE_TOOLCALL_PIPELINE_01.md.
+Execute /home/andrefarias/Desenvolvimento/Nyx-Code/dev-journey/06-sprints/producao/SPRINT_MEMORY_RECALL_REFRESH_01.md.
 
 Modelo obrigatório: modelo principal local, sem subagentes.
 Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambiarra):
@@ -28,10 +28,10 @@ Protocolo obrigatório (GUIDE.md seção "próxima sprint" + workflow anti-gambi
     `python scripts/update_next_sprint.py` para atualizar este arquivo.
 
 Se qualquer passo falhar, reporte:
-    [SPRINT MODEL-NATIVE-TOOLCALL-PIPELINE-01] BLOQUEADA: <motivo objetivo>
+    [SPRINT MEMORY-RECALL-REFRESH-01] BLOQUEADA: <motivo objetivo>
 
-ID desta sprint: MODEL-NATIVE-TOOLCALL-PIPELINE-01
-Arquivo: dev-journey/06-sprints/producao/SPRINT_MODEL_NATIVE_TOOLCALL_PIPELINE_01.md
+ID desta sprint: MEMORY-RECALL-REFRESH-01
+Arquivo: dev-journey/06-sprints/producao/SPRINT_MEMORY_RECALL_REFRESH_01.md
 ```
 
 ---
@@ -40,9 +40,9 @@ Arquivo: dev-journey/06-sprints/producao/SPRINT_MODEL_NATIVE_TOOLCALL_PIPELINE_0
 
 ## Gambiarras específicas (recorte auto-injetado)
 
-> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §MODEL-NATIVE-TOOLCALL-PIPELINE-01. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
+> Fonte canônica: `dev-journey/08-templates/GAMBIARRAS_POR_SPRINT.md` §MEMORY-RECALL-REFRESH-01. O bloco abaixo é renovado a cada `python scripts/update_next_sprint.py`.
 
-(seção específica para MODEL-NATIVE-TOOLCALL-PIPELINE-01 não encontrada em GAMBIARRAS_POR_SPRINT.md; ler catálogo universal e matriz geral)
+(seção específica para MEMORY-RECALL-REFRESH-01 não encontrada em GAMBIARRAS_POR_SPRINT.md; ler catálogo universal e matriz geral)
 
 <!-- /GAMBIARRAS_INJECT -->
 

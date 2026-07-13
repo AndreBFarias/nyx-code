@@ -37,8 +37,9 @@ sprint:
 
 # Sprint MODEL-NATIVE-TOOLCALL-PIPELINE-01 — usar o tool-calling nativo quando o modelo suporta
 
-**Status:** PENDENTE
+**Status:** ENFILEIRADA
 **Data criação:** 2026-07-13
+**Enfileiramento:** decisão do dono 2026-07-13 -- fechar a ONDA-48 (prontidão/segurança) INTEIRA antes de abrir a frente de modelo (ONDA-49). A spec está pronta e continua válida; ao concluir a ONDA-48, reverter este status para `PENDENTE` (e a linha correspondente no `SPRINT_ORDER_MASTER.md`) para o gerador voltar a elegê-la. Status ENFILEIRADA (não-PENDENTE) tira a sprint da fila do `update_next_sprint.py` sem perdê-la.
 **Origem:** achado central do bake-off 2026-07-13 (`dev-journey/07-reports/PESQUISA_MODELO_2026_07.md` §Bake-off). O `qwen3:1.7b` emite `tool_calls` nativo perfeitamente no Ollama desta máquina (teste direto provado), mas dentro do Nyx deu 0 de 81 inferências nativas — o pipeline suprime o nativo.
 
 ---
