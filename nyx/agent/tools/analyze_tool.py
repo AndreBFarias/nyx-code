@@ -8,7 +8,7 @@ from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
 from nyx.agent.services.logging_service import get_logger
-from nyx.agent.tools.base import RegisteredTool, ToolDef
+from nyx.agent.tools.base import RegisteredTool, ToolDef, validate_path
 
 logger = get_logger("nyx.tools.analyze")
 
@@ -32,7 +32,16 @@ class AnalyzeTool(RegisteredTool):
         if not file_path:
             return ActionResult(success=False, error="file_path vazio")
 
-        path = Path(file_path) if file_path.startswith("/") else Path(project_root) / file_path
+        # ANALYZE-VALIDATE-PATH-01: resolver via validate_path (igual a read_file/
+        # glob/list_files/search). Antes, a resolução manual pulava o bloqueio de
+        # segredos (.ssh/.gnupg/.aws) e o modo NYX_SANDBOX_STRICT -- analyze estava
+        # em auto_approve, então lia sem prompt fora do sandbox. validate_path
+        # também expande ~ (base.py). Defesa em profundidade NYX-FS-ACCESS-FREE-01.
+        try:
+            path = validate_path(file_path, project_root)
+        except ValueError as e:
+            return ActionResult(success=False, error=str(e))
+
         if not path.exists():
             return ActionResult(success=False, error=f"Arquivo não encontrado: {file_path}", files_read=[str(path)])
 
