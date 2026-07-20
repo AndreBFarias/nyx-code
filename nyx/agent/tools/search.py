@@ -24,6 +24,23 @@ EXCLUDE_DIRS = {"__pycache__", ".git", "node_modules", "venv", ".venv", "dist"}
 _SEARCH_TIMEOUT = 30
 
 
+def _glob_to_regex(pattern: str) -> str:
+    """EXEC-CONTRACT-SEARCH-GLOB-OR-REGEX-01: o 3b emite glob naturalmente
+    (*.md, **/*.py) onde a tool espera regex (ADR-034: robustez na infra,
+    não no modelo). Traduz glob -> regex de SUBSTRING (sem âncora de fim,
+    porque search usa regex.search(line)). Só chamado quando a compilação
+    regex já falhou -- regex legítima nunca passa por aqui."""
+    out: list[str] = []
+    for ch in pattern:
+        if ch == "*":
+            out.append(".*")
+        elif ch == "?":
+            out.append(".")
+        else:
+            out.append(re.escape(ch))
+    return "".join(out)
+
+
 class SearchTool(RegisteredTool):
     action_type = ActionType.SEARCH
     tool_def = ToolDef(
@@ -42,6 +59,22 @@ class SearchTool(RegisteredTool):
         required=["pattern"],
     )
 
+    def _compile_pattern(self, pattern: str) -> tuple[re.Pattern, str]:
+        """Compila o pattern como regex. Se falhar, trata como glob e traduz
+        (nunca mais 'Regex inválido' para *.md / **/*.py). Devolve
+        (regex_compilada, pattern_efetivo); o efetivo vai também ao caminho
+        rápido rg/grep para manter os dois caminhos coerentes."""
+        try:
+            return re.compile(pattern, re.IGNORECASE), pattern
+        except re.error:
+            effective = _glob_to_regex(pattern)
+            try:
+                return re.compile(effective, re.IGNORECASE), effective
+            except re.error:
+                # Último recurso: busca literal (nunca crasha).
+                literal = re.escape(pattern)
+                return re.compile(literal, re.IGNORECASE), literal
+
     def execute(self, params: dict[str, Any], project_root: str) -> ActionResult:
         pattern = params.get("pattern", "")
         search_path = params.get("path", ".")
@@ -52,12 +85,12 @@ class SearchTool(RegisteredTool):
         except ValueError as e:
             return ActionResult(success=False, error=str(e))
 
-        try:
-            regex = re.compile(pattern, re.IGNORECASE)
-        except re.error as e:
-            return ActionResult(success=False, error=f"Regex inválido: {e}")
+        # EXEC-CONTRACT-SEARCH-GLOB-OR-REGEX-01: aceita glob (*.md, **/*.py)
+        # sem crashar; regex legítima passa intacta. O pattern efetivo (glob
+        # traduzido, ou o próprio regex) alimenta o caminho rápido E o walk.
+        regex, effective = self._compile_pattern(pattern)
 
-        fast = self._search_fast(pattern, target, root)
+        fast = self._search_fast(effective, target, root)
         if fast is not None:
             return fast
 
