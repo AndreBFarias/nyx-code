@@ -44,7 +44,7 @@ sprint:
 
 # Sprint MODEL-SWAP-REAL-OR-HONEST-01 — Satelite: model-op honesto
 
-**Status:** PENDENTE
+**Status:** ENFILEIRADA (2026-07-20: absorvida pela 443 MODEL-MANAGER-CORE-01 ao abrir a ONDA-49 -- nota anti-débito do bloco ONDA-49; ao materializar a 443, marcar esta como SUPERSEDIDA em vez de executá-la)
 **Data criação:** 2026-06-26
 **Modelo obrigatório:** claude-opus-4-7 (executor-sprint autorizado pelo dono nesta onda)
 
