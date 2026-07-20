@@ -1330,7 +1330,7 @@ class NyxGauntlet:
             return
         self._add(
             "HD-01",
-            f"HookRuntime import + {len(EVENTS)} eventos canonicos",
+            f"HookRuntime import + {len(EVENTS)} eventos canônicos",
             "hooks_dynamic",
             len(EVENTS) == 4,
             time.monotonic() - t,
@@ -1494,7 +1494,7 @@ class NyxGauntlet:
         await client.close_all()
         self._add(
             "M-03",
-            "connect_all marca server invalido como falha + ping retorna False",
+            "connect_all marca server inválido como falha + ping retorna False",
             "mcp",
             ok3 and not ping_ok,
             time.monotonic() - t,
@@ -1932,7 +1932,7 @@ class NyxGauntlet:
             self._add("C-03", "preferences.json dark+pt-BR", "config", False, 0, error="Arquivo não existe")
 
         # C-04
-        # GSD.md (Getting Shit Done) e o guia canonico do projeto e e rastreado.
+        # GSD.md (Getting Shit Done) e o guia canônico do projeto e e rastreado.
         # GUIDE.md original era symlink local (gitignore'd) -- nao validavel em CI.
         # GAUNTLET-RAPIDO-FIXES-01: troca GUIDE.md por GSD.md.
         guide_md = PROJECT_ROOT / "GSD.md"
@@ -3670,7 +3670,7 @@ class NyxGauntlet:
         )
 
     # ═══════════════════════════════════════════════════════════════════
-    # FASE: P8_EDICAO (3 testes -- P8-A)
+    # FASE: P8_EDICAO (4 testes -- P8-A + PATCH-HUNK-OFFSET-HONEST-01)
     # ═══════════════════════════════════════════════════════════════════
 
     async def _phase_p8_edicao(self) -> None:
@@ -3682,7 +3682,10 @@ class NyxGauntlet:
         ok = r.success and "Análise" in r.output and ("Classes" in r.output or "Funções" in r.output)
         self._add("P8E-01", "Analyze retorna estrutura", "p8_edicao", ok, 0, details=r.output[:80])
 
-        # P8E-02: Patch aplica diff
+        # P8E-02: Patch aplica diff informal (sem @@) e REMOVE de fato a linha
+        # -- PATCH-HUNK-OFFSET-HONEST-01: o assert antigo checava só a
+        # presença da linha adicionada, cego para a linha removida ficar
+        # orfa ao lado dela (corrupção mascarada).
         from nyx.agent.tools.patch_tool import PatchTool
 
         # GAUNTLET-FIXTURES-SANDBOX-01: scratch dentro do root autorizado.
@@ -3692,10 +3695,37 @@ class NyxGauntlet:
         patch = "-linha2\n+linha2_editada"
         r = pt.execute({"file_path": str(tmp), "patch": patch}, str(PROJECT_ROOT))
         content = tmp.read_text(encoding="utf-8")
-        ok = r.success and "linha2_editada" in content
+        ok = r.success and "linha2_editada" in content and "\nlinha2\n" not in content
         tmp.unlink(missing_ok=True)
         self._add(
             "P8E-02", "Patch aplica diff", "p8_edicao", ok, 0, details=r.output[:60] if r.success else r.error[:60]
+        )
+
+        # P8E-02b: hunk com @@ visando o meio de um arquivo maior aplica no
+        # lugar certo (offset honrado); hunk cuja pre-imagem não casa retorna
+        # success=False honesto, sem tocar o arquivo.
+        tmp2 = _gauntlet_tmp_dir() / "nyx_p8_patch_offset.py"
+        tmp2.write_text("\n".join(f"linha{i}" for i in range(1, 11)) + "\n", encoding="utf-8")
+        patch_offset = "@@ -5,1 +5,2 @@\n linha5\n+INSERIDA\n"
+        r_off = pt.execute({"file_path": str(tmp2), "patch": patch_offset}, str(PROJECT_ROOT))
+        out_lines = tmp2.read_text(encoding="utf-8").split("\n")
+        ok_offset = (
+            r_off.success and out_lines[0] == "linha1" and out_lines[4] == "linha5" and out_lines[5] == "INSERIDA"
+        )
+        before_mismatch = tmp2.read_text(encoding="utf-8")
+        patch_mismatch = "@@ -5,1 +5,1 @@\n-INEXISTENTE\n+X\n"
+        r_mis = pt.execute({"file_path": str(tmp2), "patch": patch_mismatch}, str(PROJECT_ROOT))
+        after_mismatch = tmp2.read_text(encoding="utf-8")
+        ok_mismatch = (not r_mis.success) and (after_mismatch == before_mismatch)
+        ok2 = ok_offset and ok_mismatch
+        tmp2.unlink(missing_ok=True)
+        self._add(
+            "P8E-02b",
+            "Patch honra offset do @@ e falha honesto em mismatch",
+            "p8_edicao",
+            ok2,
+            0,
+            details=(f"offset={ok_offset} mismatch_honesto={ok_mismatch}"),
         )
 
         # P8E-03: MultiEdit atômico
@@ -4808,7 +4838,7 @@ class NyxGauntlet:
             tem_degrade_set = 'state["oom_degraded"] = True' in src
             tem_degrade_init = 'state.setdefault("oom_degraded", False)' in src
             tem_degrade = tem_recovery_fn and tem_degrade_set and tem_degrade_init
-            padroes = [
+            padrões = [
                 "CUDA out of memory",
                 "cudaMalloc failed",
                 "requires more memory",
@@ -4816,7 +4846,7 @@ class NyxGauntlet:
                 "failed to allocate buffer for kv cache",
                 "GGML_ASSERT: ggml-cuda.cu:1234: GGML_OK",
             ]
-            detecta = is_oom is not None and all(is_oom(p) for p in padroes)
+            detecta = is_oom is not None and all(is_oom(p) for p in padrões)
             nao_falso_positivo = is_oom is not None and not is_oom("resposta normal sem erro")
             tem_retry = "OOM recovery OK" in src and 'num_gpu"] = 0' in src
             # INFRA-OOM-PATTERNS-KV-CACHE-01: 9 patterns lowercase em _OOM_PATTERNS

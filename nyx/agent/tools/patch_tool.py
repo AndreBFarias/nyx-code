@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from nyx.agent.models import ActionResult, ActionType
@@ -57,24 +58,68 @@ class PatchTool(RegisteredTool):
         result_lines = list(original_lines)
 
         try:
-            line_idx = 0
+            # PATCH-HUNK-OFFSET-HONEST-01: segmenta o patch em hunks. O
+            # cabeçalho @@ -a,b +c,d @@ carrega a linha-alvo; ignora-lo
+            # (comportamento antigo) aplicava tudo no topo e retornava
+            # success=True -> corrupção silenciosa.
+            hunk_header = re.compile(r"^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@")
+            hunks: list[dict[str, Any]] = []
+            current: dict[str, Any] | None = None
             for pline in patch_lines:
-                if pline.startswith("---") or pline.startswith("+++") or pline.startswith("@@"):
+                if pline.startswith("---") or pline.startswith("+++"):
                     continue
-                if pline.startswith("-"):
-                    content = pline[1:]
-                    if line_idx < len(result_lines) and result_lines[line_idx].rstrip() == content.rstrip():
-                        result_lines.pop(line_idx)
+                m = hunk_header.match(pline)
+                if m:
+                    current = {"start": int(m.group(1)) - 1, "body": []}
+                    hunks.append(current)
+                    continue
+                if current is None:
+                    current = {"start": None, "body": []}
+                    hunks.append(current)
+                if pline.startswith(("-", "+", " ")) or not pline.strip():
+                    current["body"].append(pline)
+
+            def _locate(lines: list[str], pre: list[str], hint: int | None) -> int | None:
+                if not pre:
+                    return hint if hint is not None else 0
+                n = len(pre)
+
+                def _match(i: int) -> bool:
+                    return i >= 0 and i + n <= len(lines) and all(
+                        lines[i + k].rstrip() == pre[k].rstrip() for k in range(n)
+                    )
+
+                if hint is not None and _match(hint):
+                    return hint
+                found = [i for i in range(len(lines) - n + 1) if _match(i)]
+                if len(found) == 1:
+                    return found[0]
+                return None  # zero ou ambiguo -> falha honesta
+
+            for hunk in hunks:
+                body = hunk["body"]
+                pre = [ln[1:] for ln in body if ln.startswith((" ", "-")) or not ln.strip()]
+                pos = _locate(result_lines, pre, hunk["start"])
+                if pos is None:
+                    alvo = (hunk["start"] + 1) if hunk["start"] is not None else "?"
+                    return ActionResult(
+                        success=False,
+                        error=(
+                            f"hunk não casa no arquivo (alvo ~linha {alvo}). "
+                            "Releia o arquivo com read_file e gere o diff de novo, "
+                            "ou use edit_file com o trecho exato."
+                        ),
+                    )
+                rebuilt: list[str] = []
+                for ln in body:
+                    if ln.startswith("+"):
+                        rebuilt.append(ln[1:])
+                        additions += 1
+                    elif ln.startswith("-"):
                         removals += 1
                     else:
-                        line_idx += 1
-                elif pline.startswith("+"):
-                    content = pline[1:]
-                    result_lines.insert(line_idx, content)
-                    additions += 1
-                    line_idx += 1
-                elif pline.startswith(" ") or not pline.strip():
-                    line_idx += 1
+                        rebuilt.append(ln[1:] if ln.startswith(" ") else ln)
+                result_lines[pos : pos + len(pre)] = rebuilt
 
             new_content = "\n".join(result_lines)
             path.write_text(new_content, encoding="utf-8")
