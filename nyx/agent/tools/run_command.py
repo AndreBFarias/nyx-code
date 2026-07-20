@@ -76,10 +76,23 @@ class RunCommandTool(RegisteredTool):
 
             ok = result.returncode == 0
             hint = " Se a tarefa está completa, chame done()." if ok else ""
+            # RUN-COMMAND-ERROR-OUTPUT-01: em falha o consumidor do loop grava
+            # so o `error` (result.output if success else result.error, em 6
+            # sitios de _iteration.py). Antes o error era so "Exit code: N" e o
+            # stdout/stderr capturado era descartado -- o 3b não via o
+            # diagnostico e não tinha como se autocorrigir (fere ADR-032/033: a
+            # infra tinha a informação e a jogou fora). Anexamos a CAUDA do
+            # output (onde vive o erro operativo: última linha do traceback,
+            # sumario do pytest), capada em 4000 para não estourar a janela do 3b.
+            diag = output if output else "(sem saída)"
             return ActionResult(
                 success=ok,
                 output=(output[:8000] if output else "(sem saída)") + hint,
-                error=f"Exit code: {result.returncode}" if not ok else "",
+                error=(
+                    f"Exit code: {result.returncode}\n{diag[-4000:]}"
+                    if not ok
+                    else ""
+                ),
             )
         except subprocess.TimeoutExpired:
             return ActionResult(success=False, error="Timeout: comando excedeu 120s")
