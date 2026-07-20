@@ -59,9 +59,10 @@ O bake-off v1 mediu os candidatos com o pipeline suprimindo o tool-calling nativ
 
 Repetir literalmente o protocolo da 442 (`producao/SPRINT_MODEL_BAKEOFF_CANDIDATES_01.md` — candidatos, probes P1-P6, métricas, protocolo de execução e limpeza) com o pipeline da 446 ativo. Sem probe novo, sem candidato novo: a única variável que muda entre v1 e v2 é o pipeline, para a comparação ser limpa.
 
-Adicional único da v2:
+Adicionais da v2:
 
 - **Métrica de regressão do baseline:** o `qwen2.5-coder:3b` (que NÃO tem nativo) deve continuar funcionando via resgate texto->JSON exatamente como antes — qualquer queda do baseline na v2 é regressão da 446, não achado de modelo, e deve ser reportada como bug da 446.
+- **Elo CPU da cadeia sem evidência (lacuna apontada pelo dono 2026-07-20):** incluir `qwen3:0.6b` como candidato EXTRA da v2 (sem par na v1 — medido, não comparado): é o último elo da cadeia proposta para a 445 (`4b -> 1.7b -> 0.6b`) e nunca passou por bake-off; o ADR-036 não pode registrar uma cadeia cujo piso de CPU é especulação. Rodar os mesmos P1-P6, com atenção especial a P5 (edição destrutiva — o 4b sobrescreveu na v1) e P6 (PT-BR — modelos menores derivam mais).
 
 ## Proof-of-work esperado
 
