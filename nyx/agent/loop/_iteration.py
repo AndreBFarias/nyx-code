@@ -594,6 +594,13 @@ class _IterationMixin:
         if self._on_tool:
             self._on_tool(tool_name, remapped)
 
+        if not is_tool_allowed_in_plan_mode(tool_name):
+            logger.warning("[loop] bloqueado por plan_mode (parser): %s", tool_name)
+            self._session.add_tool_call(
+                tool_name, remapped, "Bloqueado: modo planejamento ativo. Use exit_plan_mode primeiro."
+            )
+            return None
+
         perm = self._permissions.check(tool_name, remapped)
         if perm == PermissionLevel.DENY:
             logger.warning("[loop] permissão negada (parser): %s", tool_name)
@@ -603,6 +610,13 @@ class _IterationMixin:
         if perm in (PermissionLevel.CONFIRM_ONCE, PermissionLevel.ALWAYS_CONFIRM):
             if self._on_permission:
                 approved = self._on_permission(perm, tool_name, remapped)
+                # LOOP-FALLBACK-GATES-PARITY-01 (AC1): a TUI instala callback ASYNC
+                # (app.py:913). Sem este await, approved era um coroutine truthy --
+                # o ConfirmScreen nunca abria e a escrita executava sem confirmação
+                # no modo Normal, ainda chamando mark_confirmed e contaminando o
+                # caminho nativo pelo resto da sessão. Idêntico ao nativo (L403-404).
+                if inspect.isawaitable(approved):
+                    approved = await approved
                 if not approved:
                     self._session.add_tool_call(tool_name, remapped, f"Usuário negou: {tool_name}")
                     return None
@@ -624,15 +638,56 @@ class _IterationMixin:
         for warn in pf.warnings:
             logger.info("[loop] preflight aviso para %s: %s", tool_name, warn)
 
+        # LOOP-FALLBACK-GATES-PARITY-01 (AC3): PreToolUse antes da execução, com
+        # block_on_failure honrado (HOOKS-DYNAMIC-03). Sem isto, um hook bloqueante
+        # do usuário era contornável por qualquer tool_call do parser fallback.
+        hooks = getattr(self, "_hooks", None)
+        if hooks is not None:
+            try:
+                pre_results = hooks.run(
+                    "PreToolUse", {"tool_name": tool_name, "tool_input": remapped}
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("hook PreToolUse falhou: %s", exc)
+                pre_results = []
+            if any(r.blocked for r in pre_results):
+                logger.warning("[loop] hook PreToolUse bloqueou %s (parser)", tool_name)
+                self._session.add_tool_call(
+                    tool_name, remapped, f"Bloqueado por hook PreToolUse: {tool_name}"
+                )
+                return None
+
         import time as _time
 
         _t0 = _time.monotonic()
         result = await asyncio.to_thread(self._tools.execute, tool_name, remapped)
         self._tool_durations.setdefault(tool_name, []).append((_time.monotonic() - _t0) * 1000.0)
+        self._tool_summary.track(tool_name, remapped)
+
+        # LOOP-FALLBACK-GATES-PARITY-01 (AC3): PostToolUse com tool_result.
+        if hooks is not None:
+            try:
+                hooks.run(
+                    "PostToolUse",
+                    {
+                        "tool_name": tool_name,
+                        "tool_result": (
+                            result.output if result.success else (result.error or "")
+                        ),
+                    },
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("hook PostToolUse falhou: %s", exc)
 
         vr = post_validate(tool_name, remapped, result)
         for warn in vr.warnings:
             logger.info("[loop] validator aviso para %s: %s", tool_name, warn)
+
+        if not result.success:
+            self._diagnostics.record_warning("tool", f"{tool_name}: {result.error[:120]}")
+
+        if self._on_tool_result:
+            self._on_tool_result(tool_name, result.output if result.success else result.error)
 
         self._session.add_tool_call(
             tool_name,
