@@ -58,7 +58,8 @@ como inexistente no `SPRINT_ORDER_MASTER.md`, em `concluidos/` e em `backlog/`.
 | RUN-PULL-DISK-GUARD-01 | Guardar o re-pull de fallback do `run.sh:467` por checagem de `df` (déficit de disco), paridade com o install | SPRINT_INSTALL_FALHA_HONESTA_01.md |
 | DOCS-CPU-LATENCY-BENCH-01 | Medir e publicar a latência real do 3b em CPU no README (exige rodada controlada em máquina sem GPU; não fabricar) | SPRINT_README_REQUISITOS_HONESTOS_01.md |
 | DOCS-URL-PLACEHOLDERS-SWEEP-01 | Corrigir o mesmo placeholder/badge em outros docs (CONTRIBUTING, docs/) se a auditoria achar recorrência | SPRINT_README_REQUISITOS_HONESTOS_01.md |
+| LOOP-RECENT-OUTPUTS-INIT-01 | Inicializar `_recent_tool_outputs` no `__init__` do AgentLoop (hoje só em `run()`, `_core.py:328`) -- `AttributeError` em qualquer caminho que execute tool sem passar por `run()`; produção sempre passa, impacto restrito a harnesses/testes (achado do executor 416, 2026-07-20) | SPRINT_LOOP_FALLBACK_GATES_PARITY_01.md |
 
 ---
 
-*27 follow-ups (2 ALTA, 10 MEDIA, 15 BAIXA). Promover com evidência; nunca absorver em silêncio.*
+*28 follow-ups (2 ALTA, 10 MEDIA, 16 BAIXA). Promover com evidência; nunca absorver em silêncio.*
