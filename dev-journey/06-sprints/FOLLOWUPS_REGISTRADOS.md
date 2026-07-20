@@ -59,7 +59,8 @@ como inexistente no `SPRINT_ORDER_MASTER.md`, em `concluidos/` e em `backlog/`.
 | DOCS-CPU-LATENCY-BENCH-01 | Medir e publicar a latência real do 3b em CPU no README (exige rodada controlada em máquina sem GPU; não fabricar) | SPRINT_README_REQUISITOS_HONESTOS_01.md |
 | DOCS-URL-PLACEHOLDERS-SWEEP-01 | Corrigir o mesmo placeholder/badge em outros docs (CONTRIBUTING, docs/) se a auditoria achar recorrência | SPRINT_README_REQUISITOS_HONESTOS_01.md |
 | LOOP-RECENT-OUTPUTS-INIT-01 | Inicializar `_recent_tool_outputs` no `__init__` do AgentLoop (hoje só em `run()`, `_core.py:328`) -- `AttributeError` em qualquer caminho que execute tool sem passar por `run()`; produção sempre passa, impacto restrito a harnesses/testes (achado do executor 416, 2026-07-20) | SPRINT_LOOP_FALLBACK_GATES_PARITY_01.md |
+| DOCS-MASTER-ACENTO-SWEEP-01 | Varrer as 121 violações de acentuação PRÉ-EXISTENTES do `SPRINT_ORDER_MASTER.md` (linhas ~512-1197, prosa histórica: "canonico"/"usuario"/"secao" etc.) numa sprint de higiene dedicada -- flagadas por 3 executores seguidos (406/425/424, 2026-07-20) e conhecidas desde 2026-07-13; grandes demais para absorção cirúrgica em sprint de código; usar `sanitize_spec_acentuacao.py` com cuidado com paths (`producao/` já foi sobre-corrigido uma vez) | (débito histórico do MASTER, sem spec de origem) |
 
 ---
 
-*28 follow-ups (2 ALTA, 10 MEDIA, 16 BAIXA). Promover com evidência; nunca absorver em silêncio.*
+*29 follow-ups (2 ALTA, 10 MEDIA, 17 BAIXA). Promover com evidência; nunca absorver em silêncio.*
