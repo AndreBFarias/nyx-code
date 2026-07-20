@@ -1042,7 +1042,39 @@ class _IterationMixin:
                 f"{self._proxy_url}/v1/chat/completions",
                 json=payload,
             )
-            data = r.json()
+            # EXEC-CONTRACT-PROXY-STATUS-BEFORE-JSON-01 (absorve 412): checar o
+            # status ANTES de r.json(). Quando o Ollama cai, o proxy propaga
+            # ClientConnectorError e o aiohttp (sem middleware) devolve HTTP 500
+            # com corpo text/plain -- r.json() estourava JSONDecodeError e
+            # mascarava a causa real (Ollama fora) num "erro inesperado" que
+            # ainda prometia um traceback nunca escrito. Falha honesta: cita o
+            # code e aponta o Ollama. DESENHO §6.
+            if r.status_code != 200:
+                logger.error("[loop] proxy HTTP %d: %s", r.status_code, r.text[:200])
+                return {
+                    "error": (
+                        f"O proxy de inferência retornou HTTP {r.status_code}. "
+                        "O Ollama pode estar fora -- confira com "
+                        "'ss -ltnp | grep 1143' e reinicie o stack com ./run.sh."
+                    ),
+                    "error_detail": f"HTTP {r.status_code}: {r.text[:200]}",
+                }
+
+            try:
+                data = r.json()
+            except json.JSONDecodeError as exc:
+                logger.error(
+                    "[loop] corpo do proxy não e JSON (HTTP %d): %s",
+                    r.status_code,
+                    r.text[:200],
+                )
+                return {
+                    "error": (
+                        "O proxy respondeu HTTP 200 mas o corpo não e JSON. "
+                        "Inspecione ~/.nyx/logs/proxy.log."
+                    ),
+                    "error_detail": f"{type(exc).__name__}: {r.text[:200]}",
+                }
 
             if "choices" not in data:
                 return {
@@ -1117,6 +1149,11 @@ class _IterationMixin:
                 "error_detail": f"{type(e.cause).__name__ if e.cause else type(e).__name__}: {e.cause or e}",
             }
         except Exception as e:
+            # EXEC-CONTRACT-PROXY-STATUS-BEFORE-JSON-01: a mensagem prometia o
+            # traceback em nyx.log, mas NADA o logava -- promessa vazia (fere
+            # "honestidade na falha", DESENHO §6). logger.exception torna a
+            # promessa verdadeira: o traceback de fato aterrissa no log.
+            logger.exception("[loop] falha inesperada ao contatar o proxy")
             return {
                 "error": f"Falha inesperada ao contatar o proxy: {type(e).__name__}. "
                 "Abra ~/.nyx/logs/nyx.log para o traceback completo.",
