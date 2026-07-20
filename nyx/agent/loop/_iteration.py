@@ -224,6 +224,18 @@ class _IterationMixin:
         "o texto real que deve ficar no arquivo."
     )
 
+    # EXEC-CONTRACT-PATH-DRIFT-01: extrai tokens de caminho absoluto/til do
+    # pedido do usuário (~/Desktop/x.py, /home/andre/x.py). Conservador: exige
+    # a barra e para em espaço/aspas/crase; não casa palavras soltas.
+    _USER_PATH_RE = re.compile(r"(?<![\w/])(~/[^\s'\"`]+|/[^\s'\"`]+)")
+    _PATH_DRIFT_HINT = (
+        "O pedido menciona o arquivo '{pedido}', que fica FORA do projeto. Você "
+        "apontou para '{drift}', dentro do repositório, e esse caminho não "
+        "existe -- isso cria um arquivo espúrio e a edição não chega ao alvo. "
+        "Use o caminho EXATO do pedido ('{pedido}') e edit_file para a alteração "
+        "cirúrgica (não sobrescreva às cegas)."
+    )
+
     def _init_done_guard(self, user_input: str) -> None:
         """Arma o guard de done no início do turno: baseline de writes + se o
         pedido é de criar/escrever (intent 'code') ou de qualquer ação de tool
@@ -243,6 +255,8 @@ class _IterationMixin:
         self._tool_match_rejected = False
         # SEQ-EDIT-ENFORCE-EDITFILE-01: arma o guard de edição sequencial (1x/turno).
         self._seq_edit_rejected = False
+        # EXEC-CONTRACT-PATH-DRIFT-01: arma o guard de path-drift (1x/turno).
+        self._path_drift_rejected = False
 
     def _turn_create_unmet(self) -> bool:
         """True se o turno pediu criar/escrever (intent 'code') e nenhum write
@@ -316,6 +330,50 @@ class _IterationMixin:
                     return self._SEQ_OVERWRITE_HINT
         return None
 
+    def _path_drift_reject(self, name: str, args: dict) -> str | None:
+        """EXEC-CONTRACT-PATH-DRIFT-01: em contexto acumulado o 3b re-resolve o
+        ~/X do pedido para <project_root>/X, cria arquivo espúrio no repo e a
+        edição nunca chega ao alvo. Devolve o HINT a re-emitir, ou None.
+
+        Dispara 1x/turno SOMENTE quando as três condições batem:
+        - tool mutante;
+        - o arg resolve para DENTRO do project_root e esse alvo NÃO existe;
+        - o pedido cita ~/X ou /abs/X FORA do project_root, mesmo basename, cujo
+          alvo real EXISTE (ou está em session._files_modified -- criado antes na
+          sessão). DESENHO §6: SINAL, nunca gate.
+        """
+        if getattr(self, "_path_drift_rejected", False):
+            return None
+        if name not in self._MUTATING_TOOLS:
+            return None
+        file_path = args.get("file_path") or args.get("path") or ""
+        if not isinstance(file_path, str) or not file_path.strip():
+            return None
+        try:
+            resolved = _validate_path(file_path, self._project_root)
+        except Exception:  # noqa: BLE001 -- resolver falho não deve derrubar o guard
+            return None
+        root = os.path.realpath(self._project_root)
+        try:
+            os.path.realpath(str(resolved))
+            resolved.relative_to(root)
+        except ValueError:
+            return None  # arg já aponta FORA do repo -- path correto, sem drift
+        if resolved.exists():
+            return None  # alvo in-repo existe -- escrita in-repo plausível
+        basename = resolved.name
+        modified = getattr(self._session, "_files_modified", set())
+        user_input = getattr(self, "_original_input", "") or ""
+        for cand in self._USER_PATH_RE.findall(user_input):
+            target = os.path.realpath(os.path.expanduser(cand))
+            if os.path.basename(target) != basename:
+                continue
+            if target == root or target.startswith(root + os.sep):
+                continue  # o pedido aponta DENTRO do repo -- não há drift
+            if os.path.exists(target) or target in modified:
+                return self._PATH_DRIFT_HINT.format(pedido=cand, drift=str(resolved))
+        return None
+
     async def _execute_tool_calls(self, tool_calls: list[dict], iteration: int) -> SessionStatus | None:
         """Executa tool calls do LLM. Retorna SessionStatus se done/force_done.
 
@@ -359,6 +417,16 @@ class _IterationMixin:
                 self._seq_edit_rejected = True
                 logger.warning("[loop] seq-edit inseguro em %s", name)
                 self._session.add_tool_call(name, args, se_hint)
+                continue
+
+            # EXEC-CONTRACT-PATH-DRIFT-01: o 3b drifta ~/X (pedido) para
+            # <project_root>/X (arg) em contexto acumulado -> rejeita 1x + re-emite
+            # com o path do pedido e edit_file (não deixa criar arquivo espúrio).
+            pd_hint = self._path_drift_reject(name, args)
+            if pd_hint:
+                self._path_drift_rejected = True
+                logger.warning("[loop] path-drift: arg fora do pedido em %s", name)
+                self._session.add_tool_call(name, args, pd_hint)
                 continue
 
             if self._on_tool:
@@ -589,6 +657,14 @@ class _IterationMixin:
             self._seq_edit_rejected = True
             logger.warning("[loop] seq-edit inseguro (parser) em %s", tool_name)
             self._session.add_tool_call(tool_name, remapped, se_hint)
+            return None
+
+        # EXEC-CONTRACT-PATH-DRIFT-01: idem caminho nativo, no parser fallback.
+        pd_hint = self._path_drift_reject(tool_name, remapped)
+        if pd_hint:
+            self._path_drift_rejected = True
+            logger.warning("[loop] path-drift (parser): arg fora do pedido em %s", tool_name)
+            self._session.add_tool_call(tool_name, remapped, pd_hint)
             return None
 
         if self._on_tool:
