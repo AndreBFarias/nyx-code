@@ -1064,13 +1064,13 @@ class _IterationMixin:
                 data = r.json()
             except json.JSONDecodeError as exc:
                 logger.error(
-                    "[loop] corpo do proxy não e JSON (HTTP %d): %s",
+                    "[loop] corpo do proxy não é JSON (HTTP %d): %s",
                     r.status_code,
                     r.text[:200],
                 )
                 return {
                     "error": (
-                        "O proxy respondeu HTTP 200 mas o corpo não e JSON. "
+                        "O proxy respondeu HTTP 200 mas o corpo não é JSON. "
                         "Inspecione ~/.nyx/logs/proxy.log."
                     ),
                     "error_detail": f"{type(exc).__name__}: {r.text[:200]}",
