@@ -187,6 +187,14 @@ class AgentLoop(_IterationMixin):
             logger.warning("repomap: falha no build inicial: %s", e)
 
         def _on_post_tool(tool_name: str, args: dict, result: Any) -> None:
+            # MEMORY-RECALL-REFRESH-01 (V11): write_memory gravou no disco; recarrega
+            # o bundle e reconstroi o prompt p/ a memória entrar no contexto JA no
+            # próximo turno (mesmo processo). Sem isto o recall usa o bundle do boot.
+            if tool_name == "write_memory":
+                if getattr(result, "success", True):
+                    self._memory_bundle = self._memory.load()
+                    self._rebuild_system_prompt()
+                return
             if tool_name not in ("write_file", "edit_file", "create_file", "multi_edit", "patch"):
                 return
             path = args.get("file_path") or args.get("path") or ""
@@ -673,6 +681,11 @@ class AgentLoop(_IterationMixin):
         self._force_reminder = False
         self._reminder_extra = None
         self._original_input = None
+        # MEMORY-RECALL-REFRESH-01 (V11): recarrega o bundle de memória e reconstroi
+        # o prompt -- o usuário pode ter gravado memória antes do reset; sem isto o
+        # recall pos-reset (mesmo processo) usa o bundle stale do boot.
+        self._memory_bundle = self._memory.load()
+        self._rebuild_system_prompt()
 
     async def maybe_summarize(self) -> bool:
         """Atualiza o resumo da sessão se o batch fechou. Fire-and-forget friendly."""
