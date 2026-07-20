@@ -39,6 +39,8 @@ from textual.binding import Binding
 from textual.containers import Vertical, VerticalScroll
 from textual.widgets import Collapsible, Static
 
+from nyx.agent.loop._core import _DONE_HINT_RE, _TOOL_HINT_BRACKET_RE
+from nyx.agent.loop._iteration import strip_system_reminder
 from nyx.agent.services.input_history import InputHistory
 from nyx.agent.services.logging_service import get_logger
 from nyx.agent.tui.sentinel_dispatch import (
@@ -880,13 +882,14 @@ class NyxTUI(App):
     def _on_agent_tool(self, name: str, args: Any) -> None:
         """Callback patcheado em agent._on_tool.
 
-        Signature real do AgentLoop: `_on_tool(name, args)` -- 2 args
-        posicionais (ver loop/_iteration.py:85). Monta ChatMessage("tool")
-        com representacao compacta dos args.
+        TUI-INTERNALS-LEAK-01 (V09): exibe forma COMPACTA (nome + arg-chave
+        truncado), não o dict cru com content inteiro. O usuário vê QUE tool
+        rodou e sobre o que, sem o lixo de formato interno (ADR-024/026).
         """
-        args_str = "" if args is None else str(args)
+        detail = self._format_perm_detail(name, args) if isinstance(args, dict) else ""
+        label = f"{name}: {detail}" if detail else name
         chat = self.query_one("#chat", VerticalScroll)
-        chat.mount(ChatMessage("tool", f"{name}({args_str})"))
+        chat.mount(ChatMessage("tool", label))
         self._follow_end(chat)
 
     def _on_agent_thinking(self, reasoning: str) -> None:
@@ -949,12 +952,21 @@ class NyxTUI(App):
     def _on_agent_tool_result(self, name: str, result: Any = "") -> None:
         """Callback patcheado em agent._on_tool_result.
 
-        Signature real do AgentLoop: `_on_tool_result(name, result.output
-        if result.success else result.error)` -- 2 args, segundo eh string
-        (output ou error). Ver loop/_iteration.py:183.
+        TUI-INTERNALS-LEAK-01 (V09): saneia o resultado antes de exibir --
+        remove os hints de controle (' ...chame done()', '[N linhas lidas...]')
+        e blocos <system-reminder> que as tools/loop anexam, e trunca. O nome da
+        tool segue visivel (ADR-024/026). Os mesmos regex do guard de saida do
+        loop (_core.py) sao reusados -- fonte unica.
         """
+        text = "" if result is None else str(result)
+        text = strip_system_reminder(text)
+        text = _DONE_HINT_RE.sub("", text)
+        text = _TOOL_HINT_BRACKET_RE.sub("", text)
+        text = text.strip()
+        if len(text) > 600:
+            text = text[:600] + " [...]"
         chat = self.query_one("#chat", VerticalScroll)
-        chat.mount(ChatMessage("tool", f"-> {name}: {result}"))
+        chat.mount(ChatMessage("tool", f"-> {name}: {text}" if text else f"-> {name}"))
         self._follow_end(chat)
 
     async def action_quit(self) -> None:
