@@ -764,16 +764,51 @@ class NyxTUI(App):
         _t0 = time.monotonic()
         try:
             status = await self._agent.run(text)
-            # TUI-DONE-SUMMARY-CLEAN-01 (SPRINT 303): o modelo às vezes emite
-            # `done(summary="...")` como TEXTO (parser fallback), que o streaming
-            # já exibiu CRU no balão do NyxCode. O summary limpo está no
-            # SessionStatus de run(); quando o balão contém a sintaxe crua
-            # `done(`, troca pelo summary. Resposta normal (texto puro) não casa
-            # a condição -- balão fica intacto.
-            if status is not None and self._current_assistant is not None:
+            # TUI-STATUS-SUMMARY-RENDER-01: antes a TUI DESCARTAVA status.state
+            # e status.summary fora do caso done()-cru abaixo -- dois buracos no
+            # caminho único interativo (cli.py:538): (1) state==error (proxy
+            # caído/timeout/OOM) sem token streamado => silêncio absoluto após o
+            # 'pensando...' sumir (fere ADR-033); (2) turno só tool_calls +
+            # done(summary=...) => summary final e dados crus do G3 nunca
+            # aparecem (fere G3 ONDA-48). O REPL legado já resolvia (cli.py:463-
+            # 477), mas só roda em não-TTY. SessionState não é importado aqui:
+            # compara-se pelo .value, como cli.py:471-473.
+            if status is not None:
                 summary = (getattr(status, "summary", "") or "").strip()
-                if summary and "done(" in self._current_assistant.content:
-                    self._current_assistant.set_content(summary)
+                state_value = getattr(getattr(status, "state", None), "value", "")
+                if state_value == "error":
+                    # ADR-033: erro de proxy nunca vira silêncio -- a mensagem
+                    # PT-BR honesta e acionável do loop (ex. 'Conexão recusada
+                    # pelo proxy... reinicie o stack com ./run.sh') aparece no
+                    # chat como mensagem de sistema.
+                    if summary:
+                        chat = self.query_one("#chat", VerticalScroll)
+                        chat.mount(ChatMessage("system", summary))
+                elif summary:
+                    streamed = (
+                        self._current_assistant.content
+                        if self._current_assistant is not None
+                        else ""
+                    ).strip()
+
+                    if self._current_assistant is not None:
+                        # TUI-DONE-SUMMARY-CLEAN-01 (SPRINT 303) preservado: o 3b
+                        # às vezes emite done(summary="...") como TEXTO cru, já
+                        # exibido no balão; troca pelo summary limpo.
+                        if "done(" in self._current_assistant.content:
+                            self._current_assistant.set_content(summary)
+                        # G3: se o balão existe mas o summary tem conteúdo além
+                        # do streamado (dados crus da tool), atualiza; se já é
+                        # subset, no-op (texto puro normal fica byte-idêntico).
+                        elif not self._is_subset(summary, streamed):
+                            self._current_assistant.set_content(summary)
+                    else:
+                        # G3 / turno tool-only: nenhum token de texto foi
+                        # streamado (_current_assistant is None), então o summary
+                        # final é o único lugar onde a resposta e os dados crus
+                        # da tool aparecem. Monta o balão do assistant agora.
+                        chat = self.query_one("#chat", VerticalScroll)
+                        chat.mount(ChatMessage("assistant", summary))
         except Exception as exc:  # noqa: BLE001 -- rede de seguranca deliberada
             # TUI-WORKER-CRASH-GUARD-01 (ADR-033): a infra absorve QUALQUER exceção
             # do turno (execução de tool, parsing, callback de UI, recovery) em vez
@@ -806,6 +841,17 @@ class NyxTUI(App):
             # turno N+1 nunca faça append no balão do turno N antes do próprio
             # lazy-mount disparar no 1o token.
             self._current_assistant = None
+
+    @staticmethod
+    def _is_subset(a: str, b: str) -> bool:
+        """True se `a` é essencialmente contida em `b` (ignora whitespace).
+
+        TUI-STATUS-SUMMARY-RENDER-01: porta a semântica de cli.py:456-462
+        byte-a-byte -- evita eco do summary quando ele já foi streamado.
+        """
+        ca = " ".join(a.split())
+        cb = " ".join(b.split())
+        return bool(ca) and bool(cb) and (ca in cb or cb in ca)
 
     def _start_thinking_indicator(self) -> None:
         """TUI-THINKING-LIVE-01: monta o indicador 'pensando... (Ns)' no chat e agenda
