@@ -33,9 +33,22 @@ sprint:
 
 ---
 
-# Sprint TUI-COPY-ASSISTANT-MARKDOWN-01 — copiar o código do assistant por seleção
+# Sprint TUI-COPY-ASSISTANT-MARKDOWN-01 (448) — copiar o código do assistant por seleção
 
-**Status:** PENDENTE
+**Status:** CONCLUIDA (2026-07-20)
+**Nota de colisão de ID:** o texto `TUI-COPY-ASSISTANT-MARKDOWN-01` já foi usado pela sprint
+**392** (2026-06-25, commit `13cc162`, arquivo irmão
+`concluidos/SPRINT_TUI_COPY_ASSISTANT_MARKDOWN_01.md`), que já entregava
+`ChatMessage.get_selection` devolvendo a fonte byte-fiel do bloco de código. A promoção
+2026-07-20 do débito da ONDA-47 reaproveitou o mesmo texto de ID sem notar que 392 já havia
+fechado a pendência original — encontrado via grep na execução (hipótese do planejador
+parcialmente refutada: `get_selection` já existia). Esta sprint (número mestre **448**, arquivo
+sufixado `_448` para não colidir) manteve o valor real ainda em aberto: a 392 sempre devolvia o
+bloco de código INTEIRO, qualquer que fosse o trecho arrastado; 448 refina para
+seleção PARCIAL byte-fiel (drag sobre 2 de 3 linhas do bloco devolve só essas 2 linhas), via
+`Strip.apply_offsets` no `render_line` do assistant (achado empírico: sem esse offset o
+compositor do Textual trata Group/Markdown como seleção "tudo ou nada" -- `get_selection` nunca
+recebe range parcial). Ver relatório do executor / commit para detalhe completo.
 **Data criação:** 2026-07-20 (promoção do débito registrado na ONDA-47 em 2026-06-25)
 **Origem:** achado anti-débito da 390 (TUI-COPY-SELECTION-01): o copy-on-select cobre os roles cujo render é `Text`/`Content`, mas o conteúdo do assistant já ASSENTADO renderiza como `Markdown` (`RichVisual`/`Group`), que `Widget.get_selection` não extrai — selecionar o código formatado da Nyx por drag retorna vazio. Era exatamente o "copiar o código" que o dono pediu; ficou em blockquote da ONDA-47 sem número, invisível ao gerador de fila. Esta spec materializa a pendência com ID.
 

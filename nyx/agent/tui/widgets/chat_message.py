@@ -21,6 +21,7 @@ from rich.markdown import Markdown
 from rich.text import Text
 from textual.app import RenderResult
 from textual.selection import Selection
+from textual.strip import Strip
 from textual.widgets import Static
 
 from nyx.themes.design_tokens import NYX_ACCENT, NYX_MUTED, NYX_PURPLE
@@ -214,6 +215,31 @@ class ChatMessage(Static):
             return Text(f"  {self._content}")
         return Text(self._content)  # system: sem prefixo
 
+    def render_line(self, y: int) -> Strip:
+        """Injeta metadado de offset (x, y) nas linhas do assistant assentado.
+
+        TUI-COPY-ASSISTANT-MARKDOWN-01 (448): achado empírico -- o compositor do
+        Textual (`_compositor.get_widget_and_offset_at`) só resolve um
+        `content_offset` (necessário para uma Selection PARCIAL, não
+        `Selection(None, None)`) quando os segmentos da linha carregam o
+        metadado `"offset"` no style; isso é aplicado automaticamente para
+        renders `Text`/`Content` (`textual/content.py`), mas NUNCA para um
+        Rich renderable genérico como `Group(label, Markdown(...))` --
+        confirmado varrendo toda a área do widget (nenhuma posição produz
+        offset). Sem esse metadado, QUALQUER drag sobre o balão do assistant
+        vira sempre `Selection(None, None)` (seleção "tudo ou nada"),
+        independente de quantas linhas o mouse cobriu -- get_selection nunca
+        recebe range algum para mapear. `Strip.apply_offsets(x, y)` é o mesmo
+        mecanismo de opt-in que o widget Log usa (único outro consumidor no
+        pacote) para ganhar seleção por posição em conteúdo não-Text. Aplicado
+        só quando assentado (Markdown) -- streaming é Text puro e já ganha
+        offset nativamente; demais roles idem.
+        """
+        strip = super().render_line(y)
+        if self._role == "assistant" and not self._streaming and self._content:
+            return strip.apply_offsets(0, y)
+        return strip
+
     def _copyable_source(self) -> str:
         """Texto-fonte BYTE-FIEL desta mensagem para copia.
 
@@ -224,11 +250,91 @@ class ChatMessage(Static):
         Markdown -- por isso e imune ao desalinhamento de offset (as linhas
         renderizadas do Markdown ganham padding de caixa e as cercas viram linhas
         em branco; mapear offset renderizado -> fonte copiaria o trecho ERRADO).
+        Usado como fallback: seleção cobrindo o widget inteiro, ou seleção que
+        não toca nenhuma linha de código mapeada de forma confiável (ver
+        _code_line_index).
         """
         blocks = _CODE_FENCE_RE.findall(self._content)
         if blocks:
             return "\n".join(b.rstrip("\n") for b in blocks)
         return self._content
+
+    def _row_matches_code_line(self, y: int, code_line: str) -> bool:
+        """A linha visual `y` (ja renderizada, self.render_line) e' esta linha-fonte?
+
+        TUI-COPY-ASSISTANT-MARKDOWN-01 (448): medido empiricamente que o Rich
+        Markdown aplica 1 espaco de padding de caixa a esquerda em cada linha de
+        codigo (fences viram linhas em branco tambem padded). Exige que o texto
+        renderizado (sem os espaços de preenchimento à direita) TERMINE com a
+        linha-fonte exata e que só sobre padding (espaços) antes dela -- byte-fiel
+        contra o `_content` cru, não contra o render.
+        """
+        row_text = self.render_line(y).text.rstrip()
+        if code_line == "":
+            return row_text == ""
+        if not row_text.endswith(code_line):
+            return False
+        pad = row_text[: len(row_text) - len(code_line)]
+        return pad == " " * len(pad)
+
+    def _find_code_block_start(
+        self, search_from: int, height: int, first_line: str
+    ) -> int | None:
+        """Acha a 1a linha visual (>= search_from) que bate com `first_line`."""
+        for y in range(search_from, height):
+            if self._row_matches_code_line(y, first_line):
+                return y
+        return None
+
+    def _code_line_index(self) -> dict[int, int]:
+        """Mapeia linha VISUAL (row do render assentado) -> indice da linha-fonte.
+
+        TUI-COPY-ASSISTANT-MARKDOWN-01 (448, refinamento sobre a 392): usa o
+        Strip REALMENTE renderizado (self.render_line -- a mesma fonte que o
+        Textual usa para pintar a tela e para as coordenadas y da Selection) para
+        cada bloco ``` do `_content`, byte-fiel. So mapeia um bloco quando TODAS
+        as suas linhas aparecem CONSECUTIVAS no render e cada uma bate exatamente
+        com a linha-fonte correspondente (via _row_matches_code_line); qualquer
+        desvio (wrap, bloco corrompido, linha sintética) deixa o bloco INTEIRO de
+        fora do índice -- excluído, nunca chutado, conforme a spec 448. Prosa e
+        cabeçalhos não entram neste índice (fora do escopo mínimo "fidelidade nos
+        blocos de código"); seleção que só toca essas linhas cai no fallback
+        _copyable_source().
+        """
+        index: dict[int, int] = {}
+        height = self.size.height
+        if height <= 0:
+            return index
+        search_from = 1  # linha 0 e' sempre o label ("NyxCode" [+ elapsed])
+        for match in _CODE_FENCE_RE.finditer(self._content):
+            body = match.group(1)
+            body_lines = body.split("\n")
+            if body_lines and body_lines[-1] == "":
+                body_lines = body_lines[:-1]
+            if not body_lines or body_lines[0] == "":
+                # bloco vazio ou começando em branco: ambíguo contra o padding
+                # de caixa (linha em branco também aparece na cerca) -- pula
+                # sem mapear, para não arriscar desalinhar os blocos seguintes.
+                continue
+            source_start = self._content.count("\n", 0, match.start(1))
+            start_y = self._find_code_block_start(
+                search_from, height, body_lines[0]
+            )
+            if start_y is None:
+                continue
+            reliable = True
+            for offset, line in enumerate(body_lines):
+                y = start_y + offset
+                if y >= height or not self._row_matches_code_line(y, line):
+                    reliable = False
+                    break
+            if reliable:
+                for offset in range(len(body_lines)):
+                    index[start_y + offset] = source_start + offset
+                search_from = start_y + len(body_lines)
+            else:
+                search_from = start_y + 1
+        return index
 
     def get_selection(self, selection: Selection) -> tuple[str, str] | None:
         """Sobrescreve a extração de seleção para o balão Markdown do assistant.
@@ -236,17 +342,47 @@ class ChatMessage(Static):
         TUI-COPY-ASSISTANT-MARKDOWN-01. O Widget.get_selection base so extrai
         renders Text/Content; o assistant renderiza Group(label, Markdown(...)),
         entao a base retorna None e o drag-select volta VAZIO -- era justamente
-        "copiar o codigo" que o dono queria. Aqui devolvemos a FONTE byte-fiel
-        (_copyable_source) em vez de tentar mapear o offset renderizado de volta
-        a fonte (mapeamento que desalinha e copia o trecho errado -- ver
-        _copyable_source). A `selection` (offsets em coords renderizadas) e
-        deliberadamente ignorada: não da pra confiar nela contra a fonte do
-        Markdown. Demais roles (user/tool/system) renderizam Text puro -> caem na
+        "copiar o codigo" que o dono queria.
+
+        Refinamento 448 sobre a 392: enquanto em streaming (render ainda é Text
+        plano, sem Markdown assentado) ou quando a seleção cobre o widget por
+        completo (`Selection(None, None)`), devolve a FONTE inteira via
+        _copyable_source (Caminho A, "seleção cobre o widget"). Já assentado e
+        com uma seleção parcial (linhas específicas), mapeia cada linha VISUAL
+        tocada de volta à sua linha-fonte via _code_line_index -- byte-fiel,
+        não o widget inteiro -- e IGNORA (exclui) qualquer linha sem
+        correspondência confiável (cabeçalho, prosa reformatada) em vez de
+        chutar. Se nenhuma linha da seleção mapear, cai no fallback
+        _copyable_source (nunca retorna vazio para conteúdo não-vazio).
+        Demais roles (user/tool/system) renderizam Text puro -> caem na
         implementacao base do Textual, preservando o copy-on-select da 390.
         """
-        if self._role == "assistant" and self._content:
+        if self._role != "assistant" or not self._content:
+            return super().get_selection(selection)
+        if self._streaming:
             return self._copyable_source(), "\n"
-        return super().get_selection(selection)
+        start, end = selection
+        if start is None and end is None:
+            return self._copyable_source(), "\n"
+        height = self.size.height
+        if height <= 0:
+            return self._copyable_source(), "\n"
+        start_y = 0 if start is None else start.y
+        end_y = height - 1 if end is None else end.y
+        start_y = max(0, min(height - 1, start_y))
+        end_y = max(0, min(height - 1, end_y))
+        if start_y > end_y:
+            start_y, end_y = end_y, start_y
+        index = self._code_line_index()
+        source_lines = self._content.splitlines()
+        mapped = [
+            source_lines[index[y]]
+            for y in range(start_y, end_y + 1)
+            if y in index
+        ]
+        if mapped:
+            return "\n".join(mapped), "\n"
+        return self._copyable_source(), "\n"
 
 
 __all__ = ["ChatMessage"]
