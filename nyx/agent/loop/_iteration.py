@@ -772,7 +772,13 @@ class _IterationMixin:
             self._diagnostics.record_warning("tool", f"{tool_name}: {result.error[:120]}")
 
         if self._on_tool_result:
-            self._on_tool_result(tool_name, result.output if result.success else result.error)
+            # TUI-ASK-USER-PLUMBING-01 (fix Leva D): idem call site nativo.
+            # O callback da TUI virou async na 429; sem await aqui o coroutine e
+            # descartado e o tool-result NUNCA renderiza no parser fallback -- o
+            # caminho de PRODUCAO (0/81 nativo, bake-off 442). Sync (REPL) -> None.
+            maybe = self._on_tool_result(tool_name, result.output if result.success else result.error)
+            if inspect.isawaitable(maybe):
+                await maybe
 
         self._session.add_tool_call(
             tool_name,
