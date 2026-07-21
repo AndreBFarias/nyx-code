@@ -1046,8 +1046,14 @@ class NyxTUI(App):
         """
         self.query_one("#toolbar", Toolbar).model_state = state
 
-    def _on_agent_tool_result(self, name: str, result: Any = "") -> None:
-        """Callback patcheado em agent._on_tool_result.
+    async def _on_agent_tool_result(self, name: str, result: Any = "") -> None:
+        """Callback patcheado em agent._on_tool_result (agora ASYNC).
+
+        TUI-ASK-USER-PLUMBING-01: intercepta ask_user (payload kind==question)
+        e abre um modal (SelectScreen se ha options, PromptScreen se texto
+        livre), injetando a resposta na sessão -- espelha cli_callbacks.py:88-
+        112. O loop aguarda este callback (isawaitable, _iteration.py). O
+        caminho não-ask_user segue INTACTO abaixo.
 
         TUI-INTERNALS-LEAK-01 (V09): saneia o resultado antes de exibir --
         remove os hints de controle (' ...chame done()', '[N linhas lidas...]')
@@ -1055,6 +1061,11 @@ class NyxTUI(App):
         tool segue visivel (ADR-024/026). Os mesmos regex do guard de saida do
         loop (_core.py) sao reusados -- fonte unica.
         """
+        if name == "ask_user":
+            payload = self._parse_ask_user_payload(result)
+            if payload is not None:
+                await self._handle_ask_user(payload)
+                return
         text = "" if result is None else str(result)
         text = strip_system_reminder(text)
         text = _DONE_HINT_RE.sub("", text)
@@ -1064,6 +1075,46 @@ class NyxTUI(App):
             text = text[:600] + " [...]"
         chat = self.query_one("#chat", VerticalScroll)
         chat.mount(ChatMessage("tool", f"-> {name}: {text}" if text else f"-> {name}"))
+        self._follow_end(chat)
+
+    @staticmethod
+    def _parse_ask_user_payload(result: Any) -> dict | None:
+        """Desserializa o JSON do ask_user; None se não for question."""
+        import json
+
+        if not isinstance(result, str) or not result.startswith("{"):
+            return None
+        try:
+            payload = json.loads(result)
+        except json.JSONDecodeError:
+            return None
+        return payload if payload.get("kind") == "question" else None
+
+    async def _handle_ask_user(self, payload: dict) -> None:
+        """Abre o modal do ask_user e injeta '[resposta] ...' na sessão.
+
+        options presentes -> SelectScreen; texto livre -> PromptScreen.
+        ESC/cancelar (None) não injeta nada (paridade cli_callbacks:88-112).
+        """
+        question = str(payload.get("question", "")).strip()
+        options = payload.get("options", []) or []
+        chat = self.query_one("#chat", VerticalScroll)
+
+        if options:
+            from nyx.agent.tui.screens.select_screen import SelectScreen
+
+            choices = [(o.get("label", ""), o.get("label", "")) for o in options if o.get("label")]
+            answer = await self.push_screen_wait(SelectScreen(question, choices))
+        else:
+            from nyx.agent.tui.screens.prompt_screen import PromptScreen
+
+            answer = await self.push_screen_wait(PromptScreen(question))
+
+        if answer and self._agent is not None:
+            self._agent.session.add_user(f"[resposta] {answer}")
+            chat.mount(ChatMessage("tool", f"resposta: {answer}"))
+        else:
+            chat.mount(ChatMessage("tool", "pergunta cancelada"))
         self._follow_end(chat)
 
     async def action_quit(self) -> None:

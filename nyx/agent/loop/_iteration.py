@@ -554,7 +554,16 @@ class _IterationMixin:
                 self._diagnostics.record_warning("tool", f"{name}: {result.error[:120]}")
 
             if self._on_tool_result:
-                self._on_tool_result(name, result.output if result.success else result.error)
+                # TUI-ASK-USER-PLUMBING-01: suporta callback ASYNC (espelha
+                # _on_permission, ~465-471). A TUI abre um modal e ESPERA a
+                # resposta (push_screen_wait, async) no caso ask_user. Callback
+                # sync (REPL/headless) retorna None -- isawaitable(None) == False,
+                # entao o caminho sync segue byte-identico.
+                maybe = self._on_tool_result(
+                    name, result.output if result.success else result.error
+                )
+                if inspect.isawaitable(maybe):
+                    await maybe
 
             self._session.add_tool_call(
                 name,
