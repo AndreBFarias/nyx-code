@@ -417,6 +417,28 @@ class NyxTUI(App):
         ):
             self._dispatch_slash(text)
             return
+        # TUI-INPUT-NO-SILENT-CANCEL-01: se já há um turno em curso, não despachar
+        # um novo worker. O run_worker(exclusive=True) do Textual CANCELA o turno
+        # em andamento (não enfileira -- ver worker_manager.py 8.2.7), matando-o em
+        # silêncio no meio do await, deixando tool órfã e apagando o indicador. Na
+        # pior máquina (turno de 60s+) o leigo impaciente teclava Enter e perdia a
+        # resposta sem aviso. Bloqueamos com feedback honesto (ADR-034) e
+        # preservamos o texto digitado; /cancel segue sendo a via de interrupção.
+        toolbar = self.query_one("#toolbar", Toolbar)
+        if toolbar.inflight:
+            chat = self.query_one("#chat", VerticalScroll)
+            chat.mount(
+                ChatMessage(
+                    "system",
+                    "Há um turno em andamento. Aguarde a resposta ou use "
+                    "/cancel para interromper.",
+                )
+            )
+            chat.scroll_end(animate=False)
+            # O clear() do InputWidget (input.py:182) roda DEPOIS deste callback;
+            # reinserir o texto após o refresh para o leigo poder reenviar.
+            self.call_after_refresh(self._restore_blocked_input, text)
+            return
         self._last_input = text
         # TUI-INPUT-HISTORY-NAV-01: alimenta o histórico navegável no mesmo
         # ponto (ramo não-slash) onde `_last_input` é setado, garantindo que
@@ -456,14 +478,24 @@ class NyxTUI(App):
         # closed" no 2o turno e no shutdown. Rodando no loop do Textual, o
         # client vive no mesmo loop o tempo todo. A tool execution bloqueante
         # sai do loop via asyncio.to_thread dentro do AgentLoop.
-        # exclusive=True mantem 1 turno por vez (fila implicita).
         # TUI-WORKER-CRASH-GUARD-01 (ADR-033): exit_on_error=False -- a infra
         # absorve a exceção dentro de _process_turn (except abaixo) em vez de deixar
         # o Textual chamar _handle_exception e DERRUBAR a TUI (default é True).
-        # exclusive=True mantem 1 turno por vez (fila implicita).
+        # exclusive=True é defesa-em-profundidade: no Textual 8.2.7 ele CANCELA
+        # os workers do grupo (não enfileira). Quem garante 1 turno por vez é o
+        # guard de toolbar.inflight no topo deste método (TUI-INPUT-NO-SILENT-
+        # CANCEL-01); a interrupção deliberada de um turno é via /cancel.
         self.run_worker(
             self._process_turn(text), exclusive=True, exit_on_error=False
         )
+
+    def _restore_blocked_input(self, text: str) -> None:
+        """TUI-INPUT-NO-SILENT-CANCEL-01: devolve ao InputWidget o texto de um
+        submit bloqueado por turno em curso (o clear() do widget roda depois do
+        callback de submit), para o usuário não perder o que digitou."""
+        widget = self.query_one("#input", InputWidget)
+        widget.load_text(text)
+        widget.focus()
 
     def _dispatch_slash(self, text: str) -> None:
         """Roteia slash command via handle_command e trata sentinels.
