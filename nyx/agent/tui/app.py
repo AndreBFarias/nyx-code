@@ -136,6 +136,13 @@ class NyxTUI(App):
     BINDINGS = [
         Binding("ctrl+q", "quit", "Quit", priority=True),
         Binding("ctrl+d", "quit_if_empty", "Quit (EOF)", priority=True),
+        # TUI-CANCEL-BINDING-REAL-01: Ctrl+C cancela o turno em curso -- honra a
+        # promessa anunciada na toolbar ("executando (Ctrl+C cancela)") e no
+        # /cancel. priority=True é OBRIGATÓRIO: o InputWidget(TextArea) focado
+        # remapeia ctrl+c para "copy" no Textual 8.2.7, e o default do framework
+        # (help_quit) mostra um toast em INGLÊS sobre sair do app -- sobrepomos
+        # ambos. Ctrl+Y segue como o atalho de copiar bloco de código.
+        Binding("ctrl+c", "cancel_turn", "Cancelar turno", priority=True),
         Binding("shift+tab", "cycle_mode", "Trocar modo", priority=True),
         Binding("ctrl+v", "paste", "Colar", priority=True),
         Binding("ctrl+o", "recall_last", "Recall último input", priority=True),
@@ -645,17 +652,7 @@ class NyxTUI(App):
         # worker(s) ativo(s). Sem isso o marcador vazava cru e o /cancel era
         # no-op na TUI.
         if result == "__cancel_inflight__":
-            ativos = [w for w in self.workers if w.is_running]
-            if ativos:
-                self.workers.cancel_all()
-                texto = "cancel sinalizado (turno em curso interrompido)"
-            else:
-                texto = (
-                    "/cancel: nenhum turno em curso. "
-                    "Use Ctrl+C durante a execução para interromper."
-                )
-            chat.mount(ChatMessage("system", texto))
-            chat.scroll_end(animate=False)
+            self._cancel_inflight_turn(chat)
             return
         # TUI-SENTINEL-DISPATCH-UNIFY-01: render unificado dos demais sentinels
         # (status/usage/trace/context/files/schema/aesthetic/output-style/
@@ -687,6 +684,28 @@ class NyxTUI(App):
             return
         # Retornos de texto comum viram ChatMessage tool.
         chat.mount(ChatMessage("tool", str(result)))
+        chat.scroll_end(animate=False)
+
+    def _cancel_inflight_turn(self, chat: VerticalScroll) -> None:
+        """Cancela o turno em curso (workers.cancel_all) e confirma na conversa.
+
+        TUI-CANCEL-BINDING-REAL-01: fonte única de verdade do cancelamento,
+        reusada pelo sentinel /cancel (__cancel_inflight__) e pelo atalho
+        Ctrl+C (action_cancel_turn). Sem turno em curso, exibe a mesma
+        mensagem amigável do /cancel. O mecanismo segue idêntico ao anterior:
+        na TUI o turno roda como worker (run_worker exclusive=True), então
+        cancelamos o(s) worker(s) ativo(s).
+        """
+        ativos = [w for w in self.workers if w.is_running]
+        if ativos:
+            self.workers.cancel_all()
+            texto = "cancel sinalizado (turno em curso interrompido)"
+        else:
+            texto = (
+                "/cancel: nenhum turno em curso. "
+                "Use Ctrl+C durante a execução para interromper."
+            )
+        chat.mount(ChatMessage("system", texto))
         chat.scroll_end(animate=False)
 
     async def _dispatch_mcp(self, result: str) -> None:
@@ -1064,6 +1083,16 @@ class NyxTUI(App):
             self.exit(result="__quit__")
         else:
             input_widget.action_delete_right()
+
+    async def action_cancel_turn(self) -> None:
+        """Ctrl+C: cancela o turno em curso (paridade com /cancel).
+
+        TUI-CANCEL-BINDING-REAL-01. Sobrepõe o help_quit default do Textual
+        (toast em inglês). Reusa _cancel_inflight_turn -- fonte única com o
+        sentinel __cancel_inflight__.
+        """
+        chat = self.query_one("#chat", VerticalScroll)
+        self._cancel_inflight_turn(chat)
 
     async def action_cycle_mode(self) -> None:
         """Shift+Tab: cicla normal -> plan -> sudo -> bypass -> normal.
