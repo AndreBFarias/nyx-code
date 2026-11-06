@@ -1624,6 +1624,20 @@ class NyxGauntlet:
         import shutil
         import subprocess
 
+        # Pull sem Ollama dedicado grava em ~/.ollama ou aborta antes do atalho.
+        install_sh = (PROJECT_ROOT / "install.sh").read_text(encoding="utf-8")
+        pos_pasta = install_sh.find('export OLLAMA_MODELS="$SCRIPT_DIR/models"')
+        pos_serve = install_sh.find("ollama serve >")
+        pos_pull = install_sh.find('ollama pull "$DEFAULT_MODEL"')
+        self._add(
+            "D-03",
+            "install.sh sobe Ollama dedicado antes dos pulls",
+            "install",
+            0 <= pos_pasta < pos_serve < pos_pull,
+            0,
+            details=f"pasta={pos_pasta} serve={pos_serve} pull={pos_pull}",
+        )
+
         if shutil.which("docker") is None:
             self._add(
                 "D-01",

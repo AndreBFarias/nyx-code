@@ -253,6 +253,22 @@ else
     fi
 fi
 
+# Os pulls falam com o Ollama dedicado do Nyx (mesma pasta e porta do run.sh).
+# Sem isto o pull grava em ~/.ollama, ou aborta (set -e) sem daemon, antes do
+# atalho da FASE 12.
+export OLLAMA_MODELS="$SCRIPT_DIR/models"
+export OLLAMA_HOST="${NYX_OLLAMA_HOST:-127.0.0.1}:${NYX_OLLAMA_PORT:-11435}"
+if [ "${NYX_INSTALL_SKIP_PULL:-0}" != "1" ] && [ $DRY_RUN -eq 0 ] && have_cmd ollama \
+    && ! ollama list >/dev/null 2>&1; then
+    nohup ollama serve >/dev/null 2>&1 &
+    OLLAMA_INSTALL_PID=$!
+    trap 'kill "$OLLAMA_INSTALL_PID" 2>/dev/null || true' EXIT
+    for _ in {1..30}; do
+        ollama list >/dev/null 2>&1 && break
+        sleep 1
+    done
+fi
+
 # ===========================================================
 # FASE 5 -- modelo padrão
 # ===========================================================
